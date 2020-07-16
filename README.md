@@ -30,7 +30,19 @@ type GenericSampler struct {
 }
 ```
 
-Now create the required methods. First a `New()` method that the main program will call to
+Now create the required mandatory methods. There are three and they must
+meet this interface (from the samplers package):
+
+```go
+type SamplerInstance interface {
+	New(plugins.Connection, string, string) *SamplerInstance
+	InitSampler(*SamplerInstance) (err error)
+	DoSample(*SamplerInstance) (err error)
+}
+```
+
+
+First a `New()` method that the main program will call to
 create an instance of the plugin - the sampler - does some housek:
 
 ```go
@@ -67,6 +79,13 @@ func (g *GenericSampler) InitSampler() error {
     g.localdata = example
 
 ```
+
+It is worth noting at this point that the `InitSampler()` being called only once means
+that if there is any change in the Geneos configuration there is no way for the running
+program to notice. The XML-RPC API is stateless (we'll ignore the heartbeat functions
+for now) and these plugins may not notice a Netprobe or related restart. So, the `Parameter()`
+call above is only an example and should probably be refreshed using a timer, but not
+every sample most likely.   
 
 The second part is required to initialise the helper methods which we'll used see below:
 
@@ -142,7 +161,7 @@ The tag is _column_ and the comma seperated tag values currently supported are:
 * "name" - any value without an "=" is treated as a display name for the column
 created from this field. The special name "OMIT" means that the fields should
 not create a column, but the data will still be avilable for calculations etc.
-* "format" - the _format_ tag is a Printf style fiormat string used to render the
+* "format" - the _format_ tag is a `Printf` style format string used to render the
 value of the cell in the most appropriate way for the data
 * "sort" - the _sort_ tag defines which one field - and only one field can be
 selected - should be used to sort the resulting rows in the _Map_ rendering methods.
@@ -163,3 +182,49 @@ The `UpdateTableFromSlice()` shown in the _generic_ example assumes that the sli
 passed in the order required. Maps on the other hand have no defined order and the package
 allows you to define the natural sort order. This can of course be overridden by the user
 of the Geneos Active Console.
+
+## Initialise and start-up
+
+To use your new plugin in a program, use it like this:
+
+```go
+package main
+
+import (
+...
+	"wonderland.org/geneos/plugins"
+	"wonderland.org/geneos/streams"
+
+	"example/generic"
+)
+```
+
+Do normal start-up configuration, process command line args etc. and then initialise the
+`Sampler` connection like this: 
+
+```go
+func main() {
+...
+
+	// connect to netprobe
+	s, err := plugins.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, samplername)
+	if err != nil {
+		log.Fatal(err)
+	}
+```
+
+Once you have your _sampler_ connection call the `New()` method with _dataview_ and _group_ names.
+The _group_ can be an empty string. Set the _interval_ as a Go `time.Duration` value. The default (and
+minimum) is one second. Finally `Start()` the sampler by passing a `sync.WaitGroup` that you can
+later `Wait()` on so the program doesn't exit while the sampler runs.
+
+```go
+	g, err := generic.New(s, "example", "SYSTEM")
+	defer g.Close()
+	g.SetInterval(interval)
+	g.Start(&wg)
+
+	wg.Wait()
+}
+
+```
