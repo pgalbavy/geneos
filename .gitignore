@@ -1,0 +1,4 @@
+*.exe
+go.sum
+geneos/example/example
+
