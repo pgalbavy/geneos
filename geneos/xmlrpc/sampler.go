@@ -19,6 +19,8 @@ func (s Sampler) ToString() string {
 }
 
 func (s *Sampler) IsValid() bool {
+	DebugLogger.Print("called")
+
 	res, err := s.samplerExists(s.EntityName(), s.SamplerName())
 	if err != nil {
 		return false
@@ -44,6 +46,8 @@ func (s Sampler) SamplerName() string {
 // Parameter - Get a parameter from the Geneos sampler config as a string
 // It would not be difficult to add numberic and other type getters
 func (s Sampler) Parameter(name string) (string, error) {
+	DebugLogger.Print("called")
+
 	if !s.IsValid() {
 		err := fmt.Errorf("Parameter(): sampler doesn't exist")
 		return "", err
@@ -90,18 +94,15 @@ The underlying API appears to accept incomplete data so you can just send a row
 of column names followed by each row only contains the first N columns each.
 */
 func (s Sampler) NewDataview(dataviewName string, groupName string, args ...[]string) (d *Dataview, err error) {
+	DebugLogger.Print("called")
 	if !s.IsValid() {
 		err = fmt.Errorf("NewDataview(): sampler doesn't exist")
 		ErrorLogger.Print(err)
 		return
 	}
 
-	if s.IsValid() {
-		err = s.removeView(s.EntityName(), s.SamplerName(), dataviewName, groupName)
-		if err != nil {
-			//ErrorLogger.Fatal(err)
-		}
-	}
+	// try to remove it - failure shouldn't matter
+	_ = s.removeView(s.EntityName(), s.SamplerName(), dataviewName, groupName)
 
 	d, err = s.CreateDataview(dataviewName, groupName)
 	if err != nil {
@@ -119,6 +120,7 @@ func (s Sampler) NewDataview(dataviewName string, groupName string, args ...[]st
 // CreateDataview creates a new dataview struct and calls the API to create one on the
 // Netprobe. It does NOT check for an existing dataview or remove it if one exists
 func (s Sampler) CreateDataview(dataviewName string, groupName string) (d *Dataview, err error) {
+	DebugLogger.Print("called")
 	d = &Dataview{s, groupName + "-" + dataviewName}
 	err = d.createView(s.EntityName(), s.SamplerName(), dataviewName, groupName)
 	return

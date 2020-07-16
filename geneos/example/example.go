@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"wonderland.org/geneos/streams"
 	"wonderland.org/geneos/plugins"
+	"wonderland.org/geneos/streams"
 
 	"example/cpu"
 	"example/generic"
@@ -16,12 +16,16 @@ import (
 	"example/process"
 )
 
+func init() {
+	// geneos.EnableDebugLog()
+}
+
 func main() {
 	var wg sync.WaitGroup
 	var interval time.Duration
 	var (
-		hostname string
-		port     uint
+		hostname                string
+		port                    uint
 		entityname, samplername string
 	)
 
@@ -84,7 +88,7 @@ func main() {
 		defer tick.Stop()
 		for {
 			<-tick.C
-			err := sp.WriteMessage("teststream", time.Now().String() + " this is a test")
+			err := sp.WriteMessage("teststream", time.Now().String()+" this is a test")
 			if err != nil {
 				log.Fatal(err)
 				break

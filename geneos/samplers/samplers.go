@@ -9,8 +9,15 @@ import (
 	"sync"
 	"time"
 
+	"wonderland.org/geneos"
 	"wonderland.org/geneos/plugins"
 	"wonderland.org/geneos/xmlrpc"
+)
+
+var (
+	Logger      = geneos.Logger
+	DebugLogger = geneos.DebugLogger
+	ErrorLogger = geneos.ErrorLogger
 )
 
 type SamplerInstance interface {
@@ -175,7 +182,6 @@ func (s *Samplers) Close() error {
 
 // the methods below are helpers for common cases of needing to render a struct of data as
 // a row etc.
-
 
 /*
 ColumnInfo is a helper function that takes a (flat) struct as input

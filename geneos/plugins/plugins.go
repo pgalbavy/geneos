@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"wonderland.org/geneos"
 	"wonderland.org/geneos/xmlrpc"
 )
 
@@ -26,10 +27,17 @@ type Connection struct {
 	xmlrpc.Sampler
 }
 
+var (
+	Logger      = geneos.Logger
+	DebugLogger = geneos.DebugLogger
+	ErrorLogger = geneos.ErrorLogger
+)
+
 // wrap calls to xmlrpc
 func Sampler(url string, entityName string, samplerName string) (s Connection, err error) {
+	DebugLogger.Printf("testing")
+
 	sampler, err := xmlrpc.NewClient(url, entityName, samplerName)
 	s = Connection{sampler}
 	return
 }
-
