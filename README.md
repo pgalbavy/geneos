@@ -30,7 +30,7 @@ type GenericSampler struct {
 }
 ```
 
-Now create the required methods. First a New() method that the main program will call to
+Now create the required methods. First a `New()` method that the main program will call to
 create an instance of the plugin - the sampler - does some housek:
 
 ```go
@@ -54,7 +54,7 @@ func New(s plugins.Connection, name string, group string) (*GenericSampler, erro
 
 ```
 
-The next method is InitSampler() which is called once upon start-up of the sampler instance.
+The next method is `InitSampler()` which is called once upon start-up of the sampler instance.
 The first part of this example locates a parameter in the Geneos configurationa and assigns
 is to the local data struct.
 
@@ -80,7 +80,7 @@ The second part is required to initialise the helper methods which we'll used se
 }
 ```
 
-The final mandatory method is DoSample() which is called to update the data:
+The final mandatory method is `DoSample()` which is called to update the data:
 
 ```go
 func (p *GenericSampler) DoSample() error {
@@ -94,7 +94,7 @@ func (p *GenericSampler) DoSample() error {
 }
 ```
 
-The call to UpdateTableFromSlice() uses the column data initialised earlier to
+The call to `UpdateTableFromSlice()` uses the column data initialised earlier to
 ensure the dataview is rendered correctly.
 
 ## More features
@@ -149,3 +149,17 @@ selected - should be used to sort the resulting rows in the _Map_ rendering meth
 The valid values are an option leading + or - representing ascending or descending
 order and the option suffix "num" to indicate a numeric sort. "sort=" means to
 sort ascending in lexographical order, which is the same as "sort=+"
+
+The _sort_ tag only applies to those dataviews populated from maps like this call
+below:
+
+```go
+func (p *CPUSampler) DoSample() (err error) {
+...
+		err = p.UpdateTableFromMapDelta(stat.cpus, laststats.cpus, time.Duration(interval)*10*time.Millisecond)
+```
+
+The `UpdateTableFromSlice()` shown in the _generic_ example assumes that the slice has been
+passed in the order required. Maps on the other hand have no defined order and the package
+allows you to define the natural sort order. This can of course be overridden by the user
+of the Geneos Active Console.
