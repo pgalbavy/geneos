@@ -3,7 +3,7 @@
 
 ## Create a basic plugin
 
-First, import the basic Geneos packages
+First, import the necessary packages
 
 ```go
 package generic
@@ -43,15 +43,15 @@ func New(s plugins.Connection, name string, group string) (*GenericSampler, erro
 }
 ```
 
-You can also use the more compact form:
+You can also use the more compact form, replacing the verbose multiline initiaser
+with a literal but this may become harder to read as the number of local data
+items are added to the plugin struct:
 
 ```go
 func New(s plugins.Connection, name string, group string) (*GenericSampler, error) {
 	c := &GenericSampler{&samplers.Samplers{}, ""}
 	c.Plugins = c
-	c.SetName(name, group)
-	return c, c.InitDataviews(s)
-}
+
 ```
 
 The next method is InitSampler() which is called once upon start-up of the sampler instance.
@@ -65,13 +65,13 @@ func (g *GenericSampler) InitSampler() error {
 		return nil
 	}
     g.localdata = example
-    ...
+
 ```
 
 The second part is required to initialise the helper methods which we'll used see below:
 
 ```go
-    ...
+
 	columns, columnnames, sortcol, err := g.ColumnInfo(GenericData{})
 	g.SetColumns(columns)
 	g.SetColumnNames(columnnames)
@@ -96,3 +96,56 @@ func (p *GenericSampler) DoSample() error {
 
 The call to UpdateTableFromSlice() uses the column data initialised earlier to
 ensure the dataview is rendered correctly.
+
+## More features
+
+You can use tags to control the rendering of the data, like this example of a
+CPU plugin for Windows:
+
+```go
+// +build windows
+package cpu
+
+import (
+	"log"
+	"time"
+
+	"github.com/StackExchange/wmi"
+	"wonderland.org/geneos/samplers"
+)
+
+// Win32_PerfRawData_PerfOS_Processor must be exported along with all it's
+// fields so that methods in plugins package can output the results
+type Win32_PerfRawData_PerfOS_Processor struct {
+	Name                  string `column:"cpuName"`
+	PercentUserTime       uint64 `column:"% User Time,format=%.2f %%"`
+	PercentPrivilegedTime uint64 `column:"% Priv Time,format=%.2f %%"`
+	PercentIdleTime       uint64 `column:"% Idle Time,format=%.2f %%"`
+	PercentProcessorTime  uint64 `column:"% Proc Time,format=%.2f %%"`
+	PercentInterruptTime  uint64 `column:"% Intr Time,format=%.2f %%"`
+	PercentDPCTime        uint64 `column:"% DPC Time,format=%.2f %%"`
+	Timestamp_PerfTime    uint64 `column:"OMIT"`
+	Frequency_PerfTime    uint64 `column:"OMIT"`
+}
+
+// one entry for each CPU row in /proc/stats
+type cpustat struct {
+	cpus       map[string]Win32_PerfRawData_PerfOS_Processor
+	lastsample float64
+	frequency  float64
+}
+
+```
+
+The tag is _column_ and the comma seperated tag values currently supported are:
+
+* "name" - any value without an "=" is treated as a display name for the column
+created from this field. The special name "OMIT" means that the fields should
+not create a column, but the data will still be avilable for calculations etc.
+* "format" - the _format_ tag is a Printf style fiormat string used to render the
+value of the cell in the most appropriate way for the data
+* "sort" - the _sort_ tag defines which one field - and only one field can be
+selected - should be used to sort the resulting rows in the _Map_ rendering methods.
+The valid values are an option leading + or - representing ascending or descending
+order and the option suffix "num" to indicate a numeric sort. "sort=" means to
+sort ascending in lexographical order, which is the same as "sort=+"
