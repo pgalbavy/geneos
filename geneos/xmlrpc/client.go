@@ -1,6 +1,7 @@
 package xmlrpc // import "wonderland.org/geneos/xmlrpc"
 
 import (
+	"crypto/tls"
 	"net/http"
 )
 
@@ -49,6 +50,13 @@ The normal format is http[s]://host:port/xmlrpc
 */
 func (c *Client) SetURL(url string) {
 	c.url = url
+}
+
+func (c *Client) AllowUnverifiedCertificates() {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c.Client = http.Client{Transport: tr}
 }
 
 /*

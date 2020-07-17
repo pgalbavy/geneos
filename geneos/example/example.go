@@ -41,11 +41,12 @@ func main() {
 	}
 
 	// connect to netprobe
-	url := fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port)
+	url := fmt.Sprintf("https://%s:%v/xmlrpc", hostname, port)
 	p, err := plugins.Sampler(url, entityname, samplername)
 	if err != nil {
 		log.Fatal(err)
 	}
+	p.AllowUnverifiedCertificates()
 
 	m, err := memory.New(p, "memory", "SYSTEM")
 	defer m.Close()
@@ -80,10 +81,12 @@ func main() {
 	powerwall.Start(&wg)
 
 	streamssampler := "streams"
-	sp, err := streams.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, streamssampler)
+	sp, err := streams.Sampler(fmt.Sprintf("https://%s:%v/xmlrpc", hostname, port), entityname, streamssampler)
 	if err != nil {
 		log.Fatal(err)
 	}
+	sp.AllowUnverifiedCertificates()
+
 	wg.Add(1)
 	sp.SetStreamName("teststream")
 	go func() {
