@@ -2,17 +2,21 @@
 
 This set of packages provides a wrapper around low-level XML-RPC calls to send data to a Geneos Netprobe.
 
+The code is still very much in the early stages of development and the API may change at any time. Feedback, via Issues, and Pull requests are welcome but without any guarentees if I'll have time to do them.
+
+The package import path is rooted at vanity URL `wonderland.org/geneos` which resolves to the [geneos](geneos) package subdirectory of this repo.
+
 The documentation for the underlying API is here:
 
 https://docs.itrsgroup.com/docs/geneos/current/Netprobe/api/xml-rpc-api.html
 
-While direct mappings from golang to the API are available in the _xmlrpc_ package most users will want to look at the higher-level _samplers_ and _streams_ packages that try to implement easier to use high-level tool.
+While direct mappings from golang to the API are available in the [xmlrpc](geneos/xmlrpc) package most users will want to look at the higher-level [samplers](geneos/samplers) and [streams](geneos/streams) packages that try to implement an easier to use high-level interface.
 
 ## Examples of use
 
-The _examples_ package directory contains a number of simple implmentations of common plugin types that show how to use the different types of data update methods.
+The [example](geneos/example) package directory contains a number of simple implmentations of common plugin types that show how to use the different types of data update methods.
 
-The _examples/generic_ directory is described in further detail below. It uses this method to deliver updates:
+The [example/generic](geneos/example/geneic) directory is described in further detail below. It uses this method to deliver updates:
 
 ```go
 func (s Samplers) UpdateTableFromSlice(rowdata interface{}) error
@@ -136,7 +140,7 @@ The call to `UpdateTableFromSlice()` uses the column data initialised earlier to
 
 ## More features
 
-You can use tags to control the rendering of the data, like this example of a CPU plugin for Windows:
+You can use tags to control the rendering of the data, like this example of a [CPU plugin for Windows](geneos/example/cpu/cpu_windows.go):
 
 ```go
 // +build windows
@@ -175,9 +179,9 @@ type cpustat struct {
 
 The tag is _column_ and the comma seperated tag values currently supported are:
 
-* "name" - any value without an "=" is treated as a display name for the column created from this field. The special name "OMIT" means that the fields should not create a column, but the data will still be avilable for calculations etc.
-* "format" - the _format_ tag is a `Printf` style format string used to render the value of the cell in the most appropriate way for the data
-* "sort" - the _sort_ tag defines which one field - and only one field can be selected - should be used to sort the resulting rows in the _Map_ rendering methods. The valid values are an option leading + or - representing ascending or descending order and the option suffix "num" to indicate a numeric sort. "sort=" means to sort ascending in lexographical order, which is the same as "sort=+"
+* `name` - any value without an "=" is treated as a display name for the column created from this field. The special name "OMIT" means that the fields should not create a column, but the data will still be avilable for calculations etc. Any normal ASCII characters are permitted except a comma. No validation is done and the string is passed to the Netprobe as-is.
+* `format=FORMAT` - FORMAT is a `Printf` style format string used to render the value of the cell in the most appropriate way for the data
+* `sort=[+|-][num]` - the _sort_ tag defines which field - and only one field can be selected - should be used to sort the resulting rows published via the _Map_ rendering methods. The valid values are an option leading + or - representing ascending or descending order and the option suffix "num" to indicate a numeric sort. "sort=" means to sort ascending in lexographical order, which is the same as "sort=+"
 
 The _sort_ tag only applies to those dataviews populated from maps like this call below:
 
@@ -257,13 +261,13 @@ var (
 
 Then all of the normal _log_ package methods will work.
 
-The `DebugLogger` is turned off by default and can be enabled using `geneos.EnableDebugLog()` and then disabled again using `geneos.DisableDebugLog()`. As the Loggers are copies of the built-in ones the Enabled/Disabled is per package.
+The `DebugLogger` is turned off by default and can be enabled using `geneos.EnableDebugLog()` and then disabled again using `geneos.DisableDebugLog()`. As Loggers are copies of the ones in the _geneos_ package the DebugLogger can be enabled or disabled per package. 
 
 For this reason you may want to provide exported package methods to turn debug logging on and off from the calling program.
 
 ## Streams
 
-Basic support for _streams_ are included. Streams must be predefined in the Geneos configuration and sending messages to a non-existent stream name results in an error.
+Basic support for [streams](geneos/streams) are included. Streams must be predefined in the Geneos configuration and sending messages to a non-existent stream name results in an error.
 
 ```go
 import (
@@ -287,7 +291,9 @@ func main() {
 	}
 ```
 
-For convenience the _streams_ package also acts as an _io.Writer_ and _io.StringWriter_ and so will respond to normal Go `Write()` and `WriteString()` calls. You must however call `SetStreamName()` first. There is no validation of data content or length. So, instead of the above you can also do:
+For convenience the _streams_ package also acts as an _io.Writer_ and _io.StringWriter_ and so will respond to normal Go `Write()` and `WriteString()` calls. You must however call `SetStreamName()` before trying to write messages this way. There is no validation of data content or length.
+
+So, instead of the above you can also do:
 
 ```go
 	sp.SetStreamName("teststream")
