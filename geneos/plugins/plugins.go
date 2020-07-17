@@ -35,8 +35,7 @@ var (
 
 // wrap calls to xmlrpc
 func Sampler(url string, entityName string, samplerName string) (s Connection, err error) {
-	DebugLogger.Printf("testing")
-
+	DebugLogger.Printf("called")
 	sampler, err := xmlrpc.NewClient(url, entityName, samplerName)
 	s = Connection{sampler}
 	return

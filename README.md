@@ -236,13 +236,17 @@ Once you have your _sampler_ connection call the `New()` method with _dataview_ 
 
 ## Logging
 
-There is a basic logging interface to allow for common logging formats for any plugins and other data. To use this you have to import the top-level _geneos_ package and then, for simplicity, make local copies of the Loggers, like this:
+There is a basic logging interface to allow for common logging formats for any plugins. To use import the top-level _geneos_ package and then make local copies of the Loggers, like this:
 
 ```go
 import (
 ...
 	"wonderland.org/geneos"
 )
+
+func init() {
+	geneos.EnableDebugLog()
+}
 
 var (
 	Logger      = geneos.Logger
@@ -251,9 +255,11 @@ var (
 )
 ```
 
-Then all of the normal logging methods will work.
+Then all of the normal _log_ package methods will work.
 
-The `DebugLogger` is turned off by default and can be enabled using `geneos.EnableDebugLog()` and then disabled again using `geneos.DisableDebugLog()`. It should be noted that these calls will enable and disable debug logging globally for the whole process including other running samplers.
+The `DebugLogger` is turned off by default and can be enabled using `geneos.EnableDebugLog()` and then disabled again using `geneos.DisableDebugLog()`. As the Loggers are copies of the built-in ones the Enabled/Disabled is per package.
+
+For this reason you may want to provide exported package methods to turn debug logging on and off from the calling program.
 
 ## Streams
 
