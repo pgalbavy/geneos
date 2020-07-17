@@ -41,7 +41,8 @@ func main() {
 	}
 
 	// connect to netprobe
-	p, err := plugins.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, samplername)
+	url := fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port)
+	p, err := plugins.Sampler(url, entityname, samplername)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +79,8 @@ func main() {
 	powerwall.SetInterval(interval)
 	powerwall.Start(&wg)
 
-	sp, err := streams.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, "streams")
+	streamssampler := "streams"
+	sp, err := streams.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, streamssampler)
 	if err != nil {
 		log.Fatal(err)
 	}
