@@ -2,7 +2,6 @@ package xmlrpc // import "wonderland.org/geneos/xmlrpc"
 
 import (
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -10,7 +9,6 @@ type Sampler struct {
 	Client
 	entityName  string
 	samplerName string
-	waitGroup   sync.WaitGroup
 	hearbeats   []chan struct{}
 }
 
@@ -55,32 +53,16 @@ func (s Sampler) Parameter(name string) (string, error) {
 	return s.getParameter(s.EntityName(), s.SamplerName(), name)
 }
 
-// start a goroutine to send a heartbeat every "seconds"
-// unless already defined, save the waitgroup in sampler
-// else increment the count
-func (s *Sampler) xSignOn(seconds int) (err error) {
-	err = s.signOn(s.EntityName(), s.SamplerName(), seconds)
-	s.waitGroup.Add(1)
-	go func(sampler *Sampler, seconds int) {
-		for true {
-			err := s.heartbeat(s.EntityName(), s.SamplerName())
-			if err != nil {
-				s.waitGroup.Done()
-				break
-			}
-			time.Sleep(time.Duration(seconds) * time.Second)
-		}
-	}(s, seconds)
-	return
+func (s *Sampler) SignOn(interval time.Duration) error {
+	return s.signOn(s.EntityName(), s.SamplerName(), int(interval.Seconds()))
 }
 
-func (s *Sampler) xSignOff() (err error) {
-	if !s.IsValid() {
-		err = fmt.Errorf("xSignOff(): sampler doesn't exist")
-		return
-	}
-	s.waitGroup.Done()
+func (s *Sampler) SignOff() error {
 	return s.signOff(s.EntityName(), s.SamplerName())
+}
+
+func (s Sampler) Heartbeat() error {
+	return s.heartbeat(s.EntityName(), s.SamplerName())
 }
 
 /*
