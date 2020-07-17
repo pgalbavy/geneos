@@ -9,7 +9,6 @@ type Sampler struct {
 	Client
 	entityName  string
 	samplerName string
-	hearbeats   []chan struct{}
 }
 
 func (s Sampler) ToString() string {
@@ -28,8 +27,8 @@ func (s *Sampler) IsValid() bool {
 
 // Getters only
 // There are no setters as once created the struct should be immutable as
-// otherwise it would not be safe in concurrency terms. The structs get
-// copied around a bit
+// otherwise it would not be safe in go routines. The structs get
+// copied around a lot
 
 // EntityName returns the Entuty name as a string
 func (s Sampler) EntityName() string {
