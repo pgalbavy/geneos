@@ -308,3 +308,19 @@ So, instead of the above you can also do:
 You can change the stream name as often as you want, but it will be easier to create multiple streams if you need to.
 
 Note that the sampler name is always different to the normal dataview destination as the plugin on the Geneos side must be an _api-streams_ one. Also there is no `Close()` method. At the moment there is no direct support for heartbeats.
+
+
+## Secure Connections
+
+The packages support secure connections through the normal Golang http.Client but it is quite common for individual Netprobe instances to run with self-signed certificates so there is a method to allow unverified certificates and this must be called immediated after getting the new _sampler_ or _stream_ like this:
+
+```go
+	url := fmt.Sprintf("https://%s:%v/xmlrpc", hostname, port)
+	p, err := plugins.Sampler(url, entityname, samplername)
+	if err != nil {
+		log.Fatal(err)
+	}
+	p.AllowUnverifiedCertificates()
+```
+
+Once allowed there is no way to turn this off until you create a new object. The setting is per _sampler_ or _stream_ so it can be on and off separately in the case where your program may send data to multiple Netprobes.
