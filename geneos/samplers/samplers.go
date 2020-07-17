@@ -41,13 +41,13 @@ type Samplers struct {
 // Columns is a common type for the map of rows for output.
 type Columns map[string]columndetails
 
-// columndetails has to be it's own type so that it can be used in maps
+// columndetails has to be it's own type so that it can be used as values in maps
 type columndetails struct {
 	tags     string                   // copy of tags for now
 	name     string                   // display name of column. name="OMIT" mean not rendered
 	number   int                      // column index - convenience for now
 	format   string                   // alterative Printf format, default is %v
-	convfunc func(interface{}) string // this may happen - not used
+	convfunc func(interface{}) string // this may happen - not yet used
 	sort     sortType                 // if this is the sorting column then what type from above
 }
 
