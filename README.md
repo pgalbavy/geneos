@@ -287,4 +287,18 @@ func main() {
 	}
 ```
 
+For convenience the _streams_ package also acts as an _io.Writer_ and _io.StringWriter_ and so will respond to normal Go `Write()` and `WriteString()` calls. You must however call `SetStreamName()` first. There is no validation of data content or length. So, instead of the above you can also do:
+
+```go
+	sp.SetStreamName("teststream")
+
+	_, err := sp.WriteString(time.Now().String() + " this is a test")
+	if err != nil {
+		log.Fatal(err)
+		break
+	}
+```
+
+You can change the stream name as often as you want, but it will be easier to create multiple streams if you need to.
+
 Note that the sampler name is always different to the normal dataview destination as the plugin on the Geneos side must be an _api-streams_ one. Also there is no `Close()` method. At the moment there is no direct support for heartbeats.

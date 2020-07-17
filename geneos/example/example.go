@@ -85,12 +85,15 @@ func main() {
 		log.Fatal(err)
 	}
 	wg.Add(1)
+	sp.SetStreamName("teststream")
 	go func() {
 		tick := time.NewTicker(5 * time.Second)
 		defer tick.Stop()
 		for {
 			<-tick.C
-			err := sp.WriteMessage("teststream", time.Now().String()+" this is a test")
+			// err := sp.WriteMessage("teststream", time.Now().String()+" this is a test")
+
+			_, err := sp.WriteString(time.Now().String() + " this is a test")
 			if err != nil {
 				log.Fatal(err)
 				break
