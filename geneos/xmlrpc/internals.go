@@ -36,7 +36,7 @@ type methodResponse struct {
 	Fault        []members `xml:"fault>value>struct>member"`
 }
 
-func (geneos Client) post(data methodCall) (result methodResponse, err error) {
+func (c Client) post(data methodCall) (result methodResponse, err error) {
 	// use a custom marshal function as the standard XML ones, even
 	// with customer marshallers are almost impossible to control in
 	// a way that works consistently. xml.Unmarshal() still works fine.
@@ -46,7 +46,7 @@ func (geneos Client) post(data methodCall) (result methodResponse, err error) {
 	}
 
 	body := bytes.NewReader(output)
-	resp, err := geneos.Post(geneos.URL(), "text/xml", body)
+	resp, err := c.Post(c.URL(), "text/xml", body)
 	if err != nil {
 		return
 	}
@@ -67,10 +67,10 @@ func (geneos Client) post(data methodCall) (result methodResponse, err error) {
 	return
 }
 
-func (geneos Client) methodBoolWithArgs(method string, args []valueArray) (result bool, err error) {
+func (c Client) methodBoolWithArgs(method string, args []valueArray) (result bool, err error) {
 	req := methodCall{Name: method, Values: args}
 
-	res, err := geneos.post(req)
+	res, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -78,10 +78,10 @@ func (geneos Client) methodBoolWithArgs(method string, args []valueArray) (resul
 	return
 }
 
-func (geneos Client) methodBoolNoArgs(method string) (result bool, err error) {
+func (c Client) methodBoolNoArgs(method string) (result bool, err error) {
 	req := methodCall{Name: method}
 
-	res, err := geneos.post(req)
+	res, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -89,10 +89,10 @@ func (geneos Client) methodBoolNoArgs(method string) (result bool, err error) {
 	return
 }
 
-func (geneos Client) methodIntNoArgs(method string) (result int, err error) {
+func (c Client) methodIntNoArgs(method string) (result int, err error) {
 	req := methodCall{Name: method}
 
-	res, err := geneos.post(req)
+	res, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -100,10 +100,10 @@ func (geneos Client) methodIntNoArgs(method string) (result int, err error) {
 	return
 }
 
-func (geneos Client) methodIntWithArgs(method string, args []valueArray) (result int, err error) {
+func (c Client) methodIntWithArgs(method string, args []valueArray) (result int, err error) {
 	req := methodCall{Name: method, Values: args}
 
-	res, err := geneos.post(req)
+	res, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -111,10 +111,10 @@ func (geneos Client) methodIntWithArgs(method string, args []valueArray) (result
 	return
 }
 
-func (geneos Client) methodStringWithArgs(method string, args []valueArray) (result string, err error) {
+func (c Client) methodStringWithArgs(method string, args []valueArray) (result string, err error) {
 	req := methodCall{Name: method, Values: args}
 
-	res, err := geneos.post(req)
+	res, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -122,10 +122,10 @@ func (geneos Client) methodStringWithArgs(method string, args []valueArray) (res
 	return result, err
 }
 
-func (geneos Client) methodStringsNoArgs(method string) (strings []string, err error) {
+func (c Client) methodStringsNoArgs(method string) (strings []string, err error) {
 	req := methodCall{Name: method}
 
-	result, err := geneos.post(req)
+	result, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -133,10 +133,10 @@ func (geneos Client) methodStringsNoArgs(method string) (strings []string, err e
 	return
 }
 
-func (geneos Client) methodStringsWithArgs(method string, args []valueArray) (strings []string, err error) {
+func (c Client) methodStringsWithArgs(method string, args []valueArray) (strings []string, err error) {
 	req := methodCall{Name: method, Values: args}
 
-	result, err := geneos.post(req)
+	result, err := c.post(req)
 	if err != nil {
 		return
 	}
@@ -144,17 +144,17 @@ func (geneos Client) methodStringsWithArgs(method string, args []valueArray) (st
 	return
 }
 
-func (geneos Client) methodWithArgs(method string, args []valueArray) (err error) {
+func (c Client) methodWithArgs(method string, args []valueArray) (err error) {
 	req := methodCall{Name: method, Values: args}
 
-	_, err = geneos.post(req)
+	_, err = c.post(req)
 	return
 }
 
-func (geneos Client) methodNoArgs(method string) (err error) {
+func (c Client) methodNoArgs(method string) (err error) {
 	req := methodCall{Name: method}
 
-	_, err = geneos.post(req)
+	_, err = c.post(req)
 	return
 }
 

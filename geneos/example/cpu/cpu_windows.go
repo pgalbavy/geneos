@@ -31,6 +31,7 @@ type cpustat struct {
 }
 
 func (p *CPUSampler) DoSample() (err error) {
+	DebugLogger.Print("called")
 	laststats := p.cpustats
 	if laststats.lastsample == 0 {
 		// first time through, store initial stats, don't update table and wait for next call

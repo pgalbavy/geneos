@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"wonderland.org/geneos/streams"
 	"wonderland.org/geneos/plugins"
+	"wonderland.org/geneos/streams"
 
 	"example/cpu"
 	"example/generic"
@@ -16,12 +16,16 @@ import (
 	"example/process"
 )
 
+func init() {
+	// geneos.EnableDebugLog()
+}
+
 func main() {
 	var wg sync.WaitGroup
 	var interval time.Duration
 	var (
-		hostname string
-		port     uint
+		hostname                string
+		port                    uint
 		entityname, samplername string
 	)
 
@@ -37,7 +41,8 @@ func main() {
 	}
 
 	// connect to netprobe
-	p, err := plugins.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, samplername)
+	url := fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port)
+	p, err := plugins.Sampler(url, entityname, samplername)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,17 +79,21 @@ func main() {
 	powerwall.SetInterval(interval)
 	powerwall.Start(&wg)
 
-	sp, err := streams.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, "streams")
+	streamssampler := "streams"
+	sp, err := streams.Sampler(fmt.Sprintf("http://%s:%v/xmlrpc", hostname, port), entityname, streamssampler)
 	if err != nil {
 		log.Fatal(err)
 	}
 	wg.Add(1)
+	sp.SetStreamName("teststream")
 	go func() {
 		tick := time.NewTicker(5 * time.Second)
 		defer tick.Stop()
 		for {
 			<-tick.C
-			err := sp.WriteMessage("teststream", time.Now().String() + " this is a test")
+			// err := sp.WriteMessage("teststream", time.Now().String()+" this is a test")
+
+			_, err := sp.WriteString(time.Now().String() + " this is a test")
 			if err != nil {
 				log.Fatal(err)
 				break
