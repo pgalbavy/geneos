@@ -20,7 +20,7 @@ func New(s plugins.Connection, name string, group string) (*MemorySampler, error
 }
 
 func (p *MemorySampler) InitSampler() (err error) {
-	p.Dataview().Headline("OS", runtime.GOOS)
-	p.Dataview().Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
+	p.Headline("OS", runtime.GOOS)
+	p.Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
 	return
 }

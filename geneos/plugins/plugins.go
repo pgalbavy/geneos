@@ -16,7 +16,6 @@ type Plugins interface {
 	SetInterval(time.Duration)
 	Interval() time.Duration
 
-	Dataview() *xmlrpc.Dataview
 	InitDataviews(Connection) error
 
 	Start(*sync.WaitGroup) error

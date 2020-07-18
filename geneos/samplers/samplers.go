@@ -29,9 +29,9 @@ type SamplerInstance interface {
 // All plugins share common settings
 type Samplers struct {
 	plugins.Plugins
+	*xmlrpc.Dataview
 	name        string
 	group       string
-	dataview    *xmlrpc.Dataview
 	interval    time.Duration
 	columns     Columns
 	columnnames []string
@@ -133,21 +133,17 @@ func (p Samplers) SortColumn() string {
 	return p.sortcolumn
 }
 
-func (p Samplers) Dataview() *xmlrpc.Dataview {
-	return p.dataview
-}
-
 func (p *Samplers) InitDataviews(c plugins.Connection) (err error) {
 	d, err := c.NewDataview(p.name, p.group)
 	if err != nil {
 		return
 	}
-	p.dataview = d
+	p.Dataview = d
 	return
 }
 
 func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
-	if p.dataview == nil {
+	if p.Dataview == nil {
 		err = fmt.Errorf("Start(): Dataview not defined")
 		return
 	}
@@ -167,17 +163,17 @@ func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
 			}
 		}
 		wg.Done()
-		fmt.Printf("sampler %q exiting\n", p.Dataview().ToString())
+		fmt.Printf("sampler %q exiting\n", p.ToString())
 
 	}()
 	return
 }
 
 func (s *Samplers) Close() error {
-	if s.dataview == nil {
+	if s.Dataview == nil {
 		return nil
 	}
-	return s.dataview.Close()
+	return s.Dataview.Close()
 }
 
 // the methods below are helpers for common cases of needing to render a struct of data as
@@ -247,7 +243,7 @@ as it appears in a Geneos Dataview without further client-side sorting.
 */
 func (s *Samplers) UpdateTableFromMap(data interface{}) error {
 	table, _ := s.RowsFromMap(data)
-	return s.Dataview().UpdateTable(s.ColumnNames(), table...)
+	return s.UpdateTable(s.ColumnNames(), table...)
 }
 
 /*
@@ -296,7 +292,7 @@ part of Samplers
 */
 func (s Samplers) UpdateTableFromSlice(rowdata interface{}) error {
 	table, _ := s.RowsFromSlice(rowdata)
-	return s.Dataview().UpdateTable(s.ColumnNames(), table...)
+	return s.UpdateTable(s.ColumnNames(), table...)
 }
 
 // RowsFromSlice - results are not resorted, they are assumed to be in the order
@@ -335,7 +331,7 @@ UpdateTableFromMapDelta
 */
 func (s *Samplers) UpdateTableFromMapDelta(newdata, olddata interface{}, interval time.Duration) error {
 	table, _ := s.RowsFromMapDelta(newdata, olddata, interval)
-	return s.Dataview().UpdateTable(s.ColumnNames(), table...)
+	return s.UpdateTable(s.ColumnNames(), table...)
 }
 
 // RowsFromMapDelta takes two sets of data and calculates the difference between them.

@@ -20,8 +20,8 @@ func New(s plugins.Connection, name string, group string) (*ProcessSampler, erro
 }
 
 func (p *ProcessSampler) InitSampler() (err error) {
-	p.Dataview().Headline("OS", runtime.GOOS)
-	p.Dataview().Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
+	p.Headline("OS", runtime.GOOS)
+	p.Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
 
 	columns, columnnames, sortcol, err := p.initColumns()
 	if err == nil {

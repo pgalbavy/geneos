@@ -34,8 +34,8 @@ func New(s plugins.Connection, name string, group string) (*CPUSampler, error) {
 
 func (p *CPUSampler) InitSampler() (err error) {
 	DebugLogger.Print("called")
-	p.Dataview().Headline("OS", runtime.GOOS)
-	p.Dataview().Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
+	p.Headline("OS", runtime.GOOS)
+	p.Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
 
 	// call internal OS column init
 	columns, columnnames, sortcol, err := p.initColumns()

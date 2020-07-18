@@ -53,18 +53,16 @@ var pwrows = []string{
 }
 
 func (p *PowerwallSampler) InitSampler() (err error) {
-	d := p.Dataview()
-	pwurl, err := d.Parameter("POWERWALL_URL")
+	pwurl, err := p.Parameter("POWERWALL_URL")
 	if err != nil {
 		return
 	}
-	d.Headline("powerwallURL", p.pwurl)
+	p.Headline("powerwallURL", p.pwurl)
 	p.pwurl = pwurl + "/meters/aggregates"
 	return
 }
 
 func (p PowerwallSampler) DoSample() (err error) {
-	d := p.Dataview()
 	if p.pwurl == "" {
 		err = fmt.Errorf("No URL defined in sampler parameters (POWERWALL_URL)")
 		return
@@ -100,7 +98,7 @@ func (p PowerwallSampler) DoSample() (err error) {
 			table[row][col+1] = tv
 		}
 	}
-	err = d.UpdateTable(pwcols, table...)
+	err = p.UpdateTable(pwcols, table...)
 	if err != nil {
 		log.Fatal(err)
 	}

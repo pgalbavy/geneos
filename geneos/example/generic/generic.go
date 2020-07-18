@@ -24,7 +24,7 @@ func New(s plugins.Connection, name string, group string) (*GenericSampler, erro
 }
 
 func (g *GenericSampler) InitSampler() error {
-	example, err := g.Dataview().Parameter("EXAMPLE")
+	example, err := g.Parameter("EXAMPLE")
 	if err != nil {
 		return nil
 	}
@@ -34,7 +34,7 @@ func (g *GenericSampler) InitSampler() error {
 	g.SetColumns(columns)
 	g.SetColumnNames(columnnames)
 	g.SetSortColumn(sortcol)
-	return g.Dataview().Headline("example", g.localdata)
+	return g.Headline("example", g.localdata)
 }
 
 func (p *GenericSampler) DoSample() error {
