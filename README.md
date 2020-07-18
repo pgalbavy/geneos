@@ -100,7 +100,7 @@ The next method is `InitSampler()` which is called once upon start-up of the sam
 
 ```go
 func (g *GenericSampler) InitSampler() error {
-	example, err := g.Dataview().Parameter("EXAMPLE")
+	example, err := g.Parameter("EXAMPLE")
 	if err != nil {
 		return nil
 	}
@@ -118,7 +118,7 @@ The second part is required to initialise the helper methods which we'll used se
 	g.SetColumns(columns)
 	g.SetColumnNames(columnnames)
 	g.SetSortColumn(sortcol)
-	return g.Dataview().Headline("example", g.localdata)
+	return g.Headline("example", g.localdata)
 }
 ```
 
