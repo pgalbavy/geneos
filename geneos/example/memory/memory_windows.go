@@ -11,7 +11,6 @@ import (
 )
 
 func (p *MemorySampler) DoSample() error {
-	fmt.Printf("called")
 	table := [][]string{
 		{"counter", "bytes"},
 	}
@@ -29,6 +28,5 @@ func (p *MemorySampler) DoSample() error {
 		table = append(table, []string{n, fmt.Sprintf("%v", v)})
 	}
 
-	fmt.Printf("table=%+v\n", table)
 	return p.UpdateTable(table[0], table[1:]...)
 }

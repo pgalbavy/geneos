@@ -54,7 +54,6 @@ func main() {
 	}
 	defer m.Close()
 	m.SetInterval(interval)
-	fmt.Printf("m=%+v\n", m)
 	if err = m.Start(&wg); err != nil {
 		log.Fatal(err)
 	}
