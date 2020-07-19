@@ -4,6 +4,10 @@ import (
 	"wonderland.org/geneos"
 )
 
+func init() {
+	// geneos.EnableDebugLog()
+}
+
 var (
 	Logger      = geneos.Logger
 	DebugLogger = geneos.DebugLogger

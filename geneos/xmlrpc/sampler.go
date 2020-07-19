@@ -52,14 +52,18 @@ func (s Sampler) Parameter(name string) (string, error) {
 	return s.getParameter(s.EntityName(), s.SamplerName(), name)
 }
 
+// SignOn to the sampler with the interval given
 func (s *Sampler) SignOn(interval time.Duration) error {
 	return s.signOn(s.EntityName(), s.SamplerName(), int(interval.Seconds()))
 }
 
+// SignOff and cancel the heartbeat requirement for the sampler
 func (s *Sampler) SignOff() error {
 	return s.signOff(s.EntityName(), s.SamplerName())
 }
 
+// Heartbeat sends a heartbeat to reset the watchdog timer activated by
+// SignOn
 func (s Sampler) Heartbeat() error {
 	return s.heartbeat(s.EntityName(), s.SamplerName())
 }

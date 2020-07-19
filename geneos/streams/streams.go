@@ -4,7 +4,18 @@ import (
 	"fmt"
 	"io"
 
+	"wonderland.org/geneos"
 	"wonderland.org/geneos/xmlrpc"
+)
+
+func init() {
+	// geneos.EnableDebugLog()
+}
+
+var (
+	Logger      = geneos.Logger
+	DebugLogger = geneos.DebugLogger
+	ErrorLogger = geneos.ErrorLogger
 )
 
 type Stream struct {
@@ -16,6 +27,7 @@ type Stream struct {
 
 // Sampler - wrap calls to xmlrpc
 func Sampler(url string, entityName string, samplerName string) (s Stream, err error) {
+	DebugLogger.Printf("called")
 	sampler, err := xmlrpc.NewClient(url, entityName, samplerName)
 	s = Stream{}
 	s.Sampler = sampler
