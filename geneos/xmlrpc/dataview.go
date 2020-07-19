@@ -22,6 +22,7 @@ func (d Dataview) ToString() string {
 func (d Dataview) IsValid() bool {
 	res, err := d.viewExists(d.EntityName(), d.SamplerName(), d.DataviewName())
 	if err != nil {
+		ErrorLogger.Print(err)
 		return false
 	}
 	return res

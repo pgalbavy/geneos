@@ -10,13 +10,8 @@ import (
 
 // all Plugins must implement these methods
 type Plugins interface {
-	SetName(string, string)
-	Name() (string, string)
-
 	SetInterval(time.Duration)
 	Interval() time.Duration
-
-	InitDataviews(Connection) error
 
 	Start(*sync.WaitGroup) error
 	Close() error

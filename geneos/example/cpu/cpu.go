@@ -28,8 +28,7 @@ func New(s plugins.Connection, name string, group string) (*CPUSampler, error) {
 	DebugLogger.Print("called")
 	c := new(CPUSampler)
 	c.Plugins = c
-	c.SetName(name, group)
-	return c, c.InitDataviews(s)
+	return c, c.New(s, name, group)
 }
 
 func (p *CPUSampler) InitSampler() (err error) {

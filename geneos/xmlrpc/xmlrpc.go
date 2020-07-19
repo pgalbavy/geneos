@@ -16,7 +16,7 @@ type XMLRPC interface {
 }
 
 func NewClient(url string, entityName string, samplerName string) (sampler Sampler, err error) {
-	Logger.Printf("%q, %q, %q", url, entityName, samplerName)
+	DebugLogger.Printf("%q, %q, %q", url, entityName, samplerName)
 	c := Client{}
 	c.SetURL(url)
 	return c.NewSampler(entityName, samplerName)

@@ -33,8 +33,6 @@ func (s *Samplers) UpdateTableFromMapDelta(newdata, olddata interface{}, interva
 
 The `UpdateTableFromMapDelta()` also takes an `time.Duration` interval that allows scaling of the difference between the two datasets. 
 
-
-
 ## Create a basic plugin
 
 First, import the necessary packages
@@ -58,12 +56,12 @@ type GenericData struct {
 }
 
 type GenericSampler struct {
-	*samplers.Samplers
+	samplers.Samplers
 	localdata string
 }
 ```
 
-Now create the required mandatory methods. There are three and they must meet this interface (from the samplers package):
+Now create the required methods. There are three and they must meet this interface (from the samplers package):
 
 ```go
 type SamplerInstance interface {
@@ -73,28 +71,17 @@ type SamplerInstance interface {
 }
 ```
 
-
-First a `New()` method that the main program will call to create an instance of the plugin - the sampler - does some housek:
+First a `New()` method that your main package will call to create an instance of the plugin - aka. the sampler - and do some housekeeping:
 
 ```go
 func New(s plugins.Connection, name string, group string) (*GenericSampler, error) {
 	c := new(GenericSampler)
-	c.Samplers = new(samplers.Samplers)
 	c.Plugins = c
-	c.SetName(name, group)
-	return c, c.InitDataviews(s)
+	return c, c.New(s, name, group)
 }
 ```
 
-You can also use the more compact form, replacing the verbose multiline initiaser with a literal but this may become harder to read as the number of local data
-items are added to the plugin struct:
-
-```go
-func New(s plugins.Connection, name string, group string) (*GenericSampler, error) {
-	c := &GenericSampler{&samplers.Samplers{}, ""}
-	c.Plugins = c
-
-```
+As an aside, this New() method has to work this way because it's how I have found to make the underlying _type_ of Plugins take on that of the specific plugin package. Along with some internals this is how the plugin exposes it's own methods in the above interface correctly, without infinite recursion. 
 
 The next method is `InitSampler()` which is called once upon start-up of the sampler instance. The first part of this example locates a parameter in the Geneos configurationa and assigns is to the local data struct.
 
@@ -195,7 +182,7 @@ The `UpdateTableFromSlice()` shown in the _generic_ example assumes that the sli
 
 ## Initialise and start-up
 
-To use your new plugin in a program, use it like this:
+To use your plugin in a program, use it like this:
 
 ```go
 package main
@@ -205,12 +192,11 @@ import (
 	"wonderland.org/geneos/plugins"
 	"wonderland.org/geneos/streams"
 
-	"example/generic"
+	"example/generic"			// this will depend on how you name it
 )
 ```
 
-Do normal start-up configuration, process command line args etc. and then initialise the
-`Sampler` connection like this: 
+Do normal start-up configuration, process command line args etc. and then initialise the `Sampler` connection like this: 
 
 ```go
 func main() {
@@ -224,7 +210,9 @@ func main() {
 	}
 ```
 
-Once you have your _sampler_ connection call the `New()` method with _dataview_ and _group_ names. The _group_ can be an empty string. Set the _interval_ as a Go `time.Duration` value. The default (and minimum) is one second. Finally `Start()` the sampler by passing a `sync.WaitGroup` that you can later `Wait()` on so the program doesn't exit while the sampler runs.
+Once you have your _sampler_ connection call the `New()` method with _dataview_ and _group_ names. The _group_ can be an empty string. Set the _interval_ as a Go `time.Duration` value. The default, if a zero is passed, is one second. One second is also the minimum interval.
+
+Finally `Start()` the sampler by passing a `sync.WaitGroup` that you can later `Wait()` on so the program doesn't exit while the sampler runs.
 
 ```go
 	g, err := generic.New(s, "example", "SYSTEM")
@@ -236,7 +224,6 @@ Once you have your _sampler_ connection call the `New()` method with _dataview_ 
 }
 
 ```
-
 
 ## Logging
 

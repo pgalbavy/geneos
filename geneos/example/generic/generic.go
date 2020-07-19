@@ -1,8 +1,19 @@
 package generic
 
 import (
+	"wonderland.org/geneos"
 	"wonderland.org/geneos/plugins"
 	"wonderland.org/geneos/samplers"
+)
+
+func init() {
+	// geneos.EnableDebugLog()
+}
+
+var (
+	Logger      = geneos.Logger
+	DebugLogger = geneos.DebugLogger
+	ErrorLogger = geneos.ErrorLogger
 )
 
 type GenericData struct {
@@ -19,8 +30,7 @@ type GenericSampler struct {
 func New(s plugins.Connection, name string, group string) (*GenericSampler, error) {
 	c := new(GenericSampler)
 	c.Plugins = c
-	c.SetName(name, group)
-	return c, c.InitDataviews(s)
+	return c, c.New(s, name, group)
 }
 
 func (g *GenericSampler) InitSampler() error {

@@ -12,8 +12,19 @@ import (
 	"log"
 	"net/http"
 
+	"wonderland.org/geneos"
 	"wonderland.org/geneos/plugins"
 	"wonderland.org/geneos/samplers"
+)
+
+func init() {
+	// geneos.EnableDebugLog()
+}
+
+var (
+	Logger      = geneos.Logger
+	DebugLogger = geneos.DebugLogger
+	ErrorLogger = geneos.ErrorLogger
 )
 
 type PowerwallSampler struct {
@@ -24,8 +35,7 @@ type PowerwallSampler struct {
 func NewPW(s plugins.Connection, name string, group string) (*PowerwallSampler, error) {
 	c := new(PowerwallSampler)
 	c.Plugins = c
-	c.SetName(name, group)
-	return c, c.InitDataviews(s)
+	return c, c.New(s, name, group)
 }
 
 var pwcols = []string{

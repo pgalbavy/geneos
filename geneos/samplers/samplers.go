@@ -14,6 +14,10 @@ import (
 	"wonderland.org/geneos/xmlrpc"
 )
 
+func init() {
+	// geneos.EnableDebugLog()
+}
+
 var (
 	Logger      = geneos.Logger
 	DebugLogger = geneos.DebugLogger
@@ -90,23 +94,12 @@ func (p *Samplers) doSampleInterval() error {
 	return nil
 }
 
-func (p *Samplers) SetName(name string, group string) {
-	p.name = name
-	p.group = group
-}
-
-func (p Samplers) Name() (name string, group string) {
-	return p.name, p.group
-}
-
-/*
-func (c *Samplers) New(p plugins.Connection, name string, group string) error {
+func (s *Samplers) New(p plugins.Connection, name string, group string) error {
 	DebugLogger.Print("called")
-	//c.Plugins = c
-	c.SetName(name, group)
-	return c.InitDataviews(p)
+	s.name, s.group = name, group
+	return s.initDataviews(p)
 }
-*/
+
 func (p *Samplers) SetInterval(interval time.Duration) {
 	p.interval = interval
 	return
@@ -143,12 +136,12 @@ func (p Samplers) SortColumn() string {
 	return p.sortcolumn
 }
 
-func (p *Samplers) InitDataviews(c plugins.Connection) (err error) {
-	d, err := c.NewDataview(p.name, p.group)
+func (s *Samplers) initDataviews(p plugins.Connection) (err error) {
+	d, err := p.NewDataview(s.name, s.group)
 	if err != nil {
 		return
 	}
-	p.Dataview = d
+	s.Dataview = d
 	return
 }
 
@@ -173,7 +166,7 @@ func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
 			}
 		}
 		wg.Done()
-		fmt.Printf("sampler %q exiting\n", p.ToString())
+		Logger.Printf("sampler %q exiting\n", p.ToString())
 
 	}()
 	return
@@ -484,7 +477,6 @@ func parseTags(fieldname string, tag string) (cols columndetails, err error) {
 
 	tags := strings.Split(tag, ",")
 	for _, t := range tags {
-		//fmt.Printf("checking tag %q -> %q\n", fieldname, t)
 		i := strings.IndexByte(t, '=')
 		if i == -1 {
 			if cols.name != fieldname {

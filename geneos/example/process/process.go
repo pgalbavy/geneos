@@ -4,8 +4,19 @@ import (
 	"fmt"
 	"runtime"
 
+	"wonderland.org/geneos"
 	"wonderland.org/geneos/plugins"
 	"wonderland.org/geneos/samplers"
+)
+
+func init() {
+	// geneos.EnableDebugLog()
+}
+
+var (
+	Logger      = geneos.Logger
+	DebugLogger = geneos.DebugLogger
+	ErrorLogger = geneos.ErrorLogger
 )
 
 type ProcessSampler struct {
@@ -15,8 +26,7 @@ type ProcessSampler struct {
 func New(s plugins.Connection, name string, group string) (*ProcessSampler, error) {
 	c := new(ProcessSampler)
 	c.Plugins = c
-	c.SetName(name, group)
-	return c, c.InitDataviews(s)
+	return c, c.New(s, name, group)
 }
 
 func (p *ProcessSampler) InitSampler() (err error) {
