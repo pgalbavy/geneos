@@ -9,11 +9,11 @@ import (
 )
 
 type MemorySampler struct {
-	*samplers.Samplers
+	samplers.Samplers
 }
 
 func New(s plugins.Connection, name string, group string) (*MemorySampler, error) {
-	m := &MemorySampler{&samplers.Samplers{}}
+	m := new(MemorySampler) // {samplers.Samplers{}}
 	m.Plugins = m
 	m.SetName(name, group)
 	return m, m.InitDataviews(s)

@@ -9,11 +9,11 @@ import (
 )
 
 type ProcessSampler struct {
-	*samplers.Samplers
+	samplers.Samplers
 }
 
 func New(s plugins.Connection, name string, group string) (*ProcessSampler, error) {
-	c := &ProcessSampler{&samplers.Samplers{}}
+	c := new(ProcessSampler)
 	c.Plugins = c
 	c.SetName(name, group)
 	return c, c.InitDataviews(s)

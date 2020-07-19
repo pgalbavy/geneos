@@ -17,12 +17,12 @@ import (
 )
 
 type PowerwallSampler struct {
-	*samplers.Samplers
+	samplers.Samplers
 	pwurl string
 }
 
 func NewPW(s plugins.Connection, name string, group string) (*PowerwallSampler, error) {
-	c := &PowerwallSampler{&samplers.Samplers{}, ""}
+	c := new(PowerwallSampler)
 	c.Plugins = c
 	c.SetName(name, group)
 	return c, c.InitDataviews(s)
