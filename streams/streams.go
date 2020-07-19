@@ -1,4 +1,4 @@
-package streams
+package streams // import "wonderland.org/geneos/streams"
 
 import (
 	"fmt"
