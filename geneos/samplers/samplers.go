@@ -29,7 +29,7 @@ type SamplerInstance interface {
 // All plugins share common settings
 type Samplers struct {
 	plugins.Plugins
-	*xmlrpc.Dataview
+	xmlrpc.Dataview
 	name        string
 	group       string
 	interval    time.Duration
@@ -78,6 +78,7 @@ func (p *Samplers) initSamplerInternal() error {
 	if v, ok := interface{}(p.Plugins).(interface{ InitSampler() error }); ok {
 		return v.InitSampler()
 	}
+	Logger.Print("no sampler found")
 	return nil
 }
 
@@ -85,6 +86,7 @@ func (p *Samplers) dosample() error {
 	if v, ok := interface{}(p.Plugins).(interface{ DoSample() error }); ok {
 		return v.DoSample()
 	}
+	Logger.Print("no sampler found")
 	return nil
 }
 
@@ -95,6 +97,13 @@ func (p *Samplers) SetName(name string, group string) {
 
 func (p Samplers) Name() (name string, group string) {
 	return p.name, p.group
+}
+
+func (c *Samplers) New(p plugins.Connection, name string, group string) error {
+	DebugLogger.Print("called")
+	c.Plugins = c
+	c.SetName(name, group)
+	return c.InitDataviews(p)
 }
 
 func (p *Samplers) SetInterval(interval time.Duration) {
@@ -138,12 +147,12 @@ func (p *Samplers) InitDataviews(c plugins.Connection) (err error) {
 	if err != nil {
 		return
 	}
-	p.Dataview = d
+	p.Dataview = *d
 	return
 }
 
 func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
-	if p.Dataview == nil {
+	if !p.IsValid() {
 		err = fmt.Errorf("Start(): Dataview not defined")
 		return
 	}
@@ -170,7 +179,7 @@ func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
 }
 
 func (s *Samplers) Close() error {
-	if s.Dataview == nil {
+	if !s.IsValid() {
 		return nil
 	}
 	return s.Dataview.Close()

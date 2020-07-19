@@ -31,6 +31,7 @@ further levels will test if the appropriate objects exist in the Netprobe
 func (c Client) IsValid() bool {
 	res, err := c.gatewayConnected()
 	if err != nil {
+		ErrorLogger.Print(err)
 		return false
 	}
 	return res

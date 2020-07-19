@@ -17,9 +17,9 @@ func (s Sampler) ToString() string {
 
 func (s *Sampler) IsValid() bool {
 	DebugLogger.Print("called")
-
 	res, err := s.samplerExists(s.EntityName(), s.SamplerName())
 	if err != nil {
+		ErrorLogger.Print(err)
 		return false
 	}
 	return res
@@ -83,7 +83,7 @@ func (s Sampler) NewDataview(dataviewName string, groupName string, args ...[]st
 	}
 
 	// try to remove it - failure shouldn't matter
-	_ = s.removeView(s.EntityName(), s.SamplerName(), dataviewName, groupName)
+	s.removeView(s.EntityName(), s.SamplerName(), dataviewName, groupName)
 
 	d, err = s.CreateDataview(dataviewName, groupName)
 	if err != nil {

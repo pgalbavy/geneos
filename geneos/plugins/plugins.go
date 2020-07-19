@@ -10,8 +10,8 @@ import (
 
 // all Plugins must implement these methods
 type Plugins interface {
-	SetName(string, string)
-	Name() (string, string)
+	//SetName(string, string)
+	//Name() (string, string)
 
 	SetInterval(time.Duration)
 	Interval() time.Duration

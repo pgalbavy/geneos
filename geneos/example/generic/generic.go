@@ -12,12 +12,12 @@ type GenericData struct {
 }
 
 type GenericSampler struct {
-	*samplers.Samplers
+	samplers.Samplers
 	localdata string
 }
 
 func New(s plugins.Connection, name string, group string) (*GenericSampler, error) {
-	c := &GenericSampler{&samplers.Samplers{}, ""}
+	c := new(GenericSampler)
 	c.Plugins = c
 	c.SetName(name, group)
 	return c, c.InitDataviews(s)

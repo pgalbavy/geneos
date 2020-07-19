@@ -49,8 +49,12 @@ func main() {
 	p.AllowUnverifiedCertificates()
 
 	m, err := memory.New(p, "memory", "SYSTEM")
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer m.Close()
 	m.SetInterval(interval)
+	fmt.Printf("m=%+v\n", m)
 	if err = m.Start(&wg); err != nil {
 		log.Fatal(err)
 	}

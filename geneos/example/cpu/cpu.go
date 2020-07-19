@@ -26,7 +26,8 @@ type CPUSampler struct {
 
 func New(s plugins.Connection, name string, group string) (*CPUSampler, error) {
 	DebugLogger.Print("called")
-	c := &CPUSampler{&samplers.Samplers{}, cpustat{}}
+	c := new(CPUSampler) // &CPUSampler{&samplers.Samplers{}, cpustat{}}
+	c.Samplers = new(samplers.Samplers)
 	c.Plugins = c
 	c.SetName(name, group)
 	return c, c.InitDataviews(s)

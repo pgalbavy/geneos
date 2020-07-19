@@ -27,5 +27,5 @@ func (p *MemorySampler) DoSample() error {
 		table = append(table, []string{n, fmt.Sprintf("%v", v)})
 	}
 
-	return p.Dataview().UpdateTable(table[0], table[1:]...)
+	return p.UpdateTable(table[0], table[1:]...)
 }
