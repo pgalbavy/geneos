@@ -9,13 +9,14 @@ import (
 )
 
 type MemorySampler struct {
-	samplers.Samplers
+	*samplers.Samplers
 }
 
-func New(s plugins.Connection, name string, group string) (m *MemorySampler, err error) {
-	m = new(MemorySampler)
-	m.Samplers.New(s, name, group)
-	return
+func New(s plugins.Connection, name string, group string) (*MemorySampler, error) {
+	m := &MemorySampler{&samplers.Samplers{}}
+	m.Plugins = m
+	m.SetName(name, group)
+	return m, m.InitDataviews(s)
 }
 
 func (p *MemorySampler) InitSampler() (err error) {

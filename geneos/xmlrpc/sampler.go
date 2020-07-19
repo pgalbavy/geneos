@@ -88,7 +88,6 @@ func (s Sampler) NewDataview(dataviewName string, groupName string, args ...[]st
 	d, err = s.CreateDataview(dataviewName, groupName)
 	if err != nil {
 		ErrorLogger.Fatal(err)
-
 		return
 	}
 

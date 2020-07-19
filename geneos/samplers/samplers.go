@@ -22,14 +22,14 @@ var (
 
 type SamplerInstance interface {
 	New(plugins.Connection, string, string) *SamplerInstance
-	InitSampler(*SamplerInstance) (err error)
-	DoSample(*SamplerInstance) (err error)
+	InitSampler() (err error)
+	DoSample() (err error)
 }
 
 // All plugins share common settings
 type Samplers struct {
 	plugins.Plugins
-	xmlrpc.Dataview
+	*xmlrpc.Dataview
 	name        string
 	group       string
 	interval    time.Duration
@@ -78,15 +78,15 @@ func (p *Samplers) initSamplerInternal() error {
 	if v, ok := interface{}(p.Plugins).(interface{ InitSampler() error }); ok {
 		return v.InitSampler()
 	}
-	Logger.Print("no sampler found")
+	Logger.Print("no InitSampler() found in plugin")
 	return nil
 }
 
-func (p *Samplers) dosample() error {
+func (p *Samplers) doSampleInterval() error {
 	if v, ok := interface{}(p.Plugins).(interface{ DoSample() error }); ok {
 		return v.DoSample()
 	}
-	Logger.Print("no sampler found")
+	Logger.Print("no DoSample() found in plugin")
 	return nil
 }
 
@@ -99,13 +99,14 @@ func (p Samplers) Name() (name string, group string) {
 	return p.name, p.group
 }
 
+/*
 func (c *Samplers) New(p plugins.Connection, name string, group string) error {
 	DebugLogger.Print("called")
-	c.Plugins = c
+	//c.Plugins = c
 	c.SetName(name, group)
 	return c.InitDataviews(p)
 }
-
+*/
 func (p *Samplers) SetInterval(interval time.Duration) {
 	p.interval = interval
 	return
@@ -147,7 +148,7 @@ func (p *Samplers) InitDataviews(c plugins.Connection) (err error) {
 	if err != nil {
 		return
 	}
-	p.Dataview = *d
+	p.Dataview = d
 	return
 }
 
@@ -166,7 +167,7 @@ func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
 		defer tick.Stop()
 		for {
 			<-tick.C
-			err := p.dosample()
+			err := p.doSampleInterval()
 			if err != nil {
 				break
 			}
