@@ -299,7 +299,7 @@ Note that the sampler name is always different to the normal dataview destinatio
 
 ## Secure Connections
 
-The packages support secure connections through the normal Golang http.Client but it is quite common for individual Netprobe instances to run with self-signed certificates so there is a method to allow unverified certificates and this must be called immediated after getting the new _sampler_ or _stream_ like this:
+The packages support secure connections through the normal Golang http.Client but it is quite common for individual Netprobe instances to run with self-signed certificates so there is a method to allow unverified certificates and this must be called immediately after getting the new _sampler_ or _stream_ like this:
 
 ```go
 	url := fmt.Sprintf("https://%s:%v/xmlrpc", hostname, port)
