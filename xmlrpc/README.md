@@ -3,7 +3,7 @@
 The xmlrpc package is the low level implementation of an ITRS Geneox XML-RPC client
 API to communicate with a Netprobe.
 
-The package implements structs that keep the minimum state data. Not state is
+The package implements structs that keep the minimum state data. No state is
 kept regarding the data being sent to the Netprobe.
 
 The files in this package have the following functions:
