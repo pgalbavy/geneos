@@ -188,14 +188,14 @@ func (c Client) getHeadlineNames(entity string, sampler string, view string) ([]
 
 func (c Client) getRowNamesOlderThan(entity string, sampler string, view string, unixtime int64) ([]string, error) {
 	method := strings.Join([]string{entity, sampler, view, "getRowNamesOlderThan"}, ".")
-	args := []valueArray{valueArray{String: strconv.FormatInt(unixtime, 10)}}
+	args := []valueArray{{String: strconv.FormatInt(unixtime, 10)}}
 
 	return c.methodStringsWithArgs(method, args)
 }
 
 func (c Client) signOn(entity string, sampler string, seconds int) (err error) {
 	method := strings.Join([]string{entity, sampler, "signOn"}, ".")
-	args := []valueArray{valueArray{Int: seconds}}
+	args := []valueArray{{Int: seconds}}
 
 	return c.methodWithArgs(method, args)
 }
@@ -221,7 +221,7 @@ func (c Client) addMessageStream(entity string, sampler string, stream string, m
 
 func (c Client) signOnStream(entity string, sampler string, stream string, seconds int) (err error) {
 	method := strings.Join([]string{entity, sampler, stream, "signOn"}, ".")
-	args := []valueArray{valueArray{Int: seconds}}
+	args := []valueArray{{Int: seconds}}
 
 	return c.methodWithArgs(method, args)
 }
@@ -246,14 +246,14 @@ func (c Client) gatewayConnected() (bool, error) {
 
 func (c Client) entityExists(entity string) (bool, error) {
 	method := "_netprobe.managedEntityExists"
-	args := []valueArray{valueArray{String: entity}}
+	args := []valueArray{{String: entity}}
 
 	return c.methodBoolWithArgs(method, args)
 }
 
 func (c Client) samplerExists(entity string, sampler string) (result bool, err error) {
 	method := "_netprobe.samplerExists"
-	args := []valueArray{valueArray{String: entity + "." + sampler}}
+	args := []valueArray{{String: entity + "." + sampler}}
 
 	return c.methodBoolWithArgs(method, args)
 }

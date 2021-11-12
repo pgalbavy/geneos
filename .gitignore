@@ -1,4 +1,5 @@
 *.exe
+*.so
 go.sum
-geneos/example/example
-
+internal/libemailgo/libemailgo.h
+example/example

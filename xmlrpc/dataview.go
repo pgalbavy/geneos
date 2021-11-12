@@ -92,8 +92,7 @@ func (d Dataview) UpdateTable(columns []string, values ...[]string) (err error) 
 		ErrorLogger.Print(err)
 		return
 	}
-	var table [][]string
-	table = append([][]string{columns}, values...)
+	var table [][]string = append([][]string{columns}, values...)
 	err = d.updateEntireTable(d.EntityName(), d.SamplerName(), d.dataviewName, table)
 	return
 }
@@ -211,7 +210,7 @@ func (d Dataview) Headline(name string, args ...string) (err error) {
 		ErrorLogger.Print(err)
 		return
 	}
-	if res == false {
+	if !res {
 		err = d.addHeadline(d.EntityName(), d.SamplerName(), d.dataviewName, name)
 	}
 	if err != nil {
@@ -258,7 +257,7 @@ func (d Dataview) RemoveHeadline(name string) (err error) {
 		return
 	}
 	res, err := d.headlineExists(d.EntityName(), d.SamplerName(), d.dataviewName, name)
-	if res == false {
+	if !res {
 		ErrorLogger.Print(err)
 		return
 	}
