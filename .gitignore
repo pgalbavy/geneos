@@ -1,5 +1,5 @@
 *.exe
 *.so
+*.h
 go.sum
-internal/libemailgo/libemailgo.h
 example/example
