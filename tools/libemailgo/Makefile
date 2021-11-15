@@ -1,13 +1,10 @@
-all: libemail.so # libemailgo.so
+all: libemail.so
 
-# libemailgo.so: main.go formats.go utils.go libemailgo.go
-#	go build -buildmode c-shared -o $@ $^
+SRCS=main.go formats.go utils.go libemail.go
 
-libemail.so: main.go formats.go utils.go libemail.go
-	go build -buildmode c-shared -o $@ $^
+libemail.so: $(SRCS) *.tmpl *.png
+	go build -buildmode c-shared -o $@ $(SRCS)
 
 clean:
 	rm -f libemailgo.h libemailgo.so libemail.h libemail.so
-
-# libemailgo.go: defaultlogo.png
 

@@ -89,6 +89,6 @@ Summary for alert throttle "%(_THROTTLER)"
 %(_VALUE) Alerts have been throttled in the last %(_SUMMARY_PERIOD), including:
 %(_DROPPED_ALERTS) Alert(s)
 %(_DROPPED_CLEARS) Clear(s)
-%(_DROPPED_SUSPENDS) Suspend(s
+%(_DROPPED_SUSPENDS) Suspend(s)
 %(_DROPPED_RESUMES) Resume(s)`,
 }

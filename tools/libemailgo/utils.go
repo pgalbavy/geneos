@@ -12,6 +12,15 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
+func debug(conf EMailConfig) (debug bool) {
+	if d, ok := conf["_DEBUG"]; ok {
+		if strings.EqualFold(d, "true") {
+			debug = true
+		}
+	}
+	return
+}
+
 //
 //
 func setupMail(conf EMailConfig) (m *mail.Message, err error) {
@@ -35,6 +44,17 @@ func setupMail(conf EMailConfig) (m *mail.Message, err error) {
 	err = addAddresses(m, "Bcc", conf["_BCC"], conf["_BCC_NAME"], conf["_BCC_INFO_TYPE"])
 	if err != nil {
 		return
+	}
+
+	if !debug(conf) {
+		keys := []string{"_FROM", "_FROM_NAME",
+			"_TO", "_TO_NAME", "_TO_INFO_TYPE",
+			"_CC", "_CC_NAME", "_CC_INFO_TYPE",
+			"_BCC", "_BCC_NAME", "_BCC_INFO_TYPE",
+		}
+		for _, key := range keys {
+			delete(conf, key)
+		}
 	}
 
 	return
@@ -73,16 +93,14 @@ func dialServer(conf EMailConfig) (d *mail.Dialer, err error) {
 	username, ok := conf["_SMTP_USERNAME"]
 	if ok {
 		// get the password, depending how it's configured and dial
-		// _SMTP_PASSWORD first, _SMTP_PASSWORD_FILE second
+		// _SMTP_PASSWORD_FILE first, _SMTP_PASSWORD second
 		pwfile := getWithDefault("_SMTP_PASSWORD_FILE", conf, "")
 		password := getWithDefault("_SMTP_PASSWORD", conf, "")
-		if password == "" && pwfile != "" {
-			file, err := os.ReadFile(pwfile)
+		if pwfile != "" {
+			password, err = readFileString(pwfile)
 			if err != nil {
-				// fmt.Fprintln(os.Stderr, err)
 				return nil, err
 			}
-			password = string(file)
 		}
 		// the password can be empty at this point. this is valid, if dumb.
 
@@ -93,6 +111,16 @@ func dialServer(conf EMailConfig) (d *mail.Dialer, err error) {
 	}
 	d.Timeout = time.Duration(timeout) * time.Second
 	d.StartTLSPolicy = tlsPolicy
+
+	if !debug(conf) {
+		keys := []string{"_SMTP_SERVER", "_SMTP_PORT", "_SMTP_TIMEOUT",
+			"_SMTP_USERNAME", "_SMTP_PASSWORD", "_SMTP_PASSWORD_FILE",
+			"_SMTP_TLS",
+		}
+		for _, key := range keys {
+			delete(conf, key)
+		}
+	}
 
 	return d, nil
 }
@@ -184,4 +212,13 @@ func splitCommaTrimSpace(s string) []string {
 		strings.TrimSpace(field)
 	}
 	return fields
+}
+
+func readFileString(path string) (contents string, err error) {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	contents = string(file)
+	return
 }
