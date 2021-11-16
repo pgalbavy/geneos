@@ -15,7 +15,7 @@ var (
 )
 
 type XMLRPC interface {
-	ToString() string
+	String() string
 	IsValid() bool
 }
 

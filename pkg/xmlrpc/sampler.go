@@ -11,7 +11,7 @@ type Sampler struct {
 	samplerName string
 }
 
-func (s Sampler) ToString() string {
+func (s Sampler) String() string {
 	return fmt.Sprintf("%s/%s.%s", s.URL(), s.EntityName(), s.SamplerName())
 }
 

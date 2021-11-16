@@ -166,7 +166,7 @@ func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
 			}
 		}
 		wg.Done()
-		Logger.Printf("sampler %q exiting\n", p.ToString())
+		Logger.Printf("sampler %q exiting\n", p)
 
 	}()
 	return

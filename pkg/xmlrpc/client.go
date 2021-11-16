@@ -14,11 +14,9 @@ type Client struct {
 }
 
 /*
-ToString is a convenience function to render the structure to some sort of readable format.
-
-Successive layers implement their own and add more data
+String() conforms to the Stringer Type
 */
-func (c Client) ToString() string {
+func (c Client) String() string {
 	return c.URL()
 }
 

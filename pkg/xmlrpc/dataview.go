@@ -18,8 +18,8 @@ var (
 	err_dataview_exists = errors.New("dataview doesn't exist")
 )
 
-// ToString returns a human readable string to identify the dataview, mainly for debugging
-func (d Dataview) ToString() string {
+// String returns a human readable string to identify the dataview, mainly for debugging
+func (d Dataview) String() string {
 	return fmt.Sprintf("%s/%s.%s.%s", d.URL(), d.EntityName(), d.SamplerName(), d.dataviewName)
 }
 
