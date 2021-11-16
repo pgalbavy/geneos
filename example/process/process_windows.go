@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/StackExchange/wmi"
-	"wonderland.org/geneos/samplers"
+	"wonderland.org/geneos/pkg/samplers"
 )
 
 type Win32_Process struct {

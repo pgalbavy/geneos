@@ -2,8 +2,8 @@ package generic
 
 import (
 	"wonderland.org/geneos"
-	"wonderland.org/geneos/plugins"
-	"wonderland.org/geneos/samplers"
+	"wonderland.org/geneos/pkg/plugins"
+	"wonderland.org/geneos/pkg/samplers"
 )
 
 func init() {

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"wonderland.org/geneos/plugins"
-	"wonderland.org/geneos/streams"
+	"wonderland.org/geneos/pkg/plugins"
+	"wonderland.org/geneos/pkg/streams"
 
 	"example/cpu"
 	"example/generic"

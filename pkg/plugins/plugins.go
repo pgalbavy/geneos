@@ -1,11 +1,11 @@
-package plugins // import "wonderland.org/geneos/plugins"
+package plugins // import "wonderland.org/geneos/pkg/plugins"
 
 import (
 	"sync"
 	"time"
 
 	"wonderland.org/geneos"
-	"wonderland.org/geneos/xmlrpc"
+	"wonderland.org/geneos/pkg/xmlrpc"
 )
 
 // all Plugins must implement these methods

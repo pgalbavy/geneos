@@ -41,7 +41,7 @@ First, import the necessary packages
 package generic
 
 import (
-	"wonderland.org/geneos/plugins"
+	"wonderland.org/geneos/pkg/plugins"
 	"wonderland.org/geneos/sampler"
 )
 ```
@@ -138,7 +138,7 @@ import (
 	"time"
 
 	"github.com/StackExchange/wmi"
-	"wonderland.org/geneos/samplers"
+	"wonderland.org/geneos/pkg/samplers"
 )
 
 // Win32_PerfRawData_PerfOS_Processor must be exported along with all it's
@@ -189,8 +189,8 @@ package main
 
 import (
 ...
-	"wonderland.org/geneos/plugins"
-	"wonderland.org/geneos/streams"
+	"wonderland.org/geneos/pkg/plugins"
+	"wonderland.org/geneos/pkg/streams"
 
 	"example/generic"			// this will depend on how you name it
 )
@@ -258,7 +258,7 @@ Basic support for [streams](geneos/streams) are included. Streams must be predef
 
 ```go
 import (
-	"wonderland.org/geneos/streams"
+	"wonderland.org/geneos/pkg/streams"
 )
 ```
 

@@ -18,7 +18,7 @@ valid return is "OK", which is treated as error = nil
 Note that where is it required, group and view have been split into separate arguments and
 are passed to the API in the correct format for the call.
 */
-package xmlrpc // import "wonderland.org/geneos/xmlrpc"
+package xmlrpc // import "wonderland.org/geneos/pkg/xmlrpc"
 
 import (
 	"strconv"

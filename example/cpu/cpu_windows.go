@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/StackExchange/wmi"
-	"wonderland.org/geneos/samplers"
+	"wonderland.org/geneos/pkg/samplers"
 )
 
 // Win32_PerfRawData_PerfOS_Processor must be exported along with all it's

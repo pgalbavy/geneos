@@ -2,7 +2,7 @@
 package process
 
 import (
-	"wonderland.org/geneos/samplers"
+	"wonderland.org/geneos/pkg/samplers"
 )
 
 func (p ProcessSampler) initColumns() (cols samplers.Columns, columnnames []string, sortcol string, err error) {

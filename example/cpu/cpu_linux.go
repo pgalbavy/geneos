@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"wonderland.org/geneos/samplers"
+	"wonderland.org/geneos/pkg/samplers"
 )
 
 // CPUStats must be exported, along with all it's fields, so that

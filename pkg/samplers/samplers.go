@@ -1,4 +1,4 @@
-package samplers // import "wonderland.org/geneos/samplers"
+package samplers // import "wonderland.org/geneos/pkg/samplers"
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"wonderland.org/geneos"
-	"wonderland.org/geneos/plugins"
-	"wonderland.org/geneos/xmlrpc"
+	"wonderland.org/geneos/pkg/plugins"
+	"wonderland.org/geneos/pkg/xmlrpc"
 )
 
 func init() {

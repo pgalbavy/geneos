@@ -1,7 +1,7 @@
 /*
 Internal implementation details
 */
-package xmlrpc // import "wonderland.org/geneos/xmlrpc"
+package xmlrpc // import "wonderland.org/geneos/pkg/xmlrpc"
 
 import (
 	"bytes"
