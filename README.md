@@ -10,5 +10,6 @@ Requires Go 1.17+
 
 ## XML-RPC Go bindings
 
-The `pkg/` directory contains set of low-level mappings in Go to provide a one-to-one interface to the XML-RPC functions to the `api` and `api-streams` plugins in the Netprobe and also a number of higher level functions that wrap these in slightly more - but not fully - idiomatic Go. 
+The `pkg` directory contains set of low-level mappings in Go to provide a one-to-one interface to the XML-RPC functions to the `api` and `api-streams` plugins in the Netprobe and also a number of higher level functions that wrap these in slightly more - but not fully - idiomatic Go. 
 
+There are some basic examples of use in the `example` directory.
