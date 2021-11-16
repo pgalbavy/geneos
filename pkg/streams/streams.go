@@ -1,11 +1,11 @@
-package streams // import "wonderland.org/geneos/streams"
+package streams // import "wonderland.org/geneos/pkg/streams"
 
 import (
 	"fmt"
 	"io"
 
 	"wonderland.org/geneos"
-	"wonderland.org/geneos/xmlrpc"
+	"wonderland.org/geneos/pkg/xmlrpc"
 )
 
 func init() {
