@@ -11,9 +11,25 @@
 
 # Building
 
-Either use `make` or
+You must have Go 1.17 or later installed as well as `make`
 
-```go build -buildmode c-shared -o libemail.so main.go formats.go utils.go libemail.go```
+```
+git clone https://github.com/pgalbavy/geneos.git
+cd geneos/tools/libemailgo
+make
+```
+
+If you do not have `make` installed you can build using:
+
+```
+go build -buildmode c-shared -o libemail.so *.go
+```
+
+Then copy the resulting `libemail.so` to a suitable location and add the path to the Gateway configuration. You can replace the `libemail.so` file in the official distribution but you should probably backup the original file by renaming it:
+
+```
+mv libemail.so libemail.so.orig
+```
 
 # Using
 
