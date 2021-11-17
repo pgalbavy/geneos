@@ -31,17 +31,17 @@ func setupMail(conf EMailConfig) (m *mail.Message, err error) {
 
 	m.SetAddressHeader("From", from, fromName)
 
-	err = addAddresses(m, "To", conf["_TO"], conf["_TO_NAME"], conf["_TO_INFO_TYPE"])
+	err = addAddresses(m, conf, "To")
 	if err != nil {
 		return
 	}
 
-	err = addAddresses(m, "Cc", conf["_CC"], conf["_CC_NAME"], conf["_CC_INFO_TYPE"])
+	err = addAddresses(m, conf, "Cc")
 	if err != nil {
 		return
 	}
 
-	err = addAddresses(m, "Bcc", conf["_BCC"], conf["_BCC_NAME"], conf["_BCC_INFO_TYPE"])
+	err = addAddresses(m, conf, "Bcc")
 	if err != nil {
 		return
 	}
@@ -167,10 +167,11 @@ func getWithDefaultInt(key string, conf EMailConfig, def int) int {
 // if given, must match "email" or "e-mail" (case insensitive). If either names or info types
 // are given they MUST have the same number of members otherwise it's a fatal error
 //
-func addAddresses(m *mail.Message, header string, addrList string, nameList string, infotypeList string) error {
-	addrs := splitCommaTrimSpace(addrList)
-	names := splitCommaTrimSpace(nameList)
-	infotypes := splitCommaTrimSpace(infotypeList)
+func addAddresses(m *mail.Message, conf EMailConfig, header string) error {
+	upperHeader := strings.ToUpper(header)
+	addrs := splitCommaTrimSpace(conf[fmt.Sprintf("_%s", upperHeader)])
+	names := splitCommaTrimSpace(conf[fmt.Sprintf("_%s_NAME", upperHeader)])
+	infotypes := splitCommaTrimSpace(conf[fmt.Sprintf("_%s_INFO_TYPE", upperHeader)])
 
 	if len(names) > 0 && len(addrs) != len(names) {
 		return fmt.Errorf("\"%s\" header items mismatch: addrs=%d != names=%d", header, len(addrs), len(names))
