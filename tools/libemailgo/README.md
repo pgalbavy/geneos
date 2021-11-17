@@ -41,7 +41,7 @@ Note that if you are using this as a literal drop-in replacement you will need t
 
 ### New features
 
-The following additional parameters are supported by the `SendEMail` function:
+The following additional parameters are supported by the `SendMail` function:
 
 * `_SMTP_USERNAME`
 * `_SMTP_PASSWORD`
