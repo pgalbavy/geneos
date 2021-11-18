@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	// geneos.EnableDebugLog()
+	// logger.EnableDebugLog()
 }
 
 func main() {
@@ -31,13 +31,13 @@ func main() {
 
 	flag.StringVar(&hostname, "h", "localhost", "Netprobe hostname")
 	flag.UintVar(&port, "p", 7036, "Netprobe port number")
-	flag.DurationVar(&interval, "t", 1*time.Second, "Globval DoSample Interval (min 1s)")
+	flag.DurationVar(&interval, "t", 1*time.Second, "Global DoSample Interval in seconds (min 1)")
 	flag.StringVar(&entityname, "e", "", "Default entity to connect")
 	flag.StringVar(&samplername, "s", "", "Default sampler to connect")
 	flag.Parse()
 
 	if interval < 1*time.Second {
-		log.Fatalf("supplied sample interval (%v) too short", interval)
+		log.Fatalf("supplied sample interval (%v) too short, minimum 1 second", interval)
 	}
 
 	// connect to netprobe

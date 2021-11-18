@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"wonderland.org/geneos"
+	"wonderland.org/geneos/pkg/logger"
 	"wonderland.org/geneos/pkg/xmlrpc"
 )
 
@@ -22,9 +22,9 @@ type Connection struct {
 }
 
 var (
-	Logger      = geneos.Logger
-	DebugLogger = geneos.DebugLogger
-	ErrorLogger = geneos.ErrorLogger
+	Logger      = logger.Logger
+	DebugLogger = logger.DebugLogger
+	ErrorLogger = logger.ErrorLogger
 )
 
 // wrap calls to xmlrpc

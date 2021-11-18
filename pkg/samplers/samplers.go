@@ -9,19 +9,19 @@ import (
 	"sync"
 	"time"
 
-	"wonderland.org/geneos"
+	"wonderland.org/geneos/pkg/logger"
 	"wonderland.org/geneos/pkg/plugins"
 	"wonderland.org/geneos/pkg/xmlrpc"
 )
 
 func init() {
-	// geneos.EnableDebugLog()
+	// logger.EnableDebugLog()
 }
 
 var (
-	Logger      = geneos.Logger
-	DebugLogger = geneos.DebugLogger
-	ErrorLogger = geneos.ErrorLogger
+	Logger      = logger.Logger
+	DebugLogger = logger.DebugLogger
+	ErrorLogger = logger.ErrorLogger
 )
 
 type SamplerInstance interface {
@@ -74,7 +74,7 @@ const (
 
 // these two internal functions implement the redirection required to
 // call initialisation and sample routines from plugins. without
-// there, using direct calls, the process will crash if one of the functions
+// these, using direct calls, the process will crash if one of the functions
 // isn't defined and there is no way to check before calling. this also
 // allows for future shared initialisation code
 
@@ -102,7 +102,6 @@ func (s *Samplers) New(p plugins.Connection, name string, group string) error {
 
 func (p *Samplers) SetInterval(interval time.Duration) {
 	p.interval = interval
-	return
 }
 
 func (p Samplers) Interval() time.Duration {
@@ -111,7 +110,6 @@ func (p Samplers) Interval() time.Duration {
 
 func (p *Samplers) SetColumnNames(columnnames []string) {
 	p.columnnames = columnnames
-	return
 }
 
 func (p Samplers) ColumnNames() []string {
@@ -120,7 +118,6 @@ func (p Samplers) ColumnNames() []string {
 
 func (p *Samplers) SetColumns(columns Columns) {
 	p.columns = columns
-	return
 }
 
 func (p Samplers) Columns() Columns {
@@ -129,7 +126,6 @@ func (p Samplers) Columns() Columns {
 
 func (p *Samplers) SetSortColumn(column string) {
 	p.sortcolumn = column
-	return
 }
 
 func (p Samplers) SortColumn() string {

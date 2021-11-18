@@ -232,7 +232,7 @@ There is a basic logging interface to allow for common logging formats for any p
 ```go
 import (
 ...
-	"wonderland.org/geneos"
+	"wonderland.org/geneos/pkg/logger"
 )
 
 func init() {
