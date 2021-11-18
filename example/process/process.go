@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"runtime"
 
-	"wonderland.org/geneos"
+	"wonderland.org/geneos/pkg/logger"
 	"wonderland.org/geneos/pkg/plugins"
 	"wonderland.org/geneos/pkg/samplers"
 )
 
 func init() {
-	// geneos.EnableDebugLog()
+	// logger.EnableDebugLog()
 }
 
 var (
-	Logger      = geneos.Logger
-	DebugLogger = geneos.DebugLogger
-	ErrorLogger = geneos.ErrorLogger
+	Logger      = logger.Logger
+	DebugLogger = logger.DebugLogger
+	ErrorLogger = logger.ErrorLogger
 )
 
 type ProcessSampler struct {

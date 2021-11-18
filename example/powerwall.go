@@ -12,7 +12,7 @@ import (
 	"log"
 	"net/http"
 
-	"wonderland.org/geneos"
+	"wonderland.org/geneos/pkg/logger"
 	"wonderland.org/geneos/pkg/plugins"
 	"wonderland.org/geneos/pkg/samplers"
 )
@@ -22,9 +22,9 @@ func init() {
 }
 
 var (
-	Logger      = geneos.Logger
-	DebugLogger = geneos.DebugLogger
-	ErrorLogger = geneos.ErrorLogger
+	Logger      = logger.Logger
+	DebugLogger = logger.DebugLogger
+	ErrorLogger = logger.ErrorLogger
 )
 
 type PowerwallSampler struct {

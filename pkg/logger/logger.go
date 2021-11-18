@@ -1,4 +1,4 @@
-package geneos // import "wonderland.org/geneos"
+package logger // import "wonderland.org/geneos/pkg/logger"
 
 import (
 	"io/ioutil"
