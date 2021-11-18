@@ -10,7 +10,7 @@ The documentation for the underlying API is here:
 
 https://docs.itrsgroup.com/docs/geneos/current/Netprobe/api/xml-rpc-api.html
 
-While direct mappings from golang to the API are available in the [xmlrpc](geneos/xmlrpc) package most users will want to look at the higher-level [samplers](geneos/samplers) and [streams](geneos/streams) packages that try to implement an easier to use high-level interface.
+While direct mappings from golang to the API are available in the [xmlrpc](geneos/pkg/xmlrpc) package most users will want to look at the higher-level [samplers](geneos/pkg/samplers) and [streams](geneos/pkg/streams) packages that try to implement an easier to use high-level interface.
 
 ## Examples of use
 
@@ -42,7 +42,7 @@ package generic
 
 import (
 	"wonderland.org/geneos/pkg/plugins"
-	"wonderland.org/geneos/sampler"
+	"wonderland.org/geneos/pkg/sampler"
 )
 ```
 
@@ -227,7 +227,7 @@ Finally `Start()` the sampler by passing a `sync.WaitGroup` that you can later `
 
 ## Logging
 
-There is a basic logging interface to allow for common logging formats for any plugins. To use import the top-level _geneos_ package and then make local copies of the Loggers, like this:
+There is a basic logging interface to allow for common logging formats for any plugins. To use import the [logger](geneos/pkg/logger) package and then make local copies of the Loggers, like this:
 
 ```go
 import (
@@ -236,25 +236,25 @@ import (
 )
 
 func init() {
-	geneos.EnableDebugLog()
+	logger.EnableDebugLog()
 }
 
 var (
-	Logger      = geneos.Logger
-	DebugLogger = geneos.DebugLogger
-	ErrorLogger = geneos.ErrorLogger
+	Logger      = logger.Logger
+	DebugLogger = logger.DebugLogger
+	ErrorLogger = logger.ErrorLogger
 )
 ```
 
 Then all of the normal _log_ package methods will work.
 
-The `DebugLogger` is turned off by default and can be enabled using `geneos.EnableDebugLog()` and then disabled again using `geneos.DisableDebugLog()`. As Loggers are copies of the ones in the _geneos_ package the DebugLogger can be enabled or disabled per package. 
+The `DebugLogger` is turned off by default and can be enabled using `logger.EnableDebugLog()` and then disabled again using `logger.DisableDebugLog()`. As Loggers are copies of the ones in the logger package the DebugLogger can be enabled or disabled per package. 
 
 For this reason you may want to provide exported package methods to turn debug logging on and off from the calling program.
 
 ## Streams
 
-Basic support for [streams](geneos/streams) are included. Streams must be predefined in the Geneos configuration and sending messages to a non-existent stream name results in an error.
+Basic support for [streams](geneos/pkg/streams) are included. Streams must be predefined in the Geneos configuration and sending messages to a non-existent stream name results in an error.
 
 ```go
 import (
