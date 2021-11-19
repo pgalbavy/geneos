@@ -62,6 +62,7 @@ func (c Client) post(data methodCall) (result methodResponse, err error) {
 	if err != nil {
 		return
 	}
+
 	if result.Fault != nil {
 		err = fmt.Errorf("%d %s", result.Fault[0].Int, result.Fault[1].String)
 	}
@@ -169,6 +170,8 @@ func marshal(c methodCall) ([]byte, error) {
 			if a.String != "" {
 				data += "<string>" + a.String + "</string>"
 			} else if a.Int != 0 {
+				// the only call that passes an Int is a duration in seconds,
+				// which must be greater than zero, hence this is valid
 				data += "<int>" + strconv.Itoa(a.Int) + "</int>"
 			} else if a.Array != nil {
 				data += "<array><data>"

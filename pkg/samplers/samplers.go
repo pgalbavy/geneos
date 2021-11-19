@@ -253,7 +253,6 @@ MB etc.)
 
 The data passed should NOT include column heading slice as it will be
 regenerated from the Columns data
-
 */
 func (s Samplers) RowsFromMap(rowdata interface{}) (rows [][]string, err error) {
 	c := s.Columns()
@@ -351,24 +350,24 @@ func (s Samplers) RowsFromMapDelta(newrowdata, oldrowdata interface{},
 		interval = 1 * time.Second
 	}
 
-	rnew := reflect.Indirect(reflect.ValueOf(newrowdata))
-	if rnew.Kind() != reflect.Map {
+	rNew := reflect.Indirect(reflect.ValueOf(newrowdata))
+	if rNew.Kind() != reflect.Map {
 		err = fmt.Errorf("non map passed")
 		return
 	}
 
-	rold := reflect.Indirect(reflect.ValueOf(oldrowdata))
-	if rold.Kind() != reflect.Map {
+	rOld := reflect.Indirect(reflect.ValueOf(oldrowdata))
+	if rOld.Kind() != reflect.Map {
 		err = fmt.Errorf("non map passed")
 		return
 	}
 
-	for _, k := range rnew.MapKeys() {
-		rawold, _ := rowFromStruct(c, rold.MapIndex(k))
-		rawcells, _ := rowFromStruct(c, rnew.MapIndex(k))
+	for _, k := range rNew.MapKeys() {
+		rawOld, _ := rowFromStruct(c, rOld.MapIndex(k))
+		rawCells, _ := rowFromStruct(c, rNew.MapIndex(k))
 		var cells []string
-		t := reflect.Indirect(rnew.MapIndex(k)).Type()
-		for i := range rawcells {
+		t := reflect.Indirect(rNew.MapIndex(k)).Type()
+		for i := range rawCells {
 			fieldname := t.Field(i).Name
 			format := c[fieldname].format
 			if c[fieldname].name == "OMIT" {
@@ -376,21 +375,21 @@ func (s Samplers) RowsFromMapDelta(newrowdata, oldrowdata interface{},
 			}
 
 			// calc diff here
-			oldcell, newcell := rawold[i], rawcells[i]
-			if reflect.TypeOf(oldcell) != reflect.TypeOf(newcell) {
+			oldCell, newCell := rawOld[i], rawCells[i]
+			if reflect.TypeOf(oldCell) != reflect.TypeOf(newCell) {
 				err = fmt.Errorf("non-matching types in data")
 				return
 			}
 			// can these fields be converted to float (the concrete value)
 			// this is not the same as parsing a string as float, but the
 			// actual struct field being numeric
-			newfloat, nerr := toFloat(newcell)
-			oldfloat, oerr := toFloat(oldcell)
+			newFloat, nerr := toFloat(newCell)
+			oldFloat, oerr := toFloat(oldCell)
 			if nerr == nil && oerr == nil {
-				cells = append(cells, fmt.Sprintf(format, (newfloat-oldfloat)/interval.Seconds()))
+				cells = append(cells, fmt.Sprintf(format, (newFloat-oldFloat)/interval.Seconds()))
 			} else {
 				// if we fail to convert then just render the new values directly
-				cells = append(cells, fmt.Sprintf(format, newcell))
+				cells = append(cells, fmt.Sprintf(format, newCell))
 			}
 		}
 		rows = append(rows, cells)
