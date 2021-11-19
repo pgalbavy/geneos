@@ -204,15 +204,14 @@ func (c NetprobeComponent) stop(name string) {
 	os.Remove(pidFile)
 }
 
-func NewNetprobe() NetprobeComponent {
-	c := &NetprobeComponent{}
+func newNetprobe() (c NetprobeComponent) {
 	// Bootstrap
 	c.ITRSHome = itrsHome
 	// empty slice
 	c.NetpOpts = []string{}
 
-	st := reflect.TypeOf(*c)
-	sv := reflect.ValueOf(c).Elem()
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(&c).Elem()
 	funcs := template.FuncMap{"join": filepath.Join}
 
 	for i := 0; i < st.NumField(); i++ {
@@ -243,7 +242,7 @@ func NewNetprobe() NetprobeComponent {
 
 	}
 
-	return *c
+	return
 }
 
 func (c *NetprobeComponent) setField(k, v string) {

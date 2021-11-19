@@ -66,13 +66,13 @@ func main() {
 		//
 	case "gateway":
 		ct = Gateway
-		c = NewGateway()
+		c = newGateway()
 	case "netprobe", "probe":
 		ct = Netprobe
-		c = NewNetprobe()
+		c = newNetprobe()
 	case "licd":
 		ct = Licd
-		c = NewLicd()
+		c = newLicd()
 	case "webserver", "webdashboard", "dashboard":
 		ct = Webserver
 		log.Println("webserver not supported yet")
@@ -94,7 +94,7 @@ func main() {
 	}
 
 	if len(os.Args) < 4 {
-		log.Fatalln("not enough args and lot list or create")
+		log.Fatalln("not enough args and neither list or create")
 	}
 
 	var action = os.Args[3]

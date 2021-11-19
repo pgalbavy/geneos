@@ -212,15 +212,14 @@ func (c LicdComponent) stop(name string) {
 	os.Remove(pidFile)
 }
 
-func NewLicd() LicdComponent {
-	c := &LicdComponent{}
+func newLicd() (c LicdComponent) {
 	// Bootstrap
 	c.ITRSHome = itrsHome
 	// empty slice
 	c.LicdOpts = []string{}
 
-	st := reflect.TypeOf(*c)
-	sv := reflect.ValueOf(c).Elem()
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(&c).Elem()
 	funcs := template.FuncMap{"join": filepath.Join}
 
 	for i := 0; i < st.NumField(); i++ {
@@ -251,5 +250,5 @@ func NewLicd() LicdComponent {
 
 	}
 
-	return *c
+	return
 }

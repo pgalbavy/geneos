@@ -214,15 +214,14 @@ func (c GatewayComponent) stop(name string) {
 	os.Remove(pidFile)
 }
 
-func NewGateway() GatewayComponent {
-	c := &GatewayComponent{}
+func newGateway() (c GatewayComponent) {
 	// Bootstrap
 	c.ITRSHome = itrsHome
 	// empty slice
 	c.GateOpts = []string{}
 
-	st := reflect.TypeOf(*c)
-	sv := reflect.ValueOf(c).Elem()
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(&c).Elem()
 	funcs := template.FuncMap{"join": filepath.Join}
 
 	for i := 0; i < st.NumField(); i++ {
@@ -253,5 +252,5 @@ func NewGateway() GatewayComponent {
 
 	}
 
-	return *c
+	return
 }
