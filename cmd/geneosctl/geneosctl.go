@@ -1,23 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"syscall"
 )
 
-type Components interface {
+type Component interface {
 	all() []string
-	list()
 
 	setup(name string) (cmd *exec.Cmd, env []string)
+	run(name string, cmd *exec.Cmd, env []string)
 
 	start(name string)
 	stop(name string)
 
-	getPid(name string) (pid int, pidFile string, err error)
+	dir() string
 }
 
 type ComponentType int
@@ -54,7 +60,7 @@ func init() {
 
 func main() {
 	var ct ComponentType
-	var c Components
+	var c Component
 
 	if len(os.Args) < 3 {
 		log.Fatalln("not enough args")
@@ -86,7 +92,9 @@ func main() {
 
 	switch os.Args[2] {
 	case "list":
-		c.list()
+		for _, name := range c.all() {
+			fmt.Println(name)
+		}
 		os.Exit(0)
 	case "create":
 		// createGateway()
@@ -125,7 +133,7 @@ func main() {
 		case "details":
 			//
 		case "status":
-			pid, _, err := c.getPid(name)
+			pid, _, err := getPid(ct, c.dir(), name)
 			if err != nil {
 				log.Println(ct, name, "- no valid PID file found")
 				continue
@@ -159,4 +167,53 @@ func dirs(dir string) []string {
 		}
 	}
 	return components
+}
+
+func setField(c Component, k, v string) {
+	fv := reflect.ValueOf(c).Elem().FieldByName(k)
+	if fv.IsValid() {
+		fv.SetString(v)
+	}
+}
+
+var funcs = template.FuncMap{"join": filepath.Join}
+
+func newComponent(c interface{}) {
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(c)
+	if st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
+		st = st.Elem()
+		sv = sv.Elem()
+	}
+
+	n := sv.NumField()
+
+	for i := 0; i < n; i++ {
+		ft := st.Field(i)
+		fv := sv.Field(i)
+
+		// only set plain strings
+		if !fv.CanSet() || fv.Kind() != reflect.String {
+			continue
+		}
+		if def, ok := ft.Tag.Lookup("default"); ok {
+			if strings.Contains(def, "{{") {
+				val, err := template.New(ft.Name).Funcs(funcs).Parse(def)
+				if err != nil {
+					log.Println("parse error:", def)
+					continue
+				}
+
+				var b bytes.Buffer
+				err = val.Execute(&b, c)
+				if err != nil {
+					log.Println("cannot convert:", def)
+				}
+				fv.SetString(b.String())
+			} else {
+				fv.SetString(def)
+			}
+		}
+
+	}
 }

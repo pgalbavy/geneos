@@ -2,23 +2,19 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"reflect"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
 type NetprobeComponent struct {
+	Component
 	ITRSHome  string
 	NetpRoot  string   `default:"{{join .ITRSHome \"netprobe\"}}"`
 	NetpBins  string   `default:"{{join .ITRSHome \"packages\" \"netprobe\"}}"`
@@ -35,30 +31,6 @@ type NetprobeComponent struct {
 func (c NetprobeComponent) all() []string {
 	probesDir := filepath.Join(c.NetpRoot, "netprobes")
 	return dirs(probesDir)
-}
-
-func (c NetprobeComponent) list() {
-	probes := c.all()
-	for _, probe := range probes {
-		fmt.Println(probe)
-	}
-}
-
-func (c NetprobeComponent) start(name string) {
-	cmd, env := c.setup(name)
-	if cmd == nil {
-		return
-	}
-
-	if len(c.NetpUser) != 0 {
-		u, _ := user.Current()
-		if c.NetpUser != u.Username {
-			log.Println("can't change user to", c.NetpUser)
-			return
-		}
-	}
-
-	c.run(name, cmd, env)
 }
 
 func (c NetprobeComponent) setup(name string) (cmd *exec.Cmd, env []string) {
@@ -96,10 +68,10 @@ func (c NetprobeComponent) setup(name string) (cmd *exec.Cmd, env []string) {
 		case "NetpOpts":
 			c.NetpOpts = strings.Fields(v)
 		case "BinSuffix":
-			c.setField(k, v)
+			setField(c, k, v)
 		default:
 			if strings.HasPrefix(k, "Netp") {
-				c.setField(k, v)
+				setField(c, k, v)
 			} else {
 				// set env var
 				env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -148,25 +120,25 @@ func (c NetprobeComponent) run(name string, cmd *exec.Cmd, env []string) {
 	}
 }
 
-func (c NetprobeComponent) getPid(name string) (pid int, pidFile string, err error) {
-	wd := filepath.Join(c.NetpRoot, "netprobes", name)
-	// open pid file
-	pidFile = filepath.Join(wd, "netprobe.pid")
-	pidBytes, err := ioutil.ReadFile(pidFile)
-	if err != nil {
-		err = fmt.Errorf("cannot read PID file")
+func (c NetprobeComponent) start(name string) {
+	cmd, env := c.setup(name)
+	if cmd == nil {
 		return
 	}
-	pid, err = strconv.Atoi(strings.TrimSpace(string(pidBytes)))
-	if err != nil {
-		err = fmt.Errorf("cannot convert PID to int: %s", err)
-		return
+
+	if len(c.NetpUser) != 0 {
+		u, _ := user.Current()
+		if c.NetpUser != u.Username {
+			log.Println("can't change user to", c.NetpUser)
+			return
+		}
 	}
-	return
+
+	c.run(name, cmd, env)
 }
 
 func (c NetprobeComponent) stop(name string) {
-	pid, pidFile, err := c.getPid(name)
+	pid, pidFile, err := getPid(Netprobe, c.NetpRoot, name)
 	if err != nil {
 		//		log.Println("cannot get PID for", name)
 		return
@@ -204,51 +176,16 @@ func (c NetprobeComponent) stop(name string) {
 	os.Remove(pidFile)
 }
 
+func (c NetprobeComponent) dir() string {
+	return c.NetpRoot
+}
+
 func newNetprobe() (c NetprobeComponent) {
 	// Bootstrap
 	c.ITRSHome = itrsHome
 	// empty slice
 	c.NetpOpts = []string{}
 
-	st := reflect.TypeOf(c)
-	sv := reflect.ValueOf(&c).Elem()
-	funcs := template.FuncMap{"join": filepath.Join}
-
-	for i := 0; i < st.NumField(); i++ {
-		ft := st.Field(i)
-		fv := sv.Field(i)
-		// only set plain strings
-		if !fv.CanSet() || fv.Kind() != reflect.String {
-			continue
-		}
-		if def, ok := ft.Tag.Lookup("default"); ok {
-			if strings.Contains(def, "{{") {
-				val, err := template.New(ft.Name).Funcs(funcs).Parse(def)
-				if err != nil {
-					log.Println("parse error:", def)
-					continue
-				}
-
-				var b bytes.Buffer
-				err = val.Execute(&b, c)
-				if err != nil {
-					log.Println("cannot convert:", def)
-				}
-				fv.SetString(b.String())
-			} else {
-				fv.SetString(def)
-			}
-		}
-
-	}
-
+	newComponent(&c)
 	return
-}
-
-func (c *NetprobeComponent) setField(k, v string) {
-	fv := reflect.ValueOf(c).Elem().FieldByName(k)
-	if fv.IsValid() {
-		fv.SetString(v)
-	}
-
 }

@@ -2,23 +2,19 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"reflect"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
 type GatewayComponent struct {
+	Component
 	ITRSHome  string
 	GateRoot  string `default:"{{join .ITRSHome \"gateway\"}}"`
 	GateBins  string `default:"{{join .ITRSHome \"packages\" \"gateway\"}}"`
@@ -39,30 +35,7 @@ func (c GatewayComponent) all() []string {
 	return dirs(dir)
 }
 
-func (c GatewayComponent) list() {
-	gateways := c.all()
-	for _, gateway := range gateways {
-		fmt.Println(gateway)
-	}
-}
-
-func (c GatewayComponent) start(name string) {
-	cmd, env := c.setup(name)
-	if cmd == nil {
-		return
-	}
-
-	if len(c.GateUser) != 0 {
-		u, _ := user.Current()
-		if c.GateUser != u.Username {
-			log.Println("can't change user to", c.GateUser)
-			return
-		}
-	}
-
-	c.run(name, cmd, env)
-}
-
+/*
 func (c *GatewayComponent) setField(k, v string) {
 	fv := reflect.ValueOf(c).Elem().FieldByName(k)
 	if fv.IsValid() {
@@ -70,7 +43,7 @@ func (c *GatewayComponent) setField(k, v string) {
 	}
 
 }
-
+*/
 func (c GatewayComponent) setup(name string) (cmd *exec.Cmd, env []string) {
 	wd := filepath.Join(c.GateRoot, "gateways", name)
 	if err := os.Chdir(wd); err != nil {
@@ -106,10 +79,10 @@ func (c GatewayComponent) setup(name string) (cmd *exec.Cmd, env []string) {
 		case "GateOpts":
 			c.GateOpts = strings.Fields(v)
 		case "BinSuffix":
-			c.setField(k, v)
+			setField(c, k, v)
 		default:
 			if strings.HasPrefix(k, "Gate") {
-				c.setField(k, v)
+				setField(c, k, v)
 			} else {
 				// set env var
 				env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -158,25 +131,25 @@ func (c GatewayComponent) run(name string, cmd *exec.Cmd, env []string) {
 	}
 }
 
-func (c GatewayComponent) getPid(name string) (pid int, pidFile string, err error) {
-	wd := filepath.Join(c.GateRoot, "gateways", name)
-	// open pid file
-	pidFile = filepath.Join(wd, "gateway.pid")
-	pidBytes, err := ioutil.ReadFile(pidFile)
-	if err != nil {
-		err = fmt.Errorf("cannot read PID file")
+func (c GatewayComponent) start(name string) {
+	cmd, env := c.setup(name)
+	if cmd == nil {
 		return
 	}
-	pid, err = strconv.Atoi(strings.TrimSpace(string(pidBytes)))
-	if err != nil {
-		err = fmt.Errorf("cannot convert PID to int: %s", err)
-		return
+
+	if len(c.GateUser) != 0 {
+		u, _ := user.Current()
+		if c.GateUser != u.Username {
+			log.Println("can't change user to", c.GateUser)
+			return
+		}
 	}
-	return
+
+	c.run(name, cmd, env)
 }
 
 func (c GatewayComponent) stop(name string) {
-	pid, pidFile, err := c.getPid(name)
+	pid, pidFile, err := getPid(Gateway, c.GateRoot, name)
 	if err != nil {
 		//		log.Println("cannot get PID for", name)
 		return
@@ -214,43 +187,16 @@ func (c GatewayComponent) stop(name string) {
 	os.Remove(pidFile)
 }
 
+func (c GatewayComponent) dir() string {
+	return c.GateRoot
+}
+
 func newGateway() (c GatewayComponent) {
 	// Bootstrap
 	c.ITRSHome = itrsHome
 	// empty slice
 	c.GateOpts = []string{}
 
-	st := reflect.TypeOf(c)
-	sv := reflect.ValueOf(&c).Elem()
-	funcs := template.FuncMap{"join": filepath.Join}
-
-	for i := 0; i < st.NumField(); i++ {
-		ft := st.Field(i)
-		fv := sv.Field(i)
-		// only set plain strings
-		if !fv.CanSet() || fv.Kind() != reflect.String {
-			continue
-		}
-		if def, ok := ft.Tag.Lookup("default"); ok {
-			if strings.Contains(def, "{{") {
-				val, err := template.New(ft.Name).Funcs(funcs).Parse(def)
-				if err != nil {
-					log.Println("parse error:", def)
-					continue
-				}
-
-				var b bytes.Buffer
-				err = val.Execute(&b, c)
-				if err != nil {
-					log.Println("cannot convert:", def)
-				}
-				fv.SetString(b.String())
-			} else {
-				fv.SetString(def)
-			}
-		}
-
-	}
-
+	newComponent(&c)
 	return
 }

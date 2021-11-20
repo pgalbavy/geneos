@@ -2,23 +2,19 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"reflect"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
 type LicdComponent struct {
+	Component
 	ITRSHome  string
 	LicdRoot  string `default:"{{join .ITRSHome \"licd\"}}"`
 	LicdBins  string `default:"{{join .ITRSHome \"packages\" \"licd\"}}"`
@@ -37,38 +33,13 @@ func (c LicdComponent) all() []string {
 	return dirs(dir)
 }
 
-func (c LicdComponent) list() {
-	licds := c.all()
-	for _, licd := range licds {
-		fmt.Println(licd)
-	}
-}
-
-func (c LicdComponent) start(name string) {
-	cmd, env := c.setup(name)
-	if cmd == nil {
-		return
-	}
-
-	if len(c.LicdUser) != 0 {
-		u, _ := user.Current()
-		if c.LicdUser != u.Username {
-			log.Println("can't change user to", c.LicdUser)
-			return
-		}
-	}
-
-	c.run(name, cmd, env)
-}
-
-func (c *LicdComponent) setField(k, v string) {
+/* func (c *LicdComponent) setField(k, v string) {
 	fv := reflect.ValueOf(c).Elem().FieldByName(k)
 	if fv.IsValid() {
 		fv.SetString(v)
 	}
-
 }
-
+*/
 func (c LicdComponent) setup(name string) (cmd *exec.Cmd, env []string) {
 	wd := filepath.Join(c.LicdRoot, "licds", name)
 	if err := os.Chdir(wd); err != nil {
@@ -104,10 +75,10 @@ func (c LicdComponent) setup(name string) (cmd *exec.Cmd, env []string) {
 		case "LicdOpts":
 			c.LicdOpts = strings.Fields(v)
 		case "BinSuffix":
-			c.setField(k, v)
+			setField(c, k, v)
 		default:
 			if strings.HasPrefix(k, "Licd") {
-				c.setField(k, v)
+				setField(c, k, v)
 			} else {
 				// set env var
 				env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -156,25 +127,29 @@ func (c LicdComponent) run(name string, cmd *exec.Cmd, env []string) {
 	}
 }
 
-func (c LicdComponent) getPid(name string) (pid int, pidFile string, err error) {
-	wd := filepath.Join(c.LicdRoot, "licds", name)
-	// open pid file
-	pidFile = filepath.Join(wd, "licd.pid")
-	pidBytes, err := ioutil.ReadFile(pidFile)
-	if err != nil {
-		err = fmt.Errorf("cannot read PID file")
+func (c LicdComponent) dir() string {
+	return c.LicdRoot
+}
+
+func (c LicdComponent) start(name string) {
+	cmd, env := c.setup(name)
+	if cmd == nil {
 		return
 	}
-	pid, err = strconv.Atoi(strings.TrimSpace(string(pidBytes)))
-	if err != nil {
-		err = fmt.Errorf("cannot convert PID to int: %s", err)
-		return
+
+	if len(c.LicdUser) != 0 {
+		u, _ := user.Current()
+		if c.LicdUser != u.Username {
+			log.Println("can't change user to", c.LicdUser)
+			return
+		}
 	}
-	return
+
+	c.run(name, cmd, env)
 }
 
 func (c LicdComponent) stop(name string) {
-	pid, pidFile, err := c.getPid(name)
+	pid, pidFile, err := getPid(Licd, c.dir(), name)
 	if err != nil {
 		//		log.Println("cannot get PID for", name)
 		return
@@ -218,37 +193,6 @@ func newLicd() (c LicdComponent) {
 	// empty slice
 	c.LicdOpts = []string{}
 
-	st := reflect.TypeOf(c)
-	sv := reflect.ValueOf(&c).Elem()
-	funcs := template.FuncMap{"join": filepath.Join}
-
-	for i := 0; i < st.NumField(); i++ {
-		ft := st.Field(i)
-		fv := sv.Field(i)
-		// only set plain strings
-		if !fv.CanSet() || fv.Kind() != reflect.String {
-			continue
-		}
-		if def, ok := ft.Tag.Lookup("default"); ok {
-			if strings.Contains(def, "{{") {
-				val, err := template.New(ft.Name).Funcs(funcs).Parse(def)
-				if err != nil {
-					log.Println("parse error:", def)
-					continue
-				}
-
-				var b bytes.Buffer
-				err = val.Execute(&b, c)
-				if err != nil {
-					log.Println("cannot convert:", def)
-				}
-				fv.SetString(b.String())
-			} else {
-				fv.SetString(def)
-			}
-		}
-
-	}
-
+	newComponent(&c)
 	return
 }
