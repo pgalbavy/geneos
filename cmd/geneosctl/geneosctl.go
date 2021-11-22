@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -8,22 +9,16 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type Component interface {
-	all() []string
-
-	setup(name string) (cmd *exec.Cmd, env []string)
-	run(name string, cmd *exec.Cmd, env []string)
-
-	start(name string)
-	stop(name string)
-
-	dir() string
+	// empty
 }
 
 type ComponentType int
@@ -52,6 +47,12 @@ func (ct ComponentType) String() string {
 	return "unknown"
 }
 
+type Components struct {
+	Component
+	ITRSHome string
+	CompType ComponentType
+}
+
 func init() {
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
 		itrsHome = h
@@ -59,7 +60,6 @@ func init() {
 }
 
 func main() {
-	var ct ComponentType
 	var c Component
 
 	if len(os.Args) < 3 {
@@ -68,19 +68,14 @@ func main() {
 
 	switch os.Args[1] {
 	case "all", "any":
-		ct = Any
 		//
 	case "gateway":
-		ct = Gateway
 		c = newGateway()
 	case "netprobe", "probe":
-		ct = Netprobe
 		c = newNetprobe()
 	case "licd":
-		ct = Licd
 		c = newLicd()
 	case "webserver", "webdashboard", "dashboard":
-		ct = Webserver
 		log.Println("webserver not supported yet")
 		os.Exit(0)
 	case "list":
@@ -92,7 +87,7 @@ func main() {
 
 	switch os.Args[2] {
 	case "list":
-		for _, name := range c.all() {
+		for _, name := range all(c) {
 			fmt.Println(name)
 		}
 		os.Exit(0)
@@ -109,20 +104,20 @@ func main() {
 
 	names := []string{os.Args[2]}
 	if os.Args[2] == "all" {
-		names = c.all()
+		names = all(c)
 	}
 
 	for _, name := range names {
 		switch action {
 		case "start":
-			c.start(name)
+			start(c, name)
 		case "stop":
-			c.stop(name)
+			stop(c, name)
 		case "restart":
-			c.stop(name)
-			c.start(name)
+			stop(c, name)
+			start(c, name)
 		case "command":
-			cmd, env := c.setup(name)
+			cmd, env := loadConfig(c, name)
 			if cmd != nil {
 				log.Printf("command: %q\n", cmd.String())
 				log.Println("extra environment:")
@@ -130,32 +125,89 @@ func main() {
 					log.Println(e)
 				}
 			}
+			log.Println("end")
 		case "details":
 			//
 		case "status":
-			pid, _, err := getPid(ct, c.dir(), name)
+			pid, _, err := getPid(c, name)
 			if err != nil {
-				log.Println(ct, name, "- no valid PID file found")
+				log.Println(compType(c), name, "- no valid PID file found")
 				continue
 			}
 			proc, _ := os.FindProcess(pid)
 			err = proc.Signal(syscall.Signal(0))
 			//
 			if err != nil && !errors.Is(err, syscall.EPERM) {
-				log.Println(ct, name, "process not found", pid)
+				log.Println(compType(c), name, "process not found", pid)
 			} else {
-				log.Println(ct, name, "running with PID", pid)
+				log.Println(compType(c), name, "running with PID", pid)
 			}
 		case "refresh":
-			refresh(c, ct, name)
+			// c.refresh(ct, name)
 		case "log":
 
 		case "delete":
 
 		default:
-			log.Fatalln(ct, "unknown action:", action)
+			log.Fatalln(compType(c), "unknown action:", action)
 		}
 	}
+}
+func start(c Component, name string) {
+	cmd, env := loadConfig(c, name)
+	if cmd == nil {
+		return
+	}
+
+	username := getStringField(c, "User")
+	if len(username) != 0 {
+		u, _ := user.Current()
+		if username != u.Username {
+			log.Println("can't change user to", username)
+			return
+		}
+	}
+
+	run(c, name, cmd, env)
+}
+
+func stop(c Component, name string) {
+	pid, pidFile, err := getPid(c, name)
+	if err != nil {
+		//		log.Println("cannot get PID for", name)
+		return
+	}
+
+	// send sigterm
+	log.Println("stopping", compType(c), name, "with PID", pid)
+
+	proc, _ := os.FindProcess(pid)
+	if err = proc.Signal(syscall.Signal(0)); err != nil {
+		log.Println(compType(c), "process not found, removing PID file")
+		os.Remove(pidFile)
+		return
+	}
+
+	if err = proc.Signal(syscall.SIGTERM); err != nil {
+		log.Println("sending SIGTERM failed:", err)
+		return
+	}
+
+	// send a signal 0 in a loop
+	for i := 0; i < 10; i++ {
+		time.Sleep(250 * time.Millisecond)
+		if err = proc.Signal(syscall.Signal(0)); err != nil {
+			log.Println(compType(c), "terminated")
+			os.Remove(pidFile)
+			return
+		}
+	}
+	// sigkill
+	if err = proc.Signal(syscall.SIGKILL); err != nil {
+		log.Println("sending SIGKILL failed:", err)
+		return
+	}
+	os.Remove(pidFile)
 }
 
 func dirs(dir string) []string {
@@ -169,11 +221,9 @@ func dirs(dir string) []string {
 	return components
 }
 
-func setField(c Component, k, v string) {
-	fv := reflect.ValueOf(c).Elem().FieldByName(k)
-	if fv.IsValid() {
-		fv.SetString(v)
-	}
+func all(c Component) []string {
+	dir := filepath.Join(root(c), compType(c).String()+"s")
+	return dirs(dir)
 }
 
 var funcs = template.FuncMap{"join": filepath.Join}
@@ -181,7 +231,7 @@ var funcs = template.FuncMap{"join": filepath.Join}
 func newComponent(c interface{}) {
 	st := reflect.TypeOf(c)
 	sv := reflect.ValueOf(c)
-	if st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
+	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
 		st = st.Elem()
 		sv = sv.Elem()
 	}
@@ -215,5 +265,168 @@ func newComponent(c interface{}) {
 			}
 		}
 
+	}
+}
+
+func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
+	t := compType(c).String()
+	prefix := strings.Title(t[0:4])
+
+	wd := filepath.Join(root(c), t+"s", name)
+	if err := os.Chdir(wd); err != nil {
+		log.Println("cannot chdir() to", wd)
+		return
+	}
+	rcFile, err := os.Open(t + ".rc")
+	if err != nil {
+		log.Println("cannot open ", t, ".rc")
+		return
+	}
+	defer rcFile.Close()
+
+	confs := make(map[string]string)
+	scanner := bufio.NewScanner(rcFile)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if len(line) == 0 || strings.HasPrefix(line, "#") {
+			continue
+		}
+		s := strings.SplitN(line, "=", 2)
+		if len(s) != 2 {
+			log.Println("config line format incorrect:", line)
+			return
+		}
+		key, value := s[0], s[1]
+		value = strings.Trim(value, "\"")
+		confs[key] = value
+	}
+
+	for k, v := range confs {
+		switch k {
+		case prefix + "Opts":
+			setStringFieldSlice(c, prefix+"Opts", strings.Fields(v))
+		case "BinSuffix":
+			setStringField(c, k, v)
+		default:
+			if strings.HasPrefix(k, prefix) {
+				setStringField(c, k, v)
+			} else {
+				// set env var
+				env = append(env, fmt.Sprintf("%s=%s", k, v))
+			}
+		}
+	}
+
+	// build command line and env vars
+	shell := os.Getenv("SHELL")
+	if len(shell) == 0 {
+		shell = "/bin/bash"
+	}
+
+	binary := filepath.Join(getStringField(c, "Bins"), getStringField(c, "Base"), getStringField(c, "BinSuffix"))
+	logFile := filepath.Join(getStringField(c, "LogD"), name, getStringField(c, "LogF"))
+
+	env = append(env, "LD_LIBRARY_PATH="+getStringField(c, "Libs"))
+	args := []string{name, "-logfile", logFile}
+	args = append(args, getStringFieldSlice(c, "Opts")...)
+	cmd = exec.Command(binary, args...)
+
+	return
+}
+
+func run(c Component, name string, cmd *exec.Cmd, env []string) {
+	wd := filepath.Join(root(c), compType(c).String()+"s", name)
+
+	// actually run the process
+	cmd.Env = append(os.Environ(), env...)
+	err := cmd.Start()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if cmd.Process != nil {
+		// write pid file
+		pidFile := filepath.Join(wd, compType(c).String()+".pid")
+		if file, err := os.Create(pidFile); err != nil {
+			log.Printf("cannot open %q for writing", pidFile)
+		} else {
+			fmt.Fprintln(file, cmd.Process.Pid)
+			file.Close()
+		}
+		// detach
+		cmd.Process.Release()
+	}
+}
+
+func root(c Component) string {
+	return getStringField(c, "Root")
+}
+
+func compType(c Component) ComponentType {
+	v := reflect.ValueOf(c).Elem().FieldByName("CompType")
+	if v.IsValid() {
+		return v.Interface().(ComponentType)
+	}
+	return Any
+}
+
+func getStringField(c Component, name string) string {
+	t := compType(c).String()
+	prefix := strings.Title(t[0:4])
+
+	v := reflect.ValueOf(c).Elem().FieldByName(prefix + name)
+	if v.IsValid() && v.Kind() == reflect.String {
+		return v.String()
+	}
+	return ""
+}
+
+func getStringFieldSlice(c Component, names ...string) (fields []string) {
+	t := compType(c).String()
+	prefix := strings.Title(t[0:4])
+
+	v := reflect.ValueOf(c).Elem()
+
+	fv := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf("abc")), 0, 5)
+
+	for _, name := range names {
+		f := v.FieldByName(prefix + name)
+		if f.IsValid() {
+			switch f.Kind() {
+			case reflect.String:
+				fv = reflect.Append(fv, f)
+				// fields = append(fields, f.String())
+			case reflect.Slice:
+				fv = reflect.AppendSlice(fv, f)
+			}
+		}
+	}
+	fields = fv.Interface().([]string)
+	return
+}
+
+func setStringField(c Component, k, v string) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+	fv = fv.FieldByName(k)
+	if fv.IsValid() && fv.CanSet() {
+		fv.SetString(v)
+	}
+	//return r
+}
+
+func setStringFieldSlice(c Component, k string, v []string) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+	fv = fv.FieldByName(k)
+	if fv.IsValid() && fv.CanSet() {
+		reflect.AppendSlice(fv, reflect.ValueOf(v))
+		for _, val := range v {
+			fv.Set(reflect.Append(fv, reflect.ValueOf(val)))
+		}
 	}
 }

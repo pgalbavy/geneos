@@ -14,8 +14,8 @@ import (
 
 var itrsHome string = "/opt/itrs"
 
-func refresh(c Component, ct ComponentType, name string) {
-	pid, _, err := getPid(ct, c.dir(), name)
+func (c Components) refresh(ct ComponentType, name string) {
+	pid, _, err := getPid(c, name)
 	if err != nil {
 		return
 	}
@@ -28,10 +28,11 @@ func refresh(c Component, ct ComponentType, name string) {
 	}
 }
 
-func getPid(ct ComponentType, basedir string, name string) (pid int, pidFile string, err error) {
-	wd := filepath.Join(basedir, ct.String()+"s", name)
+func getPid(c Component, name string) (pid int, pidFile string, err error) {
+	basedir := root(c)
+	wd := filepath.Join(basedir, compType(c).String()+"s", name)
 	// open pid file
-	pidFile = filepath.Join(wd, ct.String()+".pid")
+	pidFile = filepath.Join(wd, compType(c).String()+".pid")
 	pidBytes, err := ioutil.ReadFile(pidFile)
 	if err != nil {
 		err = fmt.Errorf("cannot read PID file")
