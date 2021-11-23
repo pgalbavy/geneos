@@ -2,7 +2,7 @@ package main
 
 type GatewayComponent struct {
 	Components
-	GateName  string
+	GateName  string `json:"-"`
 	GateRoot  string `default:"{{join .ITRSHome \"gateway\"}}"`
 	GateHome  string `default:"{{join .GateRoot \"gateways\" .GateName}}"`
 	GateBins  string `default:"{{join .ITRSHome \"packages\" \"gateway\"}}"`

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -63,9 +64,9 @@ func ct(component string) ComponentType {
 }
 
 type Components struct {
-	Component
-	ITRSHome string
-	CompType ComponentType
+	Component `json:"-"`
+	ITRSHome  string        `json:"-"`
+	CompType  ComponentType `json:"-"`
 }
 
 func init() {
@@ -123,9 +124,9 @@ func main() {
 		case Gateway:
 			c = newGateway(name)
 		case Netprobe:
-			c = newNetprobe()
+			c = newNetprobe(name)
 		case Licd:
-			c = newLicd()
+			c = newLicd(name)
 		case Webserver:
 			log.Println("webserver not supported yet")
 			os.Exit(0)
@@ -295,45 +296,63 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 		log.Println("cannot chdir() to", wd)
 		return
 	}
-	rcFile, err := os.Open(t + ".rc")
-	if err != nil {
-		log.Println("cannot open ", t, ".rc")
-		return
-	}
-	defer rcFile.Close()
-
-	log.Printf("loading config from %s/%s.rc", wd, t)
-
-	confs := make(map[string]string)
-	scanner := bufio.NewScanner(rcFile)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if len(line) == 0 || strings.HasPrefix(line, "#") {
-			continue
-		}
-		s := strings.SplitN(line, "=", 2)
-		if len(s) != 2 {
-			log.Println("config line format incorrect:", line)
+	jsonFile, err := os.ReadFile(t + ".json")
+	if err == nil {
+		//var c2 interface{}
+		json.Unmarshal(jsonFile, &c)
+		log.Printf("json=%+v\n", c)
+	} else {
+		rcFile, err := os.Open(t + ".rc")
+		if err != nil {
+			log.Println("cannot open ", t, ".rc")
 			return
 		}
-		key, value := s[0], s[1]
-		value = strings.Trim(value, "\"")
-		confs[key] = value
-	}
+		defer rcFile.Close()
 
-	log.Printf("defaults: %+v\n", c)
-	for k, v := range confs {
-		switch k {
-		case prefix + "Opts":
-			setStringFieldSlice(c, prefix+"Opts", strings.Fields(v))
-		case "BinSuffix":
-			setField(c, k, v)
-		default:
-			if strings.HasPrefix(k, prefix) {
+		log.Printf("loading config from %s/%s.rc", wd, t)
+
+		confs := make(map[string]string)
+		scanner := bufio.NewScanner(rcFile)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if len(line) == 0 || strings.HasPrefix(line, "#") {
+				continue
+			}
+			s := strings.SplitN(line, "=", 2)
+			if len(s) != 2 {
+				log.Println("config line format incorrect:", line)
+				return
+			}
+			key, value := s[0], s[1]
+			value = strings.Trim(value, "\"")
+			confs[key] = value
+		}
+
+		// log.Printf("defaults: %+v\n", c)
+		for k, v := range confs {
+			switch k {
+			case prefix + "Opts":
+				setStringFieldSlice(c, prefix+"Opts", strings.Fields(v))
+			case "BinSuffix":
 				setField(c, k, v)
-			} else {
-				// set env var
-				env = append(env, fmt.Sprintf("%s=%s", k, v))
+			default:
+				if strings.HasPrefix(k, prefix) {
+					setField(c, k, v)
+				} else {
+					// set env var
+					env = append(env, fmt.Sprintf("%s=%s", k, v))
+				}
+			}
+		}
+
+		j, err := json.MarshalIndent(c, "", "    ")
+		if err != nil {
+			log.Println("json marshal failed:", err)
+		} else {
+			log.Printf("%s\n", string(j))
+			err = os.WriteFile(t+".json", j, 0666)
+			if err != nil {
+				log.Println("cannot write JSON config file:", err)
 			}
 		}
 	}
@@ -344,8 +363,7 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 		shell = "/bin/bash"
 	}
 
-	log.Printf("component = %+v\n", c)
-
+	// XXX abstract this stuff away
 	binary := filepath.Join(getStringWithPrefix(c, "Bins"), getStringWithPrefix(c, "Base"), getString(c, "BinSuffix"))
 	resourcesDir := filepath.Join(getStringWithPrefix(c, "Bins"), getStringWithPrefix(c, "Base"), "resources")
 
@@ -354,14 +372,20 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 
 	env = append(env, "LD_LIBRARY_PATH="+getStringWithPrefix(c, "Libs"))
 
+	var args []string
 	// XXX args and env vary depending on Component type - the below is for Gateway
-	switch c.CompType {
+	switch compType(c) {
 	case Gateway:
-		args := []string{name, "-setup-file", setupFile, "-resources-dir", resourcesDir, "-log", logFile}
+		args = []string{name,
+			"-setup-file", setupFile,
+			"-resources-dir", resourcesDir,
+			"-log", logFile,
+		}
 	case Netprobe:
 		env = append(env, "LOGFILE="+logFile)
 	default:
 	}
+
 	args = append(args, getStringFieldSlice(c, "Opts")...)
 	cmd = exec.Command(binary, args...)
 

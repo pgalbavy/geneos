@@ -2,7 +2,9 @@ package main
 
 type LicdComponent struct {
 	Components
+	LicdName  string
 	LicdRoot  string `default:"{{join .ITRSHome \"licd\"}}"`
+	LicdHome  string `default:"{{join .LicdRoot \"licds\" .LicdName}}"`
 	LicdBins  string `default:"{{join .ITRSHome \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
 	LicdLogD  string `default:"{{join .LicdRoot \"licds\"}}"`
@@ -14,11 +16,12 @@ type LicdComponent struct {
 	BinSuffix string `default:"licd.linux_64"`
 }
 
-func newLicd() (c *LicdComponent) {
+func newLicd(name string) (c *LicdComponent) {
 	// Bootstrap
 	c = &LicdComponent{}
 	c.ITRSHome = itrsHome
 	c.CompType = Licd
+	c.LicdName = name
 	// empty slice
 	setStringFieldSlice(c.Components, "Opts", []string{})
 
