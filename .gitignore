@@ -3,4 +3,4 @@
 *.h
 go.sum
 example/example
-geneosctl
+cmd/geneosctl/geneosctl

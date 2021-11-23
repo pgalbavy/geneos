@@ -298,10 +298,9 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 	}
 	jsonFile, err := os.ReadFile(t + ".json")
 	if err == nil {
-		//var c2 interface{}
 		json.Unmarshal(jsonFile, &c)
-		log.Printf("json=%+v\n", c)
 	} else {
+		// load an rc file and try to write out the JSON version
 		rcFile, err := os.Open(t + ".rc")
 		if err != nil {
 			log.Println("cannot open ", t, ".rc")
@@ -370,16 +369,21 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 	logFile := filepath.Join(getStringWithPrefix(c, "LogD"), name, getStringWithPrefix(c, "LogF"))
 	setupFile := filepath.Join(getStringWithPrefix(c, "Home"), "gateway.setup.xml")
 
+	// XXX find common envs - JAVA_HOME etc.
 	env = append(env, "LD_LIBRARY_PATH="+getStringWithPrefix(c, "Libs"))
 
 	var args []string
 	// XXX args and env vary depending on Component type - the below is for Gateway
 	switch compType(c) {
 	case Gateway:
-		args = []string{name,
+		args = []string{
+			/* "-gateway-name",  */ name,
 			"-setup-file", setupFile,
 			"-resources-dir", resourcesDir,
 			"-log", logFile,
+			"-licd-host", getStringWithPrefix(c, "LicH"),
+			"-licd-port", getIntWithPrefix(c, "LicP"),
+			// "-port", getIntWithPrefix(c, "Port"),
 		}
 	case Netprobe:
 		env = append(env, "LOGFILE="+logFile)
@@ -455,6 +459,17 @@ func getString(c Component, name string) string {
 	return ""
 }
 
+func getIntWithPrefix(c Component, name string) string {
+	t := compType(c).String()
+	prefix := strings.Title(t[0:4])
+
+	v := reflect.ValueOf(c).Elem().FieldByName(prefix + name)
+	if v.IsValid() && v.Kind() == reflect.Int {
+		return fmt.Sprintf("%v", v.Int())
+	}
+	return ""
+}
+
 func getStringWithPrefix(c Component, name string) string {
 	t := compType(c).String()
 	prefix := strings.Title(t[0:4])
@@ -496,7 +511,6 @@ func setField(c Component, k string, v string) {
 		fv = fv.Elem()
 	}
 	fv = fv.FieldByName(k)
-
 	if fv.IsValid() && fv.CanSet() {
 		switch fv.Kind() {
 		case reflect.String:
