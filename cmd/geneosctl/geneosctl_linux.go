@@ -17,8 +17,8 @@ import (
 
 var itrsHome string = "/opt/itrs"
 
-func (c Components) refresh(ct ComponentType, name string) {
-	pid, err := findProc(c, name)
+func refresh(c Component) {
+	pid, err := findProc(c)
 	if err != nil {
 		return
 	}
@@ -26,7 +26,7 @@ func (c Components) refresh(ct ComponentType, name string) {
 	// send a SIGUSR1
 	proc, _ := os.FindProcess(pid)
 	if err := proc.Signal(syscall.SIGUSR1); err != nil {
-		log.Println(ct, name, "reload config failed")
+		log.Println(Type(c), Name(c), "refresh failed")
 		return
 	}
 }
@@ -37,10 +37,10 @@ func (c Components) refresh(ct ComponentType, name string) {
 // the component name must be on the command line as an exact and standalone
 // args
 //
-func findProc(c Component, name string) (int, error) {
+func findProc(c Component) (int, error) {
 	var pids []int
 
-	log.Println("looking for", Type(c), name)
+	log.Println("looking for", Type(c), Name(c))
 	// safe to ignore error as it can only be bad pattern
 	dirs, _ := filepath.Glob("/proc/[0-9]*")
 
@@ -64,7 +64,7 @@ func findProc(c Component, name string) (int, error) {
 		bin := filepath.Base(string(args[0]))
 		if strings.HasPrefix(bin, Type(c).String()) {
 			for _, arg := range args[1:] {
-				if string(arg) == name {
+				if string(arg) == Name(c) {
 					// log.Println(pid, "matches", bin)
 					return pid, nil
 				}

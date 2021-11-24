@@ -12,8 +12,8 @@ import (
 
 // generic action commands
 
-func start(c Component, name string) {
-	cmd, env := loadConfig(c, name)
+func start(c Component) {
+	cmd, env := loadConfig(c)
 	if cmd == nil {
 		return
 	}
@@ -28,18 +28,18 @@ func start(c Component, name string) {
 		}
 	}
 
-	run(c, name, cmd, env)
+	run(c, cmd, env)
 }
 
-func stop(c Component, name string) {
-	pid, err := findProc(c, name)
+func stop(c Component) {
+	pid, err := findProc(c)
 	if err != nil {
 		//		log.Println("cannot get PID for", name)
 		return
 	}
 
 	// send sigterm
-	log.Println("stopping", Type(c), name, "with PID", pid)
+	log.Println("stopping", Type(c), Name(c), "with PID", pid)
 
 	proc, _ := os.FindProcess(pid)
 	if err = proc.Signal(syscall.Signal(0)); err != nil {
@@ -67,12 +67,12 @@ func stop(c Component, name string) {
 	}
 }
 
-func run(c Component, name string, cmd *exec.Cmd, env []string) {
+func run(c Component, cmd *exec.Cmd, env []string) {
 	// actually run the process
 	cmd.Dir = getStringWithPrefix(c, "Home")
 	cmd.Env = append(os.Environ(), env...)
 
-	errfile := filepath.Join(getStringWithPrefix(c, "LogD"), name, Type(c).String()+".txt")
+	errfile := filepath.Join(getStringWithPrefix(c, "LogD"), Name(c), Type(c).String()+".txt")
 
 	out, err := os.OpenFile(errfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -80,7 +80,7 @@ func run(c Component, name string, cmd *exec.Cmd, env []string) {
 	}
 	cmd.Stdout = out
 	cmd.Stderr = out
-	cmd.Dir = filepath.Join(compRootDir(Type(c)), name)
+	cmd.Dir = filepath.Join(compRootDir(Type(c)), Name(c))
 
 	err = cmd.Start()
 	if err != nil {

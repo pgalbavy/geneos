@@ -1,8 +1,9 @@
 package main
 
+import "path/filepath"
+
 type GatewayComponent struct {
 	Components
-	GateName  string `json:"-"`
 	GateRoot  string `default:"{{join .ITRSHome \"gateway\"}}"`
 	GateHome  string `default:"{{join .GateRoot \"gateways\" .GateName}}"`
 	GateBins  string `default:"{{join .ITRSHome \"packages\" \"gateway\"}}"`
@@ -24,10 +25,27 @@ func newGateway(name string) (c *GatewayComponent) {
 	c = &GatewayComponent{}
 	c.ITRSHome = itrsHome
 	c.Type = Gateway
-	c.GateName = name
+	c.Name = name
 	// empty slice
-	setStringFieldSlice(c.Components, "Opts", []string{})
+	setFields(c.Components, "Opts", []string{})
 
 	newComponent(&c)
+	return
+}
+
+func gatewayCmd(c Component) (args, env []string) {
+	resourcesDir := filepath.Join(getStringWithPrefix(c, "Bins"), getStringWithPrefix(c, "Base"), "resources")
+	logFile := filepath.Join(getStringWithPrefix(c, "LogD"), Name(c), getStringWithPrefix(c, "LogF"))
+	setupFile := filepath.Join(getStringWithPrefix(c, "Home"), "gateway.setup.xml")
+
+	args = []string{
+		/* "-gateway-name",  */ Name(c),
+		"-setup-file", setupFile,
+		"-resources-dir", resourcesDir,
+		"-log", logFile,
+		"-licd-host", getStringWithPrefix(c, "LicH"),
+		"-licd-port", getIntWithPrefix(c, "LicP"),
+		// "-port", getIntWithPrefix(c, "Port"),
+	}
 	return
 }

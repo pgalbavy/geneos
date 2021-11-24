@@ -21,10 +21,14 @@ func newLicd(name string) (c *LicdComponent) {
 	c = &LicdComponent{}
 	c.ITRSHome = itrsHome
 	c.Type = Licd
-	c.LicdName = name
+	c.Name = name
 	// empty slice
-	setStringFieldSlice(c.Components, "Opts", []string{})
+	setFields(c.Components, "Opts", []string{})
 
 	newComponent(&c)
+	return
+}
+
+func licdCmd(c Component) (args, env []string) {
 	return
 }

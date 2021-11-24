@@ -31,7 +31,7 @@ func main() {
 	var names []string
 
 	if len(os.Args) > 2 {
-		comp = ct(os.Args[2])
+		comp = CompType(os.Args[2])
 		if comp == None {
 			// this may be a name instead
 			names = os.Args[2:]
@@ -77,17 +77,17 @@ func main() {
 			// create one or more components, type is option
 			// if no type create multiple different components for each names
 		case "start":
-			start(c, name)
+			start(c)
 		case "stop":
-			stop(c, name)
+			stop(c)
 		case "restart":
-			stop(c, name)
-			start(c, name)
+			stop(c)
+			start(c)
 		case "command":
-			cmd, env := loadConfig(c, name)
+			cmd, env := loadConfig(c)
 			if cmd != nil {
 				log.Printf("command: %q\n", cmd.String())
-				log.Println("extra environment:")
+				log.Println("environment:")
 				for _, e := range env {
 					log.Println(e)
 				}
@@ -96,15 +96,15 @@ func main() {
 		case "details":
 			//
 		case "status":
-			pid, err := findProc(c, name) // getPid(c, name)
+			pid, err := findProc(c) // getPid(c, name)
 			if err != nil {
-				log.Println(Type(c), name, ":", err)
+				log.Println(Type(c), Name(c), ":", err)
 				continue
 			}
-			log.Println(Type(c), name, "running with PID", pid)
+			log.Println(Type(c), Name(c), "running with PID", pid)
 
 		case "refresh":
-			// c.refresh(ct, name)
+			refresh(c)
 		case "log":
 		case "delete":
 		default:

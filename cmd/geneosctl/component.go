@@ -44,7 +44,7 @@ func (ct ComponentType) String() string {
 	return "unknown"
 }
 
-func ct(component string) ComponentType {
+func CompType(component string) ComponentType {
 	switch strings.ToLower(component) {
 	case "gateway":
 		return Gateway
@@ -63,6 +63,7 @@ type Components struct {
 	Component `json:"-"`
 	ITRSHome  string        `json:"-"`
 	Type      ComponentType `json:"-"`
+	Name      string        `json:"-"`
 }
 
 // this method does NOT take a Component as it's used to return
@@ -94,6 +95,10 @@ func Type(c Component) ComponentType {
 	return None
 }
 
+func Name(c Component) string {
+	return getString(c, "Name")
+}
+
 func dirs(dir string) []string {
 	files, _ := os.ReadDir(dir)
 	components := make([]string, 0, len(files))
@@ -103,14 +108,6 @@ func dirs(dir string) []string {
 		}
 	}
 	return components
-}
-
-func getString(c Component, name string) string {
-	v := reflect.ValueOf(c).Elem().FieldByName(name)
-	if v.IsValid() && v.Kind() == reflect.String {
-		return v.String()
-	}
-	return ""
 }
 
 func getIntWithPrefix(c Component, name string) string {
@@ -124,18 +121,22 @@ func getIntWithPrefix(c Component, name string) string {
 	return ""
 }
 
-func getStringWithPrefix(c Component, name string) string {
-	t := Type(c).String()
-	prefix := strings.Title(t[0:4])
-
-	v := reflect.ValueOf(c).Elem().FieldByName(prefix + name)
+func getString(c Component, name string) string {
+	v := reflect.ValueOf(c).Elem().FieldByName(name)
 	if v.IsValid() && v.Kind() == reflect.String {
 		return v.String()
 	}
 	return ""
 }
 
-func getStringFieldSlice(c Component, names ...string) (fields []string) {
+func getStringWithPrefix(c Component, name string) string {
+	t := Type(c).String()
+	prefix := strings.Title(t[0:4])
+
+	return getString(c, prefix+name)
+}
+
+func getStringsWithPrefix(c Component, names ...string) (fields []string) {
 	t := Type(c).String()
 	prefix := strings.Title(t[0:4])
 
@@ -180,7 +181,7 @@ func setField(c Component, k string, v string) {
 	}
 }
 
-func setStringFieldSlice(c Component, k string, v []string) {
+func setFields(c Component, k string, v []string) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()

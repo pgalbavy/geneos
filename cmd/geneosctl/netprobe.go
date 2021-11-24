@@ -1,5 +1,7 @@
 package main
 
+import "path/filepath"
+
 type NetprobeComponent struct {
 	Components
 	NetpName  string
@@ -21,10 +23,16 @@ func newNetprobe(name string) (c *NetprobeComponent) {
 	c = &NetprobeComponent{}
 	c.ITRSHome = itrsHome
 	c.Type = Netprobe
-	c.NetpName = name
+	c.Name = name
 	// empty slice
-	setStringFieldSlice(c.Components, "Opts", []string{})
+	setFields(c.Components, "Opts", []string{})
 
 	newComponent(&c)
+	return
+}
+
+func netprobeCmd(c Component) (args, env []string) {
+	logFile := filepath.Join(getStringWithPrefix(c, "LogD"), Name(c), getStringWithPrefix(c, "LogF"))
+	env = append(env, "LOGFILE="+logFile)
 	return
 }

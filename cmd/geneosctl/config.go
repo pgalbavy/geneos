@@ -13,10 +13,10 @@ import (
 
 // process config files
 
-func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
+func loadConfig(c Component) (cmd *exec.Cmd, env []string) {
 	t := Type(c).String()
 
-	wd := filepath.Join(compRootDir(Type(c)), name)
+	wd := filepath.Join(compRootDir(Type(c)), Name(c))
 	if err := os.Chdir(wd); err != nil {
 		log.Println("cannot chdir() to", wd)
 		return
@@ -29,7 +29,7 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 	if err == nil {
 		json.Unmarshal(jsonFile, &c)
 	} else {
-		env = convertOldConfig(c, name)
+		env = convertOldConfig(c, Name(c))
 	}
 
 	// build command line and env vars
@@ -40,33 +40,26 @@ func loadConfig(c Component, name string) (cmd *exec.Cmd, env []string) {
 
 	// XXX abstract this stuff away
 	binary := filepath.Join(getStringWithPrefix(c, "Bins"), getStringWithPrefix(c, "Base"), getString(c, "BinSuffix"))
-	resourcesDir := filepath.Join(getStringWithPrefix(c, "Bins"), getStringWithPrefix(c, "Base"), "resources")
-
-	logFile := filepath.Join(getStringWithPrefix(c, "LogD"), name, getStringWithPrefix(c, "LogF"))
-	setupFile := filepath.Join(getStringWithPrefix(c, "Home"), "gateway.setup.xml")
 
 	// XXX find common envs - JAVA_HOME etc.
 	env = append(env, "LD_LIBRARY_PATH="+getStringWithPrefix(c, "Libs"))
 
-	var args []string
+	var args, extraenv []string
+
 	// XXX args and env vary depending on Component type - the below is for Gateway
+	// this should be pushed out to each compoent's own file
 	switch Type(c) {
 	case Gateway:
-		args = []string{
-			/* "-gateway-name",  */ name,
-			"-setup-file", setupFile,
-			"-resources-dir", resourcesDir,
-			"-log", logFile,
-			"-licd-host", getStringWithPrefix(c, "LicH"),
-			"-licd-port", getIntWithPrefix(c, "LicP"),
-			// "-port", getIntWithPrefix(c, "Port"),
-		}
+		args, extraenv = gatewayCmd(c)
 	case Netprobe:
-		env = append(env, "LOGFILE="+logFile)
+		args, extraenv = netprobeCmd(c)
+	case Licd:
+		args, extraenv = licdCmd(c)
 	default:
 	}
 
-	args = append(args, getStringFieldSlice(c, "Opts")...)
+	args = append(args, getStringsWithPrefix(c, "Opts")...)
+	env = append(env, extraenv...)
 	cmd = exec.Command(binary, args...)
 
 	return
@@ -107,7 +100,7 @@ func convertOldConfig(c Component, name string) (env []string) {
 	for k, v := range confs {
 		switch k {
 		case prefix + "Opts":
-			setStringFieldSlice(c, prefix+"Opts", strings.Fields(v))
+			setFields(c, prefix+"Opts", strings.Fields(v))
 		case "BinSuffix":
 			setField(c, k, v)
 		default:
