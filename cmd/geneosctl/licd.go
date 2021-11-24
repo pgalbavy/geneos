@@ -10,6 +10,7 @@ type LicdComponent struct {
 	LicdLogD  string `default:"{{join .LicdRoot \"licds\"}}"`
 	LicdLogF  string `default:"licd.log"`
 	LicdMode  string `default:"background"`
+	LicdPort  int    `default:"7041"`
 	LicdOpts  []string
 	LicdLibs  string `default:"{{join .LicdBins .LicdBase \"lib64\"}}"`
 	LicdUser  string
