@@ -16,7 +16,7 @@ import (
 func loadConfig(c Component) (cmd *exec.Cmd, env []string) {
 	t := Type(c).String()
 
-	wd := filepath.Join(compRootDir(Type(c)), Name(c))
+	wd := filepath.Join(RootDir(Type(c)), Name(c))
 	if err := os.Chdir(wd); err != nil {
 		log.Println("cannot chdir() to", wd)
 		return
@@ -76,7 +76,7 @@ func convertOldConfig(c Component, name string) (env []string) {
 	}
 	defer rcFile.Close()
 
-	wd := filepath.Join(compRootDir(Type(c)), name)
+	wd := filepath.Join(RootDir(Type(c)), name)
 	log.Printf("loading config from %s/%s.rc", wd, t)
 
 	confs := make(map[string]string)
@@ -113,15 +113,22 @@ func convertOldConfig(c Component, name string) (env []string) {
 		}
 	}
 
+	WriteConfig(c)
+	return
+}
+
+func WriteConfig(c Component) {
+	home := Home(c)
+	t := Type(c).String()
+
 	j, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		log.Println("json marshal failed:", err)
 	} else {
 		log.Printf("%s\n", string(j))
-		err = os.WriteFile(t+".json", j, 0666)
+		err = os.WriteFile(filepath.Join(home, t+".json"), j, 0666)
 		if err != nil {
 			log.Println("cannot write JSON config file:", err)
 		}
 	}
-	return
 }

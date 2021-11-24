@@ -5,10 +5,10 @@ import "path/filepath"
 type GatewayComponent struct {
 	Components
 	GateRoot  string `default:"{{join .ITRSHome \"gateway\"}}"`
-	GateHome  string `default:"{{join .GateRoot \"gateways\" .GateName}}"`
+	GateHome  string `default:"{{join .GateRoot \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .ITRSHome \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
-	GateLogD  string `default:"{{join .GateRoot \"gateways\"}}"`
+	GateLogD  string `default:"{{.GateHome}}"`
 	GateLogF  string `default:"gateway.log"`
 	GatePort  int    `default:"7039"`
 	GateMode  string `default:"background"`
@@ -20,7 +20,7 @@ type GatewayComponent struct {
 	BinSuffix string `default:"gateway2.linux_64"`
 }
 
-func newGateway(name string) (c *GatewayComponent) {
+func NewGateway(name string) (c *GatewayComponent) {
 	// Bootstrap
 	c = &GatewayComponent{}
 	c.ITRSHome = itrsHome
@@ -29,7 +29,7 @@ func newGateway(name string) (c *GatewayComponent) {
 	// empty slice
 	setFields(c.Components, "Opts", []string{})
 
-	newComponent(&c)
+	NewComponent(&c)
 	return
 }
 

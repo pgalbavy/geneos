@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -52,7 +53,7 @@ func stop(c Component) {
 		return
 	}
 
-	// send a signal 0 in a loop
+	// send a signal 0 in a loop to check if the process has terminated
 	for i := 0; i < 10; i++ {
 		time.Sleep(250 * time.Millisecond)
 		if err = proc.Signal(syscall.Signal(0)); err != nil {
@@ -80,7 +81,7 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 	}
 	cmd.Stdout = out
 	cmd.Stderr = out
-	cmd.Dir = filepath.Join(compRootDir(Type(c)), Name(c))
+	cmd.Dir = filepath.Join(RootDir(Type(c)), Name(c))
 
 	err = cmd.Start()
 	if err != nil {
@@ -93,4 +94,23 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 		// detach
 		cmd.Process.Release()
 	}
+}
+
+func create(comp ComponentType, name string) error {
+	// create a directory and a default config file
+
+	if comp == None {
+		// wildcard, create an environment (later)
+		return fmt.Errorf("wildcard creation net yet supported")
+	}
+
+	c := New(comp, name)
+	err := os.MkdirAll(Home(c), 0775)
+	if err != nil {
+		return err
+	}
+
+	// update settings here, then write
+	WriteConfig(c)
+	return nil
 }

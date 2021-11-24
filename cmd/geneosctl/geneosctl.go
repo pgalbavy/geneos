@@ -47,7 +47,7 @@ func main() {
 		case "version":
 		case "help":
 		case "status":
-			names = compAll(comp)
+			names = RootDirs(comp)
 		default:
 			os.Exit(0)
 		}
@@ -57,25 +57,14 @@ func main() {
 	for _, name := range names {
 		var c Component
 
-		switch comp {
-		case Gateway:
-			c = newGateway(name)
-		case Netprobe:
-			c = newNetprobe(name)
-		case Licd:
-			c = newLicd(name)
-		case Webserver:
-			log.Println("webserver not supported yet")
-			os.Exit(0)
-		default:
-			log.Println("unknown component", comp)
-			os.Exit(0)
-		}
+		c = New(comp, name)
 
 		switch command {
 		case "create":
-			// create one or more components, type is option
-			// if no type create multiple different components for each names
+			err := create(comp, name)
+			if err != nil {
+				log.Println("cannot create", comp, name, ":", err)
+			}
 		case "start":
 			start(c)
 		case "stop":

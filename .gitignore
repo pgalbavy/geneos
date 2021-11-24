@@ -3,4 +3,5 @@
 *.h
 go.sum
 example/example
-cmd/geneosctl/geneosctl
+*/geneosctl
+*/workspace.code-workspace

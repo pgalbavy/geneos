@@ -4,12 +4,11 @@ import "path/filepath"
 
 type NetprobeComponent struct {
 	Components
-	NetpName  string
 	NetpRoot  string   `default:"{{join .ITRSHome \"netprobe\"}}"`
-	NetpHome  string   `default:"{{join .NetpRoot \"netprobes\" .NetpName}}"`
+	NetpHome  string   `default:"{{join .NetpRoot \"netprobes\" .Name}}"`
 	NetpBins  string   `default:"{{join .ITRSHome \"packages\" \"netprobe\"}}"`
 	NetpBase  string   `default:"active_prod"`
-	NetpLogD  string   `default:"{{join .NetpRoot \"netprobes\"}}"`
+	NetpLogD  string   `default:"{{.NetpHome}}"`
 	NetpLogF  string   `default:"netprobe.log"`
 	NetpMode  string   `default:"background"`
 	NetpOpts  []string // =-nopassword
@@ -18,7 +17,7 @@ type NetprobeComponent struct {
 	BinSuffix string `default:"netprobe.linux_64"`
 }
 
-func newNetprobe(name string) (c *NetprobeComponent) {
+func NewNetprobe(name string) (c *NetprobeComponent) {
 	// Bootstrap
 	c = &NetprobeComponent{}
 	c.ITRSHome = itrsHome
@@ -27,7 +26,7 @@ func newNetprobe(name string) (c *NetprobeComponent) {
 	// empty slice
 	setFields(c.Components, "Opts", []string{})
 
-	newComponent(&c)
+	NewComponent(&c)
 	return
 }
 

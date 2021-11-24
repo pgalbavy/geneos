@@ -69,13 +69,13 @@ type Components struct {
 // this method does NOT take a Component as it's used to return
 // metadata for where to find Components before the underlying
 // type is initialised
-func compAll(comp ComponentType) []string {
-	return dirs(compRootDir(comp))
+func RootDirs(comp ComponentType) []string {
+	return dirs(RootDir(comp))
 }
 
 // as above, this method returns metadata before the underlying
 // type is initialised
-func compRootDir(comp ComponentType) string {
+func RootDir(comp ComponentType) string {
 	return filepath.Join(itrsHome, comp.String(), comp.String()+"s")
 }
 
@@ -97,6 +97,10 @@ func Type(c Component) ComponentType {
 
 func Name(c Component) string {
 	return getString(c, "Name")
+}
+
+func Home(c Component) string {
+	return getStringWithPrefix(c, "Home")
 }
 
 func dirs(dir string) []string {
@@ -197,7 +201,25 @@ func setFields(c Component, k string, v []string) {
 
 var funcs = template.FuncMap{"join": filepath.Join}
 
-func newComponent(c interface{}) {
+func New(comp ComponentType, name string) (c Component) {
+	switch comp {
+	case Gateway:
+		c = NewGateway(name)
+	case Netprobe:
+		c = NewNetprobe(name)
+	case Licd:
+		c = NewLicd(name)
+	case Webserver:
+		log.Println("webserver not supported yet")
+		os.Exit(0)
+	default:
+		log.Println("unknown component", comp)
+		os.Exit(0)
+	}
+	return
+}
+
+func NewComponent(c interface{}) {
 	st := reflect.TypeOf(c)
 	sv := reflect.ValueOf(c)
 	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
@@ -233,6 +255,5 @@ func newComponent(c interface{}) {
 				setField(c, ft.Name, def)
 			}
 		}
-
 	}
 }
