@@ -23,7 +23,7 @@ func newGateway(name string) (c *GatewayComponent) {
 	// Bootstrap
 	c = &GatewayComponent{}
 	c.ITRSHome = itrsHome
-	c.CompType = Gateway
+	c.Type = Gateway
 	c.GateName = name
 	// empty slice
 	setStringFieldSlice(c.Components, "Opts", []string{})

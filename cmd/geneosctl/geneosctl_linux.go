@@ -31,27 +31,6 @@ func (c Components) refresh(ct ComponentType, name string) {
 	}
 }
 
-/* func getPid(c Component, name string) (pid int, pidFile string, err error) {
-	wd := filepath.Join(compRootDir(compType(c)), name)
-	// open pid file
-	pidFile = filepath.Join(wd, compType(c).String()+".pid")
-	pidBytes, err := ioutil.ReadFile(pidFile)
-	if err != nil {
-		// err = fmt.Errorf("cannot read PID file")
-		pid, err = findProc(c, name)
-		log.Println("i am here", pid, err)
-
-		// recreate PID ?
-		return
-	}
-	pid, err = strconv.Atoi(strings.TrimSpace(string(pidBytes)))
-	if err != nil {
-		err = fmt.Errorf("cannot convert PID to int: %s", err)
-		return
-	}
-	return
-} */
-
 // locate a process by compoent type and name
 //
 // the component type must be part of the basename of the executable and
@@ -61,7 +40,7 @@ func (c Components) refresh(ct ComponentType, name string) {
 func findProc(c Component, name string) (int, error) {
 	var pids []int
 
-	log.Println("looking for", compType(c), name)
+	log.Println("looking for", Type(c), name)
 	// safe to ignore error as it can only be bad pattern
 	dirs, _ := filepath.Glob("/proc/[0-9]*")
 
@@ -83,7 +62,7 @@ func findProc(c Component, name string) (int, error) {
 		}
 		args := bytes.Split(data, []byte("\000"))
 		bin := filepath.Base(string(args[0]))
-		if strings.HasPrefix(bin, compType(c).String()) {
+		if strings.HasPrefix(bin, Type(c).String()) {
 			for _, arg := range args[1:] {
 				if string(arg) == name {
 					// log.Println(pid, "matches", bin)

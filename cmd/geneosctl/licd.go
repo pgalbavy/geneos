@@ -20,7 +20,7 @@ func newLicd(name string) (c *LicdComponent) {
 	// Bootstrap
 	c = &LicdComponent{}
 	c.ITRSHome = itrsHome
-	c.CompType = Licd
+	c.Type = Licd
 	c.LicdName = name
 	// empty slice
 	setStringFieldSlice(c.Components, "Opts", []string{})

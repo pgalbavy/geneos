@@ -20,7 +20,7 @@ func newNetprobe(name string) (c *NetprobeComponent) {
 	// Bootstrap
 	c = &NetprobeComponent{}
 	c.ITRSHome = itrsHome
-	c.CompType = Netprobe
+	c.Type = Netprobe
 	c.NetpName = name
 	// empty slice
 	setStringFieldSlice(c.Components, "Opts", []string{})
