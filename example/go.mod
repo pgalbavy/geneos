@@ -14,12 +14,13 @@ replace wonderland.org/geneos/pkg/streams => ../pkg/streams
 
 replace wonderland.org/geneos/pkg/xmlrpc => ../pkg/xmlrpc
 
-require (
-	github.com/StackExchange/wmi v1.2.1
-	github.com/mackerelio/go-osstat v0.2.1
-	wonderland.org/geneos/pkg/logger v0.0.0-00010101000000-000000000000
-	wonderland.org/geneos/pkg/plugins v0.0.0-00010101000000-000000000000
-	wonderland.org/geneos/pkg/samplers v0.0.0-00010101000000-000000000000
-	wonderland.org/geneos/pkg/streams v0.0.0-00010101000000-000000000000
-	wonderland.org/geneos/pkg/xmlrpc v0.0.0-00010101000000-000000000000 // indirect
+retract (
+    v0.3.0 // published too early
+    v0.3.1 // published too early
+    v0.3.2 // published too early
+    v0.3.3 // published too early
+    v0.3.4 // published too early
+    v0.4.0 // published too early
+    v0.4.1 // published too early
+    v0.4.2 // published too early
 )
