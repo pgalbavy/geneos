@@ -1,4 +1,5 @@
 //go:build linux
+
 package main
 
 import (
@@ -6,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -15,7 +14,7 @@ func init() {
 }
 
 var (
-	Logger      = logger.Logger
+	log         = logger.Logger
 	DebugLogger = logger.DebugLogger
 	ErrorLogger = logger.ErrorLogger
 )
