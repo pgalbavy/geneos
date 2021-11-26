@@ -66,7 +66,7 @@ func (f DebugLogWriter) Write(p []byte) (n int, err error) {
 	return writelog(Debug, p)
 }
 
-func writelog(level Level, p []byte) (n int, err erro
+func writelog(level Level, p []byte) (n int, err error) {
 	switch level {
 	case Info:
 		log.Printf("%s %s: %s", zonename, level, p)
