@@ -138,36 +138,6 @@ func getString(c Component, name string) string {
 	return ""
 }
 
-func getStringSlice(c Component, name string) (slice []string) {
-	v := reflect.ValueOf(c).Elem().FieldByName(name)
-	slice, ok := v.Interface().([]string)
-	if !ok {
-		return nil
-	}
-	return
-}
-
-/* func getStringsWithPrefix(c Component, names ...string) (fields []string) {
-	v := reflect.ValueOf(c).Elem()
-
-	fv := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf("string")), 0, 5)
-
-	for _, name := range names {
-		f := v.FieldByName(Prefix(c) + name)
-		if f.IsValid() {
-			switch f.Kind() {
-			case reflect.String:
-				fv = reflect.Append(fv, f)
-				// fields = append(fields, f.String())
-			case reflect.Slice:
-				fv = reflect.AppendSlice(fv, f)
-			}
-		}
-	}
-	fields = fv.Interface().([]string)
-	return
-} */
-
 func setField(c Component, k string, v string) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {

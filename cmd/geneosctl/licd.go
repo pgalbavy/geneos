@@ -2,8 +2,7 @@ package main
 
 type LicdComponent struct {
 	Components
-	LicdRoot  string `default:"{{join .Root \"licd\"}}"`
-	LicdHome  string `default:"{{join .LicdRoot \"licds\" .Name}}"`
+	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
 	LicdBins  string `default:"{{join .Root \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
 	LicdLogD  string `default:"{{.LicdHome}}"`

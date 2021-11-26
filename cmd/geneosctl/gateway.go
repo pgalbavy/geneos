@@ -4,8 +4,7 @@ import "path/filepath"
 
 type GatewayComponent struct {
 	Components
-	GateRoot  string `default:"{{join .Root \"gateway\"}}"`
-	GateHome  string `default:"{{join .GateRoot \"gateways\" .Name}}"`
+	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
 	GateLogD  string `default:"{{.GateHome}}"`
@@ -44,6 +43,7 @@ func gatewayCmd(c Component) (args, env []string) {
 		"-licd-port", getInt(c, Prefix(c)+"LicP"),
 		// "-port", getIntWithPrefix(c, "Port"),
 	}
+
 	return
 }
 

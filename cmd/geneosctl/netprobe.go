@@ -4,12 +4,12 @@ import "path/filepath"
 
 type NetprobeComponent struct {
 	Components
-	NetpRoot  string `default:"{{join .Root \"netprobe\"}}"`
-	NetpHome  string `default:"{{join .NetpRoot \"netprobes\" .Name}}"`
+	NetpHome  string `default:"{{join .Root \"netprobe\" \"netprobes\" .Name}}"`
 	NetpBins  string `default:"{{join .Root \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
 	NetpLogD  string `default:"{{.NetpHome}}"`
 	NetpLogF  string `default:"netprobe.log"`
+	NetpPort  int    `default:"7036"`
 	NetpMode  string `default:"background"`
 	NetpOpts  string // =-nopassword
 	NetpLibs  string `default:"{{join .NetpBins .NetpBase \"lib64\"}}:{{join .NetpBins .NetpBase}}"`
