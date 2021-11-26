@@ -84,7 +84,7 @@ func main() {
 			stop(c)
 			start(c)
 		case "command":
-			cmd, env := loadConfig(c)
+			cmd, env := makeCmd(c)
 			if cmd != nil {
 				log.Printf("command: %q\n", cmd.String())
 				log.Println("environment:")

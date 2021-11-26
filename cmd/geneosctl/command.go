@@ -14,7 +14,7 @@ import (
 // generic action commands
 
 func start(c Component) {
-	cmd, env := loadConfig(c)
+	cmd, env := makeCmd(c)
 	if cmd == nil {
 		return
 	}

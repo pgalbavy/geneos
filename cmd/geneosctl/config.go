@@ -12,9 +12,9 @@ import (
 	"strings"
 )
 
-// process config files
+// process config file(s)
 
-func loadConfig(c Component) (cmd *exec.Cmd, env []string) {
+func getConfig(c Component) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file
 	// for later re-use
@@ -23,13 +23,23 @@ func loadConfig(c Component) (cmd *exec.Cmd, env []string) {
 	if err == nil {
 		err = json.Unmarshal(jsonFile, &c)
 		if err != nil {
-			return nil, nil
+			return
 		}
 	} else {
 		err = convertOldConfig(c)
 		if err != nil {
 			log.Println("cannot load config:", err)
+			return
 		}
+	}
+
+	return
+}
+
+func makeCmd(c Component) (cmd *exec.Cmd, env []string) {
+	err := getConfig(c)
+	if err != nil {
+		//
 	}
 
 	// build command line and env vars
@@ -111,7 +121,7 @@ func convertOldConfig(c Component) error {
 			}
 		}
 	}
-	setFields(c, "Env", env)
+	setFieldSlice(c, "Env", env)
 
 	return WriteConfig(c)
 }

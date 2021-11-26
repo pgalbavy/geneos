@@ -159,7 +159,7 @@ func setField(c Component, k string, v string) {
 	}
 }
 
-func setFields(c Component, k string, v []string) {
+func setFieldSlice(c Component, k string, v []string) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
