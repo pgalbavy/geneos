@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"wonderland.org/geneos/pkg/logger"
 )
 
 func init() {
@@ -11,6 +13,12 @@ func init() {
 		itrsHome = h
 	}
 }
+
+var (
+	Logger      = logger.Logger
+	DebugLogger = logger.DebugLogger
+	ErrorLogger = logger.ErrorLogger
+)
 
 //
 // redo
