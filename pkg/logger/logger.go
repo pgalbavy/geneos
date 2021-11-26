@@ -18,6 +18,30 @@ type LogWriter struct{}
 type DebugLogWriter struct{}
 type ErrorLogWriter struct{}
 
+type Level int
+
+const (
+	Info Level = iota
+	Debug
+	Error
+	Warning
+)
+
+func (level Level) String() string {
+	switch level {
+	case Info:
+		return "INFO"
+	case Debug:
+		return "DEBUG"
+	case Error:
+		return "ERROR"
+	case Warning:
+		return "WARNING"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 func init() {
 	DisableDebugLog()
 }
@@ -31,27 +55,34 @@ func DisableDebugLog() {
 }
 
 func (f LogWriter) Write(p []byte) (n int, err error) {
-	return writelog("INFO", p)
+	return writelog(Info, p)
 }
 
 func (f ErrorLogWriter) Write(p []byte) (n int, err error) {
-	return writelog("ERROR", p)
+	return writelog(Error, p)
 }
 
 func (f DebugLogWriter) Write(p []byte) (n int, err error) {
-	return writelog("DEBUG", p)
+	return writelog(Debug, p)
 }
 
-func writelog(level string, p []byte) (n int, err error) {
-	var fnName string = "UNKNOWN"
-	pc, _, line, ok := runtime.Caller(4)
-	if ok {
-		fn := runtime.FuncForPC(pc)
-		if fn != nil {
-			fnName = fn.Name()
-		}
-	}
+func writelog(level Level, p []byte) (n int, err erro
+	switch level {
+	case Info:
+		log.Printf("%s %s: %s", zonename, level, p)
 
-	log.Printf("%s %s: %s() line %d %s", zonename, level, fnName, line, p)
+	default:
+		var fnName string = "UNKNOWN"
+		pc, _, line, ok := runtime.Caller(4)
+		if ok {
+			fn := runtime.FuncForPC(pc)
+			if fn != nil {
+				fnName = fn.Name()
+			}
+		}
+
+		log.Printf("%s %s: %s() line %d %s", zonename, level, fnName, line, p)
+
+	}
 	return len(p), nil
 }
