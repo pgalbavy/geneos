@@ -12,7 +12,6 @@ import (
 type Plugins interface {
 	SetInterval(time.Duration)
 	Interval() time.Duration
-
 	Start(*sync.WaitGroup) error
 	Close() error
 }

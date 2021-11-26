@@ -14,6 +14,7 @@ var (
 	ErrorLogger = logger.ErrorLogger
 )
 
+// The XMLRPC type is a simple one
 type XMLRPC interface {
 	String() string
 	IsValid() bool

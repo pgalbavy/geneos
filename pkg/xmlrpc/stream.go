@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+// WriteMessage is the only function for a Stream that is data oriented.
+// The others are administrative.
 func (s Sampler) WriteMessage(streamname string, message string) (err error) {
 	return s.addMessageStream(s.EntityName(), s.SamplerName(), streamname, message)
 }
