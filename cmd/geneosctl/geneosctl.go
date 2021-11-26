@@ -51,15 +51,22 @@ func main() {
 		// no names, check special commands and exit
 		switch command {
 		case "list":
-			for _, comp := range ComponentTypes() {
-				confs := getConfigs(comp)
-				for _, c := range confs {
-					log.Printf("%s => %q\n", comp, Name(c))
-				}
+			confs := getAllConfigs()
+			for _, c := range confs {
+				log.Printf("%s => %q\n", Type(c), Name(c))
 			}
 		case "version":
 		case "help":
 		case "status":
+			confs := getAllConfigs()
+			for _, c := range confs {
+				pid, err := findProc(c)
+				if err != nil {
+					log.Println(Type(c), Name(c), err)
+					continue
+				}
+				log.Println(Type(c), Name(c), "PID", pid)
+			}
 		default:
 			os.Exit(0)
 		}

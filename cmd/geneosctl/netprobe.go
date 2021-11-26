@@ -28,7 +28,7 @@ func NewNetprobe(name string) (c *NetprobeComponent) {
 }
 
 func netprobeCmd(c Component) (args, env []string) {
-	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), Name(c), getString(c, Prefix(c)+"LogF"))
+	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
 	env = append(env, "LOGFILE="+logFile)
 	return
 }

@@ -20,6 +20,13 @@ func getConfigs(comp ComponentType) (confs []Component) {
 	return
 }
 
+func getAllConfigs() (confs []Component) {
+	for _, comp := range ComponentTypes() {
+		confs = append(confs, getConfigs(comp)...)
+	}
+	return
+}
+
 func getConfig(c Component) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file

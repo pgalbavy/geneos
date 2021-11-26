@@ -31,7 +31,7 @@ func NewGateway(name string) (c *GatewayComponent) {
 
 func gatewayCmd(c Component) (args, env []string) {
 	resourcesDir := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources")
-	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), Name(c), getString(c, Prefix(c)+"LogF"))
+	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
 	setupFile := filepath.Join(getString(c, Prefix(c)+"Home"), "gateway.setup.xml")
 
 	args = []string{

@@ -40,7 +40,7 @@ func refresh(c Component) {
 func findProc(c Component) (int, error) {
 	var pids []int
 
-	log.Println("looking for", Type(c), Name(c))
+	DebugLogger.Println("looking for", Type(c), Name(c))
 	// safe to ignore error as it can only be bad pattern
 	dirs, _ := filepath.Glob("/proc/[0-9]*")
 
@@ -54,11 +54,11 @@ func findProc(c Component) (int, error) {
 	for _, pid := range pids {
 		data, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
-			if errors.Is(err, fs.ErrPermission) {
-				continue
+			if !errors.Is(err, fs.ErrPermission) {
+				DebugLogger.Printf("reading %q failed, err: %q\n", pid, err)
 			}
-			log.Printf("reading %q failed, err: %q\n", pid, err)
-			return 0, err
+			// an error can be transient, just debug and ignore
+			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
 		bin := filepath.Base(string(args[0]))

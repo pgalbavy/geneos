@@ -72,11 +72,11 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 	cmd.Dir = getString(c, Prefix(c)+"Home")
 	cmd.Env = append(os.Environ(), env...)
 
-	errfile := filepath.Join(getString(c, Prefix(c)+"LogD"), Name(c), Type(c).String()+".txt")
+	errfile := filepath.Join(getString(c, Prefix(c)+"LogD"), Type(c).String()+".txt")
 
 	out, err := os.OpenFile(errfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal("cannot open output file")
+		log.Fatalf("cannot open %q file: %s\n", errfile, err)
 	}
 	cmd.Stdout = out
 	cmd.Stderr = out
@@ -87,7 +87,7 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 		log.Println(err)
 		return
 	}
-	log.Println("process", cmd.Process.Pid)
+	DebugLogger.Println("started process", cmd.Process.Pid)
 
 	if cmd.Process != nil {
 		// detach
@@ -100,6 +100,7 @@ func create(c Component) error {
 
 	switch Type(c) {
 	case Gateway:
+		// gwconfs := getConfigs(Type(c))
 		/* 		err := createGateway(c)
 		   		if err != nil {
 		   			return err
