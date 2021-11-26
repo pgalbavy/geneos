@@ -14,6 +14,13 @@ import (
 
 // process config file(s)
 
+func getConfigs(comp ComponentType) (confs []Component) {
+	for _, name := range RootDirs(comp) {
+		confs = append(confs, New(comp, name))
+	}
+	return
+}
+
 func getConfig(c Component) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file

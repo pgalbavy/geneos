@@ -44,10 +44,15 @@ func main() {
 		// no names, check special commands and exit
 		switch command {
 		case "list":
+			for _, comp := range ComponentTypes() {
+				confs := getConfigs(comp)
+				for _, c := range confs {
+					log.Printf("%s => %q\n", comp, Name(c))
+				}
+			}
 		case "version":
 		case "help":
 		case "status":
-			names = RootDirs(comp)
 		default:
 			os.Exit(0)
 		}

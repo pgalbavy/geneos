@@ -28,6 +28,12 @@ const (
 	Webserver
 )
 
+// currently supported types, for looping
+// (go doesn't allow const slices, a function is the workaround)
+func ComponentTypes() []ComponentType {
+	return []ComponentType{Gateway, Netprobe, Licd}
+}
+
 func (ct ComponentType) String() string {
 	switch ct {
 	case None:
