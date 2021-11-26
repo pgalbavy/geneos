@@ -53,15 +53,26 @@ func main() {
 		}
 	}
 
+	if len(names) > 1 {
+		// make sure names are unique
+		m := make(map[string]bool, len(names))
+		for _, name := range names {
+			m[name] = true
+		}
+		names = nil
+		for name := range m {
+			names = append(names, name)
+
+		}
+	}
+
 	// loop over names, if any supplied
 	for _, name := range names {
-		var c Component
-
-		c = New(comp, name)
+		c := New(comp, name)
 
 		switch command {
 		case "create":
-			err := create(comp, name)
+			err := create(c)
 			if err != nil {
 				log.Println("cannot create", comp, name, ":", err)
 			}

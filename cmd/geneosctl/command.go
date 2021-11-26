@@ -19,7 +19,7 @@ func start(c Component) {
 		return
 	}
 
-	username := getStringWithPrefix(c, "User")
+	username := getString(c, Prefix(c)+"User")
 	if len(username) != 0 {
 		u, _ := user.Current()
 		if username != u.Username {
@@ -70,10 +70,10 @@ func stop(c Component) {
 
 func run(c Component, cmd *exec.Cmd, env []string) {
 	// actually run the process
-	cmd.Dir = getStringWithPrefix(c, "Home")
+	cmd.Dir = getString(c, Prefix(c)+"Home")
 	cmd.Env = append(os.Environ(), env...)
 
-	errfile := filepath.Join(getStringWithPrefix(c, "LogD"), Name(c), Type(c).String()+".txt")
+	errfile := filepath.Join(getString(c, Prefix(c)+"LogD"), Name(c), Type(c).String()+".txt")
 
 	out, err := os.OpenFile(errfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -96,15 +96,20 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 	}
 }
 
-func create(comp ComponentType, name string) error {
+func create(c Component) error {
 	// create a directory and a default config file
 
-	if comp == None {
+	switch Type(c) {
+	case Gateway:
+		/* 		err := createGateway(c)
+		   		if err != nil {
+		   			return err
+		   		} */
+	default:
 		// wildcard, create an environment (later)
 		return fmt.Errorf("wildcard creation net yet supported")
 	}
 
-	c := New(comp, name)
 	err := os.MkdirAll(Home(c), 0775)
 	if err != nil {
 		return err

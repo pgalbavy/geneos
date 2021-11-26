@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,22 +15,21 @@ import (
 // process config files
 
 func loadConfig(c Component) (cmd *exec.Cmd, env []string) {
-	t := Type(c).String()
-
-	wd := filepath.Join(RootDir(Type(c)), Name(c))
-	if err := os.Chdir(wd); err != nil {
-		log.Println("cannot chdir() to", wd)
-		return
-	}
-
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file
 	// for later re-use
-	jsonFile, err := os.ReadFile(t + ".json")
+	j := filepath.Join(RootDir(Type(c)), Name(c), Type(c).String()+".json")
+	jsonFile, err := os.ReadFile(j)
 	if err == nil {
-		json.Unmarshal(jsonFile, &c)
+		err = json.Unmarshal(jsonFile, &c)
+		if err != nil {
+			return nil, nil
+		}
 	} else {
-		env = convertOldConfig(c, Name(c))
+		err = convertOldConfig(c)
+		if err != nil {
+			log.Println("cannot load config:", err)
+		}
 	}
 
 	// build command line and env vars
@@ -39,47 +39,48 @@ func loadConfig(c Component) (cmd *exec.Cmd, env []string) {
 	}
 
 	// XXX abstract this stuff away
-	binary := filepath.Join(getStringWithPrefix(c, "Bins"), getStringWithPrefix(c, "Base"), getString(c, "BinSuffix"))
+	binary := filepath.Join(getString(c, Prefix(c)+"Bins"),
+		getString(c, Prefix(c)+"Base"),
+		getString(c, "BinSuffix"))
 
-	// XXX find common envs - JAVA_HOME etc.
-	env = append(env, "LD_LIBRARY_PATH="+getStringWithPrefix(c, "Libs"))
-
-	var args, extraenv []string
+	var args []string
 
 	// XXX args and env vary depending on Component type - the below is for Gateway
 	// this should be pushed out to each compoent's own file
 	switch Type(c) {
 	case Gateway:
-		args, extraenv = gatewayCmd(c)
+		args, env = gatewayCmd(c)
 	case Netprobe:
-		args, extraenv = netprobeCmd(c)
+		args, env = netprobeCmd(c)
 	case Licd:
-		args, extraenv = licdCmd(c)
+		args, env = licdCmd(c)
 	default:
+		//
 	}
 
-	args = append(args, getStringsWithPrefix(c, "Opts")...)
-	env = append(env, extraenv...)
+	opts := strings.Fields(getString(c, Prefix(c)+"Opts"))
+	args = append(args, opts...)
+	// XXX find common envs - JAVA_HOME etc.
+	env = append(env, "LD_LIBRARY_PATH="+getString(c, Prefix(c)+"Libs"))
 	cmd = exec.Command(binary, args...)
 
 	return
 }
 
-func convertOldConfig(c Component, name string) (env []string) {
-	t := Type(c).String()
-	prefix := strings.Title(t[0:4])
-
-	rcFile, err := os.Open(t + ".rc")
+// save off extra env too
+func convertOldConfig(c Component) error {
+	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
-		log.Println("cannot open ", t, ".rc")
-		return
+		log.Println("cannot open ", Type(c), ".rc")
+		return err
 	}
-	defer rcFile.Close()
 
-	wd := filepath.Join(RootDir(Type(c)), name)
-	log.Printf("loading config from %s/%s.rc", wd, t)
+	wd := filepath.Join(RootDir(Type(c)), Name(c))
+	log.Printf("loading config from %s/%s.rc", wd, Type(c))
 
 	confs := make(map[string]string)
+
+	rcFile := bytes.NewBuffer(rcdata)
 	scanner := bufio.NewScanner(rcFile)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -88,23 +89,21 @@ func convertOldConfig(c Component, name string) (env []string) {
 		}
 		s := strings.SplitN(line, "=", 2)
 		if len(s) != 2 {
-			log.Println("config line format incorrect:", line)
-			return
+			return fmt.Errorf("config line format incorrect: %q", line)
 		}
 		key, value := s[0], s[1]
 		value = strings.Trim(value, "\"")
 		confs[key] = value
 	}
 
+	var env []string
 	// log.Printf("defaults: %+v\n", c)
 	for k, v := range confs {
 		switch k {
-		case prefix + "Opts":
-			setFields(c, prefix+"Opts", strings.Fields(v))
 		case "BinSuffix":
 			setField(c, k, v)
 		default:
-			if strings.HasPrefix(k, prefix) {
+			if strings.HasPrefix(k, Prefix(c)) {
 				setField(c, k, v)
 			} else {
 				// set env var
@@ -112,23 +111,24 @@ func convertOldConfig(c Component, name string) (env []string) {
 			}
 		}
 	}
+	setFields(c, "Env", env)
 
-	WriteConfig(c)
-	return
+	return WriteConfig(c)
 }
 
-func WriteConfig(c Component) {
+func WriteConfig(c Component) error {
 	home := Home(c)
-	t := Type(c).String()
 
 	j, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		log.Println("json marshal failed:", err)
 	} else {
 		log.Printf("%s\n", string(j))
-		err = os.WriteFile(filepath.Join(home, t+".json"), j, 0666)
+		err = os.WriteFile(filepath.Join(home, Type(c).String()+".json"), j, 0666)
 		if err != nil {
-			log.Println("cannot write JSON config file:", err)
+			// log.Println("cannot write JSON config file:", err)
+			return err
 		}
 	}
+	return nil
 }

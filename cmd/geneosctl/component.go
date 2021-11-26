@@ -61,9 +61,10 @@ func CompType(component string) ComponentType {
 
 type Components struct {
 	Component `json:"-"`
-	ITRSHome  string        `json:"-"`
-	Type      ComponentType `json:"-"`
 	Name      string        `json:"-"`
+	Type      ComponentType `json:"-"`
+	Root      string        `json:"-"`
+	Env       []string      `json:",omitempty"` // environment variables to set
 }
 
 // this method does NOT take a Component as it's used to return
@@ -100,7 +101,14 @@ func Name(c Component) string {
 }
 
 func Home(c Component) string {
-	return getStringWithPrefix(c, "Home")
+	return getString(c, Prefix(c)+"Home")
+}
+
+func Prefix(c Component) string {
+	if len(Type(c).String()) < 4 {
+		return "Unkn"
+	}
+	return strings.Title(Type(c).String()[0:4])
 }
 
 func dirs(dir string) []string {
@@ -114,11 +122,8 @@ func dirs(dir string) []string {
 	return components
 }
 
-func getIntWithPrefix(c Component, name string) string {
-	t := Type(c).String()
-	prefix := strings.Title(t[0:4])
-
-	v := reflect.ValueOf(c).Elem().FieldByName(prefix + name)
+func getInt(c Component, name string) string {
+	v := reflect.ValueOf(c).Elem().FieldByName(Prefix(c) + name)
 	if v.IsValid() && v.Kind() == reflect.Int {
 		return fmt.Sprintf("%v", v.Int())
 	}
@@ -133,23 +138,22 @@ func getString(c Component, name string) string {
 	return ""
 }
 
-func getStringWithPrefix(c Component, name string) string {
-	t := Type(c).String()
-	prefix := strings.Title(t[0:4])
-
-	return getString(c, prefix+name)
+func getStringSlice(c Component, name string) (slice []string) {
+	v := reflect.ValueOf(c).Elem().FieldByName(name)
+	slice, ok := v.Interface().([]string)
+	if !ok {
+		return nil
+	}
+	return
 }
 
-func getStringsWithPrefix(c Component, names ...string) (fields []string) {
-	t := Type(c).String()
-	prefix := strings.Title(t[0:4])
-
+/* func getStringsWithPrefix(c Component, names ...string) (fields []string) {
 	v := reflect.ValueOf(c).Elem()
 
-	fv := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf("abc")), 0, 5)
+	fv := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf("string")), 0, 5)
 
 	for _, name := range names {
-		f := v.FieldByName(prefix + name)
+		f := v.FieldByName(Prefix(c) + name)
 		if f.IsValid() {
 			switch f.Kind() {
 			case reflect.String:
@@ -162,7 +166,7 @@ func getStringsWithPrefix(c Component, names ...string) (fields []string) {
 	}
 	fields = fv.Interface().([]string)
 	return
-}
+} */
 
 func setField(c Component, k string, v string) {
 	fv := reflect.ValueOf(c)
