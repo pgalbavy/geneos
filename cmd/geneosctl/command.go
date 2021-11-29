@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -13,19 +12,14 @@ import (
 // generic action commands
 
 func start(c Component) {
-	cmd, env := makeCmd(c)
+	cmd, env := BuildCommand(c)
 	if cmd == nil {
 		return
 	}
 
 	username := getString(c, Prefix(c)+"User")
 	if len(username) != 0 {
-		u, _ := user.Current()
-		if username != u.Username {
-			// think about sudo support here
-			log.Println("can't change user to", username)
-			return
-		}
+		setuid(cmd, username)
 	}
 
 	run(c, cmd, env)
@@ -34,37 +28,42 @@ func start(c Component) {
 func stop(c Component) {
 	pid, err := findProc(c)
 	if err != nil {
-		//		log.Println("cannot get PID for", name)
 		return
 	}
 
-	// send sigterm
+	s, _ := os.Stat(fmt.Sprintf("/proc/%d", pid))
+	st := s.Sys().(*syscall.Stat_t)
+	log.Println("process running as", st.Uid, st.Gid)
+	// send sigterm - but only if same user or root?
 
 	proc, _ := os.FindProcess(pid)
+	log.Printf("proc=%+v\n", proc)
 	if err = proc.Signal(syscall.Signal(0)); err != nil {
 		log.Println("stopping", Type(c), Name(c), "process", pid, err)
 		return
 	}
 
-	log.Println("stopping", Type(c), Name(c), "PID", pid)
+	if cando(c) {
+		log.Println("stopping", Type(c), Name(c), "PID", pid)
 
-	if err = proc.Signal(syscall.SIGTERM); err != nil {
-		log.Println("sending SIGTERM failed:", err)
-		return
-	}
-
-	// send a signal 0 in a loop to check if the process has terminated
-	for i := 0; i < 10; i++ {
-		time.Sleep(250 * time.Millisecond)
-		if err = proc.Signal(syscall.Signal(0)); err != nil {
-			log.Println(Type(c), "terminated")
+		if err = proc.Signal(syscall.SIGTERM); err != nil {
+			log.Println("sending SIGTERM failed:", err)
 			return
 		}
-	}
-	// sigkill
-	if err = proc.Signal(syscall.SIGKILL); err != nil {
-		log.Println("sending SIGKILL failed:", err)
-		return
+
+		// send a signal 0 in a loop to check if the process has terminated
+		for i := 0; i < 10; i++ {
+			time.Sleep(250 * time.Millisecond)
+			if err = proc.Signal(syscall.Signal(0)); err != nil {
+				log.Println(Type(c), "terminated")
+				return
+			}
+		}
+		// sigkill
+		if err = proc.Signal(syscall.SIGKILL); err != nil {
+			log.Println("sending SIGKILL failed:", err)
+			return
+		}
 	}
 }
 
@@ -81,8 +80,16 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 	}
 	cmd.Stdout = out
 	cmd.Stderr = out
+
+	if cmd.SysProcAttr != nil {
+		err = out.Chown(int(cmd.SysProcAttr.Credential.Uid), int(cmd.SysProcAttr.Credential.Gid))
+		if err != nil {
+			log.Println("chown:", err)
+		}
+	}
 	cmd.Dir = filepath.Join(Home(c))
 
+	// set euid here
 	err = cmd.Start()
 	if err != nil {
 		log.Println(err)
@@ -94,6 +101,7 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 		// detach
 		cmd.Process.Release()
 	}
+	// reset euid here
 }
 
 func create(c Component) error {
@@ -117,6 +125,6 @@ func create(c Component) error {
 	}
 
 	// update settings here, then write
-	WriteConfig(c)
+	WriteJSONConfig(c)
 	return nil
 }

@@ -28,6 +28,10 @@ var (
 // COMMAND = start | stop | restart | status | command | ...
 //   create | activate | install | update | list
 //
+// There are commands with and without side-effects, offer a flag to control
+// side-effect calls
+//
+
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatalln("[usage here]: not enough args")
@@ -52,14 +56,14 @@ func main() {
 		// no names, check special commands and exit
 		switch command {
 		case "list":
-			confs := getAllConfigs()
+			confs := AllComponents()
 			for _, c := range confs {
 				log.Printf("%s => %q\n", Type(c), Name(c))
 			}
 		case "version":
 		case "help":
 		case "status":
-			confs := getAllConfigs()
+			confs := AllComponents()
 			for _, c := range confs {
 				pid, err := findProc(c)
 				if err != nil {
@@ -104,7 +108,7 @@ func main() {
 			stop(c)
 			start(c)
 		case "command":
-			cmd, env := makeCmd(c)
+			cmd, env := BuildCommand(c)
 			if cmd != nil {
 				log.Printf("command: %q\n", cmd.String())
 				log.Println("environment:")

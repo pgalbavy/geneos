@@ -75,12 +75,16 @@ type Components struct {
 // this method does NOT take a Component as it's used to return
 // metadata for where to find Components before the underlying
 // type is initialised
+//
+// No side-effects
 func RootDirs(comp ComponentType) []string {
 	return dirs(RootDir(comp))
 }
 
 // as above, this method returns metadata before the underlying
 // type is initialised
+//
+// No side-effects
 func RootDir(comp ComponentType) string {
 	return filepath.Join(itrsHome, comp.String(), comp.String()+"s")
 }

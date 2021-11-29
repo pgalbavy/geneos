@@ -13,21 +13,21 @@ import (
 
 // process config file(s)
 
-func getAllConfigs() (confs []Component) {
+func AllComponents() (confs []Component) {
 	for _, comp := range ComponentTypes() {
-		confs = append(confs, getConfigs(comp)...)
+		confs = append(confs, Comonents(comp)...)
 	}
 	return
 }
 
-func getConfigs(comp ComponentType) (confs []Component) {
+func Comonents(comp ComponentType) (confs []Component) {
 	for _, name := range RootDirs(comp) {
 		confs = append(confs, New(comp, name))
 	}
 	return
 }
 
-func getConfig(c Component) (err error) {
+func LoadConfig(c Component, update bool) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file
 	// for later re-use
@@ -39,7 +39,14 @@ func getConfig(c Component) (err error) {
 			return
 		}
 	} else {
-		err = convertOldConfig(c)
+		err = ReadRCConfig(c)
+		if update {
+			// select if we want this or not
+			err = WriteJSONConfig(c)
+			if err == nil {
+				// rename old file??
+			}
+		}
 		if err != nil {
 			log.Println("cannot load config:", err)
 			return
@@ -49,8 +56,8 @@ func getConfig(c Component) (err error) {
 	return
 }
 
-func makeCmd(c Component) (cmd *exec.Cmd, env []string) {
-	err := getConfig(c)
+func BuildCommand(c Component) (cmd *exec.Cmd, env []string) {
+	err := LoadConfig(c, true)
 	if err != nil {
 		//
 	}
@@ -91,7 +98,7 @@ func makeCmd(c Component) (cmd *exec.Cmd, env []string) {
 }
 
 // save off extra env too
-func convertOldConfig(c Component) (err error) {
+func ReadRCConfig(c Component) (err error) {
 	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
 		log.Println("cannot open ", Type(c), ".rc")
@@ -136,14 +143,10 @@ func convertOldConfig(c Component) (err error) {
 	}
 	setFieldSlice(c, "Env", env)
 
-	err = WriteConfig(c)
-	if err == nil {
-		// rename old file??
-	}
 	return
 }
 
-func WriteConfig(c Component) (err error) {
+func WriteJSONConfig(c Component) (err error) {
 	home := Home(c)
 
 	j, err := json.MarshalIndent(c, "", "    ")
