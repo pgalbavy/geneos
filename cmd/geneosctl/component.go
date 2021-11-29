@@ -127,7 +127,7 @@ func dirs(dir string) []string {
 	return components
 }
 
-func getInt(c Component, name string) string {
+func getIntAsString(c Component, name string) string {
 	v := reflect.ValueOf(c).Elem().FieldByName(Prefix(c) + name)
 	if v.IsValid() && v.Kind() == reflect.Int {
 		return fmt.Sprintf("%v", v.Int())

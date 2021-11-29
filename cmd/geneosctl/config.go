@@ -13,16 +13,16 @@ import (
 
 // process config file(s)
 
-func getConfigs(comp ComponentType) (confs []Component) {
-	for _, name := range RootDirs(comp) {
-		confs = append(confs, New(comp, name))
+func getAllConfigs() (confs []Component) {
+	for _, comp := range ComponentTypes() {
+		confs = append(confs, getConfigs(comp)...)
 	}
 	return
 }
 
-func getAllConfigs() (confs []Component) {
-	for _, comp := range ComponentTypes() {
-		confs = append(confs, getConfigs(comp)...)
+func getConfigs(comp ComponentType) (confs []Component) {
+	for _, name := range RootDirs(comp) {
+		confs = append(confs, New(comp, name))
 	}
 	return
 }
@@ -91,11 +91,11 @@ func makeCmd(c Component) (cmd *exec.Cmd, env []string) {
 }
 
 // save off extra env too
-func convertOldConfig(c Component) error {
+func convertOldConfig(c Component) (err error) {
 	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
 		log.Println("cannot open ", Type(c), ".rc")
-		return err
+		return
 	}
 
 	wd := filepath.Join(RootDir(Type(c)), Name(c))
@@ -136,22 +136,27 @@ func convertOldConfig(c Component) error {
 	}
 	setFieldSlice(c, "Env", env)
 
-	return WriteConfig(c)
+	err = WriteConfig(c)
+	if err == nil {
+		// rename old file??
+	}
+	return
 }
 
-func WriteConfig(c Component) error {
+func WriteConfig(c Component) (err error) {
 	home := Home(c)
 
 	j, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
-		log.Println("json marshal failed:", err)
+		ErrorLogger.Println("json marshal failed:", err)
+		return
 	} else {
-		log.Printf("%s\n", string(j))
+		DebugLogger.Printf("new config: %s\n", string(j))
 		err = os.WriteFile(filepath.Join(home, Type(c).String()+".json"), j, 0666)
 		if err != nil {
-			// log.Println("cannot write JSON config file:", err)
-			return err
+			ErrorLogger.Println("cannot write JSON config file:", err)
+			return
 		}
 	}
-	return nil
+	return
 }

@@ -26,6 +26,7 @@ var (
 //
 // COMPONENT = "" | gateway | netprobe | licd | webserver
 // COMMAND = start | stop | restart | status | command | ...
+//   create | activate | install | update | list
 //
 func main() {
 	if len(os.Args) < 2 {

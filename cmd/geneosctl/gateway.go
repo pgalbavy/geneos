@@ -17,6 +17,8 @@ type GatewayComponent struct {
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
 	GateUser  string
 	BinSuffix string `default:"gateway2.linux_64"`
+	// new
+
 }
 
 func NewGateway(name string) (c *GatewayComponent) {
@@ -30,18 +32,26 @@ func NewGateway(name string) (c *GatewayComponent) {
 }
 
 func gatewayCmd(c Component) (args, env []string) {
-	resourcesDir := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources")
-	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
-	setupFile := filepath.Join(getString(c, Prefix(c)+"Home"), "gateway.setup.xml")
+	// get opts from
+	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
+	//
+	licdhost := getString(c, Prefix(c)+"LicH")
+	licdport := getIntAsString(c, Prefix(c)+"LicP")
 
 	args = []string{
 		/* "-gateway-name",  */ Name(c),
-		"-setup-file", setupFile,
-		"-resources-dir", resourcesDir,
-		"-log", logFile,
-		"-licd-host", getString(c, Prefix(c)+"LicH"),
-		"-licd-port", getInt(c, Prefix(c)+"LicP"),
-		// "-port", getIntWithPrefix(c, "Port"),
+		"-resources-dir",
+		filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources"),
+		"-log",
+		filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF")),
+	}
+
+	if licdhost != "localhost" {
+		args = append(args, licdhost)
+	}
+
+	if licdport != "7041" {
+		args = append(args, licdport)
 	}
 
 	return

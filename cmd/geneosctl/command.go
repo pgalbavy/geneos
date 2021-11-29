@@ -39,13 +39,14 @@ func stop(c Component) {
 	}
 
 	// send sigterm
-	log.Println("stopping", Type(c), Name(c), "with PID", pid)
 
 	proc, _ := os.FindProcess(pid)
 	if err = proc.Signal(syscall.Signal(0)); err != nil {
-		log.Println(Type(c), "process not found")
+		log.Println("stopping", Type(c), Name(c), "process", pid, err)
 		return
 	}
+
+	log.Println("stopping", Type(c), Name(c), "PID", pid)
 
 	if err = proc.Signal(syscall.SIGTERM); err != nil {
 		log.Println("sending SIGTERM failed:", err)
@@ -80,7 +81,7 @@ func run(c Component, cmd *exec.Cmd, env []string) {
 	}
 	cmd.Stdout = out
 	cmd.Stderr = out
-	cmd.Dir = filepath.Join(RootDir(Type(c)), Name(c))
+	cmd.Dir = filepath.Join(Home(c))
 
 	err = cmd.Start()
 	if err != nil {
