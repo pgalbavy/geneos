@@ -11,6 +11,10 @@ func init() {
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
 		itrsHome = h
 	}
+	// non-Windows for now
+	if os.Geteuid() == 0 || os.Getuid() == 0 {
+		superuser = true
+	}
 }
 
 var (
@@ -18,6 +22,8 @@ var (
 	DebugLogger = logger.DebugLogger
 	ErrorLogger = logger.ErrorLogger
 )
+
+var superuser bool = false
 
 //
 // redo
@@ -53,7 +59,7 @@ func main() {
 	}
 
 	if len(names) == 0 {
-		// no names, check special commands and exit
+		// no names, check verb-only commands or exit
 		switch command {
 		case "list":
 			confs := AllComponents()
@@ -94,31 +100,17 @@ func main() {
 	for _, name := range names {
 		c := New(comp, name)
 
+		// two sets of commands, first either do not have or do not load
+		// the configuration from the component directory (e.g. create)
+		// while the second set always want the current configuration loaded
+		// but no conversion of old configs by default
+
 		switch command {
 		case "create":
-			err := create(c)
+			err := Create(c)
 			if err != nil {
 				log.Println("cannot create", comp, name, ":", err)
 			}
-		case "start":
-			start(c)
-		case "stop":
-			stop(c)
-		case "restart":
-			stop(c)
-			start(c)
-		case "command":
-			cmd, env := BuildCommand(c)
-			if cmd != nil {
-				log.Printf("command: %q\n", cmd.String())
-				log.Println("environment:")
-				for _, e := range env {
-					log.Println(e)
-				}
-			}
-			log.Println("end")
-		case "details":
-			//
 		case "status":
 			pid, err := findProc(c) // getPid(c, name)
 			if err != nil {
@@ -127,12 +119,54 @@ func main() {
 			}
 			log.Println(Type(c), Name(c), "running with PID", pid)
 
-		case "refresh":
-			refresh(c)
-		case "log":
-		case "delete":
 		default:
-			log.Fatalln(Type(c), "[usage here] unknown command:", command)
+			err := LoadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				continue
+			}
+			switch command {
+			case "start":
+				err = Start(c)
+				if err != nil {
+					//
+				}
+			case "stop":
+				err = Stop(c)
+				if err != nil {
+					//
+				}
+			case "restart":
+				err = Stop(c)
+				if err == nil {
+					err = Start(c)
+					if err != nil {
+						//
+					}
+				}
+			case "refresh", "reload":
+				err = Reload(c)
+				if err != nil {
+					log.Fatalln(err)
+				}
+			case "command":
+				cmd, env := Command(c)
+				if cmd != nil {
+					log.Printf("command: %q\n", cmd.String())
+					log.Println("environment:")
+					for _, e := range env {
+						log.Println(e)
+					}
+				}
+				log.Println("end")
+			case "details":
+				//
+			case "log":
+
+			case "delete":
+			default:
+				log.Fatalln(Type(c), "[usage here] unknown command:", command)
+			}
 		}
 	}
 }

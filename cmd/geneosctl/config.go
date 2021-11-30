@@ -56,12 +56,7 @@ func LoadConfig(c Component, update bool) (err error) {
 	return
 }
 
-func BuildCommand(c Component) (cmd *exec.Cmd, env []string) {
-	err := LoadConfig(c, true)
-	if err != nil {
-		//
-	}
-
+func Command(c Component) (cmd *exec.Cmd, env []string) {
 	// build command line and env vars
 	shell := os.Getenv("SHELL")
 	if len(shell) == 0 {
