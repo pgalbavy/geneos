@@ -1,6 +1,7 @@
 package logger // import "wonderland.org/geneos/pkg/logger"
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"runtime" // placeholder
@@ -67,13 +68,16 @@ func (f DebugLogWriter) Write(p []byte) (n int, err error) {
 }
 
 func writelog(level Level, p []byte) (n int, err error) {
+	ts := time.Now().Format(time.RFC3339)
+
+	var line string
 	switch level {
 	case Info:
-		log.Printf("%s %s: %s", zonename, level, p)
+		line = fmt.Sprintf("%s %s: %s", ts, level, p)
 
 	default:
 		var fnName string = "UNKNOWN"
-		pc, _, line, ok := runtime.Caller(4)
+		pc, _, ln, ok := runtime.Caller(4)
 		if ok {
 			fn := runtime.FuncForPC(pc)
 			if fn != nil {
@@ -81,8 +85,7 @@ func writelog(level Level, p []byte) (n int, err error) {
 			}
 		}
 
-		log.Printf("%s %s: %s() line %d %s", zonename, level, fnName, line, p)
-
+		line = fmt.Sprintf("%s %s: %s() line %d %s", ts, level, fnName, ln, p)
 	}
-	return len(p), nil
+	return log.Writer().Write([]byte(line))
 }
