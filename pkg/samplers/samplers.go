@@ -19,9 +19,9 @@ func init() {
 }
 
 var (
-	Logger      = logger.Logger
-	DebugLogger = logger.DebugLogger
-	ErrorLogger = logger.ErrorLogger
+	Logger      = logger.Log
+	DebugLogger = logger.LogDebug
+	ErrorLogger = logger.LogError
 )
 
 type SamplerInstance interface {

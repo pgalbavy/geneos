@@ -2,22 +2,34 @@ package logger // import "wonderland.org/geneos/pkg/logger"
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"runtime" // placeholder
 	"time"
 )
 
-var (
-	Logger            = log.New(LogWriter{}, "", 0)
-	DebugLogger       = log.New(DebugLogWriter{}, "", 0)
-	ErrorLogger       = log.New(ErrorLogWriter{}, "", 0)
-	zonename, zoneoff = time.Now().Zone()
-)
+type LogWriter struct {
+	w          io.Writer
+	ShowPrefix bool
+}
+type DebugLogWriter struct {
+	w          io.Writer
+	ShowPrefix bool
+}
+type ErrorLogWriter struct {
+	w          io.Writer
+	ShowPrefix bool
+}
 
-type LogWriter struct{}
-type DebugLogWriter struct{}
-type ErrorLogWriter struct{}
+var (
+	Logger      = LogWriter{log.Writer(), false}
+	Log         = log.New(&Logger, "", 0)
+	DebugLogger = DebugLogWriter{log.Writer(), true}
+	LogDebug    = log.New(&DebugLogger, "", 0)
+	ErrorLogger = ErrorLogWriter{log.Writer(), true}
+	LogError    = log.New(&ErrorLogger, "", 0)
+)
 
 type Level int
 
@@ -48,32 +60,35 @@ func init() {
 }
 
 func EnableDebugLog() {
-	DebugLogger.SetOutput(DebugLogWriter{})
+	LogDebug.SetOutput(DebugLogger)
 }
 
 func DisableDebugLog() {
-	DebugLogger.SetOutput(ioutil.Discard)
+	LogDebug.SetOutput(ioutil.Discard)
 }
 
 func (f LogWriter) Write(p []byte) (n int, err error) {
-	return writelog(Info, p)
+	return writelog(Info, f.w, f.ShowPrefix, p)
 }
 
 func (f ErrorLogWriter) Write(p []byte) (n int, err error) {
-	return writelog(Error, p)
+	return writelog(Error, f.w, f.ShowPrefix, p)
 }
 
 func (f DebugLogWriter) Write(p []byte) (n int, err error) {
-	return writelog(Debug, p)
+	return writelog(Debug, f.w, f.ShowPrefix, p)
 }
 
-func writelog(level Level, p []byte) (n int, err error) {
-	ts := time.Now().Format(time.RFC3339)
+func writelog(level Level, w io.Writer, printprefix bool, p []byte) (n int, err error) {
+	var prefix string
+	if printprefix {
+		prefix = fmt.Sprintf("%s %s: ", time.Now().Format(time.RFC3339), level)
+	}
 
 	var line string
 	switch level {
 	case Info:
-		line = fmt.Sprintf("%s %s: %s", ts, level, p)
+		line = fmt.Sprintf("%s%s", prefix, p)
 
 	default:
 		var fnName string = "UNKNOWN"
@@ -85,7 +100,7 @@ func writelog(level Level, p []byte) (n int, err error) {
 			}
 		}
 
-		line = fmt.Sprintf("%s %s: %s() line %d %s", ts, level, fnName, ln, p)
+		line = fmt.Sprintf("%s%s() line %d %s", prefix, fnName, ln, p)
 	}
 	return log.Writer().Write([]byte(line))
 }
