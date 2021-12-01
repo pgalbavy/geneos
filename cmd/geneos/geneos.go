@@ -62,6 +62,10 @@ func main() {
 	if !ok {
 		ErrorLog.Fatalln("unknown command", command)
 	}
-	c(comp, names)
+	if comp == None {
+		for _, comp := range ComponentTypes() {
+			c(comp, names)
+		}
+	}
 	os.Exit(0)
 }

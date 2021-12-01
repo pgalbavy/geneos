@@ -42,16 +42,16 @@ func loadConfig(c Component, update bool) (err error) {
 		}
 	} else {
 		err = readRCConfig(c)
+		if err != nil {
+			DebugLog.Println("cannot load config:", err)
+			return
+		}
 		if update {
 			// select if we want this or not
 			err = writeJSONConfig(c)
 			if err == nil {
 				// rename old file??
 			}
-		}
-		if err != nil {
-			log.Println("cannot load config:", err)
-			return
 		}
 	}
 
@@ -98,12 +98,11 @@ func buildCommand(c Component) (cmd *exec.Cmd, env []string) {
 func readRCConfig(c Component) (err error) {
 	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
-		log.Println("cannot open ", Type(c), ".rc")
 		return
 	}
 
 	wd := filepath.Join(RootDir(Type(c)), Name(c))
-	log.Printf("loading config from %s/%s.rc", wd, Type(c))
+	DebugLog.Printf("loading config from %s/%s.rc", wd, Type(c))
 
 	confs := make(map[string]string)
 
@@ -116,7 +115,7 @@ func readRCConfig(c Component) (err error) {
 		}
 		s := strings.SplitN(line, "=", 2)
 		if len(s) != 2 {
-			return fmt.Errorf("config line format incorrect: %q", line)
+			return fmt.Errorf("config format incorrect: %q", line)
 		}
 		key, value := s[0], s[1]
 		value = strings.Trim(value, "\"")

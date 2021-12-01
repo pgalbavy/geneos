@@ -123,23 +123,41 @@ func canControl(c Component) bool {
 	return username == u.Username
 }
 
-// given a list of args (after command has been see), check if first
-// arg is a component type and
+// given a list of args (after command has been seen), check if first
+// arg is a component type and depdup the names. A name of "all" will
+// will override the rest and result in a lookup being done
 func parseArgs(args []string) (comp ComponentType, names []string) {
 	if len(args) == 0 {
 		return
 	}
 
 	comp = CompType(args[0])
-	if comp == None {
+	if comp == Unknown {
 		// this may be a name instead
 		// and we might wildcard the component
+		comp = None
 		names = args
 	} else {
 		names = args[1:]
 	}
 
-	// process "all" here ?
+	// this doesn't work for all comp types - it adds all names
+	// of all components and returns that
+	for _, name := range names {
+		if name == "all" {
+			var confs []Component
+			if comp == Unknown || comp == None {
+				confs = allComponents()
+			} else {
+				confs = components(comp)
+			}
+			names = nil
+			for _, c := range confs {
+				names = append(names, Name(c))
+			}
+			break
+		}
+	}
 
 	if len(names) > 1 {
 		// make sure names are unique
@@ -152,5 +170,6 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 			names = append(names, name)
 		}
 	}
+
 	return
 }

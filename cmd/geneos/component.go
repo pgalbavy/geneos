@@ -51,9 +51,8 @@ func (ct ComponentType) String() string {
 }
 
 func CompType(component string) ComponentType {
-
 	switch strings.ToLower(component) {
-	case "", "all", "any":
+	case "", "any":
 		return None
 	case "gateway", "gateways":
 		return Gateway

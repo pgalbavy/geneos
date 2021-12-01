@@ -16,7 +16,7 @@ func commandStart(comp ComponentType, args []string) (err error) {
 		err = loadConfig(c, false)
 		if err != nil {
 			log.Println("cannot load configuration for", Type(c), Name(c))
-			return
+			continue
 		}
 		start(c)
 	}

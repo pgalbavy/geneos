@@ -65,7 +65,7 @@ There will also be an XML setup file and so on.
 
 The following component types (and their aliases) are supported:
 
-* `all`, `any` or empty
+* `any` or empty
 * `gateway` or `gateways`
 * `netprobe`, `netprobes`, `probe` or `probes`
 * `licd` or `licds`
