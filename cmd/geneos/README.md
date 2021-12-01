@@ -62,3 +62,62 @@ gateway.txt
 There will also be an XML setup file and so on.
 
 ## Usage
+
+The following component types (and their aliases) are supported:
+
+* `all`, `any` or empty
+* `gateway` or `gateways`
+* `netprobe`, `netprobes`, `probe` or `probes`
+* `licd` or `licds`
+* `webserver`, `webservers`, `webdashboard`. `dashboards`
+
+The above names are also treated as reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. This may cause some issues migrating existing installations. See below for more. 
+
+The following commands are supported. Each command may treat arguments differently.
+
+### `geneos list [component]`
+
+Output a list of all configured components. If a compoent is supplied then restrict the list to that particular type.
+
+### `geneos status [component] [names...]`
+
+As above but show the running status of each matching component. If no names are given than all components are shown.
+
+### `geneos version`
+
+Show the current version of the `geneos` program, which should match the tag of the overall `geneos` package.
+
+### `geneos help`
+
+General help, initially a list of all the supported commands.
+
+### `geneos start [component] [name...]`
+
+Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
+
+### `geneos stop [component] [name...]`
+
+Like above, but stops the component(s)
+
+### `geneos kill [component] [name...]` - Not yet
+
+Stops components ungracefully (SIGKILL is sent)
+
+### `geneos restart [component] [name...]`
+
+Restarts matching geneos components. Each component is stopped and started in sequence. If all components should be down before starting up again then use a combination of `start` and `stop` from above.
+
+### `geneos command [component] [name...]`
+
+Shows details of the command syntax used for the component and any extra environment variables found in the configuration.
+
+### `geneos create [component] name [name...]` - Not yet
+
+Create a Geneos component configuration.
+
+### `geneos reload|refresh [component] name [name...]`
+
+
+
+## Configfuration Files
+

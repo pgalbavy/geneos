@@ -111,6 +111,8 @@ func canControl(c Component) bool {
 		DebugLog.Println("am root")
 		return true
 	}
+	// test euid here
+
 	username := getString(c, Prefix(c)+"User")
 	if len(username) == 0 {
 		DebugLog.Println("no user configured")
@@ -136,6 +138,8 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 	} else {
 		names = args[1:]
 	}
+
+	// process "all" here ?
 
 	if len(names) > 1 {
 		// make sure names are unique

@@ -25,6 +25,7 @@ const (
 	Netprobe
 	Licd
 	Webserver
+	Unknown
 )
 
 // currently supported types, for looping
@@ -50,17 +51,20 @@ func (ct ComponentType) String() string {
 }
 
 func CompType(component string) ComponentType {
+
 	switch strings.ToLower(component) {
-	case "gateway":
+	case "", "all", "any":
+		return None
+	case "gateway", "gateways":
 		return Gateway
-	case "netprobe", "probe":
+	case "netprobe", "probe", "netprobes", "probes":
 		return Netprobe
-	case "licd":
+	case "licd", "licds":
 		return Licd
-	case "webserver", "webdashboard":
+	case "webserver", "webservers", "webdashboard", "dashboards":
 		return Webserver
 	default:
-		return None
+		return Unknown
 	}
 }
 

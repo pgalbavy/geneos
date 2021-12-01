@@ -9,7 +9,9 @@ func init() {
 func commandList(comp ComponentType, args []string) error {
 	confs := allComponents()
 	for _, c := range confs {
-		log.Printf("%s => %q\n", Type(c), Name(c))
+		if comp == None || comp == Type(c) {
+			log.Printf("%s => %q\n", Type(c), Name(c))
+		}
 	}
 	return nil
 }
