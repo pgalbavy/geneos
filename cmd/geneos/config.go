@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+type Command map[string]func(ComponentType, []string) error
+
 // process config file(s)
 
 func allComponents() (confs []Component) {
@@ -146,13 +148,13 @@ func writeJSONConfig(c Component) (err error) {
 
 	j, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
-		ErrorLogger.Println("json marshal failed:", err)
+		ErrorLog.Println("json marshal failed:", err)
 		return
 	} else {
-		DebugLogger.Printf("new config: %s\n", string(j))
+		DebugLog.Printf("new config: %s\n", string(j))
 		err = os.WriteFile(filepath.Join(home, Type(c).String()+".json"), j, 0666)
 		if err != nil {
-			ErrorLogger.Println("cannot write JSON config file:", err)
+			ErrorLog.Println("cannot write JSON config file:", err)
 			return
 		}
 	}

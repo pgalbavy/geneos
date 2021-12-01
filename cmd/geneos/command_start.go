@@ -6,7 +6,24 @@ import (
 	"path/filepath"
 )
 
-func Start(c Component) (err error) {
+func init() {
+	commands["start"] = commandStart
+}
+
+func commandStart(comp ComponentType, args []string) (err error) {
+	for _, name := range args {
+		c := New(comp, name)
+		err = loadConfig(c, false)
+		if err != nil {
+			log.Println("cannot load configuration for", Type(c), Name(c))
+			return
+		}
+		start(c)
+	}
+	return
+}
+
+func start(c Component) (err error) {
 	cmd, env := buildCommand(c)
 	if cmd == nil {
 		return
@@ -50,7 +67,7 @@ func Start(c Component) (err error) {
 		log.Println(err)
 		return
 	}
-	DebugLogger.Println("started process", cmd.Process.Pid)
+	DebugLog.Println("started process", cmd.Process.Pid)
 
 	if cmd.Process != nil {
 		// detach from control

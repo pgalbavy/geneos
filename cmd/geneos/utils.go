@@ -17,8 +17,6 @@ import (
 	"syscall"
 )
 
-var itrsHome string = "/opt/itrs"
-
 // locate a process by compoent type and name
 //
 // the component type must be part of the basename of the executable and
@@ -28,7 +26,7 @@ var itrsHome string = "/opt/itrs"
 func findProc(c Component) (int, error) {
 	var pids []int
 
-	DebugLogger.Println("looking for", Type(c), Name(c))
+	DebugLog.Println("looking for", Type(c), Name(c))
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
 	dirs, _ := filepath.Glob("/proc/[0-9]*")
@@ -44,7 +42,7 @@ func findProc(c Component) (int, error) {
 		data, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
 			if !errors.Is(err, fs.ErrPermission) {
-				DebugLogger.Printf("reading %q failed, err: %q\n", pid, err)
+				DebugLog.Printf("reading %q failed, err: %q\n", pid, err)
 			}
 			// an error can be transient, just debug and ignore
 			continue
@@ -54,7 +52,7 @@ func findProc(c Component) (int, error) {
 		if strings.HasPrefix(bin, Type(c).String()) {
 			for _, arg := range args[1:] {
 				if string(arg) == Name(c) {
-					DebugLogger.Println(pid, "matches", bin)
+					DebugLog.Println(pid, "matches", bin)
 					return pid, nil
 				}
 			}
@@ -65,6 +63,8 @@ func findProc(c Component) (int, error) {
 
 // set-up the Cmd to set uid, gid and groups of the username given
 // does not change stdout etc.
+//
+// also allow for euid = wanted user, not just root
 func setuid(cmd *exec.Cmd, username string) error {
 	var gids []uint32
 
@@ -108,15 +108,45 @@ func setuid(cmd *exec.Cmd, username string) error {
 // process still requires a seteuid type change
 func canControl(c Component) bool {
 	if superuser {
-		DebugLogger.Println("am root")
+		DebugLog.Println("am root")
 		return true
 	}
 	username := getString(c, Prefix(c)+"User")
 	if len(username) == 0 {
-		DebugLogger.Println("no user configured")
+		DebugLog.Println("no user configured")
 		return true
 	}
 	u, _ := user.Current()
 
 	return username == u.Username
+}
+
+// given a list of args (after command has been see), check if first
+// arg is a component type and
+func parseArgs(args []string) (comp ComponentType, names []string) {
+	if len(args) == 0 {
+		return
+	}
+
+	comp = CompType(args[0])
+	if comp == None {
+		// this may be a name instead
+		// and we might wildcard the component
+		names = args
+	} else {
+		names = args[1:]
+	}
+
+	if len(names) > 1 {
+		// make sure names are unique
+		m := make(map[string]bool, len(names))
+		for _, name := range names {
+			m[name] = true
+		}
+		names = nil
+		for name := range m {
+			names = append(names, name)
+		}
+	}
+	return
 }

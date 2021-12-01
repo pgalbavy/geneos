@@ -18,12 +18,23 @@ func init() {
 }
 
 var (
-	log         = logger.Logger
-	DebugLogger = logger.DebugLogger
-	ErrorLogger = logger.ErrorLogger
+	log      = logger.Log
+	DebugLog = logger.LogDebug
+	ErrorLog = logger.LogError
 )
 
 var superuser bool = false
+
+// default home. this can be moved to a global config file
+// with a default to the home dir of the user running the command
+var itrsHome string = "/opt/itrs"
+
+// map of all configured commands
+//
+// this is populated buy the init() functions in each
+// command specific source file and the functions must
+// have the same signature and be self-sufficient
+var commands Command = make(Command)
 
 //
 // redo
@@ -45,128 +56,12 @@ func main() {
 
 	var command = strings.ToLower(os.Args[1])
 
-	var comp ComponentType
-	var names []string
+	comp, names := parseArgs(os.Args[2:])
 
-	if len(os.Args) > 2 {
-		comp = CompType(os.Args[2])
-		if comp == None {
-			// this may be a name instead
-			names = os.Args[2:]
-		} else {
-			names = os.Args[3:]
-		}
+	c, ok := commands[command]
+	if !ok {
+		ErrorLog.Fatalln("unknown command", command)
 	}
-
-	if len(names) == 0 {
-		// no names, check verb-only commands or exit
-		switch command {
-		case "list":
-			confs := allComponents()
-			for _, c := range confs {
-				log.Printf("%s => %q\n", Type(c), Name(c))
-			}
-		case "version":
-		case "help":
-		case "status":
-			confs := allComponents()
-			for _, c := range confs {
-				pid, err := findProc(c)
-				if err != nil {
-					log.Println(Type(c), Name(c), err)
-					continue
-				}
-				log.Println(Type(c), Name(c), "PID", pid)
-			}
-		default:
-			os.Exit(0)
-		}
-	}
-
-	if len(names) > 1 {
-		// make sure names are unique
-		m := make(map[string]bool, len(names))
-		for _, name := range names {
-			m[name] = true
-		}
-		names = nil
-		for name := range m {
-			names = append(names, name)
-
-		}
-	}
-
-	// loop over names, if any supplied
-	for _, name := range names {
-		c := New(comp, name)
-
-		// two sets of commands, first either do not have or do not load
-		// the configuration from the component directory (e.g. create)
-		// while the second set always want the current configuration loaded
-		// but no conversion of old configs by default
-
-		switch command {
-		case "create":
-			err := Create(c)
-			if err != nil {
-				log.Println("cannot create", comp, name, ":", err)
-			}
-		case "status":
-			pid, err := findProc(c) // getPid(c, name)
-			if err != nil {
-				log.Println(Type(c), Name(c), ":", err)
-				continue
-			}
-			log.Println(Type(c), Name(c), "running with PID", pid)
-
-		default:
-			err := loadConfig(c, false)
-			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				continue
-			}
-			switch command {
-			case "start":
-				err = Start(c)
-				if err != nil {
-					//
-				}
-			case "stop":
-				err = Stop(c)
-				if err != nil {
-					//
-				}
-			case "restart":
-				err = Stop(c)
-				if err == nil {
-					err = Start(c)
-					if err != nil {
-						//
-					}
-				}
-			case "refresh", "reload":
-				err = Reload(c)
-				if err != nil {
-					log.Fatalln(err)
-				}
-			case "command":
-				cmd, env := buildCommand(c)
-				if cmd != nil {
-					log.Printf("command: %q\n", cmd.String())
-					log.Println("environment:")
-					for _, e := range env {
-						log.Println(e)
-					}
-				}
-				log.Println("end")
-			case "details":
-				//
-			case "log":
-
-			case "delete":
-			default:
-				log.Fatalln(Type(c), "[usage here] unknown command:", command)
-			}
-		}
-	}
+	c(comp, names)
+	os.Exit(0)
 }
