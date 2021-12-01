@@ -1,6 +1,6 @@
-# `geneosctl`
+# `geneos`
 
-The `geneosctl` program will help you manage your Geneos components. Some of it's features, existing and planned, include:
+The `geneos` program will help you manage your Geneos components. Some of it's features, existing and planned, include:
 
 * Set-up a new environment with a single command
 * Add new instances of common componments with sensible defaults
@@ -11,22 +11,22 @@ The `geneosctl` program will help you manage your Geneos components. Some of it'
 
 * 
 
-## Usage
+## Installation
 
 Either download the standalone binary or build from source:
 
 ```
 git clone https://github.com/pgalbavy/geneos.git
-cd geneos/cmd/geneosctl
+cd geneos/cmd/geneos
 go build
 - or -
 go install
 ```
 
-Make sure that the `geneosctl` program is in your normal `PATH` to make execution easier. You should be able to immediately try:
+Make sure that the `geneos` program is in your normal `PATH` to make execution easier. You should be able to immediately try:
 
-`geneosctl list` - show all components
-`geneosctl status` - show their running status
+`geneos list` - show all components
+`geneos status` - show their running status
 
 Neither of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
 
@@ -61,4 +61,4 @@ gateway.txt
 
 There will also be an XML setup file and so on.
 
-
+## Usage

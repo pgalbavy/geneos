@@ -3,6 +3,7 @@ package main
 func init() {
 	commands["list"] = commandList
 	commands["status"] = commandStatus
+	commands["command"] = commandCommand
 }
 
 func commandList(comp ComponentType, args []string) error {
@@ -24,4 +25,28 @@ func commandStatus(comp ComponentType, args []string) error {
 		log.Println(Type(c), Name(c), "PID", pid)
 	}
 	return nil
+}
+
+func commandCommand(comp ComponentType, args []string) (err error) {
+	for _, name := range args {
+		c := New(comp, name)
+		err = loadConfig(c, false)
+		if err != nil {
+			log.Println("cannot load configuration for", Type(c), Name(c))
+			return
+		}
+		command(c)
+	}
+	return
+}
+
+func command(c Component) {
+	cmd, env := buildCommand(c)
+	if cmd != nil {
+		log.Printf("command: %q\n", cmd.String())
+		log.Println("env:")
+		for _, e := range env {
+			log.Println(e)
+		}
+	}
 }

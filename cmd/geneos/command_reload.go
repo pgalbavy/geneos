@@ -7,11 +7,11 @@ import (
 )
 
 func init() {
-	commands["reload"] = Reload
-	commands["refresh"] = Reload
+	commands["reload"] = commandReload
+	commands["refresh"] = commandReload
 }
 
-func Reload(comp ComponentType, args []string) (err error) {
+func commandReload(comp ComponentType, args []string) (err error) {
 	for _, name := range args {
 		c := New(comp, name)
 		err = loadConfig(c, false)
