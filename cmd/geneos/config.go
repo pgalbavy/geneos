@@ -13,21 +13,21 @@ import (
 
 // process config file(s)
 
-func AllComponents() (confs []Component) {
+func allComponents() (confs []Component) {
 	for _, comp := range ComponentTypes() {
-		confs = append(confs, Comonents(comp)...)
+		confs = append(confs, components(comp)...)
 	}
 	return
 }
 
-func Comonents(comp ComponentType) (confs []Component) {
+func components(comp ComponentType) (confs []Component) {
 	for _, name := range RootDirs(comp) {
 		confs = append(confs, New(comp, name))
 	}
 	return
 }
 
-func LoadConfig(c Component, update bool) (err error) {
+func loadConfig(c Component, update bool) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file
 	// for later re-use
@@ -39,10 +39,10 @@ func LoadConfig(c Component, update bool) (err error) {
 			return
 		}
 	} else {
-		err = ReadRCConfig(c)
+		err = readRCConfig(c)
 		if update {
 			// select if we want this or not
-			err = WriteJSONConfig(c)
+			err = writeJSONConfig(c)
 			if err == nil {
 				// rename old file??
 			}
@@ -56,7 +56,7 @@ func LoadConfig(c Component, update bool) (err error) {
 	return
 }
 
-func Command(c Component) (cmd *exec.Cmd, env []string) {
+func buildCommand(c Component) (cmd *exec.Cmd, env []string) {
 	// build command line and env vars
 	shell := os.Getenv("SHELL")
 	if len(shell) == 0 {
@@ -93,7 +93,7 @@ func Command(c Component) (cmd *exec.Cmd, env []string) {
 }
 
 // save off extra env too
-func ReadRCConfig(c Component) (err error) {
+func readRCConfig(c Component) (err error) {
 	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
 		log.Println("cannot open ", Type(c), ".rc")
@@ -141,7 +141,7 @@ func ReadRCConfig(c Component) (err error) {
 	return
 }
 
-func WriteJSONConfig(c Component) (err error) {
+func writeJSONConfig(c Component) (err error) {
 	home := Home(c)
 
 	j, err := json.MarshalIndent(c, "", "    ")

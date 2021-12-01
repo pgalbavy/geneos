@@ -62,14 +62,14 @@ func main() {
 		// no names, check verb-only commands or exit
 		switch command {
 		case "list":
-			confs := AllComponents()
+			confs := allComponents()
 			for _, c := range confs {
 				log.Printf("%s => %q\n", Type(c), Name(c))
 			}
 		case "version":
 		case "help":
 		case "status":
-			confs := AllComponents()
+			confs := allComponents()
 			for _, c := range confs {
 				pid, err := findProc(c)
 				if err != nil {
@@ -120,7 +120,7 @@ func main() {
 			log.Println(Type(c), Name(c), "running with PID", pid)
 
 		default:
-			err := LoadConfig(c, false)
+			err := loadConfig(c, false)
 			if err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
@@ -150,7 +150,7 @@ func main() {
 					log.Fatalln(err)
 				}
 			case "command":
-				cmd, env := Command(c)
+				cmd, env := buildCommand(c)
 				if cmd != nil {
 					log.Printf("command: %q\n", cmd.String())
 					log.Println("environment:")
