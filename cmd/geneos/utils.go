@@ -58,7 +58,7 @@ func findProc(c Component) (int, error) {
 			}
 		}
 	}
-	return 0, fmt.Errorf(Type(c).String(), Name(c), "not found")
+	return 0, fmt.Errorf("not found")
 }
 
 // set-up the Cmd to set uid, gid and groups of the username given
