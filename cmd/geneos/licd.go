@@ -18,7 +18,7 @@ type LicdComponent struct {
 func NewLicd(name string) (c *LicdComponent) {
 	// Bootstrap
 	c = &LicdComponent{}
-	c.Root = itrsHome
+	c.Root = Config.Root
 	c.Type = Licd
 	c.Name = name
 	NewComponent(&c)

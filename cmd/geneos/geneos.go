@@ -8,10 +8,6 @@ import (
 )
 
 func init() {
-	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
-		itrsHome = h
-	}
-	// non-Windows for now
 	if os.Geteuid() == 0 || os.Getuid() == 0 {
 		superuser = true
 	}
@@ -25,11 +21,12 @@ var (
 	ErrorLog = logger.Error
 )
 
+// simple check for root
 var superuser bool = false
 
 // default home. this can be moved to a global config file
 // with a default to the home dir of the user running the command
-var itrsHome string = "/opt/itrs"
+// var Config.Root string = "/opt/itrs"
 
 // map of all configured commands
 //
@@ -37,19 +34,6 @@ var itrsHome string = "/opt/itrs"
 // command specific source file and the functions must
 // have the same signature and be self-sufficient
 var commands Command = make(Command)
-
-//
-// redo
-//
-// geneosctl COMMAND [COMPONENT] [NAME]
-//
-// COMPONENT = "" | gateway | netprobe | licd | webserver
-// COMMAND = start | stop | restart | status | command | ...
-//   create | activate | install | update | list
-//
-// There are commands with and without side-effects, offer a flag to control
-// side-effect calls
-//
 
 func main() {
 	if len(os.Args) < 2 {

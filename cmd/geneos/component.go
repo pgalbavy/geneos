@@ -89,7 +89,7 @@ func RootDirs(comp ComponentType) []string {
 //
 // No side-effects
 func RootDir(comp ComponentType) string {
-	return filepath.Join(itrsHome, comp.String(), comp.String()+"s")
+	return filepath.Join(Config.Root, comp.String(), comp.String()+"s")
 }
 
 func Type(c Component) ComponentType {
@@ -150,7 +150,7 @@ func getString(c Component, name string) string {
 	return ""
 }
 
-func setField(c Component, k string, v string) {
+func setField(c interface{}, k string, v string) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
@@ -171,7 +171,7 @@ func setField(c Component, k string, v string) {
 	}
 }
 
-func setFieldSlice(c Component, k string, v []string) {
+func setFieldSlice(c interface{}, k string, v []string) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
