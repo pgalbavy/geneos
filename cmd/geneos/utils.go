@@ -143,7 +143,7 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 
 	// this doesn't work for all comp types - it adds all names
 	// of all components and returns that
-	for _, name := range names {
+	/* 	for _, name := range names {
 		if name == "all" {
 			var confs []Component
 			if comp == Unknown || comp == None {
@@ -157,7 +157,7 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 			}
 			break
 		}
-	}
+	} */
 
 	if len(names) > 1 {
 		// make sure names are unique

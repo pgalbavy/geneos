@@ -187,20 +187,23 @@ func setFieldSlice(c Component, k string, v []string) {
 
 var funcs = template.FuncMap{"join": filepath.Join}
 
-func New(comp ComponentType, name string) (c Component) {
+func New(comp ComponentType, name string) (c []Component) {
 	switch comp {
+	case None:
+		cs := findComponents(name)
+		for _, cm := range cs {
+			c = append(c, New(cm, name)...)
+		}
 	case Gateway:
-		c = NewGateway(name)
+		c = []Component{NewGateway(name)}
 	case Netprobe:
-		c = NewNetprobe(name)
+		c = []Component{NewNetprobe(name)}
 	case Licd:
-		c = NewLicd(name)
+		c = []Component{NewLicd(name)}
 	case Webserver:
 		log.Println("webserver not supported yet")
-		os.Exit(0)
 	default:
 		log.Println("unknown component", comp)
-		os.Exit(0)
 	}
 	return
 }

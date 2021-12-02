@@ -15,16 +15,29 @@ type Command map[string]func(ComponentType, []string) error
 
 // process config file(s)
 
-func allComponents() (confs []Component) {
+func allComponents() (confs map[ComponentType][]Component) {
+	confs = make(map[ComponentType][]Component)
 	for _, comp := range ComponentTypes() {
-		confs = append(confs, components(comp)...)
+		confs[comp] = components(comp)
 	}
 	return
 }
 
 func components(comp ComponentType) (confs []Component) {
 	for _, name := range RootDirs(comp) {
-		confs = append(confs, New(comp, name))
+		confs = append(confs, New(comp, name)...)
+	}
+	return
+}
+
+func findComponents(name string) (comp []ComponentType) {
+	for _, t := range ComponentTypes() {
+		compdirs := RootDirs(t)
+		for _, dir := range compdirs {
+			if filepath.Base(dir) == name {
+				comp = append(comp, t)
+			}
+		}
 	}
 	return
 }

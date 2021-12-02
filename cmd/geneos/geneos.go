@@ -58,14 +58,13 @@ func main() {
 
 	comp, names := parseArgs(os.Args[2:])
 
+	logger.EnableDebugLog()
+
 	c, ok := commands[command]
 	if !ok {
 		ErrorLog.Fatalln("unknown command", command)
 	}
-	if comp == None {
-		for _, comp := range ComponentTypes() {
-			c(comp, names)
-		}
-	}
+	// the command has to understand comp == None/Unknown
+	c(comp, names)
 	os.Exit(0)
 }

@@ -12,13 +12,18 @@ func init() {
 
 func commandStart(comp ComponentType, args []string) (err error) {
 	for _, name := range args {
-		c := New(comp, name)
-		err = loadConfig(c, false)
-		if err != nil {
-			log.Println("cannot load configuration for", Type(c), Name(c))
-			continue
+		for _, c := range New(comp, name) {
+			err = loadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				continue
+			}
+			log.Println("starting", Type(c), Name(c))
+			err = start(c)
+			if err != nil {
+				log.Println("start failed:", err)
+			}
 		}
-		start(c)
 	}
 	return
 }
@@ -26,7 +31,7 @@ func commandStart(comp ComponentType, args []string) (err error) {
 func start(c Component) (err error) {
 	cmd, env := buildCommand(c)
 	if cmd == nil {
-		return
+		return fmt.Errorf("buildCommand returned nil")
 	}
 
 	if !canControl(c) {
@@ -49,7 +54,7 @@ func start(c Component) (err error) {
 
 	out, err := os.OpenFile(errfile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalf("cannot open %q: %s\n", errfile, err)
+		return fmt.Errorf("cannot open %q: %s\n", errfile, err)
 	}
 
 	if cmd.SysProcAttr != nil && superuser {
