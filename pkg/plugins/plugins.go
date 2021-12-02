@@ -22,8 +22,8 @@ type Connection struct {
 
 var (
 	Logger      = logger.Log
-	DebugLogger = logger.LogDebug
-	ErrorLogger = logger.LogError
+	DebugLogger = logger.Debug
+	ErrorLogger = logger.Error
 )
 
 // wrap calls to xmlrpc

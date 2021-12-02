@@ -17,10 +17,12 @@ func init() {
 	}
 }
 
+// give these more convenient names and also shadow the std log
+// package for normal logging
 var (
 	log      = logger.Log
-	DebugLog = logger.LogDebug
-	ErrorLog = logger.LogError
+	DebugLog = logger.Debug
+	ErrorLog = logger.Error
 )
 
 var superuser bool = false

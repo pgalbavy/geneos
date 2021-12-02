@@ -14,8 +14,8 @@ func init() {
 
 var (
 	Logger      = logger.Log
-	DebugLogger = logger.LogDebug
-	ErrorLogger = logger.LogError
+	DebugLogger = logger.Debug
+	ErrorLogger = logger.Error
 )
 
 type Stream struct {
