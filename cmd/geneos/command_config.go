@@ -227,7 +227,21 @@ func setCommand(args []string) (err error) {
 		return
 	}
 
-	// do compoents - parse the args again and load/print the config,
+	// check if all remaining args have an '=' - if so assume the
+	// intention was "set user"
+	eqs := len(args)
+	for _, arg := range args {
+		if strings.Contains(arg, "=") {
+			eqs--
+		}
+	}
+	if eqs == 0 {
+		userConfDir, _ := os.UserConfigDir()
+		setConfig(filepath.Join(userConfDir, "geneos.json"), args)
+		return
+	}
+
+	// do components - parse the args again and load/print the config,
 	// but allow for RC files again
 	comp, names := parseArgs(args)
 	var cs []Component

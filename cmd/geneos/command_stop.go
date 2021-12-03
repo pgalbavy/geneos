@@ -9,6 +9,7 @@ import (
 
 func init() {
 	commands["stop"] = commandStop
+	commands["kill"] = commandKill
 }
 
 func commandStop(comp ComponentType, args []string) (err error) {
@@ -20,6 +21,20 @@ func commandStop(comp ComponentType, args []string) (err error) {
 				return
 			}
 			stop(c)
+		}
+	}
+	return
+}
+
+func commandKill(comp ComponentType, args []string) (err error) {
+	for _, name := range args {
+		for _, c := range New(comp, name) {
+			err = loadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				return
+			}
+			kill(c)
 		}
 	}
 	return
@@ -61,6 +76,33 @@ func stop(c Component) (err error) {
 		}
 	} else {
 		err = fmt.Errorf("cannot stop %s %s process, no permission (%v != %v)", Type(c), Name(c), st.Uid, os.Getuid())
+	}
+	return
+}
+
+func kill(c Component) (err error) {
+	pid, err := findProc(c)
+	if err != nil {
+		return
+	}
+
+	// who is the process running as?
+	s, _ := os.Stat(fmt.Sprintf("/proc/%d", pid))
+	st := s.Sys().(*syscall.Stat_t)
+	log.Println("process running as", st.Uid, st.Gid)
+
+	proc, _ := os.FindProcess(pid)
+
+	if canControl(c) {
+		log.Println("killing", Type(c), Name(c), "PID", pid)
+
+		// sigkill
+		if err = proc.Signal(syscall.SIGKILL); err != nil {
+			log.Println("sending SIGKILL failed:", err)
+			return
+		}
+	} else {
+		err = fmt.Errorf("cannot kill %s %s process, no permission (%v != %v)", Type(c), Name(c), st.Uid, os.Getuid())
 	}
 	return
 }

@@ -91,6 +91,10 @@ Show the current version of the `geneos` program, which should match the tag of 
 
 General help, initially a list of all the supported commands.
 
+### `geneos config`
+
+Configure vaious options. The two forms of the command, `geneos config [show|set] global` and `geneos config [show|set] user` act on non-component specific settings such as the root directory and the base URL for downloading release archives. Then component specific versions also support `migrate` and `revert` to transform existnig `.rc` files to `.json` and to revert the changes. A more complete description is below.
+
 ### `geneos start [component] [name...]`
 
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
