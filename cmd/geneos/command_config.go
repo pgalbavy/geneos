@@ -20,7 +20,10 @@ type ConfigType struct {
 var Config ConfigType
 
 func init() {
-	commands["config"] = commandConfig
+	commands["migrate"] = migrateCommand
+	commands["revert"] = revertCommand
+	commands["show"] = showCommand
+	commands["set"] = setCommand
 
 	readConfigFile(globalConfig, &Config)
 	userConfDir, _ := os.UserConfigDir()
@@ -32,9 +35,6 @@ func init() {
 
 }
 
-//
-//
-// geneos config get | set
 //
 // there are two types of config, subdivided into further categories:
 //
@@ -53,37 +53,15 @@ func init() {
 // JSON, renames the old file. Can do multiple components at once. Should we
 // have a "revert" command?
 //
-func commandConfig(comp ComponentType, args []string) (err error) {
-	if len(args) == 0 {
-		return fmt.Errorf("not enough parameters")
-	}
 
-	switch args[0] {
-	case "migrate":
-		return migrateCommand(args[1:])
-	case "revert":
-		return revertCommand((args[1:]))
-	case "show", "get":
-		return showCommand(args[1:])
-	case "set":
-		return setCommand(args[1:])
-	default:
-		return fmt.Errorf("unknown config command option: %q", args[0])
-	}
-}
-
-func migrateCommand(args []string) (err error) {
+func migrateCommand(comp ComponentType, args []string) (err error) {
 	if len(args) == 0 {
 		return fmt.Errorf("not enough args")
-	}
-	if args[0] == "global" || args[0] == "user" {
-		return fmt.Errorf("migrate is only for components")
 	}
 
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
-	comp, names := parseArgs(args)
-	for _, name := range names {
+	for _, name := range args {
 		for _, c := range New(comp, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
@@ -98,18 +76,14 @@ func migrateCommand(args []string) (err error) {
 	return
 }
 
-func revertCommand(args []string) (err error) {
+func revertCommand(comp ComponentType, args []string) (err error) {
 	if len(args) == 0 {
 		return fmt.Errorf("not enough args")
-	}
-	if args[0] == "global" || args[0] == "user" {
-		return fmt.Errorf("migrate is only for components")
 	}
 
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
-	comp, names := parseArgs(args)
-	for _, name := range names {
+	for _, name := range args {
 		for _, c := range New(comp, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
@@ -134,7 +108,7 @@ func revertCommand(args []string) (err error) {
 	return
 }
 
-func showCommand(args []string) (err error) {
+func showCommand(comp ComponentType, args []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(args) == 0 {
@@ -161,9 +135,9 @@ func showCommand(args []string) (err error) {
 
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
-	comp, names := parseArgs(args)
+	// comp, names := parseArgs(args)
 	var cs []Component
-	for _, name := range names {
+	for _, name := range args {
 		for _, c := range New(comp, name) {
 			err = loadConfig(c, false)
 			if err != nil {
@@ -209,7 +183,7 @@ func printConfigJSON(Config interface{}) (err error) {
 //
 // What is read only? Name, others?
 //
-func setCommand(args []string) (err error) {
+func setCommand(comp ComponentType, args []string) (err error) {
 	if len(args) == 0 {
 		err = fmt.Errorf("not enough args")
 		return
@@ -243,9 +217,9 @@ func setCommand(args []string) (err error) {
 
 	// do components - parse the args again and load/print the config,
 	// but allow for RC files again
-	comp, names := parseArgs(args)
+	// comp, names := parseArgs(args)
 	var cs []Component
-	for _, name := range names {
+	for _, name := range args {
 		for _, c := range New(comp, name) {
 			err = loadConfig(c, false)
 			if err != nil {
