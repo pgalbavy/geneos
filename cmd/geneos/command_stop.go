@@ -13,31 +13,11 @@ func init() {
 }
 
 func commandStop(comp ComponentType, args []string) (err error) {
-	for _, name := range args {
-		for _, c := range New(comp, name) {
-			err = loadConfig(c, false)
-			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				return
-			}
-			stop(c)
-		}
-	}
-	return
+	return loopCommand(stop, comp, args)
 }
 
 func commandKill(comp ComponentType, args []string) (err error) {
-	for _, name := range args {
-		for _, c := range New(comp, name) {
-			err = loadConfig(c, false)
-			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				return
-			}
-			kill(c)
-		}
-	}
-	return
+	return loopCommand(kill, comp, args)
 }
 
 func stop(c Component) (err error) {

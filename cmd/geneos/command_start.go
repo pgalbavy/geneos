@@ -11,24 +11,11 @@ func init() {
 }
 
 func commandStart(comp ComponentType, args []string) (err error) {
-	for _, name := range args {
-		for _, c := range New(comp, name) {
-			err = loadConfig(c, false)
-			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				continue
-			}
-			log.Println("starting", Type(c), Name(c))
-			err = start(c)
-			if err != nil {
-				log.Println("start failed:", err)
-			}
-		}
-	}
-	return
+	return loopCommand(start, comp, args)
 }
 
 func start(c Component) (err error) {
+	log.Println("starting", Type(c), Name(c))
 	cmd, env := buildCommand(c)
 	if cmd == nil {
 		return fmt.Errorf("buildCommand returned nil")

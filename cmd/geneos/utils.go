@@ -264,3 +264,17 @@ func setFieldSlice(c interface{}, k string, v []string) (err error) {
 	}
 	return
 }
+
+func loopCommand(fn func(Component) error, comp ComponentType, args []string) (err error) {
+	for _, name := range args {
+		for _, c := range New(comp, name) {
+			err = loadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				return
+			}
+			fn(c)
+		}
+	}
+	return
+}

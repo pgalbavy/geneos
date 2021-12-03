@@ -54,14 +54,14 @@ func init() {
 // have a "revert" command?
 //
 
-func migrateCommand(comp ComponentType, args []string) (err error) {
-	if len(args) == 0 {
+func migrateCommand(comp ComponentType, names []string) (err error) {
+	if len(names) == 0 {
 		return fmt.Errorf("not enough args")
 	}
 
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
-	for _, name := range args {
+	for _, name := range names {
 		for _, c := range New(comp, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
@@ -76,14 +76,14 @@ func migrateCommand(comp ComponentType, args []string) (err error) {
 	return
 }
 
-func revertCommand(comp ComponentType, args []string) (err error) {
-	if len(args) == 0 {
+func revertCommand(comp ComponentType, names []string) (err error) {
+	if len(names) == 0 {
 		return fmt.Errorf("not enough args")
 	}
 
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
-	for _, name := range args {
+	for _, name := range names {
 		for _, c := range New(comp, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
@@ -108,10 +108,10 @@ func revertCommand(comp ComponentType, args []string) (err error) {
 	return
 }
 
-func showCommand(comp ComponentType, args []string) (err error) {
+func showCommand(comp ComponentType, names []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
-	if len(args) == 0 {
+	if len(names) == 0 {
 		// special case "config show" for resolved settings
 		printConfigJSON(Config)
 		return
@@ -119,7 +119,7 @@ func showCommand(comp ComponentType, args []string) (err error) {
 
 	// read the cofig into a struct then print it out again,
 	// to sanitise the contents - or generate an error
-	switch args[0] {
+	switch names[0] {
 	case "global":
 		var c ConfigType
 		readConfigFile(globalConfig, &c)
@@ -137,7 +137,7 @@ func showCommand(comp ComponentType, args []string) (err error) {
 	// but allow for RC files again
 	// comp, names := parseArgs(args)
 	var cs []Component
-	for _, name := range args {
+	for _, name := range names {
 		for _, c := range New(comp, name) {
 			err = loadConfig(c, false)
 			if err != nil {
@@ -183,35 +183,35 @@ func printConfigJSON(Config interface{}) (err error) {
 //
 // What is read only? Name, others?
 //
-func setCommand(comp ComponentType, args []string) (err error) {
-	if len(args) == 0 {
+func setCommand(comp ComponentType, names []string) (err error) {
+	if len(names) == 0 {
 		err = fmt.Errorf("not enough args")
 		return
 	}
 
 	// read the cofig into a struct, make changes, then save it out again,
 	// to sanitise the contents - or generate an error
-	switch args[0] {
+	switch names[0] {
 	case "global":
-		setConfig(globalConfig, args[1:])
+		setConfig(globalConfig, names[1:])
 		return
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), args[1:])
+		setConfig(filepath.Join(userConfDir, "geneos.json"), names[1:])
 		return
 	}
 
 	// check if all remaining args have an '=' - if so assume the
 	// intention was "set user"
-	eqs := len(args)
-	for _, arg := range args {
+	eqs := len(names)
+	for _, arg := range names {
 		if strings.Contains(arg, "=") {
 			eqs--
 		}
 	}
 	if eqs == 0 {
 		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), args)
+		setConfig(filepath.Join(userConfDir, "geneos.json"), names)
 		return
 	}
 
@@ -219,7 +219,7 @@ func setCommand(comp ComponentType, args []string) (err error) {
 	// but allow for RC files again
 	// comp, names := parseArgs(args)
 	var cs []Component
-	for _, name := range args {
+	for _, name := range names {
 		for _, c := range New(comp, name) {
 			err = loadConfig(c, false)
 			if err != nil {
