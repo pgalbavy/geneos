@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -126,6 +127,8 @@ func canControl(c Component) bool {
 // given a list of args (after command has been seen), check if first
 // arg is a component type and depdup the names. A name of "all" will
 // will override the rest and result in a lookup being done
+//
+// special case (shortcircuit) "config" ?
 func parseArgs(args []string) (comp ComponentType, names []string) {
 	if len(args) == 0 {
 		return
@@ -133,13 +136,14 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 
 	comp = CompType(args[0])
 	if comp == Unknown {
-		// this may be a name instead
-		// and we might wildcard the component
+		// this may be a name or config option instead
 		comp = None
 		names = args
-	} else {
-		names = args[1:]
+		return
 	}
+
+	// consume first arg and continue
+	names = args[1:]
 
 	// this doesn't work for all comp types - it adds all names
 	// of all components and returns that
@@ -172,4 +176,55 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 	}
 
 	return
+}
+
+func getIntAsString(c interface{}, name string) string {
+	v := reflect.ValueOf(c).Elem().FieldByName(Prefix(c) + name)
+	if v.IsValid() && v.Kind() == reflect.Int {
+		return fmt.Sprintf("%v", v.Int())
+	}
+	return ""
+}
+
+func getString(c interface{}, name string) string {
+	v := reflect.ValueOf(c).Elem().FieldByName(name)
+	if v.IsValid() && v.Kind() == reflect.String {
+		return v.String()
+	}
+	return ""
+}
+
+func setField(c interface{}, k string, v string) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+	fv = fv.FieldByName(k)
+	if fv.IsValid() && fv.CanSet() {
+		switch fv.Kind() {
+		case reflect.String:
+			fv.SetString(v)
+		case reflect.Int:
+			i, _ := strconv.Atoi(v)
+			fv.SetInt(int64(i))
+		default:
+			log.Printf("cannot set %q to a %T\n", k, v)
+		}
+	} else {
+		log.Println("cannot set", k)
+	}
+}
+
+func setFieldSlice(c interface{}, k string, v []string) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+	fv = fv.FieldByName(k)
+	if fv.IsValid() && fv.CanSet() {
+		reflect.AppendSlice(fv, reflect.ValueOf(v))
+		for _, val := range v {
+			fv.Set(reflect.Append(fv, reflect.ValueOf(val)))
+		}
+	}
 }

@@ -2,11 +2,9 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"text/template"
 )
@@ -132,57 +130,6 @@ func dirs(dir string) []string {
 		}
 	}
 	return components
-}
-
-func getIntAsString(c Component, name string) string {
-	v := reflect.ValueOf(c).Elem().FieldByName(Prefix(c) + name)
-	if v.IsValid() && v.Kind() == reflect.Int {
-		return fmt.Sprintf("%v", v.Int())
-	}
-	return ""
-}
-
-func getString(c Component, name string) string {
-	v := reflect.ValueOf(c).Elem().FieldByName(name)
-	if v.IsValid() && v.Kind() == reflect.String {
-		return v.String()
-	}
-	return ""
-}
-
-func setField(c interface{}, k string, v string) {
-	fv := reflect.ValueOf(c)
-	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
-		fv = fv.Elem()
-	}
-	fv = fv.FieldByName(k)
-	if fv.IsValid() && fv.CanSet() {
-		switch fv.Kind() {
-		case reflect.String:
-			fv.SetString(v)
-		case reflect.Int:
-			i, _ := strconv.Atoi(v)
-			fv.SetInt(int64(i))
-		default:
-			log.Printf("cannot set %q to a %T\n", k, v)
-		}
-	} else {
-		log.Println("cannot set", k)
-	}
-}
-
-func setFieldSlice(c interface{}, k string, v []string) {
-	fv := reflect.ValueOf(c)
-	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
-		fv = fv.Elem()
-	}
-	fv = fv.FieldByName(k)
-	if fv.IsValid() && fv.CanSet() {
-		reflect.AppendSlice(fv, reflect.ValueOf(v))
-		for _, val := range v {
-			fv.Set(reflect.Append(fv, reflect.ValueOf(val)))
-		}
-	}
 }
 
 var funcs = template.FuncMap{"join": filepath.Join}

@@ -44,7 +44,7 @@ func main() {
 
 	comp, names := parseArgs(os.Args[2:])
 
-	logger.EnableDebugLog()
+	//logger.EnableDebugLog()
 
 	c, ok := commands[command]
 	if !ok {

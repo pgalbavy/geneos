@@ -155,6 +155,8 @@ func readRCConfig(c Component) (err error) {
 	return
 }
 
+// this should use config set routines instead, and be atomic, even if the
+// file should not already exist, just for consistency
 func writeJSONConfig(c Component) (err error) {
 	home := Home(c)
 
