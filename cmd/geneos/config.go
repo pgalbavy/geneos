@@ -101,6 +101,7 @@ func buildCommand(c Component) (cmd *exec.Cmd, env []string) {
 	opts := strings.Fields(getString(c, Prefix(c)+"Opts"))
 	args = append(args, opts...)
 	// XXX find common envs - JAVA_HOME etc.
+	env = append(env, getSliceStrings(c, "Env")...)
 	env = append(env, "LD_LIBRARY_PATH="+getString(c, Prefix(c)+"Libs"))
 	cmd = exec.Command(binary, args...)
 
@@ -150,6 +151,7 @@ func readRCConfig(c Component) (err error) {
 			}
 		}
 	}
+
 	setFieldSlice(c, "Env", env)
 
 	return

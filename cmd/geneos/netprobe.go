@@ -32,6 +32,6 @@ func netprobeCmd(c Component) (args, env []string) {
 	args = []string{
 		Name(c),
 	}
-	env = append(env, "LOGFILE="+logFile)
+	env = append(env, "LOG_FILENAME="+logFile)
 	return
 }

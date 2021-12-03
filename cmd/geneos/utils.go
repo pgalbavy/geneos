@@ -187,11 +187,41 @@ func getIntAsString(c interface{}, name string) string {
 }
 
 func getString(c interface{}, name string) string {
-	v := reflect.ValueOf(c).Elem().FieldByName(name)
+	v := reflect.ValueOf(c)
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return ""
+	}
+
+	v = v.FieldByName(name)
+
 	if v.IsValid() && v.Kind() == reflect.String {
 		return v.String()
 	}
+
 	return ""
+}
+
+func getSliceStrings(c interface{}, name string) (strings []string) {
+	v := reflect.ValueOf(c)
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return nil
+	}
+
+	v = v.FieldByName(name)
+
+	if v.Type() != reflect.TypeOf(strings) {
+		return nil
+	}
+
+	return v.Interface().([]string)
 }
 
 func setField(c interface{}, k string, v string) {

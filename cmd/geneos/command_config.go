@@ -10,7 +10,7 @@ import (
 var globalConfig = "/etc/geneos/geneos.json"
 
 type ConfigType struct {
-	Root string `json:"root"`
+	Root string `json:"root,omitempty"`
 }
 
 var Config ConfigType
@@ -50,7 +50,6 @@ func init() {
 // have a "revert" command?
 //
 func commandConfig(comp ComponentType, args []string) (err error) {
-	var useglobal bool
 	if len(args) == 0 {
 		return fmt.Errorf("not enough parameters")
 	}
@@ -66,21 +65,6 @@ func commandConfig(comp ComponentType, args []string) (err error) {
 		return fmt.Errorf("unknown config command option: %q", args[0])
 	}
 
-	/* 	switch args[0] {
-	   	case "global":
-	   		if len(args) == 1 {
-	   			return fmt.Errorf("not enough parameters after global")
-	   		}
-	   		useglobal = true
-	   		args = args[1:]
-	   	case "user":
-	   	default:
-	   		// check for compoent type ?
-	   	}
-	*/
-
-	_ = useglobal
-
 	return
 }
 
@@ -89,16 +73,54 @@ func migrateConfig(args []string) (err error) {
 }
 
 func showConfig(args []string) (err error) {
-
 	// default to combined global + user config
 	// allow overrides to show specific or components
+	if len(args) == 0 {
+		// special case "config show" for resolved settings
+		printConfigJSON(Config)
+		return
+	}
 
-	var buffer []byte
-	buffer, err = json.MarshalIndent(Config, "", "    ")
+	// read the cofig into a struct then print it out again,
+	// to sanitise the contents - or generate an error
+	switch args[0] {
+	case "global":
+		var c ConfigType
+		readConfigFile(globalConfig, &c)
+		printConfigJSON(c)
+		return
+	case "user":
+		var c ConfigType
+		userConfDir, _ := os.UserConfigDir()
+		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
+		printConfigJSON(c)
+		return
+	}
+
+	// do compoents - parse the args again and load/print the config,
+	// but allow for RC files again
+	comp, names := parseArgs(args)
+	for _, name := range names {
+		for _, c := range New(comp, name) {
+			err = loadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				continue
+			}
+			printConfigJSON(c)
+		}
+	}
+
+	return
+}
+
+func printConfigJSON(Config interface{}) (err error) {
+	buffer, err := json.MarshalIndent(Config, "", "    ")
 	if err != nil {
 		return
 	}
-	log.Println(string(buffer))
+
+	log.Printf("%s\n", buffer)
 	return
 }
 
@@ -111,7 +133,8 @@ func setConfig(args []string) (err error) {
 	return
 
 }
-func readConfigFile(file string, config *ConfigType) (err error) {
+
+func readConfigFile(file string, config interface{}) (err error) {
 	f, err := os.ReadFile(file)
 	if err == nil {
 		err = json.Unmarshal(f, &config)
@@ -119,6 +142,7 @@ func readConfigFile(file string, config *ConfigType) (err error) {
 	return
 }
 
+// try to be atomic, lots of edge cases, UNIX/Linux only
 func writeConfigFile(file string, config ConfigType) (err error) {
 	// marshal
 	buffer, err := json.MarshalIndent(config, "", "    ")
