@@ -61,6 +61,8 @@ func commandConfig(comp ComponentType, args []string) (err error) {
 	switch args[0] {
 	case "migrate":
 		return migrateCommand(args[1:])
+	case "revert":
+		return revertCommand((args[1:]))
 	case "show", "get":
 		return showCommand(args[1:])
 	case "set":
@@ -68,8 +70,6 @@ func commandConfig(comp ComponentType, args []string) (err error) {
 	default:
 		return fmt.Errorf("unknown config command option: %q", args[0])
 	}
-
-	return
 }
 
 func migrateCommand(args []string) (err error) {
@@ -91,6 +91,42 @@ func migrateCommand(args []string) (err error) {
 			if err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
+			}
+		}
+	}
+
+	return
+}
+
+func revertCommand(args []string) (err error) {
+	if len(args) == 0 {
+		return fmt.Errorf("not enough args")
+	}
+	if args[0] == "global" || args[0] == "user" {
+		return fmt.Errorf("migrate is only for components")
+	}
+
+	// do compoents - parse the args again and load/print the config,
+	// but allow for RC files again
+	comp, names := parseArgs(args)
+	for _, name := range names {
+		for _, c := range New(comp, name) {
+			// passing true here migrates the RC file, doing nothing ir already
+			// in JSON format
+			err = loadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				continue
+			}
+			baseconf := filepath.Join(Home(c), Type(c).String())
+			err = os.Rename(baseconf+".rc.orig", baseconf+".rc")
+			if err != nil {
+				log.Println("cannot revert", baseconf+".rc.orig", "to .rc:", err)
+				continue
+			}
+			err = os.Remove(baseconf + ".json")
+			if err != nil {
+				log.Println("cannot remove", baseconf+".json:", err)
 			}
 		}
 	}
