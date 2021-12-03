@@ -7,13 +7,14 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 var globalConfig = "/etc/geneos/geneos.json"
 
 type ConfigType struct {
-	ITRSHome  string `json:"itrshome"`
-	Downloads string `json:"download_url"`
+	ITRSHome    string `json:",omitempty"`
+	DownloadURL string `json:",omitempty"`
 }
 
 var Config ConfigType
@@ -59,11 +60,11 @@ func commandConfig(comp ComponentType, args []string) (err error) {
 
 	switch args[0] {
 	case "migrate":
-		return migrateConfig(args[1:])
+		return migrateCommand(args[1:])
 	case "show", "get":
-		return showConfig(args[1:])
+		return showCommand(args[1:])
 	case "set":
-		return setConfig(args[1:])
+		return setCommand(args[1:])
 	default:
 		return fmt.Errorf("unknown config command option: %q", args[0])
 	}
@@ -71,7 +72,7 @@ func commandConfig(comp ComponentType, args []string) (err error) {
 	return
 }
 
-func migrateConfig(args []string) (err error) {
+func migrateCommand(args []string) (err error) {
 	if len(args) == 0 {
 		return fmt.Errorf("not enough args")
 	}
@@ -97,7 +98,7 @@ func migrateConfig(args []string) (err error) {
 	return
 }
 
-func showConfig(args []string) (err error) {
+func showCommand(args []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(args) == 0 {
@@ -172,7 +173,7 @@ func printConfigJSON(Config interface{}) (err error) {
 //
 // What is read only? Name, others?
 //
-func setConfig(args []string) (err error) {
+func setCommand(args []string) (err error) {
 	if len(args) == 0 {
 		err = fmt.Errorf("not enough args")
 		return
@@ -182,17 +183,11 @@ func setConfig(args []string) (err error) {
 	// to sanitise the contents - or generate an error
 	switch args[0] {
 	case "global":
-		var c ConfigType
-		readConfigFile(globalConfig, &c)
-		// change here
-		writeConfigFile(globalConfig, c)
+		setConfig(globalConfig, args[1:])
 		return
 	case "user":
-		var c ConfigType
 		userConfDir, _ := os.UserConfigDir()
-		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
-		// change here
-		writeConfigFile(filepath.Join(userConfDir, "geneos.json"), c)
+		setConfig(filepath.Join(userConfDir, "geneos.json"), args[1:])
 		return
 	}
 
@@ -218,6 +213,24 @@ func setConfig(args []string) (err error) {
 
 }
 
+func setConfig(filename string, args []string) (err error) {
+	var c ConfigType
+	readConfigFile(filename, &c)
+	// change here
+	for _, set := range args {
+		// skip all non '=' args
+		if !strings.Contains(set, "=") {
+			continue
+		}
+		s := strings.SplitN(set, "=", 2)
+		k, v := s[0], s[1]
+		err = setField(&c, k, v)
+
+	}
+	writeConfigFile(filename, c)
+	return
+}
+
 func readConfigFile(file string, config interface{}) (err error) {
 	f, err := os.ReadFile(file)
 	if err == nil {
@@ -237,6 +250,9 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	// atomic-ish write
 	dir, name := filepath.Split(file)
 	f, err := os.CreateTemp(dir, name)
+	if err != nil {
+		return
+	}
 	defer os.Remove(f.Name())
 	_, err = fmt.Fprintln(f, string(buffer))
 	if err != nil {
@@ -245,13 +261,13 @@ func writeConfigFile(file string, config interface{}) (err error) {
 
 	// if we've been run as root then try to change the new
 	// file to the same user as the component. If this is
-	// not a component config file then do nothing
+	// not a component config file then do nothing (as there
+	// is no prefix or User config field)
 	if superuser {
 		username := getString(config, Prefix(config)+"User")
 		if username != "" {
 			u, err := user.Lookup(username)
 			if err != nil {
-				fmt.Println("lookup:", err)
 				return err
 			}
 			uid, _ := strconv.Atoi(u.Uid)

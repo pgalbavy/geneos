@@ -75,7 +75,6 @@ func setuid(cmd *exec.Cmd, username string) error {
 
 	u, err := user.Lookup(username)
 	if err != nil {
-		fmt.Println("lookup:", err)
 		return err
 	}
 	uid, _ := strconv.Atoi(u.Uid)
@@ -229,7 +228,7 @@ func getSliceStrings(c interface{}, name string) (strings []string) {
 	return v.Interface().([]string)
 }
 
-func setField(c interface{}, k string, v string) {
+func setField(c interface{}, k string, v string) (err error) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
@@ -243,14 +242,15 @@ func setField(c interface{}, k string, v string) {
 			i, _ := strconv.Atoi(v)
 			fv.SetInt(int64(i))
 		default:
-			log.Printf("cannot set %q to a %T\n", k, v)
+			return fmt.Errorf("cannot set %q to a %T\n", k, v)
 		}
 	} else {
-		log.Println("cannot set", k)
+		return fmt.Errorf("cannot set %q", k)
 	}
+	return
 }
 
-func setFieldSlice(c interface{}, k string, v []string) {
+func setFieldSlice(c interface{}, k string, v []string) (err error) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
@@ -262,4 +262,5 @@ func setFieldSlice(c interface{}, k string, v []string) {
 			fv.Set(reflect.Append(fv, reflect.ValueOf(val)))
 		}
 	}
+	return
 }
