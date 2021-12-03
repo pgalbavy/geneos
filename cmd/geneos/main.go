@@ -51,6 +51,9 @@ func main() {
 		ErrorLog.Fatalln("unknown command", command)
 	}
 	// the command has to understand comp == None/Unknown
-	c(comp, names)
+	err := c(comp, names)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	os.Exit(0)
 }
