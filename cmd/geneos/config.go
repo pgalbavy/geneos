@@ -46,7 +46,8 @@ func loadConfig(c Component, update bool) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file
 	// for later re-use
-	j := filepath.Join(RootDir(Type(c)), Name(c), Type(c).String()+".json")
+	baseconf := filepath.Join(Home(c), Type(c).String())
+	j := baseconf + ".json"
 	jsonFile, err := os.ReadFile(j)
 	if err == nil {
 		err = json.Unmarshal(jsonFile, &c)
@@ -61,9 +62,9 @@ func loadConfig(c Component, update bool) (err error) {
 		}
 		if update {
 			// select if we want this or not
-			err = writeJSONConfig(c)
+			err = writeConfigFile(baseconf+".json", c)
 			if err == nil {
-				// rename old file??
+				os.Rename(baseconf+".rc", baseconf+".rc.orig")
 			}
 		}
 	}
@@ -154,25 +155,5 @@ func readRCConfig(c Component) (err error) {
 
 	setFieldSlice(c, "Env", env)
 
-	return
-}
-
-// this should use config set routines instead, and be atomic, even if the
-// file should not already exist, just for consistency
-func writeJSONConfig(c Component) (err error) {
-	home := Home(c)
-
-	j, err := json.MarshalIndent(c, "", "    ")
-	if err != nil {
-		ErrorLog.Println("json marshal failed:", err)
-		return
-	} else {
-		DebugLog.Printf("new config: %s\n", string(j))
-		err = os.WriteFile(filepath.Join(home, Type(c).String()+".json"), j, 0666)
-		if err != nil {
-			ErrorLog.Println("cannot write JSON config file:", err)
-			return
-		}
-	}
 	return
 }

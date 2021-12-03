@@ -67,7 +67,7 @@ func CompType(component string) ComponentType {
 
 type Components struct {
 	Component `json:"-"`
-	Name      string        `json:"-"`
+	Name      string        `json:"Name"`
 	Type      ComponentType `json:"-"`
 	Root      string        `json:"-"`
 	Env       []string      `json:",omitempty"` // environment variables to set
@@ -87,7 +87,7 @@ func RootDirs(comp ComponentType) []string {
 //
 // No side-effects
 func RootDir(comp ComponentType) string {
-	return filepath.Join(Config.Root, comp.String(), comp.String()+"s")
+	return filepath.Join(Config.ITRSHome, comp.String(), comp.String()+"s")
 }
 
 func Type(c Component) ComponentType {

@@ -20,7 +20,7 @@ type NetprobeComponent struct {
 func NewNetprobe(name string) (c *NetprobeComponent) {
 	// Bootstrap
 	c = &NetprobeComponent{}
-	c.Root = Config.Root
+	c.Root = Config.ITRSHome
 	c.Type = Netprobe
 	c.Name = name
 	NewComponent(&c)

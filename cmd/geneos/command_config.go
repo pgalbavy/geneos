@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 )
 
 var globalConfig = "/etc/geneos/geneos.json"
 
 type ConfigType struct {
-	Root string `json:"root,omitempty"`
+	ITRSHome  string `json:"itrshome"`
+	Downloads string `json:"download_url"`
 }
 
 var Config ConfigType
@@ -23,7 +26,7 @@ func init() {
 	readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
 
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
-		Config.Root = h
+		Config.ITRSHome = h
 	}
 
 }
@@ -69,6 +72,28 @@ func commandConfig(comp ComponentType, args []string) (err error) {
 }
 
 func migrateConfig(args []string) (err error) {
+	if len(args) == 0 {
+		return fmt.Errorf("not enough args")
+	}
+	if args[0] == "global" || args[0] == "user" {
+		return fmt.Errorf("migrate is only for components")
+	}
+
+	// do compoents - parse the args again and load/print the config,
+	// but allow for RC files again
+	comp, names := parseArgs(args)
+	for _, name := range names {
+		for _, c := range New(comp, name) {
+			// passing true here migrates the RC file, doing nothing ir already
+			// in JSON format
+			err = loadConfig(c, true)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				continue
+			}
+		}
+	}
+
 	return
 }
 
@@ -100,6 +125,7 @@ func showConfig(args []string) (err error) {
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
 	comp, names := parseArgs(args)
+	var cs []Component
 	for _, name := range names {
 		for _, c := range New(comp, name) {
 			err = loadConfig(c, false)
@@ -107,9 +133,12 @@ func showConfig(args []string) (err error) {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
 			}
-			printConfigJSON(c)
+			if c != nil {
+				cs = append(cs, c)
+			}
 		}
 	}
+	printConfigJSON(cs)
 
 	return
 }
@@ -124,11 +153,66 @@ func printConfigJSON(Config interface{}) (err error) {
 	return
 }
 
+// set a (or multiple?) configuration parameters
+//
+// global or user update the respective config files
+//
+// when supplied a component type and name it applies
+// to the JSON config for that component. A migration is performed if the
+// current config is in RC format
+//
+// so we support "all" to do global updates of a parameter?
+//
+// format:
+// geneos config set gateway wonderland GatePort=8888
+// geneos config global ITRSHome=/opt/geneos
+//
+// quoting is left to the shell rules and the setting is just split on the first '='
+// non '=' args are taken as other names?
+//
+// What is read only? Name, others?
+//
 func setConfig(args []string) (err error) {
-	key, value := args[1], args[2]
-	log.Printf("before: %+v\n", Config)
-	setField(&Config, key, value)
-	log.Printf("after: %+v\n", Config)
+	if len(args) == 0 {
+		err = fmt.Errorf("not enough args")
+		return
+	}
+
+	// read the cofig into a struct, make changes, then save it out again,
+	// to sanitise the contents - or generate an error
+	switch args[0] {
+	case "global":
+		var c ConfigType
+		readConfigFile(globalConfig, &c)
+		// change here
+		writeConfigFile(globalConfig, c)
+		return
+	case "user":
+		var c ConfigType
+		userConfDir, _ := os.UserConfigDir()
+		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
+		// change here
+		writeConfigFile(filepath.Join(userConfDir, "geneos.json"), c)
+		return
+	}
+
+	// do compoents - parse the args again and load/print the config,
+	// but allow for RC files again
+	comp, names := parseArgs(args)
+	var cs []Component
+	for _, name := range names {
+		for _, c := range New(comp, name) {
+			err = loadConfig(c, false)
+			if err != nil {
+				log.Println("cannot load configuration for", Type(c), Name(c))
+				continue
+			}
+			if c != nil {
+				cs = append(cs, c)
+			}
+		}
+	}
+	printConfigJSON(cs)
 
 	return
 
@@ -143,7 +227,7 @@ func readConfigFile(file string, config interface{}) (err error) {
 }
 
 // try to be atomic, lots of edge cases, UNIX/Linux only
-func writeConfigFile(file string, config ConfigType) (err error) {
+func writeConfigFile(file string, config interface{}) (err error) {
 	// marshal
 	buffer, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
@@ -154,7 +238,32 @@ func writeConfigFile(file string, config ConfigType) (err error) {
 	dir, name := filepath.Split(file)
 	f, err := os.CreateTemp(dir, name)
 	defer os.Remove(f.Name())
-	_, err = f.Write(buffer)
+	_, err = fmt.Fprintln(f, string(buffer))
+	if err != nil {
+		return
+	}
+
+	// if we've been run as root then try to change the new
+	// file to the same user as the component. If this is
+	// not a component config file then do nothing
+	if superuser {
+		username := getString(config, Prefix(config)+"User")
+		if username != "" {
+			u, err := user.Lookup(username)
+			if err != nil {
+				fmt.Println("lookup:", err)
+				return err
+			}
+			uid, _ := strconv.Atoi(u.Uid)
+			gid, _ := strconv.Atoi(u.Gid)
+			err = f.Chown(uid, gid)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// XXX - these should not be hardwired
+	err = f.Chmod(0664)
 	if err != nil {
 		return
 	}

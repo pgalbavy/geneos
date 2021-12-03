@@ -28,7 +28,7 @@ func install(c Component) (err error) {
 			comp := CompType(parts[1])
 			if comp != None {
 				version := parts[2]
-				os.MkdirAll(filepath.Join(Config.Root, "packages", comp.String(), version), 0775)
+				os.MkdirAll(filepath.Join(Config.ITRSHome, "packages", comp.String(), version), 0775)
 				gz, _ := os.Open(archive)
 				t, _ := gzip.NewReader(gz)
 				tr := tar.NewReader(t)

@@ -24,7 +24,7 @@ type GatewayComponent struct {
 func NewGateway(name string) (c *GatewayComponent) {
 	// Bootstrap
 	c = &GatewayComponent{}
-	c.Root = Config.Root
+	c.Root = Config.ITRSHome
 	c.Type = Gateway
 	c.Name = name
 	NewComponent(&c)
