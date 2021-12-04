@@ -12,6 +12,9 @@ import (
 
 var globalConfig = "/etc/geneos/geneos.json"
 
+// Todo:
+//  Port ranges for new components
+//
 type ConfigType struct {
 	ITRSHome    string `json:",omitempty"`
 	DownloadURL string `json:",omitempty"`
