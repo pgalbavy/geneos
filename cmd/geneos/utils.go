@@ -183,7 +183,7 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 }
 
 func getIntAsString(c interface{}, name string) string {
-	v := reflect.ValueOf(c).Elem().FieldByName(Prefix(c) + name)
+	v := reflect.ValueOf(c).Elem().FieldByName(name)
 	if v.IsValid() && v.Kind() == reflect.Int {
 		return fmt.Sprintf("%v", v.Int())
 	}
