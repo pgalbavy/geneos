@@ -5,4 +5,5 @@
 * Output to STDOUT if no timestamp on normal log, debug and errors to STDERR
 * TLS support
 * Docker / Compose file build from selection of components
+* licd license file update 
 
