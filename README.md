@@ -2,9 +2,9 @@
 
 This is a collection of packages and tools written in Go
 
-## `geneosctl` - Control your Geneos environment
+## `geneos` - Control your Geneos environment
 
-The `cmd/geneosctl` directory contains a standalone program to manage your local Geneos components. It is written to be compatible with gatewayctl/netprobectl/etc. configuration layouts and files but with a more unified approach and all options only available through command line parameters, not prompts, allowing more automation and less hands-on required.
+The `cmd/geneos` directory contains a standalone program to manage your local Geneos components. It is written to be compatible with gatewayctl/netprobectl/etc. configuration layouts and files but with a more unified approach and all options only available through command line parameters, not prompts, allowing more automation and less hands-on required.
 
 ## `libemail.so` drop in replacement
 
