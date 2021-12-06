@@ -25,6 +25,11 @@ func commandList(comp ComponentType, args []string) error {
 	return nil
 }
 
+// also:
+// user running process, maybe age (from /proc/.../status)
+// show disabled/enabled status
+//
+// CSV and JSON versions for automation
 func commandStatus(comp ComponentType, args []string) error {
 	switch comp {
 	case None, Unknown:

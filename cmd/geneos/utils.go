@@ -84,11 +84,12 @@ func getUser(username string) (uid, gid int, groups []string, err error) {
 // set-up the Cmd to set uid, gid and groups of the username given
 // Note: does not change stdout etc. which is done later
 //
-func setuser(cmd *exec.Cmd, username string) error {
+func setuser(cmd *exec.Cmd, username string) (err error) {
 	var gids []uint32
 
 	uid, gid, groups, err := getUser(username)
 	if err != nil {
+		return
 	}
 
 	// do not set-up credentials if no-change

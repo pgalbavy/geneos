@@ -405,7 +405,7 @@ func disable(c Component) (err error) {
 }
 
 // simpler than disable, just try to remove the flag file
-// we do also try to start the component(s)
+// we do also start the component(s)
 func enableCommand(comp ComponentType, args []string) (err error) {
 	return loopCommand(enable, comp, args)
 }
