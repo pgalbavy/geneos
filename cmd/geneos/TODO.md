@@ -11,3 +11,4 @@
 * enable / disable commands ( to exclude for global / all operations)
 * check capabilities and not just root user
 * view / tail logs
+* clean command (delete cache, logs, history files etc.)

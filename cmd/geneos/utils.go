@@ -62,12 +62,9 @@ func findProc(c Component) (int, error) {
 	return 0, ErrProcNotExist
 }
 
-//
-// set-up the Cmd to set uid, gid and groups of the username given
-// Note: does not change stdout etc. which is done later
-//
-func setuser(cmd *exec.Cmd, username string) error {
-	var gids []uint32
+func getUser(username string) (uid, gid int, groups []string, err error) {
+	uid = -1
+	gid = -1
 
 	if username == "" {
 		username = Config.DefaultUser
@@ -75,10 +72,24 @@ func setuser(cmd *exec.Cmd, username string) error {
 
 	u, err := user.Lookup(username)
 	if err != nil {
-		return err
+		return
 	}
-	uid, _ := strconv.Atoi(u.Uid)
-	gid, _ := strconv.Atoi(u.Gid)
+	uid, _ = strconv.Atoi(u.Uid)
+	gid, _ = strconv.Atoi(u.Gid)
+	groups, _ = u.GroupIds()
+	return
+}
+
+//
+// set-up the Cmd to set uid, gid and groups of the username given
+// Note: does not change stdout etc. which is done later
+//
+func setuser(cmd *exec.Cmd, username string) error {
+	var gids []uint32
+
+	uid, gid, groups, err := getUser(username)
+	if err != nil {
+	}
 
 	// do not set-up credentials if no-change
 	if os.Getuid() == uid {
@@ -90,7 +101,7 @@ func setuser(cmd *exec.Cmd, username string) error {
 		return ErrPermission
 	}
 
-	groups, _ := u.GroupIds()
+	// groups, _ := u.GroupIds()
 	for _, g := range groups {
 		gid, _ := strconv.Atoi(g)
 		gids = append(gids, uint32(gid))

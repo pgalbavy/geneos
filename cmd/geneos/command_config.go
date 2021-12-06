@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -41,8 +42,8 @@ func init() {
 	commands["show"] = Command{showCommand, "show"}
 	commands["set"] = Command{setCommand, "set"}
 
-	commands["enable"] = Command{enableCommand, "enable"}
 	commands["disable"] = Command{disableCommand, "disable"}
+	commands["enable"] = Command{enableCommand, "enable"}
 	commands["rename"] = Command{renameCommand, "rename"}
 	commands["delete"] = Command{deleteCommand, "delete"}
 
@@ -56,6 +57,28 @@ func init() {
 
 }
 
+var initDirs = []string{
+	"packages/netprobe",
+	"packages/gateway",
+	"packages/licd",
+	"netprobe/netprobes",
+	"gateway/gateways",
+	"gateway/gateway_shared",
+	"gateway/gateway_config",
+	"licd/licds",
+}
+
+//
+// initialise a geneos installation
+//
+// take defaults from global or user config if they exist
+// if not then parameters:
+// defaults - current (non-root) user and home directory
+// or
+// e.g. 'sudo geneos init username /homedir'
+// also creates config files if they don't exist, but no
+// update to allow multiple parallel installs
+//
 func initCommand(comp ComponentType, names []string) (err error) {
 	return ErrNotSupported
 }
@@ -341,18 +364,66 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	return
 }
 
-func enableCommand(comp ComponentType, names []string) (err error) {
+// geneos disable gateway example ...
+// stop if running first
+// if run as root, the disable file is owned by root too and
+// only root can remove it?
+func disableCommand(comp ComponentType, args []string) (err error) {
+	return loopCommand(disable, comp, args)
+}
+
+func disable(c Component) (err error) {
+	d := filepath.Join(Home(c), Type(c).String()+".disable")
+	f, err := os.Open(d)
+	if err == nil {
+		f.Close()
+		return fmt.Errorf("already disabled")
+	}
+
+	err = stop(c)
+	if err != nil && err != ErrProcNotExist {
+		return err
+	}
+	f, err = os.Create(d)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
+	if err != nil {
+		os.Remove(f.Name())
+		return
+	}
+
+	err = f.Chown(uid, gid)
+	if err != nil {
+		os.Remove(f.Name())
+		return
+	}
+	return
+}
+
+// simpler than disable, just try to remove the flag file
+// we do also try to start the component(s)
+func enableCommand(comp ComponentType, args []string) (err error) {
+	return loopCommand(enable, comp, args)
+}
+
+func enable(c Component) (err error) {
+	d := filepath.Join(Home(c), Type(c).String()+".disable")
+	err = os.Remove(d)
+	if err == nil || errors.Is(err, os.ErrNotExist) {
+		err = start(c)
+		return err
+	}
+	return
+}
+
+func renameCommand(comp ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }
 
-func disableCommand(comp ComponentType, names []string) (err error) {
-	return ErrNotSupported
-}
-
-func renameCommand(comp ComponentType, names []string) (err error) {
-	return ErrNotSupported
-}
-
-func deleteCommand(comp ComponentType, names []string) (err error) {
+func deleteCommand(comp ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }
