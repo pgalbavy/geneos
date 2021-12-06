@@ -119,6 +119,8 @@ For compatiblity with earlier tools, the per-component configurations are loaded
 
 If you want to change settings you should first `migrate` the configuration and then use `set` to make changes.
 
+Note that execution mode (e.g. `GateMode`) is not supported and all components run in the background.
+
 ## Directory Layout
 
 The ITRSHome setting or the environment variable `ITRS_HOME` points to the base directory for all subsequent operations. The basic layout follows that of the original `gatewayctl` etc. including:

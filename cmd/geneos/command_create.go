@@ -1,21 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
 
 func init() {
-	commands["create"] = commandCreate
+	commands["create"] = Command{commandCreate, "create"}
 }
 
+// call the component specific create functions
 func commandCreate(comp ComponentType, args []string) error {
 	ports := getPorts()
 	log.Printf("ports=%v\n", ports)
 	n := nextPort("7036..")
 	log.Println("next:", n)
-	return fmt.Errorf("component creation net yet supported")
+	return ErrNotSupported
 }
 
 // get all used ports in config files.

@@ -59,18 +59,18 @@ func findProc(c Component) (int, error) {
 			}
 		}
 	}
-	return 0, fmt.Errorf("not found")
+	return 0, ErrProcNotExist
 }
 
-// set-up the Cmd to set uid, gid and groups of the username given
-// does not change stdout etc.
 //
-// also allow for euid = wanted user, not just root
-func setuid(cmd *exec.Cmd, username string) error {
+// set-up the Cmd to set uid, gid and groups of the username given
+// Note: does not change stdout etc. which is done later
+//
+func setuser(cmd *exec.Cmd, username string) error {
 	var gids []uint32
 
-	if os.Geteuid() != 0 && os.Getuid() != 0 {
-		return fmt.Errorf("not running as root")
+	if username == "" {
+		username = Config.DefaultUser
 	}
 
 	u, err := user.Lookup(username)
@@ -79,6 +79,16 @@ func setuid(cmd *exec.Cmd, username string) error {
 	}
 	uid, _ := strconv.Atoi(u.Uid)
 	gid, _ := strconv.Atoi(u.Gid)
+
+	// do not set-up credentials if no-change
+	if os.Getuid() == uid {
+		return nil
+	}
+
+	// no point continuing if not root
+	if !superuser {
+		return ErrPermission
+	}
 
 	groups, _ := u.GroupIds()
 	for _, g := range groups {
@@ -95,7 +105,6 @@ func setuid(cmd *exec.Cmd, username string) error {
 	sys := &syscall.SysProcAttr{Credential: cred}
 
 	cmd.SysProcAttr = sys
-
 	return nil
 }
 
@@ -106,21 +115,36 @@ func setuid(cmd *exec.Cmd, username string) error {
 //
 // this does not however change the user to match anything, so starting a
 // process still requires a seteuid type change
+//
 func canControl(c Component) bool {
 	if superuser {
-		DebugLog.Println("am root")
+		DebugLog.Println("I am root")
 		return true
 	}
-	// test euid here
 
 	username := getString(c, Prefix(c)+"User")
 	if len(username) == 0 {
 		DebugLog.Println("no user configured")
+		// assume the caller with try to set-up the correct user
 		return true
 	}
-	u, _ := user.Current()
 
-	return username == u.Username
+	u, err := user.Lookup(username)
+	if err != nil {
+		// user not found, should fails
+		return false
+	}
+
+	uid, _ := strconv.Atoi(u.Uid)
+	if uid == os.Getuid() || uid == os.Geteuid() {
+		// if uid != euid then child proc may fail because
+		// of linux ld.so secure-execution discarding
+		// envs like LD_LIBRARY_PATH, account for this?
+		return true
+	}
+
+	uc, _ := user.Current()
+	return username == uc.Username
 }
 
 // given a list of args (after command has been seen), check if first
@@ -242,10 +266,10 @@ func setField(c interface{}, k string, v string) (err error) {
 			i, _ := strconv.Atoi(v)
 			fv.SetInt(int64(i))
 		default:
-			return fmt.Errorf("cannot set %q to a %T\n", k, v)
+			return fmt.Errorf("cannot set %q to a %T: %s", k, v, ErrInvalidArgs)
 		}
 	} else {
-		return fmt.Errorf("cannot set %q", k)
+		return fmt.Errorf("cannot set %q: %s", k, ErrInvalidArgs)
 	}
 	return
 }
@@ -273,8 +297,11 @@ func loopCommand(fn func(Component) error, comp ComponentType, args []string) (e
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				return
 			}
-			fn(c)
+			err = fn(c)
+			if err != nil {
+				log.Printf("%s %s: %s\n", Type(c), Name(c), err)
+			}
 		}
 	}
-	return
+	return nil
 }

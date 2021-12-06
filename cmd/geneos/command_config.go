@@ -16,17 +16,35 @@ var globalConfig = "/etc/geneos/geneos.json"
 //  Port ranges for new components
 //
 type ConfigType struct {
-	ITRSHome    string `json:",omitempty"`
+	// Root directory for all operations
+	ITRSHome string `json:",omitempty"`
+
+	// Root URL for all downloads of software archives
 	DownloadURL string `json:",omitempty"`
+
+	// Username to start components if not explicitly defined
+	// and we are running with elevated privileges
+	//
+	// When running as a normal user this is unused and
+	// we simply test a defined user against the running user
+	//
+	// default is owner of ITRSHome
+	DefaultUser string `json:",omitempty"`
 }
 
 var Config ConfigType
 
 func init() {
-	commands["migrate"] = migrateCommand
-	commands["revert"] = revertCommand
-	commands["show"] = showCommand
-	commands["set"] = setCommand
+	commands["init"] = Command{initCommand, "initialise"}
+	commands["migrate"] = Command{migrateCommand, "migrate"}
+	commands["revert"] = Command{revertCommand, "revert"}
+	commands["show"] = Command{showCommand, "show"}
+	commands["set"] = Command{setCommand, "set"}
+
+	commands["enable"] = Command{enableCommand, "enable"}
+	commands["disable"] = Command{disableCommand, "disable"}
+	commands["rename"] = Command{renameCommand, "rename"}
+	commands["delete"] = Command{deleteCommand, "delete"}
 
 	readConfigFile(globalConfig, &Config)
 	userConfDir, _ := os.UserConfigDir()
@@ -36,6 +54,10 @@ func init() {
 		Config.ITRSHome = h
 	}
 
+}
+
+func initCommand(comp ComponentType, names []string) (err error) {
+	return ErrNotSupported
 }
 
 //
@@ -59,7 +81,7 @@ func init() {
 
 func migrateCommand(comp ComponentType, names []string) (err error) {
 	if len(names) == 0 {
-		return fmt.Errorf("not enough args")
+		return os.ErrInvalid
 	}
 
 	// do compoents - parse the args again and load/print the config,
@@ -81,7 +103,7 @@ func migrateCommand(comp ComponentType, names []string) (err error) {
 
 func revertCommand(comp ComponentType, names []string) (err error) {
 	if len(names) == 0 {
-		return fmt.Errorf("not enough args")
+		return os.ErrInvalid
 	}
 
 	// do compoents - parse the args again and load/print the config,
@@ -188,8 +210,7 @@ func printConfigJSON(Config interface{}) (err error) {
 //
 func setCommand(comp ComponentType, names []string) (err error) {
 	if len(names) == 0 {
-		err = fmt.Errorf("not enough args")
-		return
+		return os.ErrInvalid
 	}
 
 	// read the cofig into a struct, make changes, then save it out again,
@@ -240,6 +261,9 @@ func setCommand(comp ComponentType, names []string) (err error) {
 
 }
 
+// set envs?
+// geneos set gateway test Env+X=Y Env-Z Env=A=B
+//
 func setConfig(filename string, args []string) (err error) {
 	var c ConfigType
 	readConfigFile(filename, &c)
@@ -315,4 +339,20 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		return
 	}
 	return
+}
+
+func enableCommand(comp ComponentType, names []string) (err error) {
+	return ErrNotSupported
+}
+
+func disableCommand(comp ComponentType, names []string) (err error) {
+	return ErrNotSupported
+}
+
+func renameCommand(comp ComponentType, names []string) (err error) {
+	return ErrNotSupported
+}
+
+func deleteCommand(comp ComponentType, names []string) (err error) {
+	return ErrNotSupported
 }

@@ -6,4 +6,8 @@
 * TLS support
 * Docker / Compose file build from selection of components
 * licd license file update 
-
+* Rename command
+* delete command
+* enable / disable commands ( to exclude for global / all operations)
+* check capabilities and not just root user
+* view / tail logs

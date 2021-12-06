@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"syscall"
 )
 
 func init() {
-	commands["reload"] = commandReload
-	commands["refresh"] = commandReload
+	commands["reload"] = Command{commandReload, "reload"}
+	commands["refresh"] = Command{commandReload, "see reload"}
 }
 
 func commandReload(comp ComponentType, args []string) (err error) {
@@ -23,7 +22,7 @@ func reload(c Component) (err error) {
 
 	if !canControl(c) {
 		// fail early
-		return fmt.Errorf("cannot control process")
+		return os.ErrPermission
 	}
 
 	// send a SIGUSR1

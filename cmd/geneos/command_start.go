@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	commands["start"] = commandStart
+	commands["start"] = Command{commandStart, "start"}
 }
 
 func commandStart(comp ComponentType, args []string) (err error) {
@@ -15,6 +15,12 @@ func commandStart(comp ComponentType, args []string) (err error) {
 }
 
 func start(c Component) (err error) {
+	pid, err := findProc(c)
+	if err == nil {
+		log.Println(Type(c), Name(c), "already running with PID", pid)
+		return nil
+	}
+
 	log.Println("starting", Type(c), Name(c))
 	cmd, env := buildCommand(c)
 	if cmd == nil {
@@ -23,16 +29,15 @@ func start(c Component) (err error) {
 
 	if !canControl(c) {
 		// fail early
-		return fmt.Errorf("cannot control process")
+		return ErrPermission
 	}
 
-	if superuser {
-		// set underlying user for child proc
-		username := getString(c, Prefix(c)+"User")
-		err = setuid(cmd, username)
-		if err != nil {
-			return
-		}
+	// set underlying user for child proc
+	username := getString(c, Prefix(c)+"User")
+	// pass possibly empty string down to setuser - it handles defaults
+	err = setuser(cmd, username)
+	if err != nil {
+		return
 	}
 
 	cmd.Env = append(os.Environ(), env...)
@@ -41,10 +46,11 @@ func start(c Component) (err error) {
 
 	out, err := os.OpenFile(errfile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("cannot open %q: %s\n", errfile, err)
+		return err
 	}
 
-	if cmd.SysProcAttr != nil && superuser {
+	// if we've set-up privs at all, set the redirection output file to the same
+	if cmd.SysProcAttr != nil && cmd.SysProcAttr.Credential != nil {
 		err = out.Chown(int(cmd.SysProcAttr.Credential.Uid), int(cmd.SysProcAttr.Credential.Gid))
 		if err != nil {
 			log.Println("chown:", err)
@@ -56,10 +62,9 @@ func start(c Component) (err error) {
 
 	err = cmd.Start()
 	if err != nil {
-		log.Println(err)
 		return
 	}
-	DebugLog.Println("started process", cmd.Process.Pid)
+	log.Println("started process", cmd.Process.Pid)
 
 	if cmd.Process != nil {
 		// detach from control

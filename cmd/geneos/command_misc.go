@@ -6,8 +6,8 @@ import (
 )
 
 func init() {
-	commands["version"] = commandVersion
-	commands["help"] = commandHelp
+	commands["version"] = Command{commandVersion, "version"}
+	commands["help"] = Command{commandHelp, "help"}
 }
 
 func commandVersion(comp ComponentType, args []string) error {
@@ -29,6 +29,7 @@ func commandHelp(comp ComponentType, args []string) error {
 	log.Println("The following commands are currently available:")
 	for _, c := range keys {
 		log.Println("   ", c)
+		log.Println("        ", commands[c].Descrtiption)
 	}
 	return nil
 }

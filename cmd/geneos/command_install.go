@@ -11,11 +11,11 @@ import (
 )
 
 func init() {
-	commands["install"] = commandInstall
+	commands["install"] = Command{commandInstall, "install"}
 }
 
 func commandInstall(comp ComponentType, args []string) error {
-	return fmt.Errorf("pacxkage installation net yet supported")
+	return ErrNotSupported
 }
 
 func install(c Component) (err error) {

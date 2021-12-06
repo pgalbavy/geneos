@@ -11,7 +11,12 @@ import (
 	"strings"
 )
 
-type Command map[string]func(ComponentType, []string) error
+type Command struct {
+	Function     func(ComponentType, []string) error
+	Descrtiption string
+}
+
+type Commands map[string]Command
 
 // process config file(s)
 
@@ -130,7 +135,7 @@ func readRCConfig(c Component) (err error) {
 		}
 		s := strings.SplitN(line, "=", 2)
 		if len(s) != 2 {
-			return fmt.Errorf("config format incorrect: %q", line)
+			return ErrInvalidArgs
 		}
 		key, value := s[0], s[1]
 		value = strings.Trim(value, "\"")
