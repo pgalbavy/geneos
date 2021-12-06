@@ -97,6 +97,18 @@ Cause the component to reload it's configuration or restart as appropriate.
 * `geneos install X` - Not yet
 Install a release archive in the `packages` hierarchy.
 
+* `geneos disable [component] [name...]`
+Stop and disable the selected compoents by placing a file in wach working directory with a `.disable` extention
+
+* `geneos enable [component] [name...]`
+Remove the `.disable` lock file and start the selected components
+
+* `geneos rename [component] name newname`
+Rename the compoent, but this only affects the container directory, this programs JSON configursation file and does not update the contents of any other files.
+
+* `geneos delete component name`
+Deletes the disabled component given. Only works on components that have been disabled beforehand.
+
 ## Configuration Files
 
 ### General Configuration

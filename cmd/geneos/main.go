@@ -30,7 +30,8 @@ var (
 	ErrNotSupported = errors.New("not supported")
 	ErrPermission   = os.ErrPermission
 	ErrInvalidArgs  = os.ErrInvalid
-	ErrProcNotExist = errors.New("process does not exist")
+	ErrProcNotExist = errors.New("process not found")
+	ErrDisabled     = errors.New("disabled")
 )
 
 // simple check for root

@@ -21,9 +21,10 @@ func reload(c Component) (err error) {
 	}
 
 	if !canControl(c) {
-		// fail early
 		return os.ErrPermission
 	}
+
+	// this may only mean anything on a gateway, so check component type
 
 	// send a SIGUSR1
 	proc, _ := os.FindProcess(pid)

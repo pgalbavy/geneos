@@ -21,6 +21,10 @@ func start(c Component) (err error) {
 		return nil
 	}
 
+	if isDisabled(c) {
+		return ErrDisabled
+	}
+
 	log.Println("starting", Type(c), Name(c))
 	cmd, env := buildCommand(c)
 	if cmd == nil {

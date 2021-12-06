@@ -364,6 +364,8 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	return
 }
 
+const disableExtension = ".disabled"
+
 // geneos disable gateway example ...
 // stop if running first
 // if run as root, the disable file is owned by root too and
@@ -373,10 +375,7 @@ func disableCommand(comp ComponentType, args []string) (err error) {
 }
 
 func disable(c Component) (err error) {
-	d := filepath.Join(Home(c), Type(c).String()+".disable")
-	f, err := os.Open(d)
-	if err == nil {
-		f.Close()
+	if isDisabled(c) {
 		return fmt.Errorf("already disabled")
 	}
 
@@ -384,7 +383,8 @@ func disable(c Component) (err error) {
 	if err != nil && err != ErrProcNotExist {
 		return err
 	}
-	f, err = os.Create(d)
+	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
+	f, err := os.Create(d)
 	if err != nil {
 		return err
 	}
@@ -411,7 +411,7 @@ func enableCommand(comp ComponentType, args []string) (err error) {
 }
 
 func enable(c Component) (err error) {
-	d := filepath.Join(Home(c), Type(c).String()+".disable")
+	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	err = os.Remove(d)
 	if err == nil || errors.Is(err, os.ErrNotExist) {
 		err = start(c)
@@ -420,10 +420,23 @@ func enable(c Component) (err error) {
 	return
 }
 
+func isDisabled(c Component) bool {
+	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
+	f, err := os.Stat(d)
+	if err == nil && f.Mode().IsRegular() {
+		return true
+	}
+	return false
+}
+
+// this is special and the normal loopCommand will not work
+// 'geneos rename gateway abc xyz'
 func renameCommand(comp ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }
 
+// also special - each component must be an exact match
+// do we want a disable then delete protection?
 func deleteCommand(comp ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }

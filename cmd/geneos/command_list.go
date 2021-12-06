@@ -36,6 +36,10 @@ func commandStatus(comp ComponentType, args []string) error {
 		comps := allComponents()
 		for _, confs := range comps {
 			for _, c := range confs {
+				if isDisabled(c) {
+					log.Println(Type(c), Name(c), ErrDisabled)
+					continue
+				}
 				pid, err := findProc(c)
 				if err != nil {
 					log.Println(Type(c), Name(c), err)
@@ -48,6 +52,10 @@ func commandStatus(comp ComponentType, args []string) error {
 	default:
 		confs := components(comp)
 		for _, c := range confs {
+			if isDisabled(c) {
+				log.Println(Type(c), Name(c), ErrDisabled)
+				continue
+			}
 			pid, err := findProc(c)
 			if err != nil {
 				log.Println(Type(c), Name(c), err)
