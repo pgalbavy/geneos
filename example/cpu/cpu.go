@@ -14,9 +14,9 @@ func init() {
 }
 
 var (
-	Logger      = logger.Logger
-	DebugLogger = logger.DebugLogger
-	ErrorLogger = logger.ErrorLogger
+	Logger      = logger.Log
+	DebugLogger = logger.Debug
+	ErrorLogger = logger.Error
 )
 
 type CPUSampler struct {
@@ -25,14 +25,14 @@ type CPUSampler struct {
 }
 
 func New(s plugins.Connection, name string, group string) (*CPUSampler, error) {
-	DebugLogger.Print("called")
+	DebugLogger.Println("called")
 	c := new(CPUSampler)
 	c.Plugins = c
 	return c, c.New(s, name, group)
 }
 
 func (p *CPUSampler) InitSampler() (err error) {
-	DebugLogger.Print("called")
+	DebugLogger.Println("called")
 	p.Headline("OS", runtime.GOOS)
 	p.Headline("SampleInterval", fmt.Sprintf("%v", p.Interval()))
 

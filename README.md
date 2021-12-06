@@ -2,6 +2,10 @@
 
 This is a collection of packages and tools written in Go
 
+## `geneosctl` - Control your Geneos environment
+
+The `cmd/geneosctl` directory contains a standalone program to manage your local Geneos components. It is written to be compatible with gatewayctl/netprobectl/etc. configuration layouts and files but with a more unified approach and all options only available through command line parameters, not prompts, allowing more automation and less hands-on required.
+
 ## `libemail.so` drop in replacement
 
 The `tools/libemailgo` directory contains a drop-in replacement for the standard Geneos libemail.so SMTP mailer (the `SendMail` function) while providing more up-to-date SMTP support with TLS and authentication support plus an additional `GoSendMail` entry point that uses Go text and HTML templates instead of the standard text formats allowing richer alerting email.
