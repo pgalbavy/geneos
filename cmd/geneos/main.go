@@ -60,9 +60,12 @@ func main() {
 	// directory must exist and be accessible to the user
 	if command != "init" && command != "set" && command != "show" {
 		// test home dir, refuse to run if invalid
+		if Config.ITRSHome == "" {
+			log.Fatalln("home directory is not set")
+		}
 		s, err := os.Stat(Config.ITRSHome)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalf("home directory %q: %s", Config.ITRSHome, errors.Unwrap(err))
 		}
 		if !s.IsDir() {
 			log.Fatalln(Config.ITRSHome, "is not a directory")
@@ -73,7 +76,7 @@ func main() {
 		if Config.DefaultUser == "" {
 			s2 := s.Sys().(*syscall.Stat_t)
 			if s2.Uid == 0 {
-				log.Fatalln(Config.ITRSHome, "owned by root and no default user configured")
+				log.Fatalf("home directory %q: owned by root and no default user configured", Config.ITRSHome)
 			}
 			u, err := user.LookupId(fmt.Sprint(s2.Uid))
 			if err != nil {

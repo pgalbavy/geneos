@@ -423,6 +423,12 @@ func enable(c Component) (err error) {
 func isDisabled(c Component) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	f, err := os.Stat(d)
+	// an error tends to mean the disabled file is not
+	// visible, so assume it's not disabled - other things
+	// may be wrong but...
+	if err != nil {
+		return true
+	}
 	if err == nil && f.Mode().IsRegular() {
 		return true
 	}
