@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -22,8 +23,9 @@ func commandKill(comp ComponentType, args []string) (err error) {
 
 func stop(c Component) (err error) {
 	pid, err := findProc(c)
-	if err != nil {
-		return
+	if err != nil && errors.Is(err, ErrProcNotExist) {
+		// not found is fine
+		return nil
 	}
 
 	// who is the process running as?
