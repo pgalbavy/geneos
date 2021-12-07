@@ -107,7 +107,7 @@ func migrateCommand(comp ComponentType, names []string) (err error) {
 		return os.ErrInvalid
 	}
 
-	// do compoents - parse the args again and load/print the config,
+	// do components - parse the args again and load/print the config,
 	// but allow for RC files again
 	for _, name := range names {
 		for _, c := range New(comp, name) {
@@ -143,7 +143,7 @@ func revertCommand(comp ComponentType, names []string) (err error) {
 			baseconf := filepath.Join(Home(c), Type(c).String())
 			err = os.Rename(baseconf+".rc.orig", baseconf+".rc")
 			if err != nil {
-				log.Println("cannot revert", baseconf+".rc.orig", "to .rc:", err)
+				log.Println(Type(c), Name(c), err)
 				continue
 			}
 			err = os.Remove(baseconf + ".json")
