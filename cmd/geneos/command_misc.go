@@ -1,7 +1,6 @@
 package main
 
 import (
-	"runtime/debug"
 	"sort"
 )
 
@@ -11,11 +10,7 @@ func init() {
 }
 
 func commandVersion(comp ComponentType, args []string) error {
-	log.Println("version: unknown")
-	bi, ok := debug.ReadBuildInfo()
-	if ok {
-		log.Printf("%+v\n", bi)
-	}
+	log.Println("version: undefined")
 	return nil
 }
 
