@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -121,8 +123,16 @@ func Prefix(c Component) string {
 	return strings.Title(Type(c).String()[0:4])
 }
 
+func sortDirs(files []fs.DirEntry) {
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+}
+
+// return a sorted list of directories
 func dirs(dir string) []string {
 	files, _ := os.ReadDir(dir)
+	sortDirs(files)
 	components := make([]string, 0, len(files))
 	for _, file := range files {
 		if file.IsDir() {

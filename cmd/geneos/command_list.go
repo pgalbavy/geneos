@@ -10,7 +10,11 @@ func commandList(comp ComponentType, args []string) error {
 	switch comp {
 	case None, Unknown:
 		comps := allComponents()
-		for _, confs := range comps {
+		for _, comp := range ComponentTypes() {
+			confs, ok := comps[comp]
+			if !ok {
+				continue
+			}
 			for _, c := range confs {
 				log.Printf("%s => %q\n", Type(c), Name(c))
 			}
@@ -34,7 +38,11 @@ func commandStatus(comp ComponentType, args []string) error {
 	switch comp {
 	case None, Unknown:
 		comps := allComponents()
-		for _, confs := range comps {
+		for _, comp := range ComponentTypes() {
+			confs, ok := comps[comp]
+			if !ok {
+				continue
+			}
 			for _, c := range confs {
 				if isDisabled(c) {
 					log.Println(Type(c), Name(c), ErrDisabled)

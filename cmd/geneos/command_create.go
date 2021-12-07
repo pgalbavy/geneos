@@ -25,7 +25,7 @@ func commandCreate(comp ComponentType, args []string) error {
 // returns a map
 func getPorts() (ports map[int]ComponentType) {
 	ports = make(map[int]ComponentType)
-	confs := allComponents()
+	confs := allComponents() // sorting doesn't matter
 	for _, comp := range confs {
 		for _, c := range comp {
 			if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
