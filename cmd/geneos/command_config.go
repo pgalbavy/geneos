@@ -115,7 +115,7 @@ func migrateCommand(comp ComponentType, names []string) (err error) {
 			// in JSON format
 			err = loadConfig(c, true)
 			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
+				log.Println(Type(c), Name(c), "cannot migrate configuration", err)
 				continue
 			}
 		}
@@ -124,6 +124,8 @@ func migrateCommand(comp ComponentType, names []string) (err error) {
 	return
 }
 
+// rename rc.orig to rc, remove JSON, return
+//
 func revertCommand(comp ComponentType, names []string) (err error) {
 	if len(names) == 0 {
 		return os.ErrInvalid
@@ -133,23 +135,37 @@ func revertCommand(comp ComponentType, names []string) (err error) {
 	// but allow for RC files again
 	for _, name := range names {
 		for _, c := range New(comp, name) {
-			// passing true here migrates the RC file, doing nothing ir already
-			// in JSON format
+			// load a config, following normal logic, first
 			err = loadConfig(c, false)
 			if err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
 			}
 			baseconf := filepath.Join(Home(c), Type(c).String())
+
+			// if *.rc file exists, remove rc.orig+JSON, continue
+			_, err := os.Stat(baseconf + ".rc")
+			if err == nil {
+				// ignore errors
+				if os.Remove(baseconf+".rc.orig") == nil || os.Remove(baseconf+".json") == nil {
+					log.Println(Type(c), Name(c), "removed extra config file(s)")
+				}
+				continue
+			}
+
 			err = os.Rename(baseconf+".rc.orig", baseconf+".rc")
 			if err != nil {
 				log.Println(Type(c), Name(c), err)
 				continue
 			}
+
 			err = os.Remove(baseconf + ".json")
 			if err != nil {
-				log.Println("cannot remove", baseconf+".json:", err)
+				log.Println(Type(c), Name(c), err)
+				continue
 			}
+
+			log.Println(Type(c), Name(c), "reverted to RC config")
 		}
 	}
 
@@ -325,6 +341,7 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	dir, name := filepath.Split(file)
 	f, err := os.CreateTemp(dir, name)
 	if err != nil {
+		err = fmt.Errorf("cannot create %q: %s", file, errors.Unwrap(err))
 		return
 	}
 	defer os.Remove(f.Name())

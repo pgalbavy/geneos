@@ -62,7 +62,6 @@ func loadConfig(c Component, update bool) (err error) {
 	} else {
 		err = readRCConfig(c)
 		if err != nil {
-			DebugLog.Println("cannot load config:", err)
 			return
 		}
 		if update {
@@ -71,6 +70,7 @@ func loadConfig(c Component, update bool) (err error) {
 			if err == nil {
 				os.Rename(baseconf+".rc", baseconf+".rc.orig")
 			}
+			log.Println(Type(c), Name(c), "migrated to JSON config")
 		}
 	}
 
