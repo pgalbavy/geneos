@@ -427,7 +427,7 @@ func isDisabled(c Component) bool {
 	// visible, so assume it's not disabled - other things
 	// may be wrong but...
 	if err != nil {
-		return true
+		return false
 	}
 	if err == nil && f.Mode().IsRegular() {
 		return true
