@@ -89,6 +89,12 @@ func buildCommand(c Component) (cmd *exec.Cmd, env []string) {
 		getString(c, Prefix(c)+"Base"),
 		getString(c, "BinSuffix"))
 
+	// test binary for access
+	_, err := os.Stat(binary)
+	if err != nil {
+		return
+	}
+
 	var args []string
 
 	// XXX args and env vary depending on Component type - the below is for Gateway
