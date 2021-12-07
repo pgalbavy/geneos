@@ -166,19 +166,16 @@ func canControl(c Component) bool {
 // special case (shortcircuit) "config" ?
 func parseArgs(args []string) (comp ComponentType, names []string) {
 	if len(args) == 0 {
-		return
-	}
-
-	comp = CompType(args[0])
-	if comp == Unknown {
+		// wildcard everything
+		comp = None
+	} else if comp = CompType(args[0]); comp == Unknown {
 		// this may be a name or config option instead
 		comp = None
 		names = args
 		return
+	} else {
+		names = args[1:]
 	}
-
-	// consume first arg and continue
-	names = args[1:]
 
 	// no name is the same as all names
 	if len(names) == 0 {
@@ -191,7 +188,10 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 		if name == "all" {
 			var confs []Component
 			if comp == Unknown || comp == None {
-				break
+				// wildcard again
+				for _, v := range allComponents() {
+					confs = append(confs, v...)
+				}
 			} else {
 				confs = components(comp)
 			}
@@ -306,12 +306,12 @@ func loopCommand(fn func(Component) error, comp ComponentType, args []string) (e
 		for _, c := range New(comp, name) {
 			err = loadConfig(c, false)
 			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
+				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
 			}
 			err = fn(c)
 			if err != nil {
-				log.Printf("%s %s: %s\n", Type(c), Name(c), err)
+				log.Println(Type(c), Name(c), err)
 			}
 		}
 	}
