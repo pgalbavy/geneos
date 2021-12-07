@@ -25,7 +25,6 @@ func start(c Component) (err error) {
 		return ErrDisabled
 	}
 
-	log.Println("starting", Type(c), Name(c))
 	cmd, env := buildCommand(c)
 	if cmd == nil {
 		return fmt.Errorf("buildCommand returned nil")
@@ -68,7 +67,7 @@ func start(c Component) (err error) {
 	if err != nil {
 		return
 	}
-	log.Println("started process", cmd.Process.Pid)
+	log.Println(Type(c), Name(c), "started with PID", cmd.Process.Pid)
 
 	if cmd.Process != nil {
 		// detach from control
