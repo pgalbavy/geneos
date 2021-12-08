@@ -1,8 +1,11 @@
 package main
 
 import (
+	_ "embed"
+	"os"
 	"path/filepath"
 	"strconv"
+	"text/template" // text and not html for generating XML!
 )
 
 type GatewayComponent struct {
@@ -25,6 +28,9 @@ type GatewayComponent struct {
 }
 
 const gatewayPortRange = "7036,7100-"
+
+//go:embed emptyGateway.xml
+var emptyXMLTemplate string
 
 func NewGateway(name string) (c *GatewayComponent) {
 	// Bootstrap
@@ -70,5 +76,19 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	writeConfigFile(conffile, c)
 	// default config XML etc.
+	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(emptyXMLTemplate)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	cf, err := os.OpenFile(filepath.Join(Home(c), "gateway.setup.xml"), os.O_CREATE|os.O_WRONLY, 0664)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer cf.Close()
+	err = t.Execute(cf, c)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	return
 }

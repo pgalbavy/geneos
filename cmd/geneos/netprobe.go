@@ -1,6 +1,9 @@
 package main
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strconv"
+)
 
 type NetprobeComponent struct {
 	Instances
@@ -16,6 +19,8 @@ type NetprobeComponent struct {
 	NetpUser  string
 	BinSuffix string `default:"netprobe.linux_64"`
 }
+
+const netprobePortRange = "7036,7100-"
 
 func NewNetprobe(name string) (c *NetprobeComponent) {
 	// Bootstrap
@@ -33,5 +38,16 @@ func netprobeCmd(c Instance) (args, env []string) {
 		Name(c),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
+	return
+}
+
+func netprobeCreate(name string, username string) (c Instance, err error) {
+	// fill in the blanks
+	c = NewNetprobe(name)
+	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(netprobePortRange)))
+	setField(c, Prefix(c)+"User", username)
+	conffile := filepath.Join(Home(c), Type(c).String()+".json")
+	writeConfigFile(conffile, c)
+	// default config XML etc.
 	return
 }

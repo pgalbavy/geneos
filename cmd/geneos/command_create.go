@@ -33,8 +33,9 @@ func commandCreate(ct ComponentType, args []string) (err error) {
 	case None, Unknown:
 		log.Fatalln("component type must be specified")
 	case Gateway:
-
 		gatewayCreate(name, username)
+	case Netprobe:
+		netprobeCreate(name, username)
 	default:
 
 		return ErrNotSupported

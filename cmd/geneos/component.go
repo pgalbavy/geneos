@@ -144,7 +144,7 @@ func dirs(dir string) []string {
 	return components
 }
 
-var funcs = template.FuncMap{"join": filepath.Join}
+var textJoinFuncs = template.FuncMap{"join": filepath.Join}
 
 func New(ct ComponentType, name string) (c []Instance) {
 	switch ct {
@@ -187,7 +187,7 @@ func NewInstance(c interface{}) {
 		}
 		if def, ok := ft.Tag.Lookup("default"); ok {
 			if strings.Contains(def, "{{") {
-				val, err := template.New(ft.Name).Funcs(funcs).Parse(def)
+				val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
 				if err != nil {
 					log.Println("parse error:", def)
 					continue
