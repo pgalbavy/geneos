@@ -62,7 +62,7 @@ func findProc(c Instance) (int, error) {
 	return 0, ErrProcNotExist
 }
 
-func getUser(username string) (uid, gid int, groups []string, err error) {
+func getUser(username string) (uid, gid int, gids []uint32, err error) {
 	uid = -1
 	gid = -1
 
@@ -76,7 +76,11 @@ func getUser(username string) (uid, gid int, groups []string, err error) {
 	}
 	uid, _ = strconv.Atoi(u.Uid)
 	gid, _ = strconv.Atoi(u.Gid)
-	groups, _ = u.GroupIds()
+	groups, _ := u.GroupIds()
+	for _, g := range groups {
+		gid, _ := strconv.Atoi(g)
+		gids = append(gids, uint32(gid))
+	}
 	return
 }
 
@@ -85,9 +89,7 @@ func getUser(username string) (uid, gid int, groups []string, err error) {
 // Note: does not change stdout etc. which is done later
 //
 func setuser(cmd *exec.Cmd, username string) (err error) {
-	var gids []uint32
-
-	uid, gid, groups, err := getUser(username)
+	uid, gid, gids, err := getUser(username)
 	if err != nil {
 		return
 	}
@@ -100,12 +102,6 @@ func setuser(cmd *exec.Cmd, username string) (err error) {
 	// no point continuing if not root
 	if !superuser {
 		return ErrPermission
-	}
-
-	// groups, _ := u.GroupIds()
-	for _, g := range groups {
-		gid, _ := strconv.Atoi(g)
-		gids = append(gids, uint32(gid))
 	}
 
 	cred := &syscall.Credential{
