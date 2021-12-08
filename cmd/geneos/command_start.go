@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	commands["start"] = Command{commandStart, "start"}
+	commands["start"] = Command{commandStart, parseArgs, "start"}
 }
 
 func commandStart(comp ComponentType, args []string) (err error) {

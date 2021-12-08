@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	commands["install"] = Command{commandInstall, "install"}
+	commands["install"] = Command{commandInstall, parseArgs, "install"}
 }
 
 // 'geneos install gateway file://path/*tgz'

@@ -1,7 +1,7 @@
 package main
 
 func init() {
-	commands["restart"] = Command{commandRestart, "restart"}
+	commands["restart"] = Command{commandRestart, parseArgs, "restart"}
 }
 
 func commandRestart(comp ComponentType, args []string) (err error) {

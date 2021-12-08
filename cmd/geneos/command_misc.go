@@ -5,8 +5,8 @@ import (
 )
 
 func init() {
-	commands["version"] = Command{commandVersion, "version"}
-	commands["help"] = Command{commandHelp, "help"}
+	commands["version"] = Command{commandVersion, nil, "version"}
+	commands["help"] = Command{commandHelp, nil, "help"}
 }
 
 func commandVersion(comp ComponentType, args []string) error {

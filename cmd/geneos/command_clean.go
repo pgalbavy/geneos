@@ -1,7 +1,7 @@
 package main
 
 func init() {
-	commands["clean"] = Command{commandClean, "clean"}
+	commands["clean"] = Command{commandClean, parseArgs, "clean"}
 }
 
 // Clean up the working directory of a component

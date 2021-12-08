@@ -6,8 +6,8 @@ import (
 )
 
 func init() {
-	commands["reload"] = Command{commandReload, "reload"}
-	commands["refresh"] = Command{commandReload, "see reload"}
+	commands["reload"] = Command{commandReload, parseArgs, "reload"}
+	commands["refresh"] = Command{commandReload, parseArgs, "see reload"}
 }
 
 func commandReload(comp ComponentType, args []string) (err error) {

@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	commands["create"] = Command{commandCreate, "create"}
+	commands["create"] = Command{commandCreate, parseArgs, "create"}
 }
 
 // call the component specific create functions

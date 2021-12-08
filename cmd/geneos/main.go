@@ -55,10 +55,39 @@ func main() {
 	}
 
 	var command = strings.ToLower(os.Args[1])
+	var comp ComponentType = None
+	var names []string = os.Args[2:]
+
+	// parse the rest of the args depending on the command
+	if commands[command].ParseArgs != nil {
+		comp, names = commands[command].ParseArgs(os.Args[2:])
+	}
 
 	// if command is not an init, set or show then the ITRSHome
 	// directory must exist and be accessible to the user
-	if command != "init" && command != "set" && command != "show" {
+	switch command {
+	// come commands just want the raw command args, or none
+	case "help", "version", "init":
+		err := commands[command].Function(None, os.Args[2:])
+		if err != nil {
+			// bleh
+		}
+
+	// 'geneos show [user|global]'
+	case "show":
+		if len(os.Args[2:]) == 0 {
+			printConfigJSON(Config)
+			os.Exit(0)
+		}
+		if len(os.Args[2:]) == 1 && (os.Args[2] == "user" || os.Args[2] == "global") {
+			err := commands[command].Function(None, os.Args[2:])
+			if err != nil {
+				//
+			}
+			os.Exit(0)
+		}
+		fallthrough
+	default:
 		// test home dir, refuse to run if invalid
 		if Config.ITRSHome == "" {
 			log.Fatalln("home directory is not set")
@@ -84,20 +113,19 @@ func main() {
 			}
 			Config.DefaultUser = u.Username
 		}
-	}
-	comp, names := parseArgs(os.Args[2:])
 
-	//logger.EnableDebugLog()
+		//logger.EnableDebugLog()
 
-	c, ok := commands[command]
-	if !ok {
-		ErrorLog.Fatalln("unknown command", command)
-	}
+		c, ok := commands[command]
+		if !ok {
+			ErrorLog.Fatalln("unknown command", command)
+		}
 
-	// the command has to understand comp == None/Unknown
-	err := c.Function(comp, names)
-	if err != nil {
-		log.Fatalln(err)
+		// the command has to understand comp == None/Unknown
+		err = c.Function(comp, names)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 	os.Exit(0)
 }

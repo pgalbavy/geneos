@@ -9,8 +9,8 @@ import (
 )
 
 func init() {
-	commands["stop"] = Command{commandStop, "stop"}
-	commands["kill"] = Command{commandKill, "kill"}
+	commands["stop"] = Command{commandStop, parseArgs, "stop"}
+	commands["kill"] = Command{commandKill, parseArgs, "kill"}
 }
 
 func commandStop(comp ComponentType, args []string) (err error) {

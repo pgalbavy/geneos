@@ -13,6 +13,7 @@ import (
 
 type Command struct {
 	Function     func(ComponentType, []string) error
+	ParseArgs    func([]string) (ComponentType, []string)
 	Descrtiption string
 }
 

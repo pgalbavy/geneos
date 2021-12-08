@@ -36,16 +36,16 @@ type ConfigType struct {
 var Config ConfigType
 
 func init() {
-	commands["init"] = Command{initCommand, "initialise"}
-	commands["migrate"] = Command{migrateCommand, "migrate"}
-	commands["revert"] = Command{revertCommand, "revert"}
-	commands["show"] = Command{showCommand, "show"}
-	commands["set"] = Command{setCommand, "set"}
+	commands["init"] = Command{initCommand, parseArgs, "initialise"}
+	commands["migrate"] = Command{migrateCommand, parseArgs, "migrate"}
+	commands["revert"] = Command{revertCommand, parseArgs, "revert"}
+	commands["show"] = Command{showCommand, parseArgs, "show"}
+	commands["set"] = Command{setCommand, parseArgs, "set"}
 
-	commands["disable"] = Command{disableCommand, "disable"}
-	commands["enable"] = Command{enableCommand, "enable"}
-	commands["rename"] = Command{renameCommand, "rename"}
-	commands["delete"] = Command{deleteCommand, "delete"}
+	commands["disable"] = Command{disableCommand, parseArgs, "disable"}
+	commands["enable"] = Command{enableCommand, parseArgs, "enable"}
+	commands["rename"] = Command{renameCommand, parseArgs, "rename"}
+	commands["delete"] = Command{deleteCommand, parseArgs, "delete"}
 
 	readConfigFile(globalConfig, &Config)
 	userConfDir, _ := os.UserConfigDir()
@@ -199,7 +199,6 @@ func showCommand(comp ComponentType, names []string) (err error) {
 
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
-	// comp, names := parseArgs(args)
 	var cs []Component
 	for _, name := range names {
 		for _, c := range New(comp, name) {
@@ -264,8 +263,7 @@ func setCommand(comp ComponentType, names []string) (err error) {
 		return
 	}
 
-	// check if all remaining args have an '=' - if so assume the
-	// intention was "set user"
+	// check if all args have an '=' - if so do the same as "set user"
 	eqs := len(names)
 	for _, arg := range names {
 		if strings.Contains(arg, "=") {
@@ -278,13 +276,35 @@ func setCommand(comp ComponentType, names []string) (err error) {
 		return
 	}
 
-	// do components - parse the args again and load/print the config,
+	// components - parse the args again and load/print the config,
 	// but allow for RC files again
-	// comp, names := parseArgs(args)
+	//
+	// consume component names, stop at first parameter, error out if more names?
 	var cs []Component
+	var setFlag bool
+
+	log.Println("args:", names)
 	for _, name := range names {
+		if strings.Contains(name, "=") {
+			s := strings.SplitN(name, "=", 2)
+			// loop through all provided components, set the parameter(s)
+			for _, c := range cs {
+				setField(c, s[0], s[1])
+				setFlag = true
+			}
+			continue
+		}
+
+		// if params found, stop if another component found
+		if setFlag {
+			log.Println("found")
+			// error out
+			break
+		}
+
 		for _, c := range New(comp, name) {
-			err = loadConfig(c, false)
+			// migration required to set values
+			err = loadConfig(c, true)
 			if err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
