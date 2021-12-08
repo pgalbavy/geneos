@@ -93,6 +93,7 @@ func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
 	// test binary for access
 	_, err := os.Stat(binary)
 	if err != nil {
+		log.Println("binary not found:", binary)
 		return
 	}
 
