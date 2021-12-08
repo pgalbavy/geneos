@@ -78,7 +78,8 @@ func main() {
 	// 'geneos show [user|global]'
 	case "show":
 		if ct == None {
-			if len(args) == 0 {
+			// check the unparsed args here
+			if len(os.Args[2:]) == 0 {
 				// output resolved config and exit
 				printConfigJSON(Config)
 				os.Exit(0)
