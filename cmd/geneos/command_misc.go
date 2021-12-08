@@ -11,7 +11,6 @@ func init() {
 
 func commandVersion(comp ComponentType, args []string) error {
 	log.Println("version: undefined")
-	log.Println(emptyXMLTemplate)
 	return nil
 }
 
