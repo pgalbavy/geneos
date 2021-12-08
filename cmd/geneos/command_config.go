@@ -225,6 +225,9 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	}
 
 	userConfDir, err := os.UserConfigDir()
+	if err != nil {
+		//
+	}
 	userConfFile := filepath.Join(userConfDir, "geneos.json")
 	c.ITRSHome = dir
 	c.DefaultUser = u.Username
@@ -468,7 +471,15 @@ func setCommand(ct ComponentType, names []string) (err error) {
 			}
 		}
 	}
-	printConfigJSON(cs)
+
+	// now loop through the collected results anbd write out
+	for _, c := range cs {
+		conffile := filepath.Join(Home(c), Type(c).String()+".json")
+		err = writeConfigFile(conffile, c)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 
 	return
 

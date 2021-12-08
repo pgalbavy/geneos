@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os/user"
 	"strconv"
 	"strings"
 )
@@ -10,12 +11,35 @@ func init() {
 }
 
 // call the component specific create functions
-func commandCreate(ct ComponentType, args []string) error {
-	ports := getPorts()
-	log.Printf("ports=%v\n", ports)
-	n := nextPort("7036..")
-	log.Println("next:", n)
-	return ErrNotSupported
+//
+// like "init", diff if root or not
+func commandCreate(ct ComponentType, args []string) (err error) {
+	if len(args) == 0 {
+		log.Fatalln("not enough args")
+	}
+
+	// check validty and reserved words here
+	name := args[0]
+
+	var username string
+	if superuser {
+		username = Config.DefaultUser
+	} else {
+		u, _ := user.Current()
+		username = u.Username
+	}
+
+	switch ct {
+	case None, Unknown:
+		log.Fatalln("component type must be specified")
+	case Gateway:
+
+		gatewayCreate(name, username)
+	default:
+
+		return ErrNotSupported
+	}
+	return
 }
 
 // get all used ports in config files.
