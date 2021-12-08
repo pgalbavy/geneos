@@ -83,20 +83,22 @@ func main() {
 				printConfigJSON(Config)
 				os.Exit(0)
 			}
-			if len(names) == 1 && (names[0] == "user" || names[0] == "global") {
-				// output on-disk global or user config, not resolved one
-				err := commands[command].Function(comp, names)
-				if err != nil {
-					log.Fatalln(err)
-				}
-				os.Exit(0)
-			}
 		}
 		// some other "show" comnbination
 		fallthrough
+	case "set":
+		// process set or show global|user or keep going to instances
+		if len(names) > 0 && (names[0] == "user" || names[0] == "global") {
+			// output on-disk global or user config, not resolved one
+			err := commands[command].Function(comp, names)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			os.Exit(0)
+		}
 	default:
-		// test home dir, stop if invalid - except for "set" for bootstrapping
-		if Config.ITRSHome == "" && command != "set" {
+		// test home dir, stop if invalid
+		if Config.ITRSHome == "" {
 			log.Fatalln("home directory is not set")
 		}
 		s, err := os.Stat(Config.ITRSHome)

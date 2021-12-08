@@ -61,17 +61,12 @@ var initDirs = []string{
 
 // load system config from global and user JSON files and process any
 // environment variables we choose
-//
-// this can't be done in init() as we test for superuser and that is set in
-// another file's init() and while we can just duplicate the test it's better
-// to be consistent (and we can do future capabilities tests in one place)
 func loadSysConfig() {
 	readConfigFile(globalConfig, &Config)
-	// root should not have a per-user config
-	if !superuser {
-		userConfDir, _ := os.UserConfigDir()
-		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
-	}
+	// root should not have a per-user config, but if sun by sudo the
+	// HOME dir is conserved, so allow for now
+	userConfDir, _ := os.UserConfigDir()
+	readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
 	// setting the environment variable - to match legacy programs - overrides
 	// all others
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
@@ -249,8 +244,8 @@ func printConfigJSON(Config interface{}) (err error) {
 // so we support "all" to do global updates of a parameter?
 //
 // format:
-// geneos config set gateway wonderland GatePort=8888
-// geneos config global ITRSHome=/opt/geneos
+// geneos set gateway wonderland GatePort=8888
+// geneos set global ITRSHome=/opt/geneos
 //
 // quoting is left to the shell rules and the setting is just split on the first '='
 // non '=' args are taken as other names?
@@ -266,12 +261,10 @@ func setCommand(comp ComponentType, names []string) (err error) {
 	// to sanitise the contents - or generate an error
 	switch names[0] {
 	case "global":
-		setConfig(globalConfig, names[1:])
-		return
+		return setConfig(globalConfig, names[1:])
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), names[1:])
-		return
+		return setConfig(filepath.Join(userConfDir, "geneos.json"), names[1:])
 	}
 
 	// check if all args have an '=' - if so do the same as "set user"
@@ -294,7 +287,6 @@ func setCommand(comp ComponentType, names []string) (err error) {
 	var cs []Component
 	var setFlag bool
 
-	log.Println("args:", names)
 	for _, name := range names {
 		if strings.Contains(name, "=") {
 			s := strings.SplitN(name, "=", 2)
@@ -336,7 +328,8 @@ func setCommand(comp ComponentType, names []string) (err error) {
 //
 func setConfig(filename string, args []string) (err error) {
 	var c ConfigType
-	readConfigFile(filename, &c)
+	// ignore err - config may not exist, but that's OK
+	_ = readConfigFile(filename, &c)
 	// change here
 	for _, set := range args {
 		// skip all non '=' args
@@ -346,10 +339,12 @@ func setConfig(filename string, args []string) (err error) {
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
 		err = setField(&c, k, v)
+		if err != nil {
+			return
+		}
 
 	}
-	writeConfigFile(filename, c)
-	return
+	return writeConfigFile(filename, c)
 }
 
 func readConfigFile(file string, config interface{}) (err error) {
@@ -368,8 +363,29 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		return
 	}
 
+	// get these early
+	uid := -1
+	gid := -1
+	if superuser {
+		username := getString(config, Prefix(config)+"User")
+		if username != "" {
+			u, err := user.Lookup(username)
+			if err != nil {
+				return err
+			}
+			uid, _ = strconv.Atoi(u.Uid)
+			gid, _ = strconv.Atoi(u.Gid)
+		}
+	}
+
 	// atomic-ish write
 	dir, name := filepath.Split(file)
+	// try to ensure directory exists
+	err = os.MkdirAll(dir, 0775)
+	if err == nil && superuser {
+		// remember to change directory ownership
+		os.Chown(dir, uid, gid)
+	}
 	f, err := os.CreateTemp(dir, name)
 	if err != nil {
 		err = fmt.Errorf("cannot create %q: %s", file, errors.Unwrap(err))
@@ -381,25 +397,11 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		return
 	}
 
-	// if we've been run as root then try to change the new
-	// file to the same user as the component. If this is
-	// not a component config file then do nothing (as there
-	// is no prefix or User config field)
-	if superuser {
-		username := getString(config, Prefix(config)+"User")
-		if username != "" {
-			u, err := user.Lookup(username)
-			if err != nil {
-				return err
-			}
-			uid, _ := strconv.Atoi(u.Uid)
-			gid, _ := strconv.Atoi(u.Gid)
-			err = f.Chown(uid, gid)
-			if err != nil {
-				return err
-			}
-		}
+	err = f.Chown(uid, gid)
+	if err != nil {
+		return err
 	}
+
 	// XXX - these should not be hardwired
 	err = f.Chmod(0664)
 	if err != nil {
