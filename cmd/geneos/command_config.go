@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -63,10 +63,15 @@ var initDirs = []string{
 // environment variables we choose
 func loadSysConfig() {
 	readConfigFile(globalConfig, &Config)
+
 	// root should not have a per-user config, but if sun by sudo the
 	// HOME dir is conserved, so allow for now
 	userConfDir, _ := os.UserConfigDir()
-	readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
+	err := readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Println(err)
+	}
+
 	// setting the environment variable - to match legacy programs - overrides
 	// all others
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
@@ -85,8 +90,154 @@ func loadSysConfig() {
 // also creates config files if they don't exist, but no
 // update to allow multiple parallel installs
 //
-func initCommand(ct ComponentType, names []string) (err error) {
-	return ErrNotSupported
+// if not called as superuser "do the right thing", set
+// ownerships to current user, create user config file
+// and not global
+//
+// as root:
+// 'geneos init user [dir]' = dir defaults to $HOME/geneos for the user given
+// - global config *is* overwritten, user config is removed
+//
+// as user:
+// 'geneos init [dir]' - similarly dir defaults to $HOME/geneos, providing user
+// is an error. user config is overwritten
+//
+func initCommand(ct ComponentType, args []string) (err error) {
+	var c ConfigType
+	if ct != None {
+		log.Fatalln("cannot initialise with component type", ct, "given")
+	}
+
+	if superuser {
+		err = initAsRoot(&c, args)
+		if err != nil {
+			//
+		}
+		return nil
+	} else {
+		initAsUser(&c, args)
+	}
+
+	return
+}
+
+func initAsRoot(c *ConfigType, args []string) (err error) {
+	if len(args) == 0 {
+		log.Fatalln("init requires a user when run as root")
+	}
+	username := args[0]
+	uid, gid, _, err := getUser(username)
+
+	if err != nil {
+		log.Fatalln("invalid user", username)
+	}
+	u, err := user.Lookup(username)
+	if err != nil {
+		log.Fatalln("user lookup failed")
+	}
+
+	var dir string
+	if len(args) == 1 {
+		// if a user's homedir then add geneos, unless ?
+		dir = filepath.Join(u.HomeDir, "geneos")
+	} else {
+		// must be an absolute path or relative to given user's home
+		dir = args[1]
+		if !strings.HasPrefix(dir, "/") {
+			dir = filepath.Join(u.HomeDir, dir)
+		}
+	}
+
+	// dir must first not exist (or be empty) and then be createable
+	_, err = os.Stat(dir)
+	if err == nil {
+		// check empty
+		dirs, err := os.ReadDir(dir)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if len(dirs) != 0 {
+			log.Fatalln("directory exists and is not empty")
+		}
+	} else {
+		// need to create out own, chown new directories only
+		os.MkdirAll(dir, 0775)
+	}
+	err = os.Chown(dir, uid, gid)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	c.ITRSHome = dir
+	c.DefaultUser = username
+	err = writeConfigFile(globalConfig, c)
+	if err != nil {
+		log.Fatalln("cannot write global config", err)
+	}
+	// if everything else worked, remove any existing user config
+	_ = os.Remove(filepath.Join(u.HomeDir, ".config", "geneos.json"))
+
+	// create directories
+	for _, d := range initDirs {
+		dir := filepath.Join(c.ITRSHome, d)
+		os.MkdirAll(dir, 0775)
+	}
+	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
+		if err == nil {
+			log.Println("chown", path, uid, gid)
+			err = os.Chown(path, uid, gid)
+		}
+		return err
+	})
+	if err != nil {
+		//
+	}
+	return
+}
+
+func initAsUser(c *ConfigType, args []string) (err error) {
+	// normal user
+	var dir string
+	u, _ := user.Current()
+	switch len(args) {
+	case 0: // default home + geneos
+		dir = filepath.Join(u.HomeDir, "geneos")
+
+	case 1: // home = abs path
+		dir, _ = filepath.Abs(args[0])
+	default:
+		log.Fatalln("too many args")
+	}
+
+	// dir must first not exist (or be empty) and then be createable
+	_, err = os.Stat(dir)
+	if err == nil {
+		// check empty
+		dirs, err := os.ReadDir(dir)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if len(dirs) != 0 {
+			log.Fatalln("directory exists and is not empty")
+		}
+	} else {
+		// need to create out own, chown new directories only
+		os.MkdirAll(dir, 0775)
+	}
+
+	userConfDir, err := os.UserConfigDir()
+	userConfFile := filepath.Join(userConfDir, "geneos.json")
+	c.ITRSHome = dir
+	c.DefaultUser = u.Username
+	err = writeConfigFile(userConfFile, c)
+	if err != nil {
+		//
+	}
+	// create directories
+	for _, d := range initDirs {
+		dir := filepath.Join(c.ITRSHome, d)
+		os.MkdirAll(dir, 0775)
+	}
+	return
 }
 
 //
@@ -369,12 +520,10 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	if superuser {
 		username := getString(config, Prefix(config)+"User")
 		if username != "" {
-			u, err := user.Lookup(username)
+			uid, gid, _, err = getUser(username)
 			if err != nil {
 				return err
 			}
-			uid, _ = strconv.Atoi(u.Uid)
-			gid, _ = strconv.Atoi(u.Gid)
 		}
 	}
 
