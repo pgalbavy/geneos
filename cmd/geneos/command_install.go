@@ -11,6 +11,7 @@ import (
 
 func init() {
 	commands["install"] = Command{commandInstall, parseArgs, "install"}
+	commands["update"] = Commans{commandUpdate, nil, "update"}
 }
 
 // 'geneos install gateway file://path/*tgz'
@@ -101,4 +102,19 @@ NAMES:
 
 	}
 	return
+}
+
+//
+// update a version of component packages
+//
+// 'geneos update gateway 5.8.0'
+// 'geneos update netprobe latest active_dev'
+//
+// defaults all components, 'latest' and 'active_prod'
+//
+// check if already the same, then
+// stop, update, start any instances using that link
+//
+func commandUpdate(ct ComponentType, files []string) (err error) {
+	return ErrNotSupported
 }
