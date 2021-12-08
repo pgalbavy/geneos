@@ -36,6 +36,8 @@ func netprobeCmd(c Instance) (args, env []string) {
 	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
 	args = []string{
 		Name(c),
+		"-port",
+		getIntAsString(c, Prefix(c)+"Port"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 	return
