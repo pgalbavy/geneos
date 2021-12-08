@@ -20,12 +20,14 @@ type Component interface {
 type ComponentType int
 
 const (
+	// None - no component supplied or required
 	None ComponentType = iota
+	// Unknown - doesn't match component type
+	Unknown
 	Gateway
 	Netprobe
 	Licd
 	Webserver
-	Unknown
 )
 
 // currently supported types, for looping

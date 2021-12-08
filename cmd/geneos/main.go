@@ -50,6 +50,8 @@ var superuser bool = false
 var commands Commands = make(Commands)
 
 func main() {
+	loadSysConfig()
+
 	if len(os.Args) < 2 {
 		log.Fatalln("[usage here]: not enough args")
 	}
@@ -68,28 +70,33 @@ func main() {
 	switch command {
 	// come commands just want the raw command args, or none
 	case "help", "version", "init":
-		err := commands[command].Function(None, os.Args[2:])
+		err := commands[command].Function(comp, names)
 		if err != nil {
 			// bleh
 		}
-
+		os.Exit(0)
 	// 'geneos show [user|global]'
 	case "show":
-		if len(os.Args[2:]) == 0 {
-			printConfigJSON(Config)
-			os.Exit(0)
-		}
-		if len(os.Args[2:]) == 1 && (os.Args[2] == "user" || os.Args[2] == "global") {
-			err := commands[command].Function(None, os.Args[2:])
-			if err != nil {
-				//
+		if comp == None {
+			if len(names) == 0 {
+				// output resolved config and exit
+				printConfigJSON(Config)
+				os.Exit(0)
 			}
-			os.Exit(0)
+			if len(names) == 1 && (names[0] == "user" || names[0] == "global") {
+				// output on-disk global or user config, not resolved one
+				err := commands[command].Function(comp, names)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				os.Exit(0)
+			}
 		}
+		// some other "show" comnbination
 		fallthrough
 	default:
-		// test home dir, refuse to run if invalid
-		if Config.ITRSHome == "" {
+		// test home dir, stop if invalid - except for "set" for bootstrapping
+		if Config.ITRSHome == "" && command != "set" {
 			log.Fatalln("home directory is not set")
 		}
 		s, err := os.Stat(Config.ITRSHome)

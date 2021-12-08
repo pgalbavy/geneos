@@ -36,7 +36,7 @@ type ConfigType struct {
 var Config ConfigType
 
 func init() {
-	commands["init"] = Command{initCommand, parseArgs, "initialise"}
+	commands["init"] = Command{initCommand, nil, "initialise"}
 	commands["migrate"] = Command{migrateCommand, parseArgs, "migrate"}
 	commands["revert"] = Command{revertCommand, parseArgs, "revert"}
 	commands["show"] = Command{showCommand, parseArgs, "show"}
@@ -46,15 +46,6 @@ func init() {
 	commands["enable"] = Command{enableCommand, parseArgs, "enable"}
 	commands["rename"] = Command{renameCommand, parseArgs, "rename"}
 	commands["delete"] = Command{deleteCommand, parseArgs, "delete"}
-
-	readConfigFile(globalConfig, &Config)
-	userConfDir, _ := os.UserConfigDir()
-	readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
-
-	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
-		Config.ITRSHome = h
-	}
-
 }
 
 var initDirs = []string{
@@ -66,6 +57,26 @@ var initDirs = []string{
 	"gateway/gateway_shared",
 	"gateway/gateway_config",
 	"licd/licds",
+}
+
+// load system config from global and user JSON files and process any
+// environment variables we choose
+//
+// this can't be done in init() as we test for superuser and that is set in
+// another file's init() and while we can just duplicate the test it's better
+// to be consistent (and we can do future capabilities tests in one place)
+func loadSysConfig() {
+	readConfigFile(globalConfig, &Config)
+	// root should not have a per-user config
+	if !superuser {
+		userConfDir, _ := os.UserConfigDir()
+		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
+	}
+	// setting the environment variable - to match legacy programs - overrides
+	// all others
+	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
+		Config.ITRSHome = h
+	}
 }
 
 //
