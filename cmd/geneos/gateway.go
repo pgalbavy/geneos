@@ -27,7 +27,7 @@ type GatewayComponent struct {
 
 }
 
-const gatewayPortRange = "7036,7100-"
+const gatewayPortRange = "7039,7100-"
 
 //go:embed emptyGateway.xml
 var emptyXMLTemplate string
@@ -73,7 +73,7 @@ func gatewayCmd(c Instance) (args, env []string) {
 func gatewayCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = NewGateway(name)
-	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(gatewayPortRange)))
+	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(Config.GatewayPortRange)))
 	setField(c, Prefix(c)+"User", username)
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	writeConfigFile(conffile, c)

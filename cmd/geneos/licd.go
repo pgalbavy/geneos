@@ -15,6 +15,8 @@ type LicdComponent struct {
 	BinSuffix string `default:"licd.linux_64"`
 }
 
+const licdPortRange = "7041,7100-"
+
 func NewLicd(name string) (c *LicdComponent) {
 	// Bootstrap
 	c = &LicdComponent{}

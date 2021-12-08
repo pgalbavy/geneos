@@ -46,7 +46,7 @@ func netprobeCmd(c Instance) (args, env []string) {
 func netprobeCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = NewNetprobe(name)
-	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(netprobePortRange)))
+	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(Config.NetprobePortRange)))
 	setField(c, Prefix(c)+"User", username)
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	writeConfigFile(conffile, c)

@@ -31,6 +31,10 @@ type ConfigType struct {
 	//
 	// default is owner of ITRSHome
 	DefaultUser string `json:",omitempty"`
+
+	GatewayPortRange  string `json:",omitempty"`
+	NetprobePortRange string `json:",omitempty"`
+	LicdPortRange     string `json:",omitempty"`
 }
 
 var Config ConfigType
@@ -76,6 +80,20 @@ func loadSysConfig() {
 	// all others
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
 		Config.ITRSHome = h
+	}
+
+	if Config.GatewayPortRange == "" {
+		Config.GatewayPortRange = gatewayPortRange
+
+	}
+
+	if Config.NetprobePortRange == "" {
+		Config.NetprobePortRange = netprobePortRange
+
+	}
+
+	if Config.LicdPortRange == "" {
+		Config.LicdPortRange = licdPortRange
 	}
 }
 
@@ -226,7 +244,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 
 	userConfDir, err := os.UserConfigDir()
 	if err != nil {
-		//
+		log.Fatalln("no user config directory")
 	}
 	userConfFile := filepath.Join(userConfDir, "geneos.json")
 	c.ITRSHome = dir
@@ -364,7 +382,7 @@ func showCommand(ct ComponentType, names []string) (err error) {
 		for _, c := range New(ct, name) {
 			err = loadConfig(c, false)
 			if err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
+				log.Println(Type(c), Name(c), "cannot load configuration")
 				continue
 			}
 			if c != nil {
