@@ -52,6 +52,11 @@ func getPorts() (ports map[int]ComponentType) {
 	confs := allInstances() // sorting doesn't matter
 	for _, cts := range confs {
 		for _, c := range cts {
+			err := loadConfig(&c, false)
+			if err != nil {
+				log.Println(Type(c), Name(c), "- cannot load configuration")
+				continue
+			}
 			if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
 				p, err := strconv.Atoi(port)
 				if err == nil {

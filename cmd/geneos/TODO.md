@@ -13,3 +13,4 @@
 * clean command (delete cache, logs, history files etc.)
 * list / status in CSV and LSON formats
 * REST API for remote - initially read-only + rate limited
+* what command to link "active_prod" to specifics ? "update" ?
