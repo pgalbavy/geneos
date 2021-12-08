@@ -3,15 +3,18 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
 func init() {
 	commands["install"] = Command{commandInstall, parseArgs, "install"}
-	commands["update"] = Command{commandUpdate, nil, "update"}
+	commands["update"] = Command{commandUpdate, parseArgs, "update"}
 }
 
 // 'geneos install gateway file://path/*tgz'
@@ -115,6 +118,104 @@ NAMES:
 // check if already the same, then
 // stop, update, start any instances using that link
 //
-func commandUpdate(ct ComponentType, files []string) (err error) {
-	return ErrNotSupported
+// latest is: [GA]N.M.P-DATE - GA is optional, ignore all other non-numeric
+// prefixes. Sort N.M.P using almost semantic versioning
+func commandUpdate(ct ComponentType, args []string) (err error) {
+	version := "latest"
+	base := "active_prod"
+	basedir := filepath.Join(Config.ITRSHome, "packages", ct.String())
+	basepath := filepath.Join(basedir, base)
+
+	switch ct {
+	case Gateway, Netprobe:
+		if version == "latest" {
+			version = getLatest(basedir)
+		}
+		current, err := os.Readlink(basepath)
+		if err != nil && errors.Is(err, &fs.PathError{}) {
+			log.Println("cannot read link", basepath)
+		}
+		// empty current is fine
+		if current == version {
+			log.Println(base, "is already linked to", version)
+			return nil
+		}
+		insts := matchComponents(ct, "Base", base)
+		// stop matching instances
+		for _, i := range insts {
+			stop(i)
+			defer start(i)
+		}
+		err = os.Remove(basepath)
+		if err != nil {
+			log.Println(err)
+		}
+		err = os.Symlink(version, basepath)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		log.Println(ct.String(), base, "updated to", version)
+		return nil
+	default:
+		return ErrNotSupported
+	}
+}
+
+// given a directory find the "latest" version of the form
+// [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
+func getLatest(dir string) (latest string) {
+	dirs, err := os.ReadDir(dir)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	m := make([]int, 3)
+	for _, v := range dirs {
+		if !v.IsDir() {
+			continue
+		}
+		// strip 'GA' prefix and get name
+		d := strings.TrimPrefix(v.Name(), "GA")
+		s := strings.SplitN(d, ".", 3)
+		n := slicetoi(s)
+
+		for y := range m {
+			if n[y] < m[y] {
+				break
+			}
+			if n[y] > m[y] {
+				latest = v.Name()
+				m[y] = n[y]
+				continue
+			}
+
+		}
+	}
+	return
+}
+
+func slicetoi(s []string) (n []int) {
+	for _, x := range s {
+		i, err := strconv.Atoi(x)
+		if err != nil {
+			i = 0
+		}
+		n = append(n, i)
+	}
+	return
+}
+
+// given a component type and a key/value pair, return matching
+// instances
+func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
+	for _, i := range instances(ct) {
+		if v == getString(i, Prefix(i)+k) {
+			err := loadConfig(&i, false)
+			if err != nil {
+				log.Println(Type(i), Name(i), "cannot load config")
+			}
+			insts = append(insts, i)
+		}
+	}
+	return
 }
