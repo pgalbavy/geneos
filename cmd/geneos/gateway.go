@@ -51,6 +51,8 @@ func gatewayCmd(c Instance) (args, env []string) {
 
 	args = []string{
 		/* "-gateway-name",  */ Name(c),
+		"-port",
+		getIntAsString(c, Prefix(c)+"Port"),
 		"-resources-dir",
 		filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources"),
 		"-log",
