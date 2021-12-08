@@ -97,6 +97,7 @@ func main() {
 			}
 			os.Exit(0)
 		}
+		fallthrough
 	default:
 		// test home dir, stop if invalid
 		if Config.ITRSHome == "" {
