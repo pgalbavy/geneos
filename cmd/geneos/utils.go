@@ -24,7 +24,7 @@ import (
 // the component name must be on the command line as an exact and standalone
 // args
 //
-func findProc(c Component) (int, error) {
+func findProc(c Instance) (int, error) {
 	var pids []int
 
 	DebugLog.Println("looking for", Type(c), Name(c))
@@ -128,7 +128,7 @@ func setuser(cmd *exec.Cmd, username string) (err error) {
 // this does not however change the user to match anything, so starting a
 // process still requires a seteuid type change
 //
-func canControl(c Component) bool {
+func canControl(c Instance) bool {
 	if superuser {
 		DebugLog.Println("I am root")
 		return true
@@ -164,13 +164,13 @@ func canControl(c Component) bool {
 // will override the rest and result in a lookup being done
 //
 // special case (shortcircuit) "config" ?
-func parseArgs(args []string) (comp ComponentType, names []string) {
+func parseArgs(args []string) (ct ComponentType, names []string) {
 	if len(args) == 0 {
 		// wildcard everything
-		comp = None
-	} else if comp = CompType(args[0]); comp == Unknown {
+		ct = None
+	} else if ct = CompType(args[0]); ct == Unknown {
 		// this may be a name or config option instead
-		comp = None
+		ct = None
 		names = args
 		return
 	} else {
@@ -186,14 +186,14 @@ func parseArgs(args []string) (comp ComponentType, names []string) {
 	// of all components and returns that
 	for _, name := range names {
 		if name == "all" {
-			var confs []Component
-			if comp == Unknown || comp == None {
+			var confs []Instance
+			if ct == Unknown || ct == None {
 				// wildcard again
-				for _, v := range allComponents() {
+				for _, v := range allInstances() {
 					confs = append(confs, v...)
 				}
 			} else {
-				confs = components(comp)
+				confs = instances(ct)
 			}
 			names = nil
 			for _, c := range confs {
@@ -301,9 +301,9 @@ func setFieldSlice(c interface{}, k string, v []string) (err error) {
 	return
 }
 
-func loopCommand(fn func(Component) error, comp ComponentType, args []string) (err error) {
+func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err error) {
 	for _, name := range args {
-		for _, c := range New(comp, name) {
+		for _, c := range New(ct, name) {
 			err = loadConfig(c, false)
 			if err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")

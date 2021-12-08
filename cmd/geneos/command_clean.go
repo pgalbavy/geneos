@@ -10,10 +10,10 @@ func init() {
 //
 // If the component is running it should be more careful
 //
-func commandClean(comp ComponentType, args []string) error {
-	return loopCommand(clean, comp, args)
+func commandClean(ct ComponentType, args []string) error {
+	return loopCommand(clean, ct, args)
 }
 
-func clean(c Component) (err error) {
+func clean(c Instance) (err error) {
 	return ErrNotSupported
 }

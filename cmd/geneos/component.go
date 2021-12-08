@@ -13,7 +13,7 @@ import (
 
 // definitions and access methods for the generic component types
 
-type Component interface {
+type Instance interface {
 	// empty
 }
 
@@ -69,12 +69,12 @@ func CompType(component string) ComponentType {
 	}
 }
 
-type Components struct {
-	Component `json:"-"`
-	Name      string        `json:"Name"`
-	Type      ComponentType `json:"-"`
-	Root      string        `json:"-"`
-	Env       []string      `json:",omitempty"` // environment variables to set
+type Instances struct {
+	Instance `json:"-"`
+	Name     string        `json:"Name"`
+	Type     ComponentType `json:"-"`
+	Root     string        `json:"-"`
+	Env      []string      `json:",omitempty"` // environment variables to set
 }
 
 // this method does NOT take a Component as it's used to return
@@ -82,19 +82,19 @@ type Components struct {
 // type is initialised
 //
 // No side-effects
-func RootDirs(comp ComponentType) []string {
-	return dirs(RootDir(comp))
+func InstanceDirs(ct ComponentType) []string {
+	return dirs(InstanceDir(ct))
 }
 
 // as above, this method returns metadata before the underlying
 // type is initialised
 //
 // No side-effects
-func RootDir(comp ComponentType) string {
-	return filepath.Join(Config.ITRSHome, comp.String(), comp.String()+"s")
+func InstanceDir(ct ComponentType) string {
+	return filepath.Join(Config.ITRSHome, ct.String(), ct.String()+"s")
 }
 
-func Type(c Component) ComponentType {
+func Type(c Instance) ComponentType {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
@@ -110,15 +110,15 @@ func Type(c Component) ComponentType {
 	return None
 }
 
-func Name(c Component) string {
+func Name(c Instance) string {
 	return getString(c, "Name")
 }
 
-func Home(c Component) string {
+func Home(c Instance) string {
 	return getString(c, Prefix(c)+"Home")
 }
 
-func Prefix(c Component) string {
+func Prefix(c Instance) string {
 	if len(Type(c).String()) < 4 {
 		return "Unkn"
 	}
@@ -146,28 +146,28 @@ func dirs(dir string) []string {
 
 var funcs = template.FuncMap{"join": filepath.Join}
 
-func New(comp ComponentType, name string) (c []Component) {
-	switch comp {
+func New(ct ComponentType, name string) (c []Instance) {
+	switch ct {
 	case None:
-		cs := findComponents(name)
+		cs := findInstances(name)
 		for _, cm := range cs {
 			c = append(c, New(cm, name)...)
 		}
 	case Gateway:
-		c = []Component{NewGateway(name)}
+		c = []Instance{NewGateway(name)}
 	case Netprobe:
-		c = []Component{NewNetprobe(name)}
+		c = []Instance{NewNetprobe(name)}
 	case Licd:
-		c = []Component{NewLicd(name)}
+		c = []Instance{NewLicd(name)}
 	case Webserver:
 		log.Println("webserver not supported yet")
 	default:
-		log.Println("unknown component", comp)
+		log.Println("unknown component", ct)
 	}
 	return
 }
 
-func NewComponent(c interface{}) {
+func NewInstance(c interface{}) {
 	st := reflect.TypeOf(c)
 	sv := reflect.ValueOf(c)
 	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {

@@ -85,7 +85,7 @@ func loadSysConfig() {
 // also creates config files if they don't exist, but no
 // update to allow multiple parallel installs
 //
-func initCommand(comp ComponentType, names []string) (err error) {
+func initCommand(ct ComponentType, names []string) (err error) {
 	return ErrNotSupported
 }
 
@@ -108,7 +108,7 @@ func initCommand(comp ComponentType, names []string) (err error) {
 // have a "revert" command?
 //
 
-func migrateCommand(comp ComponentType, names []string) (err error) {
+func migrateCommand(ct ComponentType, names []string) (err error) {
 	if len(names) == 0 {
 		return os.ErrInvalid
 	}
@@ -116,7 +116,7 @@ func migrateCommand(comp ComponentType, names []string) (err error) {
 	// do components - parse the args again and load/print the config,
 	// but allow for RC files again
 	for _, name := range names {
-		for _, c := range New(comp, name) {
+		for _, c := range New(ct, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
 			err = loadConfig(c, true)
@@ -132,7 +132,7 @@ func migrateCommand(comp ComponentType, names []string) (err error) {
 
 // rename rc.orig to rc, remove JSON, return
 //
-func revertCommand(comp ComponentType, names []string) (err error) {
+func revertCommand(ct ComponentType, names []string) (err error) {
 	if len(names) == 0 {
 		return os.ErrInvalid
 	}
@@ -140,7 +140,7 @@ func revertCommand(comp ComponentType, names []string) (err error) {
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
 	for _, name := range names {
-		for _, c := range New(comp, name) {
+		for _, c := range New(ct, name) {
 			// load a config, following normal logic, first
 			err = loadConfig(c, false)
 			if err != nil {
@@ -178,7 +178,7 @@ func revertCommand(comp ComponentType, names []string) (err error) {
 	return
 }
 
-func showCommand(comp ComponentType, names []string) (err error) {
+func showCommand(ct ComponentType, names []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(names) == 0 {
@@ -203,11 +203,11 @@ func showCommand(comp ComponentType, names []string) (err error) {
 		return
 	}
 
-	// do compoents - parse the args again and load/print the config,
+	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
-	var cs []Component
+	var cs []Instance
 	for _, name := range names {
-		for _, c := range New(comp, name) {
+		for _, c := range New(ct, name) {
 			err = loadConfig(c, false)
 			if err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
@@ -252,7 +252,7 @@ func printConfigJSON(Config interface{}) (err error) {
 //
 // What is read only? Name, others?
 //
-func setCommand(comp ComponentType, names []string) (err error) {
+func setCommand(ct ComponentType, names []string) (err error) {
 	if len(names) == 0 {
 		return os.ErrInvalid
 	}
@@ -284,7 +284,7 @@ func setCommand(comp ComponentType, names []string) (err error) {
 	// but allow for RC files again
 	//
 	// consume component names, stop at first parameter, error out if more names?
-	var cs []Component
+	var cs []Instance
 	var setFlag bool
 
 	for _, name := range names {
@@ -305,7 +305,7 @@ func setCommand(comp ComponentType, names []string) (err error) {
 			break
 		}
 
-		for _, c := range New(comp, name) {
+		for _, c := range New(ct, name) {
 			// migration required to set values
 			err = loadConfig(c, true)
 			if err != nil {
@@ -420,11 +420,11 @@ const disableExtension = ".disabled"
 // stop if running first
 // if run as root, the disable file is owned by root too and
 // only root can remove it?
-func disableCommand(comp ComponentType, args []string) (err error) {
-	return loopCommand(disable, comp, args)
+func disableCommand(ct ComponentType, args []string) (err error) {
+	return loopCommand(disable, ct, args)
 }
 
-func disable(c Component) (err error) {
+func disable(c Instance) (err error) {
 	if isDisabled(c) {
 		return fmt.Errorf("already disabled")
 	}
@@ -456,11 +456,11 @@ func disable(c Component) (err error) {
 
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
-func enableCommand(comp ComponentType, args []string) (err error) {
-	return loopCommand(enable, comp, args)
+func enableCommand(ct ComponentType, args []string) (err error) {
+	return loopCommand(enable, ct, args)
 }
 
-func enable(c Component) (err error) {
+func enable(c Instance) (err error) {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	err = os.Remove(d)
 	if err == nil || errors.Is(err, os.ErrNotExist) {
@@ -470,7 +470,7 @@ func enable(c Component) (err error) {
 	return
 }
 
-func isDisabled(c Component) bool {
+func isDisabled(c Instance) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	f, err := os.Stat(d)
 	// an error tends to mean the disabled file is not
@@ -487,12 +487,12 @@ func isDisabled(c Component) bool {
 
 // this is special and the normal loopCommand will not work
 // 'geneos rename gateway abc xyz'
-func renameCommand(comp ComponentType, args []string) (err error) {
+func renameCommand(ct ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }
 
 // also special - each component must be an exact match
 // do we want a disable then delete protection?
-func deleteCommand(comp ComponentType, args []string) (err error) {
+func deleteCommand(ct ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }

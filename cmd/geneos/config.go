@@ -21,34 +21,34 @@ type Commands map[string]Command
 
 // process config file(s)
 
-func allComponents() (confs map[ComponentType][]Component) {
-	confs = make(map[ComponentType][]Component)
-	for _, comp := range ComponentTypes() {
-		confs[comp] = components(comp)
+func allInstances() (confs map[ComponentType][]Instance) {
+	confs = make(map[ComponentType][]Instance)
+	for _, ct := range ComponentTypes() {
+		confs[ct] = instances(ct)
 	}
 	return
 }
 
-func components(comp ComponentType) (confs []Component) {
-	for _, name := range RootDirs(comp) {
-		confs = append(confs, New(comp, name)...)
+func instances(ct ComponentType) (confs []Instance) {
+	for _, name := range InstanceDirs(ct) {
+		confs = append(confs, New(ct, name)...)
 	}
 	return
 }
 
-func findComponents(name string) (comp []ComponentType) {
+func findInstances(name string) (cts []ComponentType) {
 	for _, t := range ComponentTypes() {
-		compdirs := RootDirs(t)
+		compdirs := InstanceDirs(t)
 		for _, dir := range compdirs {
 			if filepath.Base(dir) == name {
-				comp = append(comp, t)
+				cts = append(cts, t)
 			}
 		}
 	}
 	return
 }
 
-func loadConfig(c Component, update bool) (err error) {
+func loadConfig(c Instance, update bool) (err error) {
 	// load the JSON config file is available, otherwise load
 	// the "legacy" .rc file and try to write out a JSON file
 	// for later re-use
@@ -78,7 +78,7 @@ func loadConfig(c Component, update bool) (err error) {
 	return
 }
 
-func buildCommand(c Component) (cmd *exec.Cmd, env []string) {
+func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
 	// build command line and env vars
 	shell := os.Getenv("SHELL")
 	if len(shell) == 0 {
@@ -122,13 +122,13 @@ func buildCommand(c Component) (cmd *exec.Cmd, env []string) {
 }
 
 // save off extra env too
-func readRCConfig(c Component) (err error) {
+func readRCConfig(c Instance) (err error) {
 	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
 		return
 	}
 
-	wd := filepath.Join(RootDir(Type(c)), Name(c))
+	wd := filepath.Join(InstanceDir(Type(c)), Name(c))
 	DebugLog.Printf("loading config from %s/%s.rc", wd, Type(c))
 
 	confs := make(map[string]string)

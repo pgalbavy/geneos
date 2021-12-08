@@ -57,12 +57,12 @@ func main() {
 	}
 
 	var command = strings.ToLower(os.Args[1])
-	var comp ComponentType = None
-	var names []string = os.Args[2:]
+	var ct ComponentType = None
+	var args []string = os.Args[2:]
 
 	// parse the rest of the args depending on the command
 	if commands[command].ParseArgs != nil {
-		comp, names = commands[command].ParseArgs(os.Args[2:])
+		ct, args = commands[command].ParseArgs(os.Args[2:])
 	}
 
 	// if command is not an init, set or show then the ITRSHome
@@ -70,15 +70,15 @@ func main() {
 	switch command {
 	// come commands just want the raw command args, or none
 	case "help", "version", "init":
-		err := commands[command].Function(comp, names)
+		err := commands[command].Function(ct, args)
 		if err != nil {
 			// bleh
 		}
 		os.Exit(0)
 	// 'geneos show [user|global]'
 	case "show":
-		if comp == None {
-			if len(names) == 0 {
+		if ct == None {
+			if len(args) == 0 {
 				// output resolved config and exit
 				printConfigJSON(Config)
 				os.Exit(0)
@@ -88,9 +88,9 @@ func main() {
 		fallthrough
 	case "set":
 		// process set or show global|user or keep going to instances
-		if len(names) > 0 && (names[0] == "user" || names[0] == "global") {
+		if len(args) > 0 && (args[0] == "user" || args[0] == "global") {
 			// output on-disk global or user config, not resolved one
-			err := commands[command].Function(comp, names)
+			err := commands[command].Function(ct, args)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -130,8 +130,8 @@ func main() {
 			ErrorLog.Fatalln("unknown command", command)
 		}
 
-		// the command has to understand comp == None/Unknown
-		err = c.Function(comp, names)
+		// the command has to understand ct == None/Unknown
+		err = c.Function(ct, args)
 		if err != nil {
 			log.Fatalln(err)
 		}

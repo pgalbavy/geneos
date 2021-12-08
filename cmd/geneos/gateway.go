@@ -3,7 +3,7 @@ package main
 import "path/filepath"
 
 type GatewayComponent struct {
-	Components
+	Instances
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
@@ -27,11 +27,11 @@ func NewGateway(name string) (c *GatewayComponent) {
 	c.Root = Config.ITRSHome
 	c.Type = Gateway
 	c.Name = name
-	NewComponent(&c)
+	NewInstance(&c)
 	return
 }
 
-func gatewayCmd(c Component) (args, env []string) {
+func gatewayCmd(c Instance) (args, env []string) {
 	// get opts from
 	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
 	//

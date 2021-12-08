@@ -10,7 +10,7 @@ func init() {
 }
 
 // call the component specific create functions
-func commandCreate(comp ComponentType, args []string) error {
+func commandCreate(ct ComponentType, args []string) error {
 	ports := getPorts()
 	log.Printf("ports=%v\n", ports)
 	n := nextPort("7036..")
@@ -25,9 +25,9 @@ func commandCreate(comp ComponentType, args []string) error {
 // returns a map
 func getPorts() (ports map[int]ComponentType) {
 	ports = make(map[int]ComponentType)
-	confs := allComponents() // sorting doesn't matter
-	for _, comp := range confs {
-		for _, c := range comp {
+	confs := allInstances() // sorting doesn't matter
+	for _, cts := range confs {
+		for _, c := range cts {
 			if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
 				p, err := strconv.Atoi(port)
 				if err == nil {

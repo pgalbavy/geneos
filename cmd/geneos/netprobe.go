@@ -3,7 +3,7 @@ package main
 import "path/filepath"
 
 type NetprobeComponent struct {
-	Components
+	Instances
 	NetpHome  string `default:"{{join .Root \"netprobe\" \"netprobes\" .Name}}"`
 	NetpBins  string `default:"{{join .Root \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
@@ -23,11 +23,11 @@ func NewNetprobe(name string) (c *NetprobeComponent) {
 	c.Root = Config.ITRSHome
 	c.Type = Netprobe
 	c.Name = name
-	NewComponent(&c)
+	NewInstance(&c)
 	return
 }
 
-func netprobeCmd(c Component) (args, env []string) {
+func netprobeCmd(c Instance) (args, env []string) {
 	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
 	args = []string{
 		Name(c),

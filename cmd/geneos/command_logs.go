@@ -10,11 +10,11 @@ func init() {
 	commands["logs"] = Command{commandLogs, parseArgs, "logs"}
 }
 
-func commandLogs(comp ComponentType, args []string) error {
-	return loopCommand(logs, comp, args)
+func commandLogs(ct ComponentType, args []string) error {
+	return loopCommand(logs, ct, args)
 }
 
-func logs(c Component) (err error) {
+func logs(c Instance) (err error) {
 	logfile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
 
 	watcher, err := fsnotify.NewWatcher()

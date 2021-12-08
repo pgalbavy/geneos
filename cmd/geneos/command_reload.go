@@ -10,11 +10,11 @@ func init() {
 	commands["refresh"] = Command{commandReload, parseArgs, "see reload"}
 }
 
-func commandReload(comp ComponentType, args []string) (err error) {
-	return loopCommand(reload, comp, args)
+func commandReload(ct ComponentType, args []string) (err error) {
+	return loopCommand(reload, ct, args)
 }
 
-func reload(c Component) (err error) {
+func reload(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil {
 		return

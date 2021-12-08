@@ -6,12 +6,12 @@ func init() {
 	commands["command"] = Command{commandCommand, parseArgs, "command"}
 }
 
-func commandList(comp ComponentType, args []string) error {
-	switch comp {
+func commandList(ct ComponentType, args []string) error {
+	switch ct {
 	case None, Unknown:
-		comps := allComponents()
-		for _, comp := range ComponentTypes() {
-			confs, ok := comps[comp]
+		comps := allInstances()
+		for _, cts := range ComponentTypes() {
+			confs, ok := comps[cts]
 			if !ok {
 				continue
 			}
@@ -21,7 +21,7 @@ func commandList(comp ComponentType, args []string) error {
 		}
 
 	default:
-		confs := components(comp)
+		confs := instances(ct)
 		for _, c := range confs {
 			log.Printf("%s => %q\n", Type(c), Name(c))
 		}
@@ -34,12 +34,12 @@ func commandList(comp ComponentType, args []string) error {
 // show disabled/enabled status
 //
 // CSV and JSON versions for automation
-func commandStatus(comp ComponentType, args []string) error {
-	switch comp {
+func commandStatus(ct ComponentType, args []string) error {
+	switch ct {
 	case None, Unknown:
-		comps := allComponents()
-		for _, comp := range ComponentTypes() {
-			confs, ok := comps[comp]
+		comps := allInstances()
+		for _, cts := range ComponentTypes() {
+			confs, ok := comps[cts]
 			if !ok {
 				continue
 			}
@@ -58,7 +58,7 @@ func commandStatus(comp ComponentType, args []string) error {
 		}
 
 	default:
-		confs := components(comp)
+		confs := instances(ct)
 		for _, c := range confs {
 			if isDisabled(c) {
 				log.Println(Type(c), Name(c), ErrDisabled)
@@ -75,9 +75,9 @@ func commandStatus(comp ComponentType, args []string) error {
 	return nil
 }
 
-func commandCommand(comp ComponentType, args []string) (err error) {
+func commandCommand(ct ComponentType, args []string) (err error) {
 	for _, name := range args {
-		for _, c := range New(comp, name) {
+		for _, c := range New(ct, name) {
 			err = loadConfig(c, false)
 			if err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
@@ -89,7 +89,7 @@ func commandCommand(comp ComponentType, args []string) (err error) {
 	return
 }
 
-func command(c Component) {
+func command(c Instance) {
 	cmd, env := buildCommand(c)
 	if cmd != nil {
 		log.Printf("command: %q\n", cmd.String())

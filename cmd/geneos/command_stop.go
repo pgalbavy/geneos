@@ -13,15 +13,15 @@ func init() {
 	commands["kill"] = Command{commandKill, parseArgs, "kill"}
 }
 
-func commandStop(comp ComponentType, args []string) (err error) {
-	return loopCommand(stop, comp, args)
+func commandStop(ct ComponentType, args []string) (err error) {
+	return loopCommand(stop, ct, args)
 }
 
-func commandKill(comp ComponentType, args []string) (err error) {
-	return loopCommand(kill, comp, args)
+func commandKill(ct ComponentType, args []string) (err error) {
+	return loopCommand(kill, ct, args)
 }
 
-func stop(c Component) (err error) {
+func stop(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
@@ -63,7 +63,7 @@ func stop(c Component) (err error) {
 
 }
 
-func kill(c Component) (err error) {
+func kill(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil {
 		return

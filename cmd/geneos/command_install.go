@@ -14,7 +14,7 @@ func init() {
 }
 
 // 'geneos install gateway file://path/*tgz'
-func commandInstall(comp ComponentType, files []string) (err error) {
+func commandInstall(ct ComponentType, files []string) (err error) {
 
 NAMES:
 	for _, archive := range files {

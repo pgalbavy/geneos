@@ -10,11 +10,11 @@ func init() {
 	commands["start"] = Command{commandStart, parseArgs, "start"}
 }
 
-func commandStart(comp ComponentType, args []string) (err error) {
-	return loopCommand(start, comp, args)
+func commandStart(ct ComponentType, args []string) (err error) {
+	return loopCommand(start, ct, args)
 }
 
-func start(c Component) (err error) {
+func start(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)

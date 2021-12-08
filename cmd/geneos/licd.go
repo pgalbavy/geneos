@@ -1,7 +1,7 @@
 package main
 
 type LicdComponent struct {
-	Components
+	Instances
 	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
 	LicdBins  string `default:"{{join .Root \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
@@ -21,10 +21,10 @@ func NewLicd(name string) (c *LicdComponent) {
 	c.Root = Config.ITRSHome
 	c.Type = Licd
 	c.Name = name
-	NewComponent(&c)
+	NewInstance(&c)
 	return
 }
 
-func licdCmd(c Component) (args, env []string) {
+func licdCmd(c Instance) (args, env []string) {
 	return
 }
