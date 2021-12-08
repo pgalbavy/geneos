@@ -79,12 +79,6 @@ func loadConfig(c Instance, update bool) (err error) {
 }
 
 func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
-	// build command line and env vars
-	shell := os.Getenv("SHELL")
-	if len(shell) == 0 {
-		shell = "/bin/bash"
-	}
-
 	// XXX abstract this stuff away
 	binary := filepath.Join(getString(c, Prefix(c)+"Bins"),
 		getString(c, Prefix(c)+"Base"),

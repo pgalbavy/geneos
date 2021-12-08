@@ -87,7 +87,7 @@ func main() {
 		}
 		// some other "show" comnbination
 		fallthrough
-	case "set":
+	case "set", "edit":
 		// process set or show global|user or keep going to instances
 		if len(args) > 0 && (args[0] == "user" || args[0] == "global") {
 			// output on-disk global or user config, not resolved one
