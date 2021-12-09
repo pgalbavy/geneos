@@ -128,14 +128,9 @@ func initCommand(ct ComponentType, args []string) (err error) {
 
 	if superuser {
 		err = initAsRoot(&c, args)
-		if err != nil {
-			//
-		}
-		return nil
 	} else {
-		initAsUser(&c, args)
+		err = initAsUser(&c, args)
 	}
-
 	return
 }
 
@@ -206,9 +201,6 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 		}
 		return err
 	})
-	if err != nil {
-		//
-	}
 	return
 }
 
@@ -251,7 +243,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	c.DefaultUser = u.Username
 	err = writeConfigFile(userConfFile, c)
 	if err != nil {
-		//
+		return
 	}
 	// create directories
 	for _, d := range initDirs {
