@@ -164,8 +164,7 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	}
 
 	// dir must first not exist (or be empty) and then be createable
-	_, err = os.Stat(dir)
-	if err == nil {
+	if _, err := os.Stat(dir); err == nil {
 		// check empty
 		dirs, err := os.ReadDir(dir)
 		if err != nil {
@@ -178,14 +177,12 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 		// need to create out own, chown new directories only
 		os.MkdirAll(dir, 0775)
 	}
-	err = os.Chown(dir, uid, gid)
-	if err != nil {
+	if err = os.Chown(dir, uid, gid); err != nil {
 		log.Fatalln(err)
 	}
 	c.ITRSHome = dir
 	c.DefaultUser = username
-	err = writeConfigFile(globalConfig, c)
-	if err != nil {
+	if err = writeConfigFile(globalConfig, c); err != nil {
 		log.Fatalln("cannot write global config", err)
 	}
 	// if everything else worked, remove any existing user config
@@ -213,7 +210,6 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	switch len(args) {
 	case 0: // default home + geneos
 		dir = filepath.Join(u.HomeDir, "geneos")
-
 	case 1: // home = abs path
 		dir, _ = filepath.Abs(args[0])
 	default:
@@ -221,8 +217,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	}
 
 	// dir must first not exist (or be empty) and then be createable
-	_, err = os.Stat(dir)
-	if err == nil {
+	if _, err = os.Stat(dir); err == nil {
 		// check empty
 		dirs, err := os.ReadDir(dir)
 		if err != nil {
@@ -243,8 +238,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	userConfFile := filepath.Join(userConfDir, "geneos.json")
 	c.ITRSHome = dir
 	c.DefaultUser = u.Username
-	err = writeConfigFile(userConfFile, c)
-	if err != nil {
+	if err = writeConfigFile(userConfFile, c); err != nil {
 		return
 	}
 	// create directories
@@ -285,8 +279,7 @@ func migrateCommand(ct ComponentType, names []string) (err error) {
 		for _, c := range New(ct, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
-			err = loadConfig(c, true)
-			if err != nil {
+			if err = loadConfig(c, true); err != nil {
 				log.Println(Type(c), Name(c), "cannot migrate configuration", err)
 				continue
 			}
@@ -308,16 +301,14 @@ func revertCommand(ct ComponentType, names []string) (err error) {
 	for _, name := range names {
 		for _, c := range New(ct, name) {
 			// load a config, following normal logic, first
-			err = loadConfig(c, false)
-			if err != nil {
+			if err = loadConfig(c, false); err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
 			}
 			baseconf := filepath.Join(Home(c), Type(c).String())
 
 			// if *.rc file exists, remove rc.orig+JSON, continue
-			_, err := os.Stat(baseconf + ".rc")
-			if err == nil {
+			if _, err := os.Stat(baseconf + ".rc"); err == nil {
 				// ignore errors
 				if os.Remove(baseconf+".rc.orig") == nil || os.Remove(baseconf+".json") == nil {
 					log.Println(Type(c), Name(c), "removed extra config file(s)")
@@ -325,14 +316,12 @@ func revertCommand(ct ComponentType, names []string) (err error) {
 				continue
 			}
 
-			err = os.Rename(baseconf+".rc.orig", baseconf+".rc")
-			if err != nil {
+			if err = os.Rename(baseconf+".rc.orig", baseconf+".rc"); err != nil {
 				log.Println(Type(c), Name(c), err)
 				continue
 			}
 
-			err = os.Remove(baseconf + ".json")
-			if err != nil {
+			if err = os.Remove(baseconf + ".json"); err != nil {
 				log.Println(Type(c), Name(c), err)
 				continue
 			}
@@ -374,8 +363,7 @@ func showCommand(ct ComponentType, names []string) (err error) {
 	var cs []Instance
 	for _, name := range names {
 		for _, c := range New(ct, name) {
-			err = loadConfig(c, false)
-			if err != nil {
+			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				continue
 			}
@@ -390,12 +378,10 @@ func showCommand(ct ComponentType, names []string) (err error) {
 }
 
 func printConfigJSON(Config interface{}) (err error) {
-	buffer, err := json.MarshalIndent(Config, "", "    ")
-	if err != nil {
-		return
+	if buffer, err := json.MarshalIndent(Config, "", "    "); err == nil {
+		log.Printf("%s\n", buffer)
 	}
 
-	log.Printf("%s\n", buffer)
 	return
 }
 
@@ -473,8 +459,7 @@ func setCommand(ct ComponentType, names []string) (err error) {
 
 		for _, c := range New(ct, name) {
 			// migration required to set values
-			err = loadConfig(c, true)
-			if err != nil {
+			if err = loadConfig(c, true); err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				continue
 			}
@@ -487,8 +472,7 @@ func setCommand(ct ComponentType, names []string) (err error) {
 	// now loop through the collected results anbd write out
 	for _, c := range cs {
 		conffile := filepath.Join(Home(c), Type(c).String()+".json")
-		err = writeConfigFile(conffile, c)
-		if err != nil {
+		if err = writeConfigFile(conffile, c); err != nil {
 			log.Println(err)
 		}
 	}
@@ -512,8 +496,7 @@ func setConfig(filename string, args []string) (err error) {
 		}
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
-		err = setField(&c, k, v)
-		if err != nil {
+		if err = setField(&c, k, v); err != nil {
 			return
 		}
 
@@ -522,9 +505,8 @@ func setConfig(filename string, args []string) (err error) {
 }
 
 func readConfigFile(file string, config interface{}) (err error) {
-	f, err := os.ReadFile(file)
-	if err == nil {
-		err = json.Unmarshal(f, &config)
+	if f, err := os.ReadFile(file); err == nil {
+		return json.Unmarshal(f, &config)
 	}
 	return
 }
@@ -543,8 +525,7 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	if superuser {
 		username := getString(config, Prefix(config)+"User")
 		if username != "" {
-			uid, gid, _, err = getUser(username)
-			if err != nil {
+			if uid, gid, _, err = getUser(username); err != nil {
 				return err
 			}
 		}
@@ -553,8 +534,7 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	// atomic-ish write
 	dir, name := filepath.Split(file)
 	// try to ensure directory exists
-	err = os.MkdirAll(dir, 0775)
-	if err == nil && superuser {
+	if err = os.MkdirAll(dir, 0775); err == nil && superuser {
 		// remember to change directory ownership
 		os.Chown(dir, uid, gid)
 	}
@@ -564,26 +544,19 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		return
 	}
 	defer os.Remove(f.Name())
-	_, err = fmt.Fprintln(f, string(buffer))
-	if err != nil {
+	if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
 		return
 	}
 
-	err = f.Chown(uid, gid)
-	if err != nil {
+	if err = f.Chown(uid, gid); err != nil {
 		return err
 	}
 
 	// XXX - these should not be hardwired
-	err = f.Chmod(0664)
-	if err != nil {
+	if err = f.Chmod(0664); err != nil {
 		return
 	}
-	err = os.Rename(f.Name(), file)
-	if err != nil {
-		return
-	}
-	return
+	return os.Rename(f.Name(), file)
 }
 
 const disableExtension = ".disabled"
@@ -601,8 +574,7 @@ func disable(c Instance) (err error) {
 		return fmt.Errorf("already disabled")
 	}
 
-	err = stop(c)
-	if err != nil && err != ErrProcNotExist {
+	if err = stop(c); err != nil && err != ErrProcNotExist {
 		return err
 	}
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
@@ -618,10 +590,8 @@ func disable(c Instance) (err error) {
 		return
 	}
 
-	err = f.Chown(uid, gid)
-	if err != nil {
+	if err = f.Chown(uid, gid); err != nil {
 		os.Remove(f.Name())
-		return
 	}
 	return
 }
@@ -634,24 +604,18 @@ func enableCommand(ct ComponentType, args []string) (err error) {
 
 func enable(c Instance) (err error) {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	err = os.Remove(d)
-	if err == nil || errors.Is(err, os.ErrNotExist) {
+	if err = os.Remove(d); err == nil || errors.Is(err, os.ErrNotExist) {
 		err = start(c)
-		return err
 	}
 	return
 }
 
+// an error tends to mean the disabled file is not
+// visible, so assume it's not disabled - other things
+// may be wrong but...
 func isDisabled(c Instance) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	f, err := os.Stat(d)
-	// an error tends to mean the disabled file is not
-	// visible, so assume it's not disabled - other things
-	// may be wrong but...
-	if err != nil {
-		return false
-	}
-	if err == nil && f.Mode().IsRegular() {
+	if f, err := os.Stat(d); err == nil && f.Mode().IsRegular() {
 		return true
 	}
 	return false
