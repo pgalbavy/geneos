@@ -291,9 +291,10 @@ type DownloadAuth struct {
 var downloadComponent = map[ComponentType]string{
 	Gateway:  "Gateway+2",
 	Netprobe: "Netprobe",
-	Licd:     "License+Daemon",
+	Licd:     "Licence+Daemon",
 }
 
+//
 func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err error) {
 	baseurl := Config.DownloadURL
 	if baseurl == "" {
@@ -307,7 +308,8 @@ func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err err
 		authbody.Username = Config.DownloadUser
 		authbody.Password = Config.DownloadPass
 
-		authjson, err := json.Marshal(authbody)
+		var authjson []byte
+		authjson, err = json.Marshal(authbody)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -327,5 +329,4 @@ func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err err
 	filename = filepath.Base(u.Path)
 	body = resp.Body
 	return
-
 }
