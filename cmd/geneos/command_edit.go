@@ -48,8 +48,7 @@ func commandEdit(ct ComponentType, args []string) (err error) {
 	var cs []string
 	for _, name := range args {
 		for _, c := range New(ct, name) {
-			err = loadConfig(c, true)
-			if err != nil {
+			if err = loadConfig(c, true); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				continue
 			}

@@ -9,8 +9,7 @@ func commandRestart(ct ComponentType, args []string) (err error) {
 }
 
 func restart(c Instance) (err error) {
-	err = stop(c)
-	if err == nil {
+	if err = stop(c); err == nil {
 		return start(c)
 	}
 	return

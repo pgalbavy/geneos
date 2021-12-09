@@ -37,12 +37,10 @@ func commandInstall(ct ComponentType, files []string) (err error) {
 
 		log.Println("fetching latest", ct.String(), f)
 
-		err = unarchive(f, gz)
-		if err != nil {
-			log.Println(err)
+		if err = unarchive(f, gz); err != nil {
+			return err
 		}
-		updateLatest(ct, true)
-		return nil
+		return updateLatest(ct, true)
 	}
 
 	for _, archive := range files {
@@ -53,13 +51,12 @@ func commandInstall(ct ComponentType, files []string) (err error) {
 		}
 		defer gz.Close()
 
-		err = unarchive(f, gz)
-		if err != nil {
+		if err = unarchive(f, gz); err != nil {
 			log.Println(err)
+			return err
 		}
 	}
-	updateLatest(ct, true)
-	return
+	return updateLatest(ct, true)
 }
 
 func unarchive(f string, gz io.Reader) (err error) {
@@ -76,12 +73,10 @@ func unarchive(f string, gz io.Reader) (err error) {
 	}
 	version := parts[2]
 	basedir := filepath.Join(Config.ITRSHome, "packages", comp.String(), version)
-	_, err = os.Stat(basedir)
-	if err == nil {
+	if _, err = os.Stat(basedir); err == nil {
 		return fmt.Errorf("%s: %s", basedir, fs.ErrExist)
 	}
-	err = os.MkdirAll(basedir, 0775)
-	if err != nil {
+	if err = os.MkdirAll(basedir, 0775); err != nil {
 		return
 	}
 
@@ -123,8 +118,7 @@ func unarchive(f string, gz io.Reader) (err error) {
 			out.Close()
 			DebugLog.Println("file:", path)
 		case tar.TypeDir:
-			err = os.MkdirAll(path, hdr.FileInfo().Mode())
-			if err != nil {
+			if err = os.MkdirAll(path, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
 			DebugLog.Println("dir:", path)
@@ -187,13 +181,12 @@ func updateLatest(ct ComponentType, readonly bool) error {
 			stop(i)
 			defer start(i)
 		}
-		err = os.Remove(basepath)
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			log.Println(err)
+		if err = os.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			//log.Println(err)
+			return err
 		}
-		err = os.Symlink(version, basepath)
-		if err != nil {
-			log.Println(err)
+		if err = os.Symlink(version, basepath); err != nil {
+			//log.Println(err)
 			return err
 		}
 		log.Println(ct.String(), base, "updated to", version)
@@ -251,8 +244,7 @@ func slicetoi(s []string) (n []int) {
 func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
 	for _, i := range instances(ct) {
 		if v == getString(i, Prefix(i)+k) {
-			err := loadConfig(&i, false)
-			if err != nil {
+			if err := loadConfig(&i, false); err != nil {
 				log.Println(Type(i), Name(i), "cannot load config")
 			}
 			insts = append(insts, i)

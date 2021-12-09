@@ -38,8 +38,7 @@ func start(c Instance) (err error) {
 	// set underlying user for child proc
 	username := getString(c, Prefix(c)+"User")
 	// pass possibly empty string down to setuser - it handles defaults
-	err = setuser(cmd, username)
-	if err != nil {
+	if err = setuser(cmd, username); err != nil {
 		return
 	}
 
@@ -54,8 +53,7 @@ func start(c Instance) (err error) {
 
 	// if we've set-up privs at all, set the redirection output file to the same
 	if cmd.SysProcAttr != nil && cmd.SysProcAttr.Credential != nil {
-		err = out.Chown(int(cmd.SysProcAttr.Credential.Uid), int(cmd.SysProcAttr.Credential.Gid))
-		if err != nil {
+		if err = out.Chown(int(cmd.SysProcAttr.Credential.Uid), int(cmd.SysProcAttr.Credential.Gid)); err != nil {
 			log.Println("chown:", err)
 		}
 	}
@@ -63,8 +61,7 @@ func start(c Instance) (err error) {
 	cmd.Stderr = out
 	cmd.Dir = filepath.Join(Home(c))
 
-	err = cmd.Start()
-	if err != nil {
+	if err = cmd.Start(); err != nil {
 		return
 	}
 	log.Println(Type(c), Name(c), "started with PID", cmd.Process.Pid)

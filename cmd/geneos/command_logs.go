@@ -39,8 +39,7 @@ func logs(c Instance) (err error) {
 		}
 	}()
 
-	err = watcher.Add(logfile)
-	if err != nil {
+	if err = watcher.Add(logfile); err != nil {
 		log.Fatal(err)
 	}
 	<-done
