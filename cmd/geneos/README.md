@@ -61,7 +61,7 @@ Show the current version of the `geneos` program, which should match the tag of 
 * `geneos help`
 General help, initially a list of all the supported commands.
 
-* `geneos init` - Not Yet
+* `geneos init`
 Initialise the environment.
 
 * `geneos show`
@@ -76,7 +76,7 @@ Initialise the environment.
 Shows details of the command syntax used for the component and any extra environment variables found in the configuration.
 (This may be merged into the `show` command above)
 
-* `geneos create [component] name [name...]` - Not yet
+* `geneos create [component] name [name...]`
 Create a Geneos component configuration.
 
 * `geneos start [component] [name...]`
@@ -94,8 +94,11 @@ Restarts matching geneos components. Each component is stopped and started in se
 * `geneos reload|refresh [component] name [name...]`
 Cause the component to reload it's configuration or restart as appropriate.
 
-* `geneos install X` - Not yet
+* `geneos install [archives...]` - Not yet
 Install a release archive in the `packages` hierarchy.
+
+* `geneos update component`
+Update the component base binary link
 
 * `geneos disable [component] [name...]`
 Stop and disable the selected compoents by placing a file in wach working directory with a `.disable` extention
@@ -108,6 +111,12 @@ Rename the compoent, but this only affects the container directory, this program
 
 * `geneos delete component name`
 Deletes the disabled component given. Only works on components that have been disabled beforehand.
+
+* `geneos edit [user|component] [names]`
+Open an editor for the selected instances or user config file
+
+* `geneos clean [component] [names]`
+Clean up component
 
 ## Configuration Files
 
