@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -75,6 +76,10 @@ func unarchive(f string, gz io.Reader) (err error) {
 	}
 	version := parts[2]
 	basedir := filepath.Join(Config.ITRSHome, "packages", comp.String(), version)
+	_, err = os.Stat(basedir)
+	if err == nil {
+		return fmt.Errorf("%s: %s", basedir, fs.ErrExist)
+	}
 	err = os.MkdirAll(basedir, 0775)
 	if err != nil {
 		return
@@ -295,22 +300,29 @@ func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err err
 		baseurl = defaultURL
 	}
 
-	var authbody DownloadAuth
-	authbody.Username = Config.DownloadUser
-	authbody.Password = Config.DownloadPass
+	var resp *http.Response
 
-	authjson, err := json.Marshal(authbody)
-	if err != nil {
-		log.Fatalln(err)
+	if Config.DefaultUser != "" {
+		var authbody DownloadAuth
+		authbody.Username = Config.DownloadUser
+		authbody.Password = Config.DownloadPass
+
+		authjson, err := json.Marshal(authbody)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		resp, err = http.Post(baseurl+"/"+downloadComponent[ct]+"?os=linux", "application/json", bytes.NewBuffer(authjson))
+	} else {
+		resp, err = http.Get(baseurl + "/" + downloadComponent[ct] + "?os=linux")
 	}
-
-	resp, err := http.Post(baseurl+"/"+downloadComponent[ct]+"?os=linux", "application/json", bytes.NewBuffer(authjson))
 	if err != nil {
 		log.Fatalln(err)
 	}
 	if resp.StatusCode != 200 {
 		log.Fatalln(resp.Status)
 	}
+
 	u := resp.Request.URL
 	filename = filepath.Base(u.Path)
 	body = resp.Body
