@@ -21,10 +21,11 @@ func init() {
 }
 
 //
-// option to fetch latest versions from remote URL (or directory)
+// if there is no 'active_prod' link then attach it to the latest version
+// installed
 //
-
 // 'geneos install gateway [files]'
+// 'geneos install netprobe latest'
 func commandInstall(ct ComponentType, files []string) (err error) {
 	if len(files) == 1 && files[0] == "latest" {
 		f, gz, err := fetchLatest(ct)
@@ -39,6 +40,7 @@ func commandInstall(ct ComponentType, files []string) (err error) {
 		if err != nil {
 			log.Println(err)
 		}
+		updateLatest(ct, true)
 		return nil
 	}
 
@@ -55,6 +57,7 @@ func commandInstall(ct ComponentType, files []string) (err error) {
 			log.Println(err)
 		}
 	}
+	updateLatest(ct, true)
 	return
 }
 
@@ -147,6 +150,10 @@ func unarchive(f string, gz io.Reader) (err error) {
 // latest is: [GA]N.M.P-DATE - GA is optional, ignore all other non-numeric
 // prefixes. Sort N.M.P using almost semantic versioning
 func commandUpdate(ct ComponentType, args []string) (err error) {
+	return updateLatest(ct, false)
+}
+
+func updateLatest(ct ComponentType, readonly bool) error {
 	version := "latest"
 	base := "active_prod"
 	basedir := filepath.Join(Config.ITRSHome, "packages", ct.String())
@@ -161,6 +168,9 @@ func commandUpdate(ct ComponentType, args []string) (err error) {
 		if err != nil && errors.Is(err, &fs.PathError{}) {
 			log.Println("cannot read link", basepath)
 		}
+		if current != "" && readonly {
+			return nil
+		}
 		// empty current is fine
 		if current == version {
 			log.Println(base, "is already linked to", version)
@@ -173,7 +183,7 @@ func commandUpdate(ct ComponentType, args []string) (err error) {
 			defer start(i)
 		}
 		err = os.Remove(basepath)
-		if err != nil {
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			log.Println(err)
 		}
 		err = os.Symlink(version, basepath)
