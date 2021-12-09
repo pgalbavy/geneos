@@ -2,10 +2,13 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,93 +20,116 @@ func init() {
 	commands["update"] = Command{commandUpdate, parseArgs, "update"}
 }
 
-// 'geneos install gateway file://path/*tgz'
-func commandInstall(ct ComponentType, files []string) (err error) {
+//
+// option to fetch latest versions from remote URL (or directory)
+//
 
-NAMES:
+// 'geneos install gateway [files]'
+func commandInstall(ct ComponentType, files []string) (err error) {
+	if len(files) == 1 && files[0] == "latest" {
+		f, gz, err := fetchLatest(ct)
+		if err != nil {
+			return err
+		}
+		defer gz.Close()
+
+		log.Println("fetching latest", ct.String(), f)
+
+		err = unarchive(f, gz)
+		if err != nil {
+			log.Println(err)
+		}
+		return nil
+	}
+
 	for _, archive := range files {
 		f := filepath.Base(archive)
-		parts := strings.Split(f, "-")
-		if parts[0] != "geneos" {
-			log.Println("archive must be named geneos-COMPONENT-VERSION*.tar.gz:", archive)
-			continue
-		}
-		DebugLog.Printf("parts=%v\n", parts)
-		comp := CompType(parts[1])
-		if comp == None || comp == Unknown {
-			log.Println("component type required")
-			continue
-		}
-		version := parts[2]
-		basedir := filepath.Join(Config.ITRSHome, "packages", comp.String(), version)
-		err = os.MkdirAll(basedir, 0775)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
 		gz, err := os.Open(archive)
 		if err != nil {
-			log.Println(err)
-			continue
+			return err
 		}
-		t, err := gzip.NewReader(gz)
+		defer gz.Close()
+
+		err = unarchive(f, gz)
 		if err != nil {
 			log.Println(err)
-			gz.Close()
-			continue
 		}
-		tr := tar.NewReader(t)
-		for {
-			hdr, err := tr.Next()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Println(err)
-				t.Close()
-				gz.Close()
-				continue NAMES
-			}
-			// log.Println("file:", hdr.Name, "size", hdr.Size)
-			// strip leading component name
-			name := strings.TrimPrefix(hdr.Name, comp.String())
-			path := filepath.Join(basedir, name)
-			switch hdr.Typeflag {
-			case tar.TypeReg:
-				out, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-				n, err := io.Copy(out, tr)
-				if err != nil {
-					//
-				}
-				if n != hdr.Size {
-					log.Println("lengths different:", hdr.Size, n)
-				}
-				out.Close()
-				DebugLog.Println("file:", path)
-			case tar.TypeDir:
-				err = os.MkdirAll(path, hdr.FileInfo().Mode())
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-				DebugLog.Println("dir:", path)
-			case tar.TypeSymlink, tar.TypeGNULongLink:
-				link := strings.TrimPrefix(hdr.Linkname, "/")
-				os.Symlink(link, path)
-				DebugLog.Println("link:", path, "->", link)
-			default:
-				log.Printf("unsupported file type %c\n", hdr.Typeflag)
-			}
-		}
-		t.Close()
-		gz.Close()
-		log.Println("installed", f, "to", basedir)
-
 	}
+	return
+}
+
+func unarchive(f string, gz io.Reader) (err error) {
+	parts := strings.Split(f, "-")
+	if parts[0] != "geneos" {
+		log.Println("file must be named geneos-COMPONENT-VERSION*.tar.gz:", f)
+		return
+	}
+	DebugLog.Printf("parts=%v\n", parts)
+	comp := CompType(parts[1])
+	if comp == None || comp == Unknown {
+		log.Println("component type required")
+		return
+	}
+	version := parts[2]
+	basedir := filepath.Join(Config.ITRSHome, "packages", comp.String(), version)
+	err = os.MkdirAll(basedir, 0775)
+	if err != nil {
+		return
+	}
+
+	t, err := gzip.NewReader(gz)
+	if err != nil {
+		return
+	}
+	defer t.Close()
+
+	tr := tar.NewReader(t)
+	for {
+		var hdr *tar.Header
+		hdr, err = tr.Next()
+		if err == io.EOF {
+			err = nil
+			break
+		}
+		if err != nil {
+			return
+		}
+		// log.Println("file:", hdr.Name, "size", hdr.Size)
+		// strip leading component name
+		name := strings.TrimPrefix(hdr.Name, comp.String())
+		path := filepath.Join(basedir, name)
+		switch hdr.Typeflag {
+		case tar.TypeReg:
+			out, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
+			if err != nil {
+				return err
+			}
+			n, err := io.Copy(out, tr)
+			if err != nil {
+				out.Close()
+				return err
+			}
+			if n != hdr.Size {
+				log.Println("lengths different:", hdr.Size, n)
+			}
+			out.Close()
+			DebugLog.Println("file:", path)
+		case tar.TypeDir:
+			err = os.MkdirAll(path, hdr.FileInfo().Mode())
+			if err != nil {
+				return
+			}
+			DebugLog.Println("dir:", path)
+		case tar.TypeSymlink, tar.TypeGNULongLink:
+			link := strings.TrimPrefix(hdr.Linkname, "/")
+			os.Symlink(link, path)
+			DebugLog.Println("link:", path, "->", link)
+		default:
+			log.Printf("unsupported file type %c\n", hdr.Typeflag)
+		}
+	}
+	log.Println("installed", f, "to", basedir)
+
 	return
 }
 
@@ -218,4 +244,66 @@ func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
 		}
 	}
 	return
+}
+
+// fetch a (the latest) component from a URL, but the URLs
+// are special and the resultant redirection contains the filename
+// etc.
+//
+// URL is
+// https://resources.itrsgroup.com/download/latest/[COMPONENT]?os=linux
+// is RHEL8 is required, add ?title=el8
+//
+// there is a mapping of our compoent types to the URLs too.
+//
+// Gateway -> Gateway+2
+// Netprobe -> Netprobe
+// Licd -> Licence+Daemon
+// Webserver -> Web+Dashboard
+//
+// auth requires a POST with a JSON body of
+// { "username": "EMAIL", "password": "PASSWORD" }
+// until anon access is allowed
+//
+
+const defaultURL = "https://resources.itrsgroup.com/download/latest"
+
+type DownloadAuth struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+var downloadComponent = map[ComponentType]string{
+	Gateway:  "Gateway+2",
+	Netprobe: "Netprobe",
+	Licd:     "License+Daemon",
+}
+
+func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err error) {
+	baseurl := Config.DownloadURL
+	if baseurl == "" {
+		baseurl = defaultURL
+	}
+
+	var authbody DownloadAuth
+	authbody.Username = Config.DownloadUser
+	authbody.Password = Config.DownloadPass
+
+	authjson, err := json.Marshal(authbody)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	resp, err := http.Post(baseurl+"/"+downloadComponent[ct]+"?os=linux", "application/json", bytes.NewBuffer(authjson))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if resp.StatusCode != 200 {
+		log.Fatalln(resp.Status)
+	}
+	u := resp.Request.URL
+	filename = filepath.Base(u.Path)
+	body = resp.Body
+	return
+
 }

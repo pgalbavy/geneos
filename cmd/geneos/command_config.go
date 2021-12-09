@@ -21,7 +21,9 @@ type ConfigType struct {
 	ITRSHome string `json:",omitempty"`
 
 	// Root URL for all downloads of software archives
-	DownloadURL string `json:",omitempty"`
+	DownloadURL  string `json:",omitempty"`
+	DownloadUser string `json:",omitempty"`
+	DownloadPass string `json:",omitempty"`
 
 	// Username to start components if not explicitly defined
 	// and we are running with elevated privileges
