@@ -53,14 +53,12 @@ func getPorts() (ports map[int]ComponentType) {
 	confs := allInstances() // sorting doesn't matter
 	for _, cts := range confs {
 		for _, c := range cts {
-			err := loadConfig(&c, false)
-			if err != nil {
+			if err := loadConfig(&c, false); err != nil {
 				log.Println(Type(c), Name(c), "- cannot load configuration")
 				continue
 			}
 			if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
-				p, err := strconv.Atoi(port)
-				if err == nil {
+				if p, err := strconv.Atoi(port); err == nil {
 					ports[int(p)] = Type(c)
 				}
 			}
@@ -118,8 +116,7 @@ func nextPort(from string) int {
 				continue
 			}
 			for i := min; i <= max; i++ {
-				_, ok := used[i]
-				if !ok {
+				if _, ok := used[i]; !ok {
 					// found an unused port
 					return i
 				}
@@ -129,8 +126,7 @@ func nextPort(from string) int {
 			if err != nil || p1 < 1 || p1 > 49151 {
 				continue
 			}
-			_, ok := used[p1]
-			if !ok {
+			if _, ok := used[p1]; !ok {
 				return p1
 			}
 		}
