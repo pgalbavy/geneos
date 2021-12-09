@@ -300,13 +300,11 @@ func setFieldSlice(c interface{}, k string, v []string) (err error) {
 func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err error) {
 	for _, name := range args {
 		for _, c := range New(ct, name) {
-			err = loadConfig(c, false)
-			if err != nil {
+			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
 			}
-			err = fn(c)
-			if err != nil {
+			if err = fn(c); err != nil {
 				log.Println(Type(c), Name(c), err)
 			}
 		}

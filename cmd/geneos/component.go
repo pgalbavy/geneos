@@ -194,8 +194,7 @@ func NewInstance(c interface{}) {
 				}
 
 				var b bytes.Buffer
-				err = val.Execute(&b, c)
-				if err != nil {
+				if err = val.Execute(&b, c); err != nil {
 					log.Println("cannot convert:", def)
 				}
 				setField(c, ft.Name, b.String())

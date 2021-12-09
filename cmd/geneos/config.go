@@ -56,19 +56,16 @@ func loadConfig(c Instance, update bool) (err error) {
 	j := baseconf + ".json"
 	jsonFile, err := os.ReadFile(j)
 	if err == nil {
-		err = json.Unmarshal(jsonFile, &c)
-		if err != nil {
+		if err = json.Unmarshal(jsonFile, &c); err != nil {
 			return
 		}
 	} else {
-		err = readRCConfig(c)
-		if err != nil {
+		if err = readRCConfig(c); err != nil {
 			return
 		}
 		if update {
 			// select if we want this or not
-			err = writeConfigFile(baseconf+".json", c)
-			if err == nil {
+			if err = writeConfigFile(baseconf+".json", c); err == nil {
 				os.Rename(baseconf+".rc", baseconf+".rc.orig")
 			}
 			log.Println(Type(c), Name(c), "migrated to JSON config")
@@ -85,8 +82,7 @@ func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
 		getString(c, "BinSuffix"))
 
 	// test binary for access
-	_, err := os.Stat(binary)
-	if err != nil {
+	if _, err := os.Stat(binary); err != nil {
 		log.Println("binary not found:", binary)
 		return
 	}

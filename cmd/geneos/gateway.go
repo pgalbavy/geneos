@@ -88,8 +88,7 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 		return
 	}
 	defer cf.Close()
-	err = t.Execute(cf, c)
-	if err != nil {
+	if err = t.Execute(cf, c); err != nil {
 		log.Fatalln(err)
 	}
 	return

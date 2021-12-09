@@ -70,8 +70,7 @@ func main() {
 	switch command {
 	// come commands just want the raw command args, or none
 	case "help", "version", "init":
-		err := commands[command].Function(ct, args)
-		if err != nil {
+		if err := commands[command].Function(ct, args); err != nil {
 			// bleh
 		}
 		os.Exit(0)
@@ -91,8 +90,7 @@ func main() {
 		// process set or show global|user or keep going to instances
 		if len(args) > 0 && (args[0] == "user" || args[0] == "global") {
 			// output on-disk global or user config, not resolved one
-			err := commands[command].Function(ct, args)
-			if err != nil {
+			if err := commands[command].Function(ct, args); err != nil {
 				log.Fatalln(err)
 			}
 			os.Exit(0)
@@ -133,8 +131,7 @@ func main() {
 		}
 
 		// the command has to understand ct == None/Unknown
-		err = c.Function(ct, args)
-		if err != nil {
+		if err = c.Function(ct, args); err != nil {
 			log.Fatalln(err)
 		}
 	}
