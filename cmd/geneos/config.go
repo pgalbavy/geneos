@@ -472,7 +472,6 @@ func setCommand(ct ComponentType, names []string) (err error) {
 	var cs []Instance
 	var setFlag bool
 
-	log.Println(names)
 	for _, name := range names {
 		if !strings.Contains(name, "=") {
 			// if any settings have been seen but there is a non-setting
@@ -513,34 +512,33 @@ func setCommand(ct ComponentType, names []string) (err error) {
 					e[0] = strings.TrimPrefix(e[0], "-")
 					remove = true
 				}
-				var exists bool
 				anchor := "="
 				if remove && strings.HasSuffix(e[0], "*") {
 					// wildcard removal (only)
 					e[0] = strings.TrimSuffix(e[0], "*")
 					anchor = ""
 				}
-				for i, n := range env {
+				var exists bool
+				// transfer ietms to new slice as removing items in a loop
+				// does random things
+				var newenv []string
+				for _, n := range env {
 					if strings.HasPrefix(n, e[0]+anchor) {
-						if remove {
-							if i < len(env) {
-								env = append(env[:i], env[i+1:]...)
-							} else {
-								env = env[:i-1]
-							}
-						} else {
-							env[i] = v
-							// mark as set and break, as we only set the first match
+						if !remove {
+							// replace with new value
+							newenv = append(newenv, v)
 							exists = true
-							break
 						}
+					} else {
+						// copy existing
+						newenv = append(newenv, n)
 					}
 				}
 				// add a new item rather than update or remove
 				if !exists && !remove {
-					env = append(env, v)
+					newenv = append(newenv, v)
 				}
-				setFieldSlice(c, k, env)
+				setFieldSlice(c, k, newenv)
 			} else {
 				setField(c, k, v)
 			}
