@@ -26,8 +26,8 @@ func commandEdit(ct ComponentType, args []string) (err error) {
 	if editor == "" {
 		editor = os.Getenv("EDITOR")
 		if editor == "" {
-			log.Println("VISUAL or EDITOR must be defined")
-			return
+			// let the Linux alternatives system sort it out
+			editor = "editor"
 		}
 	}
 
@@ -58,7 +58,7 @@ func commandEdit(ct ComponentType, args []string) (err error) {
 		}
 	}
 	if len(cs) > 0 {
-		editConfigFiles(editor, cs...)
+		err = editConfigFiles(editor, cs...)
 	}
 
 	return
@@ -66,6 +66,9 @@ func commandEdit(ct ComponentType, args []string) (err error) {
 
 func editConfigFiles(editor string, files ...string) (err error) {
 	cmd := exec.Command(editor, files...)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	return
 }
