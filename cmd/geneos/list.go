@@ -7,26 +7,12 @@ func init() {
 }
 
 func commandList(ct ComponentType, args []string) error {
-	switch ct {
-	case None, Unknown:
-		comps := allInstances()
-		for _, cts := range ComponentTypes() {
-			confs, ok := comps[cts]
-			if !ok {
-				continue
-			}
-			for _, c := range confs {
-				log.Printf("%s => %q\n", Type(c), Name(c))
-			}
-		}
+	return loopCommand(listInstance, ct, args)
+}
 
-	default:
-		confs := instances(ct)
-		for _, c := range confs {
-			log.Printf("%s => %q\n", Type(c), Name(c))
-		}
-	}
-	return nil
+func listInstance(c Instance) (err error) {
+	log.Println(Type(c), Name(c))
+	return
 }
 
 // also:
@@ -35,49 +21,26 @@ func commandList(ct ComponentType, args []string) error {
 //
 // CSV and JSON versions for automation
 func commandStatus(ct ComponentType, args []string) error {
-	switch ct {
-	case None, Unknown:
-		comps := allInstances()
-		for _, cts := range ComponentTypes() {
-			confs, ok := comps[cts]
-			if !ok {
-				continue
-			}
-			for _, c := range confs {
-				if isDisabled(c) {
-					log.Println(Type(c), Name(c), ErrDisabled)
-					continue
-				}
-				pid, err := findProc(c)
-				if err != nil {
-					log.Println(Type(c), Name(c), err)
-					continue
-				}
-				log.Println(Type(c), Name(c), "PID", pid)
-			}
-		}
+	return loopCommand(statusInstance, ct, args)
+}
 
-	default:
-		confs := instances(ct)
-		for _, c := range confs {
-			if isDisabled(c) {
-				log.Println(Type(c), Name(c), ErrDisabled)
-				continue
-			}
-			pid, err := findProc(c)
-			if err != nil {
-				log.Println(Type(c), Name(c), err)
-				continue
-			}
-			log.Println(Type(c), Name(c), "PID", pid)
-		}
+func statusInstance(c Instance) (err error) {
+	if isDisabled(c) {
+		log.Println(Type(c), Name(c), ErrDisabled)
+		return nil
 	}
-	return nil
+	pid, err := findProc(c)
+	if err != nil {
+		log.Println(Type(c), Name(c), err)
+		return
+	}
+	log.Println(Type(c), Name(c), "PID", pid)
+	return
 }
 
 func commandCommand(ct ComponentType, args []string) (err error) {
 	for _, name := range args {
-		for _, c := range New(ct, name) {
+		for _, c := range NewComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				return
