@@ -199,16 +199,19 @@ func parseArgs(args []string) (ct ComponentType, names []string) {
 		}
 	}
 
+	// make sure names/args are unique but retain order
 	if len(names) > 1 {
-		// make sure names are unique
+		var newnames []string
+
 		m := make(map[string]bool, len(names))
 		for _, name := range names {
+			if m[name] {
+				continue
+			}
+			newnames = append(newnames, name)
 			m[name] = true
 		}
-		names = nil
-		for name := range m {
-			names = append(names, name)
-		}
+		names = newnames
 	}
 
 	return
