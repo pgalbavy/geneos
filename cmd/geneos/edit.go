@@ -22,6 +22,10 @@ func commandEdit(ct ComponentType, args []string) (err error) {
 		return
 	}
 
+	if superuser {
+		log.Fatalln("no editing as root, for now")
+	}
+
 	editor := os.Getenv("VISUAL")
 	if editor == "" {
 		editor = os.Getenv("EDITOR")
