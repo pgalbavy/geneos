@@ -382,7 +382,7 @@ func printConfigSliceJSON(Slice []Instance) (err error) {
 	s := "["
 	for _, i := range Slice {
 		if x, err := marshalStruct(i, "    "); err == nil {
-			s += "\n" + x + "\n"
+			s += "\n    " + x + "\n"
 		}
 	}
 	s += "]"
@@ -435,6 +435,8 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 //
 // What is read only? Name, others?
 //
+// support for Env slice in probe (and generally)
+//
 func setCommand(ct ComponentType, names []string) (err error) {
 	if len(names) == 0 {
 		return os.ErrInvalid
@@ -450,7 +452,7 @@ func setCommand(ct ComponentType, names []string) (err error) {
 		return setConfig(filepath.Join(userConfDir, "geneos.json"), names[1:])
 	}
 
-	// check if all args have an '=' - if so do the same as "set user"
+	// check if all args have an '=' - if so default to "set user"
 	eqs := len(names)
 	for _, arg := range names {
 		if strings.Contains(arg, "=") {
@@ -466,37 +468,84 @@ func setCommand(ct ComponentType, names []string) (err error) {
 	// components - parse the args again and load/print the config,
 	// but allow for RC files again
 	//
-	// consume component names, stop at first parameter, error out if more names?
+	// consume component names, stop at first parameter, error out if more names
 	var cs []Instance
 	var setFlag bool
 
+	log.Println(names)
 	for _, name := range names {
-		if strings.Contains(name, "=") {
-			s := strings.SplitN(name, "=", 2)
-			// loop through all provided components, set the parameter(s)
-			for _, c := range cs {
-				setField(c, s[0], s[1])
-				setFlag = true
+		if !strings.Contains(name, "=") {
+			// if any settings have been seen but there is a non-setting
+			// then stop processing, maybe error out
+			if setFlag {
+				log.Println("already found settings")
+				// error out
+				break
+			}
+
+			// this is still an instance name, squirrel away and loop
+			for _, c := range New(ct, name) {
+				// migration required to set values
+				if err = loadConfig(c, true); err != nil {
+					log.Println(Type(c), Name(c), "cannot load configuration")
+					continue
+				}
+				cs = append(cs, c)
 			}
 			continue
 		}
 
-		// if params found, stop if another component found
-		if setFlag {
-			log.Println("found")
-			// error out
-			break
-		}
+		// special handling for "Env" field, which is always
+		// a slice of environment key=value pairs
+		// 'geneos set probe Env=JAVA_HOME=/path'
+		// remove with leading '-' ?
+		// 'geneos set probe Env=-PASSWORD'
+		s := strings.SplitN(name, "=", 2)
+		k, v := s[0], s[1]
 
-		for _, c := range New(ct, name) {
-			// migration required to set values
-			if err = loadConfig(c, true); err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				continue
+		// loop through all provided components, set the parameter(s)
+		for _, c := range cs {
+			if k == "Env" {
+				var remove bool
+				env := getSliceStrings(c, k)
+				e := strings.SplitN(v, "=", 2)
+				if strings.HasPrefix(e[0], "-") {
+					e[0] = strings.TrimPrefix(e[0], "-")
+					remove = true
+				}
+				var exists bool
+				anchor := "="
+				if remove && strings.HasSuffix(e[0], "*") {
+					// wildcard removal (only)
+					e[0] = strings.TrimSuffix(e[0], "*")
+					anchor = ""
+				}
+				for i, n := range env {
+					if strings.HasPrefix(n, e[0]+anchor) {
+						if remove {
+							log.Println(len(env), i, n)
+							if i < len(env) {
+								env = append(env[:i], env[i+1:]...)
+							} else {
+								env = env[:i-1]
+							}
+						} else {
+							env[i] = v
+							// mark as set and break, as we only set the first match
+							exists = true
+							break
+						}
+					}
+				}
+				// add a new item rather than update or remove
+				if !exists && !remove {
+					env = append(env, v)
+				}
+				setFieldSlice(c, k, env)
+			} else {
+				setField(c, k, v)
 			}
-			if c != nil {
-				cs = append(cs, c)
-			}
+			setFlag = true
 		}
 	}
 
