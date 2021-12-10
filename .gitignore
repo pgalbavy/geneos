@@ -6,3 +6,4 @@ example/example
 *.old
 cmd/geneos/geneos
 cmd/geneos/geneos.gz
+tools/libemailgo/libemailgo
