@@ -156,7 +156,5 @@ func readRCConfig(c Instance) (err error) {
 		}
 	}
 
-	setFieldSlice(c, "Env", env)
-
-	return
+	return setFieldSlice(c, "Env", env)
 }
