@@ -1,41 +1,74 @@
 # `geneos`
 
-The `geneos` program will help you manage your Geneos components. Some of it's features, existing and planned, include:
+The `geneos` program will help you manage your Geneos environment, one server at a time. Some of it's features, existing and planned, include:
 
-* Set-up a new environment with a single command
+* Set-up a new environment with a series of simple commands
 * Add new instances of common componments with sensible defaults
 * Check the status of components
-* Stop, start, restart components (without those unnecessary delays from `sleep` in traditional shell scripts)
+* Stop, start, restart components (without unnecessary delays)
 * Support fo existing gatewayctl/netprobectl/licdctl scripts and their file and configuration layout
 * Convert existing set-ups to JSON based configs with more options
+* Edit individual settings of instances
+* Automatically download and install the latest packages (authentication required, for now)
+* Update running versions
 
-* 
 
-## Installation
+## Getting Started
 
-Either download the standalone binary or build from source:
+You can either download a sinfle binary - or build and install from source, if you have Go 1.17+ installed:
 
-```
-git clone https://github.com/pgalbavy/geneos.git
-cd geneos/cmd/geneos
-go build
-- or -
-go install
-```
+`go install wonderland.org/geneos/cmd/geneos@latest`
 
-Make sure that the `geneos` program is in your normal `PATH` to make execution easier. You should be able to immediately run these:
+or - if you want the bleeding edge -
+
+`go install wonderland.org/geneos/cmd/geneos@HEAD`
+
+Make sure that the `geneos` program is in your normal `PATH` - or that $HOME/go/bin is if you used the method above - to make things simpler.
+
+### Existing Installation
+
+If you have an existing Geneos installation that you manage with the legacy `gatewayctl` / `netprobectl` commands then you can try these:
 
 `geneos list` - show all components
 `geneos status` - show their running status
 `geneos show` - show the default configuration values
 
-Neither of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
+None of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
+
+Note: You will have to set an environment variable `ITRS_HOME` pointing to the top-level directory of an existing installation or use:
+
+`geneos set ITRSHome=/path/to/install`
+
+This path is where the `packages` and `gateway` directories live. If you do not have an existing installation then wait until we initialise one below.
+
+## New Installation
+
+```bash
+geneos init
+geneos set DownloadUser="email" DownloadPass="password"
+geneos install latest
+geneos create gateway Gateway1
+geneos create netprobe Netprobe1
+geneos create licd Licd1
+[add license file - todo]
+geneos start
+```
+
+You still have to configure the Gateway to connect to the Netprobe, but all three components should now be running. You can check with:
+
+`geneos status`
 
 ## Usage
 
-Please note that the precise combination of commands and parameters is changing with every commit. This list below is mostly, but not completely, up-to-date.
+Please note that the precise combination of commands and parameters is changing all the time. This list below is mostly, but not completely, up-to-date.
 
-### Components
+The general syntax is:
+
+`geneos COMMAND [optional component type] [optional names...]`
+
+There are a number of special cases, these are detailed below.
+
+### Component Types
 
 The following component types (and their aliases) are supported:
 
@@ -45,15 +78,15 @@ The following component types (and their aliases) are supported:
 * `licd` or `licds`
 * `webserver`, `webservers`, `webdashboard`. `dashboards`
 
-The above names are also treated as reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. This may cause some issues migrating existing installations. See below for more. 
+These names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
 
-The following commands are supported. Each command may treat arguments differently.
+### Commands
 
-* `geneos list [component]`
-Output a list of all configured components. If a compoent is supplied then restrict the list to that particular type.
+#### Security and Running as Root
 
-* `geneos status [component] [names...]`
-As above but show the running status of each matching component. If no names are given than all components are shown.
+The program has been written in such a way that is should be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
+
+#### Global Commands
 
 * `geneos version`
 Show the current version of the `geneos` program, which should match the tag of the overall `geneos` package.
@@ -61,23 +94,33 @@ Show the current version of the `geneos` program, which should match the tag of 
 * `geneos help`
 General help, initially a list of all the supported commands.
 
-* `geneos init`
-Initialise the environment.
+* `geneos list [component]`
+Output a list of all configured components. If a compoent type is supplied then list just that particular type.
 
-* `geneos show`
-* `geneos set`
-* `geneos migrate`
-* `geneos revert`
-  View or change settings. The two forms of the command, `geneos config [show|set] global` and `geneos config [show|set] user` act on non-component specific settings such as the root directory and the base URL for downloading release archives. Then component specific versions also support `migrate` and `revert` to transform existnig `.rc` files to `.json` and to revert the changes. A more complete description is below.
+* `geneos status [component] [names...]`
+As above but show the running status of each matching component. If no names are given than all components are shown.
 
-  The optional environment variables in component configurations cannot yet be maintained with the command line tools.
+#### Environment Commands
 
-* `geneos command [component] [name...]`
-Shows details of the command syntax used for the component and any extra environment variables found in the configuration.
-(This may be merged into the `show` command above)
+* `geneos init [username] [directory]`
+Initialise the environment. 
 
-* `geneos create [component] name [name...]`
-Create a Geneos component configuration.
+* `geneos show [global|user]`
+Show the running configuration or, if `global` or `user` is supplied then the respective on-disk configuration files. Passwords are simplisticly redated.
+The instance specific `show` command is described below.
+
+* `geneos set [global|user] KEY=VALUE...`
+Set a program-wide configuration option. The default is to update the `user` configuration file. If `global` is given then the user has to have appropriate privileges to write to the global config file (`/etc/geneos/geneos.json`). Multiple KEY=VALUE pairs can be given but only fields that are recognised are updated.
+The instance specific version of the `set` command is described below.
+#### Package Managemwent Commands
+
+* `geneos install [archives...]` - Not yet
+Install a release archive in the `packages` hierarchy.
+
+* `geneos update component`
+Update the component base binary link
+
+#### Instance Control Commands
 
 * `geneos start [component] [name...]`
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
@@ -94,17 +137,28 @@ Restarts matching geneos components. Each component is stopped and started in se
 * `geneos reload|refresh [component] name [name...]`
 Cause the component to reload it's configuration or restart as appropriate.
 
-* `geneos install [archives...]` - Not yet
-Install a release archive in the `packages` hierarchy.
-
-* `geneos update component`
-Update the component base binary link
-
 * `geneos disable [component] [name...]`
 Stop and disable the selected compoents by placing a file in wach working directory with a `.disable` extention
 
 * `geneos enable [component] [name...]`
 Remove the `.disable` lock file and start the selected components
+
+* `geneos clean [component] [names]`
+Clean up component
+
+#### Instance Configuration Commands
+
+* `geneos create [component] name [name...]`
+Create a Geneos component configuration.
+
+* `geneos migrate [component] [instance...]`
+Migrate legacy `.rc` files to `.json` and backup the original file with an `.orig` extension. This backup file can be used by the `revert` command, below, to restore the original `.rc` file(s)
+
+* `geneos revert [component] [instance...]`
+Revert to the original configuration files, deleting the `.json` files. Note that the `.rc` files are never changed and any configuration changes to the `.json` configuration will not be retained.
+
+* `geneos command [component] [name...]`
+Shows details of the command syntax used for the component and any extra environment variables found in the configuration.
 
 * `geneos rename [component] name newname`
 Rename the compoent, but this only affects the container directory, this programs JSON configursation file and does not update the contents of any other files.
@@ -115,8 +169,6 @@ Deletes the disabled component given. Only works on components that have been di
 * `geneos edit [user|component] [names]`
 Open an editor for the selected instances or user config file
 
-* `geneos clean [component] [names]`
-Clean up component
 
 ## Configuration Files
 
@@ -133,6 +185,14 @@ The home directory for all other commands. See [Directory Layout](#directory-lay
 * `DownloadURL`
 The base URL for downloads for automating installations. Not yet used.
 If files are locally downloaded then this can either be a `file://` style URL or a directory path.
+
+* `DownloadUser` & `DownloadPass`
+
+* `DefaultUser`
+Principally used when running with elevated priviliedge (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.
+
+* `GatewayPortRange` & `NetprobePortRange` & `LicdPortRange`
+
 
 ### Component Configuration
 
@@ -158,7 +218,7 @@ netprobe/
 licd/
 ```
 
-The `bin/` directory and the default `.rc` files are **ignored** so be aware if you have changed anything in `bin/` it will not be used.
+The `bin/` directory and the default `.rc` files are **ignored** so be aware if you have customised anything in `bin/`.
 
 As a very quick recap, each component directory will have a subdirectory with the plural of the name (`gateway` -> `gateways`) which will contain multiple subdirectories, one per instance, and these act as the configuration and working directories for the individual processes. Taking an example gateway called `Gateway1` the path will be:
 
@@ -172,3 +232,4 @@ gateway.txt
 ```
 
 There will also be an XML setup file and so on.
+ 

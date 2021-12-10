@@ -28,18 +28,7 @@ func init() {
 // 'geneos install netprobe latest'
 func commandInstall(ct ComponentType, files []string) (err error) {
 	if len(files) == 1 && files[0] == "latest" {
-		f, gz, err := fetchLatest(ct)
-		if err != nil {
-			return err
-		}
-		defer gz.Close()
-
-		log.Println("fetching latest", ct.String(), f)
-
-		if err = unarchive(f, gz); err != nil {
-			return err
-		}
-		return updateLatest(ct, true)
+		return installLatest(ct)
 	}
 
 	for _, archive := range files {
@@ -58,6 +47,34 @@ func commandInstall(ct ComponentType, files []string) (err error) {
 	return updateLatest(ct, true)
 }
 
+func installLatest(ct ComponentType) (err error) {
+	switch ct {
+	case None:
+		for _, t := range ComponentTypes() {
+			if err = installLatest(t); err != nil {
+				if !errors.Is(err, fs.ErrExist) {
+					return
+				}
+				log.Println(err)
+			}
+		}
+		return nil
+	default:
+		f, gz, err := fetchLatest(ct)
+		if err != nil {
+			return err
+		}
+		defer gz.Close()
+
+		log.Println("fetching latest", ct.String(), f)
+
+		if err = unarchive(f, gz); err != nil {
+			return err
+		}
+		return updateLatest(ct, true)
+	}
+}
+
 func unarchive(f string, gz io.Reader) (err error) {
 	parts := strings.Split(f, "-")
 	if parts[0] != "geneos" {
@@ -73,7 +90,7 @@ func unarchive(f string, gz io.Reader) (err error) {
 	version := parts[2]
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", comp.String(), version)
 	if _, err = os.Stat(basedir); err == nil {
-		return fmt.Errorf("%s: %s", basedir, fs.ErrExist)
+		return fmt.Errorf("%s: %w", basedir, fs.ErrExist)
 	}
 	if err = os.MkdirAll(basedir, 0775); err != nil {
 		return
@@ -158,8 +175,12 @@ func updateLatest(ct ComponentType, readonly bool) error {
 	basepath := filepath.Join(basedir, base)
 
 	switch ct {
-	case Gateways, Netprobes:
-		if version == "latest" {
+	case None:
+		for _, t := range ComponentTypes() {
+			updateLatest(t, readonly)
+		}
+	case Gateways, Netprobes, Licds:
+		if version == "" || version == "latest" {
 			version = getLatest(basedir)
 		}
 		current, err := os.Readlink(basepath)
@@ -189,10 +210,10 @@ func updateLatest(ct ComponentType, readonly bool) error {
 			return err
 		}
 		log.Println(ct.String(), base, "updated to", version)
-		return nil
 	default:
 		return ErrNotSupported
 	}
+	return nil
 }
 
 // given a directory find the "latest" version of the form

@@ -277,10 +277,10 @@ func setField(c interface{}, k string, v string) (err error) {
 			i, _ := strconv.Atoi(v)
 			fv.SetInt(int64(i))
 		default:
-			return fmt.Errorf("cannot set %q to a %T: %s", k, v, ErrInvalidArgs)
+			return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
 		}
 	} else {
-		return fmt.Errorf("cannot set %q: %s", k, ErrInvalidArgs)
+		return fmt.Errorf("cannot set %q: %w", k, ErrInvalidArgs)
 	}
 	return
 }

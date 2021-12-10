@@ -617,7 +617,7 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	}
 	f, err := os.CreateTemp(dir, name)
 	if err != nil {
-		err = fmt.Errorf("cannot create %q: %s", file, errors.Unwrap(err))
+		err = fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
 		return
 	}
 	defer os.Remove(f.Name())
@@ -713,7 +713,7 @@ func renameCommand(ct ComponentType, args []string) (err error) {
 	}
 	to := New(ct, args[1])[0]
 	if err = loadConfig(to, false); err == nil {
-		return fmt.Errorf(args[1], "already exists")
+		return fmt.Errorf("%s: %w", args[1], fs.ErrExist)
 	}
 	from := New(ct, args[0])[0]
 	if err = loadConfig(from, true); err != nil {
