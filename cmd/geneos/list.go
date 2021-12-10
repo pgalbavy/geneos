@@ -82,13 +82,13 @@ func commandCommand(ct ComponentType, args []string) (err error) {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				return
 			}
-			command(c)
+			commandInstance(c)
 		}
 	}
 	return
 }
 
-func command(c Instance) {
+func commandInstance(c Instance) {
 	cmd, env := buildCommand(c)
 	if cmd != nil {
 		log.Printf("command: %q\n", cmd.String())

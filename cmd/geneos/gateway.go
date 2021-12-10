@@ -8,8 +8,8 @@ import (
 	"text/template" // text and not html for generating XML!
 )
 
-type GatewayComponent struct {
-	Instances
+type Gateway struct {
+	Components
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
@@ -32,17 +32,17 @@ const gatewayPortRange = "7039,7100-"
 //go:embed emptyGateway.xml
 var emptyXMLTemplate string
 
-func NewGateway(name string) (c *GatewayComponent) {
+func NewGateway(name string) (c *Gateway) {
 	// Bootstrap
-	c = &GatewayComponent{}
-	c.Root = Config.ITRSHome
-	c.Type = Gateway
+	c = &Gateway{}
+	c.Root = RunningConfig.ITRSHome
+	c.Type = Gateways
 	c.Name = name
 	NewInstance(&c)
 	return
 }
 
-func gatewayCmd(c Instance) (args, env []string) {
+func gatewayCommand(c Instance) (args, env []string) {
 	// get opts from
 	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
 	//
@@ -73,7 +73,7 @@ func gatewayCmd(c Instance) (args, env []string) {
 func gatewayCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = NewGateway(name)
-	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(Config.GatewayPortRange)))
+	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.GatewayPortRange)))
 	setField(c, Prefix(c)+"User", username)
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	writeConfigFile(conffile, c)

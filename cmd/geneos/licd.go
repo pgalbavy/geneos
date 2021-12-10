@@ -1,7 +1,7 @@
 package main
 
-type LicdComponent struct {
-	Instances
+type Licd struct {
+	Components
 	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
 	LicdBins  string `default:"{{join .Root \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
@@ -17,16 +17,16 @@ type LicdComponent struct {
 
 const licdPortRange = "7041,7100-"
 
-func NewLicd(name string) (c *LicdComponent) {
+func NewLicd(name string) (c *Licd) {
 	// Bootstrap
-	c = &LicdComponent{}
-	c.Root = Config.ITRSHome
-	c.Type = Licd
+	c = &Licd{}
+	c.Root = RunningConfig.ITRSHome
+	c.Type = Licds
 	c.Name = name
 	NewInstance(&c)
 	return
 }
 
-func licdCmd(c Instance) (args, env []string) {
+func licdCommand(c Instance) (args, env []string) {
 	return
 }

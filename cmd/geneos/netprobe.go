@@ -5,8 +5,8 @@ import (
 	"strconv"
 )
 
-type NetprobeComponent struct {
-	Instances
+type Netprobe struct {
+	Components
 	NetpHome  string `default:"{{join .Root \"netprobe\" \"netprobes\" .Name}}"`
 	NetpBins  string `default:"{{join .Root \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
@@ -22,17 +22,17 @@ type NetprobeComponent struct {
 
 const netprobePortRange = "7036,7100-"
 
-func NewNetprobe(name string) (c *NetprobeComponent) {
+func NewNetprobe(name string) (c *Netprobe) {
 	// Bootstrap
-	c = &NetprobeComponent{}
-	c.Root = Config.ITRSHome
-	c.Type = Netprobe
+	c = &Netprobe{}
+	c.Root = RunningConfig.ITRSHome
+	c.Type = Netprobes
 	c.Name = name
 	NewInstance(&c)
 	return
 }
 
-func netprobeCmd(c Instance) (args, env []string) {
+func netprobeCommand(c Instance) (args, env []string) {
 	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
 	args = []string{
 		Name(c),
@@ -46,7 +46,7 @@ func netprobeCmd(c Instance) (args, env []string) {
 func netprobeCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = NewNetprobe(name)
-	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(Config.NetprobePortRange)))
+	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.NetprobePortRange)))
 	setField(c, Prefix(c)+"User", username)
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	writeConfigFile(conffile, c)

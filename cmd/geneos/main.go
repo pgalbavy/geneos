@@ -81,7 +81,7 @@ func main() {
 			// check the unparsed args here
 			if len(os.Args[2:]) == 0 {
 				// output resolved config and exit
-				printConfigJSON(Config)
+				printConfigStructJSON(RunningConfig)
 				os.Exit(0)
 			}
 		}
@@ -99,29 +99,29 @@ func main() {
 		fallthrough
 	default:
 		// test home dir, stop if invalid
-		if Config.ITRSHome == "" {
+		if RunningConfig.ITRSHome == "" {
 			log.Fatalln("home directory is not set")
 		}
-		s, err := os.Stat(Config.ITRSHome)
+		s, err := os.Stat(RunningConfig.ITRSHome)
 		if err != nil {
-			log.Fatalf("home directory %q: %s", Config.ITRSHome, errors.Unwrap(err))
+			log.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
 		}
 		if !s.IsDir() {
-			log.Fatalln(Config.ITRSHome, "is not a directory")
+			log.Fatalln(RunningConfig.ITRSHome, "is not a directory")
 		}
 
 		// we have a valid home directory, now set default user if
 		// not set elsewhere
-		if Config.DefaultUser == "" {
+		if RunningConfig.DefaultUser == "" {
 			s2 := s.Sys().(*syscall.Stat_t)
 			if s2.Uid == 0 {
-				log.Fatalf("home directory %q: owned by root and no default user configured", Config.ITRSHome)
+				log.Fatalf("home directory %q: owned by root and no default user configured", RunningConfig.ITRSHome)
 			}
 			u, err := user.LookupId(fmt.Sprint(s2.Uid))
 			if err != nil {
-				log.Fatalln(Config.ITRSHome, err)
+				log.Fatalln(RunningConfig.ITRSHome, err)
 			}
-			Config.DefaultUser = u.Username
+			RunningConfig.DefaultUser = u.Username
 		}
 
 		//logger.EnableDebugLog()

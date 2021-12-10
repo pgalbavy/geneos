@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ type ConfigType struct {
 	LicdPortRange     string `json:",omitempty"`
 }
 
-var Config ConfigType
+var RunningConfig ConfigType
 
 func init() {
 	commands["init"] = Command{initCommand, nil, "initialise"}
@@ -68,12 +69,12 @@ var initDirs = []string{
 // load system config from global and user JSON files and process any
 // environment variables we choose
 func loadSysConfig() {
-	readConfigFile(globalConfig, &Config)
+	readConfigFile(globalConfig, &RunningConfig)
 
 	// root should not have a per-user config, but if sun by sudo the
 	// HOME dir is conserved, so allow for now
 	userConfDir, _ := os.UserConfigDir()
-	err := readConfigFile(filepath.Join(userConfDir, "geneos.json"), &Config)
+	err := readConfigFile(filepath.Join(userConfDir, "geneos.json"), &RunningConfig)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Println(err)
 	}
@@ -81,21 +82,21 @@ func loadSysConfig() {
 	// setting the environment variable - to match legacy programs - overrides
 	// all others
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
-		Config.ITRSHome = h
+		RunningConfig.ITRSHome = h
 	}
 
-	if Config.GatewayPortRange == "" {
-		Config.GatewayPortRange = gatewayPortRange
-
-	}
-
-	if Config.NetprobePortRange == "" {
-		Config.NetprobePortRange = netprobePortRange
+	if RunningConfig.GatewayPortRange == "" {
+		RunningConfig.GatewayPortRange = gatewayPortRange
 
 	}
 
-	if Config.LicdPortRange == "" {
-		Config.LicdPortRange = licdPortRange
+	if RunningConfig.NetprobePortRange == "" {
+		RunningConfig.NetprobePortRange = netprobePortRange
+
+	}
+
+	if RunningConfig.LicdPortRange == "" {
+		RunningConfig.LicdPortRange = licdPortRange
 	}
 }
 
@@ -338,7 +339,7 @@ func showCommand(ct ComponentType, names []string) (err error) {
 	// allow overrides to show specific or components
 	if len(names) == 0 {
 		// special case "config show" for resolved settings
-		printConfigJSON(Config)
+		printConfigStructJSON(RunningConfig)
 		return
 	}
 
@@ -348,13 +349,13 @@ func showCommand(ct ComponentType, names []string) (err error) {
 	case "global":
 		var c ConfigType
 		readConfigFile(globalConfig, &c)
-		printConfigJSON(c)
+		printConfigStructJSON(c)
 		return
 	case "user":
 		var c ConfigType
 		userConfDir, _ := os.UserConfigDir()
 		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
-		printConfigJSON(c)
+		printConfigStructJSON(c)
 		return
 	}
 
@@ -372,16 +373,46 @@ func showCommand(ct ComponentType, names []string) (err error) {
 			}
 		}
 	}
-	printConfigJSON(cs)
+	printConfigSliceJSON(cs)
 
 	return
 }
 
-func printConfigJSON(Config interface{}) (err error) {
-	if buffer, err := json.MarshalIndent(Config, "", "    "); err == nil {
-		log.Printf("%s\n", buffer)
+func printConfigSliceJSON(Slice []Instance) (err error) {
+	s := "["
+	for _, i := range Slice {
+		if x, err := marshalStruct(i, "    "); err == nil {
+			s += "\n" + x + "\n"
+		}
 	}
+	s += "]"
+	log.Println(s)
 
+	return
+
+}
+
+func printConfigStructJSON(Config interface{}) (err error) {
+	if j, err := marshalStruct(Config, ""); err == nil {
+		log.Printf("%s\n", j)
+	}
+	return
+}
+
+// XXX redact passwords - any field matching some regexp ?
+// also embedded Envs
+//
+//
+var red1 = regexp.MustCompile(`"(.*((?i)pass|password|secret))": "(.*)"`)
+var red2 = regexp.MustCompile(`"(.*((?i)pass|password|secret))=(.*)"`)
+
+func marshalStruct(s interface{}, prefix string) (j string, err error) {
+	if buffer, err := json.MarshalIndent(s, prefix, "    "); err == nil {
+		j = string(buffer)
+	}
+	// simple redact - and left field with "Pass" in it gets the right replaced
+	j = red1.ReplaceAllString(j, `"$1": "********"`)
+	j = red2.ReplaceAllString(j, `"$1=********"`)
 	return
 }
 
@@ -566,15 +597,15 @@ const disableExtension = ".disabled"
 // if run as root, the disable file is owned by root too and
 // only root can remove it?
 func disableCommand(ct ComponentType, args []string) (err error) {
-	return loopCommand(disable, ct, args)
+	return loopCommand(disableInstance, ct, args)
 }
 
-func disable(c Instance) (err error) {
+func disableInstance(c Instance) (err error) {
 	if isDisabled(c) {
 		return fmt.Errorf("already disabled")
 	}
 
-	if err = stop(c); err != nil && err != ErrProcNotExist {
+	if err = stopInstance(c); err != nil && err != ErrProcNotExist {
 		return err
 	}
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
@@ -599,13 +630,13 @@ func disable(c Instance) (err error) {
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
 func enableCommand(ct ComponentType, args []string) (err error) {
-	return loopCommand(enable, ct, args)
+	return loopCommand(enableInstance, ct, args)
 }
 
-func enable(c Instance) (err error) {
+func enableInstance(c Instance) (err error) {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	if err = os.Remove(d); err == nil || errors.Is(err, os.ErrNotExist) {
-		err = start(c)
+		err = startInstance(c)
 	}
 	return
 }
@@ -642,7 +673,7 @@ func renameCommand(ct ComponentType, args []string) (err error) {
 	if err = loadConfig(from, true); err != nil {
 		log.Println(Type(from), Name(from), "cannot load configuration")
 	}
-	pid, err := findProc(from)
+	pid, _ := findProc(from)
 	if pid != 0 {
 		return ErrProcExists
 	}

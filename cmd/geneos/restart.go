@@ -5,12 +5,12 @@ func init() {
 }
 
 func commandRestart(ct ComponentType, args []string) (err error) {
-	return loopCommand(restart, ct, args)
+	return loopCommand(restartInstance, ct, args)
 }
 
-func restart(c Instance) (err error) {
-	if err = stop(c); err == nil {
-		return start(c)
+func restartInstance(c Instance) (err error) {
+	if err = stopInstance(c); err == nil {
+		return startInstance(c)
 	}
 	return
 }

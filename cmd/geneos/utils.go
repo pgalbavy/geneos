@@ -67,7 +67,7 @@ func getUser(username string) (uid, gid int, gids []uint32, err error) {
 	gid = -1
 
 	if username == "" {
-		username = Config.DefaultUser
+		username = RunningConfig.DefaultUser
 	}
 
 	u, err := user.Lookup(username)
@@ -310,4 +310,15 @@ func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err 
 		}
 	}
 	return nil
+}
+
+func slicetoi(s []string) (n []int) {
+	for _, x := range s {
+		i, err := strconv.Atoi(x)
+		if err != nil {
+			i = 0
+		}
+		n = append(n, i)
+	}
+	return
 }

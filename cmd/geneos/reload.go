@@ -11,10 +11,10 @@ func init() {
 }
 
 func commandReload(ct ComponentType, args []string) (err error) {
-	return loopCommand(reload, ct, args)
+	return loopCommand(reloadInstance, ct, args)
 }
 
-func reload(c Instance) (err error) {
+func reloadInstance(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil {
 		return

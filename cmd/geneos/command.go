@@ -92,12 +92,12 @@ func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
 	// XXX args and env vary depending on Component type - the below is for Gateway
 	// this should be pushed out to each compoent's own file
 	switch Type(c) {
-	case Gateway:
-		args, env = gatewayCmd(c)
-	case Netprobe:
-		args, env = netprobeCmd(c)
-	case Licd:
-		args, env = licdCmd(c)
+	case Gateways:
+		args, env = gatewayCommand(c)
+	case Netprobes:
+		args, env = netprobeCommand(c)
+	case Licds:
+		args, env = licdCommand(c)
 	default:
 		//
 	}

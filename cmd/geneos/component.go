@@ -13,10 +13,6 @@ import (
 
 // definitions and access methods for the generic component types
 
-type Instance interface {
-	// empty
-}
-
 type ComponentType int
 
 const (
@@ -24,29 +20,29 @@ const (
 	None ComponentType = iota
 	// Unknown - doesn't match component type
 	Unknown
-	Gateway
-	Netprobe
-	Licd
-	Webserver
+	Gateways
+	Netprobes
+	Licds
+	Webservers
 )
 
 // currently supported types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 func ComponentTypes() []ComponentType {
-	return []ComponentType{Gateway, Netprobe, Licd}
+	return []ComponentType{Gateways, Netprobes, Licds}
 }
 
 func (ct ComponentType) String() string {
 	switch ct {
 	case None:
 		return "none"
-	case Gateway:
+	case Gateways:
 		return "gateway"
-	case Netprobe:
+	case Netprobes:
 		return "netprobe"
-	case Licd:
+	case Licds:
 		return "licd"
-	case Webserver:
+	case Webservers:
 		return "webserver"
 	}
 	return "unknown"
@@ -57,19 +53,23 @@ func CompType(component string) ComponentType {
 	case "", "any":
 		return None
 	case "gateway", "gateways":
-		return Gateway
+		return Gateways
 	case "netprobe", "probe", "netprobes", "probes":
-		return Netprobe
+		return Netprobes
 	case "licd", "licds":
-		return Licd
+		return Licds
 	case "webserver", "webservers", "webdashboard", "dashboards":
-		return Webserver
+		return Webservers
 	default:
 		return Unknown
 	}
 }
 
-type Instances struct {
+type Instance interface {
+	// empty
+}
+
+type Components struct {
 	Instance `json:"-"`
 	Name     string        `json:"Name"`
 	Type     ComponentType `json:"-"`
@@ -91,7 +91,7 @@ func InstanceDirs(ct ComponentType) []string {
 //
 // No side-effects
 func InstanceDir(ct ComponentType) string {
-	return filepath.Join(Config.ITRSHome, ct.String(), ct.String()+"s")
+	return filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s")
 }
 
 func Type(c Instance) ComponentType {
@@ -153,13 +153,13 @@ func New(ct ComponentType, name string) (c []Instance) {
 		for _, cm := range cs {
 			c = append(c, New(cm, name)...)
 		}
-	case Gateway:
+	case Gateways:
 		c = []Instance{NewGateway(name)}
-	case Netprobe:
+	case Netprobes:
 		c = []Instance{NewNetprobe(name)}
-	case Licd:
+	case Licds:
 		c = []Instance{NewLicd(name)}
-	case Webserver:
+	case Webservers:
 		log.Println("webserver not supported yet")
 	default:
 		log.Println("unknown component", ct)

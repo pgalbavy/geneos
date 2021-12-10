@@ -23,7 +23,7 @@ func commandCreate(ct ComponentType, args []string) (err error) {
 
 	var username string
 	if superuser {
-		username = Config.DefaultUser
+		username = RunningConfig.DefaultUser
 	} else {
 		u, _ := user.Current()
 		username = u.Username
@@ -32,9 +32,9 @@ func commandCreate(ct ComponentType, args []string) (err error) {
 	switch ct {
 	case None, Unknown:
 		log.Fatalln("component type must be specified")
-	case Gateway:
+	case Gateways:
 		gatewayCreate(name, username)
-	case Netprobe:
+	case Netprobes:
 		netprobeCreate(name, username)
 	default:
 

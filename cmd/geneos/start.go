@@ -11,10 +11,10 @@ func init() {
 }
 
 func commandStart(ct ComponentType, args []string) (err error) {
-	return loopCommand(start, ct, args)
+	return loopCommand(startInstance, ct, args)
 }
 
-func start(c Instance) (err error) {
+func startInstance(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)

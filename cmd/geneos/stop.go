@@ -14,14 +14,14 @@ func init() {
 }
 
 func commandStop(ct ComponentType, args []string) (err error) {
-	return loopCommand(stop, ct, args)
+	return loopCommand(stopInstance, ct, args)
 }
 
 func commandKill(ct ComponentType, args []string) (err error) {
 	return loopCommand(kill, ct, args)
 }
 
-func stop(c Instance) (err error) {
+func stopInstance(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine

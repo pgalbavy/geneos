@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -72,7 +71,7 @@ func unarchive(f string, gz io.Reader) (err error) {
 		return
 	}
 	version := parts[2]
-	basedir := filepath.Join(Config.ITRSHome, "packages", comp.String(), version)
+	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", comp.String(), version)
 	if _, err = os.Stat(basedir); err == nil {
 		return fmt.Errorf("%s: %s", basedir, fs.ErrExist)
 	}
@@ -155,11 +154,11 @@ func commandUpdate(ct ComponentType, args []string) (err error) {
 func updateLatest(ct ComponentType, readonly bool) error {
 	version := "latest"
 	base := "active_prod"
-	basedir := filepath.Join(Config.ITRSHome, "packages", ct.String())
+	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String())
 	basepath := filepath.Join(basedir, base)
 
 	switch ct {
-	case Gateway, Netprobe:
+	case Gateways, Netprobes:
 		if version == "latest" {
 			version = getLatest(basedir)
 		}
@@ -178,8 +177,8 @@ func updateLatest(ct ComponentType, readonly bool) error {
 		insts := matchComponents(ct, "Base", base)
 		// stop matching instances
 		for _, i := range insts {
-			stop(i)
-			defer start(i)
+			stopInstance(i)
+			defer startInstance(i)
 		}
 		if err = os.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			//log.Println(err)
@@ -228,17 +227,6 @@ func getLatest(dir string) (latest string) {
 	return
 }
 
-func slicetoi(s []string) (n []int) {
-	for _, x := range s {
-		i, err := strconv.Atoi(x)
-		if err != nil {
-			i = 0
-		}
-		n = append(n, i)
-	}
-	return
-}
-
 // given a component type and a key/value pair, return matching
 // instances
 func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
@@ -263,10 +251,10 @@ func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
 //
 // there is a mapping of our compoent types to the URLs too.
 //
-// Gateway -> Gateway+2
-// Netprobe -> Netprobe
-// Licd -> Licence+Daemon
-// Webserver -> Web+Dashboard
+// Gateways -> Gateway+2
+// Netprobes -> Netprobe
+// Licds -> Licence+Daemon
+// Webservers -> Web+Dashboard
 //
 // auth requires a POST with a JSON body of
 // { "username": "EMAIL", "password": "PASSWORD" }
@@ -281,24 +269,24 @@ type DownloadAuth struct {
 }
 
 var downloadComponent = map[ComponentType]string{
-	Gateway:  "Gateway+2",
-	Netprobe: "Netprobe",
-	Licd:     "Licence+Daemon",
+	Gateways:  "Gateway+2",
+	Netprobes: "Netprobe",
+	Licds:     "Licence+Daemon",
 }
 
 //
 func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err error) {
-	baseurl := Config.DownloadURL
+	baseurl := RunningConfig.DownloadURL
 	if baseurl == "" {
 		baseurl = defaultURL
 	}
 
 	var resp *http.Response
 
-	if Config.DefaultUser != "" {
+	if RunningConfig.DefaultUser != "" {
 		var authbody DownloadAuth
-		authbody.Username = Config.DownloadUser
-		authbody.Password = Config.DownloadPass
+		authbody.Username = RunningConfig.DownloadUser
+		authbody.Password = RunningConfig.DownloadPass
 
 		var authjson []byte
 		authjson, err = json.Marshal(authbody)
