@@ -19,19 +19,17 @@ type Command struct {
 
 type Commands map[string]Command
 
-// process config file(s)
-
-func allInstances() (confs map[ComponentType][]Instance) {
-	confs = make(map[ComponentType][]Instance)
+// return a single slice of all instances, ordered and grouped
+func allInstances() (confs []Instance) {
 	for _, ct := range ComponentTypes() {
-		confs[ct] = instances(ct)
+		confs = append(confs, instances(ct)...)
 	}
 	return
 }
 
 func instances(ct ComponentType) (confs []Instance) {
 	for _, name := range InstanceDirs(ct) {
-		confs = append(confs, New(ct, name)...)
+		confs = append(confs, NewComponent(ct, name)...)
 	}
 	return
 }

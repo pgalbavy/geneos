@@ -1,4 +1,4 @@
-# `geneos`
+# `geneos` management program
 
 The `geneos` program will help you manage your Geneos environment, one server at a time. Some of it's features, existing and planned, include:
 
@@ -10,7 +10,7 @@ The `geneos` program will help you manage your Geneos environment, one server at
 * Convert existing set-ups to JSON based configs with more options
 * Edit individual settings of instances
 * Automatically download and install the latest packages (authentication required, for now)
-* Update running versions
+* Update running versions - stop, update, start
 
 
 ## Getting Started
@@ -158,7 +158,7 @@ Migrate legacy `.rc` files to `.json` and backup the original file with an `.ori
 Revert to the original configuration files, deleting the `.json` files. Note that the `.rc` files are never changed and any configuration changes to the `.json` configuration will not be retained.
 
 * `geneos command [component] [name...]`
-Shows details of the command syntax used for the component and any extra environment variables found in the configuration.
+Shows details of the full command used for the component and any extra environment variables found in the configuration.
 
 * `geneos rename [component] name newname`
 Rename the compoent, but this only affects the container directory, this programs JSON configursation file and does not update the contents of any other files.
@@ -167,8 +167,10 @@ Rename the compoent, but this only affects the container directory, this program
 Deletes the disabled component given. Only works on components that have been disabled beforehand.
 
 * `geneos edit [user|component] [names]`
-Open an editor for the selected instances or user config file
+Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
 
+* `geneos upload [component] name [file|url|-]`
+Upload a file from local, url or stdin (default) and backup previous versions. No directories, always into instance working directory. `geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
 
 ## Configuration Files
 

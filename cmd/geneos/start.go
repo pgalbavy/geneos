@@ -59,7 +59,7 @@ func startInstance(c Instance) (err error) {
 	}
 	cmd.Stdout = out
 	cmd.Stderr = out
-	cmd.Dir = filepath.Join(Home(c))
+	cmd.Dir = Home(c)
 
 	if err = cmd.Start(); err != nil {
 		return

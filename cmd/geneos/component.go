@@ -146,12 +146,12 @@ func dirs(dir string) []string {
 
 var textJoinFuncs = template.FuncMap{"join": filepath.Join}
 
-func New(ct ComponentType, name string) (c []Instance) {
+func NewComponent(ct ComponentType, name string) (c []Instance) {
 	switch ct {
 	case None:
 		cs := findInstances(name)
 		for _, cm := range cs {
-			c = append(c, New(cm, name)...)
+			c = append(c, NewComponent(cm, name)...)
 		}
 	case Gateways:
 		c = []Instance{NewGateway(name)}

@@ -160,61 +160,66 @@ func canControl(c Instance) bool {
 // will override the rest and result in a lookup being done
 //
 // special case (shortcircuit) "config" ?
-func parseArgs(args []string) (ct ComponentType, names []string) {
-	if len(args) == 0 {
+func parseArgs(rawargs []string) (ct ComponentType, args []string) {
+	if len(rawargs) == 0 {
 		// wildcard everything
 		ct = None
-	} else if ct = CompType(args[0]); ct == Unknown {
-		// this may be a name or config option instead
+	} else if ct = CompType(rawargs[0]); ct == Unknown {
+		// first arg is not a known type
 		ct = None
-		names = args
-		return
+		args = rawargs
+		// return // ??
 	} else {
-		names = args[1:]
+		args = rawargs[1:]
 	}
 
-	// no name is the same as all names
-	if len(names) == 0 {
-		names = []string{"all"}
-	}
-
-	// this doesn't work for all comp types - it adds all names
-	// of all components and returns that
-	for _, name := range names {
-		if name == "all" {
-			var confs []Instance
-			if ct == Unknown || ct == None {
-				// wildcard again
-				for _, v := range allInstances() {
-					confs = append(confs, v...)
-				}
-			} else {
-				confs = instances(ct)
-			}
-			names = nil
-			for _, c := range confs {
-				names = append(names, Name(c))
-			}
-			break
+	// empty list of names = all names for that ct
+	if len(args) == 0 {
+		var confs []Instance
+		switch ct {
+		case None, Unknown:
+			// wildcard again - sort oder matters, fix
+			confs = allInstances()
+		default:
+			confs = instances(ct)
+		}
+		args = nil
+		for _, c := range confs {
+			args = append(args, Name(c))
 		}
 	}
 
 	// make sure names/args are unique but retain order
-	if len(names) > 1 {
+	if len(args) > 1 {
 		var newnames []string
 
-		m := make(map[string]bool, len(names))
-		for _, name := range names {
+		m := make(map[string]bool, len(args))
+		for _, name := range args {
 			if m[name] {
 				continue
 			}
 			newnames = append(newnames, name)
 			m[name] = true
 		}
-		names = newnames
+		args = newnames
 	}
 
 	return
+}
+
+func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err error) {
+	for _, name := range args {
+		for _, c := range NewComponent(ct, name) {
+			if err = loadConfig(c, false); err != nil {
+				log.Println(Type(c), Name(c), "cannot load configuration")
+				return
+			}
+			if err = fn(c); err != nil {
+				log.Println(Type(c), Name(c), err)
+			}
+		}
+	}
+	return nil
 }
 
 func getIntAsString(c interface{}, name string) string {
@@ -295,21 +300,6 @@ func setFieldSlice(c interface{}, k string, v []string) (err error) {
 		fv.Set(reflect.ValueOf(v))
 	}
 	return
-}
-
-func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err error) {
-	for _, name := range args {
-		for _, c := range New(ct, name) {
-			if err = loadConfig(c, false); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration")
-				return
-			}
-			if err = fn(c); err != nil {
-				log.Println(Type(c), Name(c), err)
-			}
-		}
-	}
-	return nil
 }
 
 func slicetoi(s []string) (n []int) {

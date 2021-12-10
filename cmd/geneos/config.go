@@ -277,7 +277,7 @@ func migrateCommand(ct ComponentType, names []string) (err error) {
 	// do components - parse the args again and load/print the config,
 	// but allow for RC files again
 	for _, name := range names {
-		for _, c := range New(ct, name) {
+		for _, c := range NewComponent(ct, name) {
 			// passing true here migrates the RC file, doing nothing ir already
 			// in JSON format
 			if err = loadConfig(c, true); err != nil {
@@ -300,7 +300,7 @@ func revertCommand(ct ComponentType, names []string) (err error) {
 	// do compoents - parse the args again and load/print the config,
 	// but allow for RC files again
 	for _, name := range names {
-		for _, c := range New(ct, name) {
+		for _, c := range NewComponent(ct, name) {
 			// load a config, following normal logic, first
 			if err = loadConfig(c, false); err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
@@ -363,7 +363,7 @@ func showCommand(ct ComponentType, names []string) (err error) {
 	// but allow for RC files again
 	var cs []Instance
 	for _, name := range names {
-		for _, c := range New(ct, name) {
+		for _, c := range NewComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				continue
@@ -483,7 +483,7 @@ func setCommand(ct ComponentType, names []string) (err error) {
 			}
 
 			// this is still an instance name, squirrel away and loop
-			for _, c := range New(ct, name) {
+			for _, c := range NewComponent(ct, name) {
 				// migration required to set values
 				if err = loadConfig(c, true); err != nil {
 					log.Println(Type(c), Name(c), "cannot load configuration")
@@ -711,11 +711,11 @@ func renameCommand(ct ComponentType, args []string) (err error) {
 	if len(args) != 2 {
 		return ErrInvalidArgs
 	}
-	to := New(ct, args[1])[0]
+	to := NewComponent(ct, args[1])[0]
 	if err = loadConfig(to, false); err == nil {
 		return fmt.Errorf("%s: %w", args[1], fs.ErrExist)
 	}
-	from := New(ct, args[0])[0]
+	from := NewComponent(ct, args[0])[0]
 	if err = loadConfig(from, true); err != nil {
 		log.Println(Type(from), Name(from), "cannot load configuration")
 	}

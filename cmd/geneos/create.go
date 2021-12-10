@@ -8,6 +8,7 @@ import (
 
 func init() {
 	commands["create"] = Command{commandCreate, parseArgs, "create"}
+	commands["upload"] = Command{commandUpload, parseArgs, "upload a file"}
 }
 
 // call the component specific create functions
@@ -50,17 +51,14 @@ func commandCreate(ct ComponentType, args []string) (err error) {
 // returns a map
 func getPorts() (ports map[int]ComponentType) {
 	ports = make(map[int]ComponentType)
-	confs := allInstances() // sorting doesn't matter
-	for _, cts := range confs {
-		for _, c := range cts {
-			if err := loadConfig(&c, false); err != nil {
-				log.Println(Type(c), Name(c), "- cannot load configuration")
-				continue
-			}
-			if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
-				if p, err := strconv.Atoi(port); err == nil {
-					ports[int(p)] = Type(c)
-				}
+	for _, c := range allInstances() {
+		if err := loadConfig(&c, false); err != nil {
+			log.Println(Type(c), Name(c), "- cannot load configuration")
+			continue
+		}
+		if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
+			if p, err := strconv.Atoi(port); err == nil {
+				ports[int(p)] = Type(c)
 			}
 		}
 	}
@@ -132,4 +130,12 @@ func nextPort(from string) int {
 		}
 	}
 	return 0
+}
+
+// add a file to an instance, from local or URL
+// overwrites without asking - use case is license files, setup files etc.
+// backup / history track older files (date/time?)
+// no restart or reload of compnents?
+func commandUpload(ct ComponentType, args []string) (err error) {
+	return ErrNotSupported
 }
