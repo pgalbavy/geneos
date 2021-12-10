@@ -523,7 +523,6 @@ func setCommand(ct ComponentType, names []string) (err error) {
 				for i, n := range env {
 					if strings.HasPrefix(n, e[0]+anchor) {
 						if remove {
-							log.Println(len(env), i, n)
 							if i < len(env) {
 								env = append(env[:i], env[i+1:]...)
 							} else {
