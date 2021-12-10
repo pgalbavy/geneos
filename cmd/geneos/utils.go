@@ -289,10 +289,7 @@ func setFieldSlice(c interface{}, k string, v []string) (err error) {
 	}
 	fv = fv.FieldByName(k)
 	if fv.IsValid() && fv.CanSet() {
-		reflect.AppendSlice(fv, reflect.ValueOf(v))
-		for _, val := range v {
-			fv.Set(reflect.Append(fv, reflect.ValueOf(val)))
-		}
+		fv.Set(reflect.ValueOf(v))
 	}
 	return
 }
