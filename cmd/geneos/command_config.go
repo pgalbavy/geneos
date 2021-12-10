@@ -623,7 +623,30 @@ func isDisabled(c Instance) bool {
 
 // this is special and the normal loopCommand will not work
 // 'geneos rename gateway abc xyz'
+//
+// make sure old instance is down, new instance doesn't already exist
+// clean up old instance
+// rename directory
+// migrate RC
+// change config options the include name
+// if gateway then rename in config?
 func renameCommand(ct ComponentType, args []string) (err error) {
+	if len(args) != 2 {
+		return ErrInvalidArgs
+	}
+	to := New(ct, args[1])[0]
+	if err = loadConfig(to, false); err == nil {
+		return fmt.Errorf(args[1], "already exists")
+	}
+	from := New(ct, args[0])[0]
+	if err = loadConfig(from, true); err != nil {
+		log.Println(Type(from), Name(from), "cannot load configuration")
+	}
+	pid, err := findProc(from)
+	if pid != 0 {
+		return ErrProcExists
+	}
+
 	return ErrNotSupported
 }
 

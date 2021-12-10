@@ -93,3 +93,18 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 	}
 	return
 }
+
+// gateway specific cleanup
+//
+// when gateway running:
+// *.old
+// *.history
+// core.*
+// rms*
+//
+// when gateway down - above +
+// cache/
+//
+func gatewayClean() (err error) {
+	return
+}

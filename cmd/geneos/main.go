@@ -31,6 +31,7 @@ var (
 	ErrPermission   = os.ErrPermission
 	ErrInvalidArgs  = os.ErrInvalid
 	ErrProcNotExist = errors.New("process not found")
+	ErrProcExists   = errors.New("process exists")
 	ErrDisabled     = errors.New("disabled")
 )
 
@@ -71,7 +72,7 @@ func main() {
 	// come commands just want the raw command args, or none
 	case "help", "version", "init":
 		if err := commands[command].Function(ct, args); err != nil {
-			// bleh
+			log.Fatalln(err)
 		}
 		os.Exit(0)
 	// 'geneos show [user|global]'
