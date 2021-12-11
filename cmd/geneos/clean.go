@@ -15,5 +15,9 @@ func commandClean(ct ComponentType, args []string) error {
 }
 
 func cleanInstance(c Instance) (err error) {
+	switch Type(c) {
+	case Gateways:
+		gatewayClean()
+	}
 	return ErrNotSupported
 }

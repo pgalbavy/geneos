@@ -207,6 +207,11 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string) {
 	return
 }
 
+// given a compoent type and a slice of args, call the function for each arg
+//
+// reply on NewComponent() checking the component type and returning a slice
+// of all matching components for a single name in an arg (e.g all instances
+// called 'thisserver')
 func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err error) {
 	for _, name := range args {
 		for _, c := range NewComponent(ct, name) {
@@ -217,6 +222,27 @@ func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err 
 			if err = fn(c); err != nil {
 				log.Println(Type(c), Name(c), err)
 			}
+		}
+	}
+	return nil
+}
+
+// like the above but only process the first arg (if any) to allow for those commands
+// that accept only zero or one named instance and the rest of the args are parameters
+// pass the remaining args the to function
+func singleCommand(fn func(Instance, []string) error, ct ComponentType, args []string) (err error) {
+	if len(args) == 0 {
+		// do nothing
+		return
+	}
+	name := args[0]
+	for _, c := range NewComponent(ct, name) {
+		if err = loadConfig(c, false); err != nil {
+			log.Println(Type(c), Name(c), "cannot load configuration")
+			return
+		}
+		if err = fn(c, args[1:]); err != nil {
+			log.Println(Type(c), Name(c), err)
 		}
 	}
 	return nil

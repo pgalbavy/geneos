@@ -170,7 +170,7 @@ Deletes the disabled component given. Only works on components that have been di
 Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
 
 * `geneos upload [component] name [file|url|-]`
-Upload a file from local, url or stdin (default) and backup previous versions. No directories, always into instance working directory. `geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
+Upload a file from local, url or stdin and backup previous file. Into instance working directory. `geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
 
 ## Configuration Files
 

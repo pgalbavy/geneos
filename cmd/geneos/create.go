@@ -1,9 +1,17 @@
 package main
 
 import (
+	"errors"
+	"io"
+	"io/fs"
+	"net/http"
+	"net/url"
+	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -136,6 +144,149 @@ func nextPort(from string) int {
 // overwrites without asking - use case is license files, setup files etc.
 // backup / history track older files (date/time?)
 // no restart or reload of compnents?
+
 func commandUpload(ct ComponentType, args []string) (err error) {
+	return singleCommand(uploadInstance, ct, args)
+}
+
+// args are instance [file...]
+// file can be a local path or a url
+// destination is basename of source in the home directory
+// file can also be DEST=SOURCE where dest must be a relative path (with
+// no ../) to home area, anding in / means subdir, e.g.:
+//
+// 'geneos upload gateway example1 https://example.com/myfiles/gateway.setup.xml'
+// 'geneos upload licd example2 geneos.lic=license.txt'
+// 'geneos upload netprobe exampel3 scripts/=myscript.sh'
+//
+// local directroreies are created
+//
+// account for superuser stuff
+//
+func uploadInstance(c Instance, args []string) (err error) {
+	var destfile, backuppath string
+	var destdir bool
+	var from io.ReadCloser
+
+	if len(args) == 0 {
+		log.Fatalln("no file name provided")
+	}
+
+	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
+	if err != nil {
+		return err
+	}
+
+	switch Type(c) {
+	case Gateways:
+		source := args[0]
+		s := strings.SplitN(source, "=", 2)
+		// did we have an '=' ?
+		if len(s) == 2 {
+			// do some basic validation on user-supplied destination
+			destfile = s[0]
+			if destfile == "" {
+				log.Fatalln("dest path empty")
+			}
+			p := strings.Split(destfile, string(filepath.Separator))
+			if len(p) > 0 && len(p[0]) == 0 {
+				log.Fatalln("dest path must be relative")
+			}
+			for _, e := range p {
+				if e == ".." {
+					log.Fatalln("dest path cannot contain '..'")
+				}
+			}
+			destfile = filepath.Clean(destfile)
+			if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
+				if st.IsDir() {
+					destdir = true
+				}
+			}
+			source = s[1]
+			if source == "" {
+				log.Fatalln("no source defined")
+			}
+		}
+		u, err := url.Parse(source)
+		if err != nil {
+			return err
+		}
+		if strings.HasPrefix(u.Scheme, "http") {
+			resp, err := http.Get(u.String())
+			if err != nil {
+				return err
+			}
+			from = resp.Body
+			if destdir {
+				destfile = filepath.Join(destfile, filepath.Base(resp.Request.URL.Path))
+			} else if destfile == "" {
+				destfile = filepath.Base(resp.Request.URL.Path)
+			}
+			defer from.Close()
+		} else if source == "-" {
+			if destfile == "" || destdir {
+				log.Fatalln("for stdin a destination file must be provided, e.g. file.txt=-")
+			}
+			from = os.Stdin
+		} else {
+			// support globbing later
+			from, err = os.Open(source)
+			if err != nil {
+				return err
+			}
+			if destdir {
+				destfile = filepath.Join(destfile, filepath.Base(source))
+			} else if destfile == "" {
+				destfile = filepath.Base(source)
+			}
+			defer from.Close()
+		}
+
+		destpath := filepath.Join(Home(c), destfile)
+		if _, err := os.Stat(filepath.Dir(destpath)); err != nil {
+			err = os.MkdirAll(filepath.Dir(destpath), 0775)
+			if err != nil && !errors.Is(err, fs.ErrExist) {
+				log.Fatalln(err)
+			}
+			// if created, chown the last element
+			if err == nil {
+				if err = os.Chown(filepath.Dir(destpath), uid, gid); err != nil {
+					return err
+				}
+			}
+		}
+
+		if st, err := os.Stat(destpath); err == nil {
+			if !st.Mode().IsRegular() {
+				log.Fatalln("dest exists and is not a plain file")
+			}
+			datetime := time.Now().UTC().Format("20060102150405")
+			backuppath = destpath + "." + datetime + ".old"
+			if err = os.Rename(destpath, backuppath); err != nil {
+				return err
+			}
+		}
+		out, err := os.Create(destpath)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+
+		if err = out.Chown(uid, gid); err != nil {
+			os.Remove(out.Name())
+			if backuppath != "" {
+				if err = os.Rename(backuppath, destpath); err != nil {
+					return err
+				}
+				return err
+			}
+		}
+
+		if _, err = io.Copy(out, from); err != nil {
+			return err
+		}
+		return nil
+	}
 	return ErrNotSupported
 }
