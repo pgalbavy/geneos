@@ -106,8 +106,7 @@ func SendMail(n C.int, args **C.char) C.int {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", body)
 
-	err = d.DialAndSend(m)
-	if err != nil {
+	if err = d.DialAndSend(m); err != nil {
 		log.Println(err)
 		return 1
 	}
@@ -172,7 +171,6 @@ func GoSendMail(n C.int, args **C.char) C.int {
 	m.SetHeader("Subject", subject)
 
 	tmpl := template.New("text")
-	var textErr error
 	if _, ok := conf["_TEMPLATE_TEXT_FILE"]; ok {
 		tmpl, err = tmpl.ParseFiles(conf["_TEMPLATE_TEXT_FILE"])
 	} else if _, ok := conf["_TEMPLATE_TEXT"]; ok {
@@ -181,8 +179,8 @@ func GoSendMail(n C.int, args **C.char) C.int {
 		tmpl, err = tmpl.Parse(defTextTemplate)
 	}
 
-	if textErr != nil {
-		log.Println(textErr)
+	if err != nil {
+		log.Println(err)
 		return 1
 	}
 
