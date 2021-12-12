@@ -6,7 +6,11 @@ import (
 )
 
 func init() {
-	commands["reload"] = Command{commandReload, parseArgs, "reload", ""}
+	commands["reload"] = Command{commandReload, parseArgs, "geneos reload [TYPE] [NAME...]",
+		`Signal the matching instances to reload their configurations, depending on the component TYPE.
+
+Not fully implemented except for Gateways.`}
+
 	commands["refresh"] = Command{commandReload, parseArgs, "see reload", ""}
 }
 

@@ -7,7 +7,8 @@ import (
 )
 
 func init() {
-	commands["logs"] = Command{commandLogs, parseArgs, "logs", ""}
+	commands["logs"] = Command{commandLogs, parseArgs, "geneos logs [TYPE] [NAME...]",
+		`Show logs for matching instances. Not fully implemented.`}
 }
 
 func commandLogs(ct ComponentType, args []string) error {

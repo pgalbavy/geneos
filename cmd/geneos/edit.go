@@ -7,7 +7,20 @@ import (
 )
 
 func init() {
-	commands["edit"] = Command{commandEdit, parseArgs, "edit", ""}
+	commands["edit"] = Command{commandEdit, parseArgs,
+		`geneos edit [global|user]
+	geneos edit [TYPE] [NAME...]`,
+		`Open a text editor for JSON configuration file(s). If the literal word 'global' or 'user' is
+supplied then the respective non-instance specific configuration file is opened, otherwise one
+or more configuration files are opened, depending on if TYPE and NAME(s) are supplied. The text
+editor invoked will be the first set of the environment variables VISUAL or EDITOR or the linux
+/usr/bin/editor alternative will be used. e.g.
+
+	VISUAL=code geneos edit user
+
+will open a VS Code editor window for the user configuration file.
+
+See also 'geneos set' and 'geneos show'.`}
 }
 
 //

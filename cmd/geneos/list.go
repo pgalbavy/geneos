@@ -1,9 +1,20 @@
 package main
 
 func init() {
-	commands["list"] = Command{commandList, parseArgs, "list", ""}
-	commands["status"] = Command{commandStatus, parseArgs, "status", ""}
-	commands["command"] = Command{commandCommand, parseArgs, "command", ""}
+	commands["list"] = Command{commandList, parseArgs, "geneos list [TYPE] [NAME...]",
+		`List the matching instances and their component type.
+
+Future versions will support CSV or JSON output formats for automation and monitoring.`}
+	commands["status"] = Command{commandStatus, parseArgs, "geneos status [TYPE] [NAMES...]",
+		`Show the status of the matching instances. This includes the component type, if it is running
+and if so with what PID.
+
+Future versions will support CSV or JSON output formats for automation and monitoring.`}
+	commands["command"] = Command{commandCommand, parseArgs, "geneos command [TYPE] [NAME...]",
+		`Show the full command line for the matching instances along with any environment variables
+explicitly set for execution.
+
+Future versions will support CSV or JSON output formats for automation and monitoring.`}
 }
 
 func commandList(ct ComponentType, args []string) error {

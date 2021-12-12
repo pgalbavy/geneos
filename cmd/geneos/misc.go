@@ -5,8 +5,11 @@ import (
 )
 
 func init() {
-	commands["version"] = Command{commandVersion, nil, "geneos version", "Display the current version number. Currently not implmeented."}
-	commands["help"] = Command{commandHelp, nil, "geneos help [COMMAND]", "This command. Shows either a list of available commands or the help for the given COMMAND."}
+	commands["version"] = Command{commandVersion, nil, "geneos version",
+		`Display the current version number. Currently not implmeented.`}
+
+	commands["help"] = Command{commandHelp, nil, "geneos help [COMMAND]",
+		`This command. Shows either a list of available commands or the help for the given COMMAND.`}
 }
 
 func commandVersion(comp ComponentType, args []string) error {

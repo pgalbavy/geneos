@@ -16,8 +16,37 @@ import (
 )
 
 func init() {
-	commands["install"] = Command{commandInstall, parseArgs, "install", ""}
-	commands["update"] = Command{commandUpdate, parseArgs, "update", ""}
+	commands["install"] = Command{commandInstall, parseArgs, "geneos install [TYPE] [latest|FILE...]",
+		`Install the supplied FILE(s) in the packages/ directory, or fetch the latest version from the official
+download site. The filename must of of the format:
+
+	geneos-TYPE-VERSION*.tar.gz
+
+The TYPE, if supplied, only influences the downloaded archive and is ignored for local files. The directory
+for the package is created using the VERSION from the archive filename.
+
+Future support will include URLs and/or specific versions for downloads as well as options to override the
+segments of the archive name used.
+`}
+
+	commands["update"] = Command{commandUpdate, parseArgs, "geneos update [TYPE] VERSION",
+		`Update the symlink for the default base name of the package used to VERSION. The base directory,
+for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
+in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not
+supplied, all supported component types are updated to VERSION.
+
+Update will stop all matching instances of the each type before updating the link and starting them up
+again, but only if the instance uses the 'active_prod' basename.
+
+The 'latest' version is based on directory names of the form:
+
+	[GA]X.Y.Z
+
+Where X, Y, Z are each ordered in ascending numerical order. If a directory starts 'GA' it will be selected
+over a directory with the same numerical versions. All other directories name formats will result in unexpected
+behaviour.
+
+Future version may support selecting a base other than 'active_prod'.`}
 }
 
 //
@@ -78,7 +107,7 @@ func installLatest(ct ComponentType) (err error) {
 func unarchive(f string, gz io.Reader) (err error) {
 	parts := strings.Split(f, "-")
 	if parts[0] != "geneos" {
-		log.Println("file must be named geneos-COMPONENT-VERSION*.tar.gz:", f)
+		log.Println("file must be named geneos-TYPE-VERSION*.tar.gz:", f)
 		return
 	}
 	DebugLog.Printf("parts=%v\n", parts)
@@ -202,11 +231,9 @@ func updateLatest(ct ComponentType, readonly bool) error {
 			defer startInstance(i)
 		}
 		if err = os.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			//log.Println(err)
 			return err
 		}
 		if err = os.Symlink(version, basepath); err != nil {
-			//log.Println(err)
 			return err
 		}
 		log.Println(ct.String(), base, "updated to", version)
@@ -242,7 +269,6 @@ func getLatest(dir string) (latest string) {
 				m[y] = n[y]
 				continue
 			}
-
 		}
 	}
 	return

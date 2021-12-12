@@ -11,17 +11,14 @@ import (
 func init() {
 	commands["stop"] = Command{commandStop, parseArgs, `geneos stop [type] [instance...]`,
 		`Stop one or more instances. First a SIGTERM is sent and if the instance is still running
-	after a few seconds then a SIGKILL is sent to the process.
-	If no type is given all instances with the matching name(s) are stopped.
-	If no instance names(s) are given then all instances of the given type are stopped.
-	If neither typoe or instance is given, all instances are stopped.
-`}
+after a few seconds then a SIGKILL is sent to the process. If no type is given all instances with
+the matching name(s) are stopped. If no instance names(s) are given then all instances of the given
+type are stopped. If neither typoe or instance is given, all instances are stopped.`}
+
 	commands["kill"] = Command{commandKill, parseArgs, `geneos kill [type] [instance...]`,
-		`Immediately stop one or more instances. A SIGKILL is sent to the instance.
-	If no type is given all instances with the matching name(s) are killed.
-	If no instance names(s) are given then all instances of the given type are killed.
-	If neither typoe or instance is given, all instances are killed.
-`}
+		`Immediately stop one or more instances. A SIGKILL is sent to the instance. If no type is
+given all instances with the matching name(s) are killed. If no instance names(s) are given then all
+instances of the given type are killed. If neither typoe or instance is given, all instances are killed.`}
 }
 
 func commandStop(ct ComponentType, args []string) (err error) {
