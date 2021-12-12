@@ -50,7 +50,7 @@ geneos install latest
 geneos create gateway Gateway1
 geneos create netprobe Netprobe1
 geneos create licd Licd1
-[add license file - todo]
+geneos upload licd Licd1 geneos.lic
 geneos start
 ```
 
@@ -170,7 +170,15 @@ Deletes the disabled component given. Only works on components that have been di
 Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
 
 * `geneos upload [component] name [file|url|-]`
-Upload a file from local, url or stdin and backup previous file. Into instance working directory. `geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
+Upload a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
+  `geneos upload gateway Example gateway.setup.xml`
+  `geneos upload gateway Example https://server/files/gateway.setup.xml`
+  `geneos upload gateway Example gateway.setup.xml=mygateway.setup.xml`
+  `geneos upload gateway Example scripts/newscript.sh=myscript.sh`
+  `geneos upload gateway Example scripts/=myscript.sh`
+  `cat someoutput | geneos upload gateway Example config.json=-`
+Like other commands that write to the file system is can safely be run as root as the destination directory and file will be changed to be owned by either the instance or the default user, with the caveat that any intermediate directrories above the destination sub-directory (e.g. the first two in `my/long/path`) will be owned by root.
+`geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
 
 ## Configuration Files
 
