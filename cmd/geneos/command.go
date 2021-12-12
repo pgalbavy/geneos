@@ -14,7 +14,8 @@ import (
 type Command struct {
 	Function     func(ComponentType, []string) error
 	ParseArgs    func([]string) (ComponentType, []string)
-	Descrtiption string
+	CommandLine  string // one line command syntax
+	Descrtiption string // details
 }
 
 type Commands map[string]Command

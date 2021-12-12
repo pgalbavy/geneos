@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	commands["edit"] = Command{commandEdit, parseArgs, "edit"}
+	commands["edit"] = Command{commandEdit, parseArgs, "edit", ""}
 }
 
 //

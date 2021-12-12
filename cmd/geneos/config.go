@@ -43,16 +43,26 @@ type ConfigType struct {
 var RunningConfig ConfigType
 
 func init() {
-	commands["init"] = Command{initCommand, nil, "initialise"}
-	commands["migrate"] = Command{migrateCommand, parseArgs, "migrate"}
-	commands["revert"] = Command{revertCommand, parseArgs, "revert"}
-	commands["show"] = Command{showCommand, parseArgs, "show"}
-	commands["set"] = Command{setCommand, parseArgs, "set"}
+	commands["init"] = Command{initCommand, nil, `geneos init [username] [directory]`,
+		`Initialise a geneos installation by creating a suitable directory hierarhcy and
+	a user configuration file, setting the username and directory given as defaults.
+	If 'username' is supplied then the command must either be run as root or the given user.
+	If 'directory' is given then the parent directory must be writable by the user, unless
+	running as root, otherwise a 'geneos' directory is created in the user's home area.
+	If run as root a username MUST be given and only the username specific configuration
+	file is created. If the directory exists then it must be empty. Exmaple:
 
-	commands["disable"] = Command{disableCommand, parseArgs, "disable"}
-	commands["enable"] = Command{enableCommand, parseArgs, "enable"}
-	commands["rename"] = Command{renameCommand, parseArgs, "rename"}
-	commands["delete"] = Command{deleteCommand, parseArgs, "delete"}
+		sudo geneos init geneos /opt/itrs
+`}
+	commands["migrate"] = Command{migrateCommand, parseArgs, "migrate", ""}
+	commands["revert"] = Command{revertCommand, parseArgs, "revert", ""}
+	commands["show"] = Command{showCommand, parseArgs, "show", ""}
+	commands["set"] = Command{setCommand, parseArgs, "set", ""}
+
+	commands["disable"] = Command{disableCommand, parseArgs, "disable", ""}
+	commands["enable"] = Command{enableCommand, parseArgs, "enable", ""}
+	commands["rename"] = Command{renameCommand, parseArgs, "rename", ""}
+	commands["delete"] = Command{deleteCommand, parseArgs, "delete", ""}
 }
 
 var initDirs = []string{

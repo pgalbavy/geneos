@@ -1,9 +1,9 @@
 package main
 
 func init() {
-	commands["list"] = Command{commandList, parseArgs, "list"}
-	commands["status"] = Command{commandStatus, parseArgs, "status"}
-	commands["command"] = Command{commandCommand, parseArgs, "command"}
+	commands["list"] = Command{commandList, parseArgs, "list", ""}
+	commands["status"] = Command{commandStatus, parseArgs, "status", ""}
+	commands["command"] = Command{commandCommand, parseArgs, "command", ""}
 }
 
 func commandList(ct ComponentType, args []string) error {

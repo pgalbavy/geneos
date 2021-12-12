@@ -15,8 +15,8 @@ import (
 )
 
 func init() {
-	commands["create"] = Command{commandCreate, parseArgs, "create"}
-	commands["upload"] = Command{commandUpload, parseArgs, "upload a file"}
+	commands["create"] = Command{commandCreate, parseArgs, "create", ""}
+	commands["upload"] = Command{commandUpload, parseArgs, "upload a file", ""}
 }
 
 // call the component specific create functions

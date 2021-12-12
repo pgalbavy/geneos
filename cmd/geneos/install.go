@@ -16,8 +16,8 @@ import (
 )
 
 func init() {
-	commands["install"] = Command{commandInstall, parseArgs, "install"}
-	commands["update"] = Command{commandUpdate, parseArgs, "update"}
+	commands["install"] = Command{commandInstall, parseArgs, "install", ""}
+	commands["update"] = Command{commandUpdate, parseArgs, "update", ""}
 }
 
 //

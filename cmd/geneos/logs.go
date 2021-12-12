@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	commands["logs"] = Command{commandLogs, parseArgs, "logs"}
+	commands["logs"] = Command{commandLogs, parseArgs, "logs", ""}
 }
 
 func commandLogs(ct ComponentType, args []string) error {
