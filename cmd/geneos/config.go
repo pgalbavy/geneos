@@ -54,15 +54,55 @@ func init() {
 
 		sudo geneos init geneos /opt/itrs
 `}
-	commands["migrate"] = Command{migrateCommand, parseArgs, "migrate", ""}
-	commands["revert"] = Command{revertCommand, parseArgs, "revert", ""}
-	commands["show"] = Command{showCommand, parseArgs, "show", ""}
-	commands["set"] = Command{setCommand, parseArgs, "set", ""}
 
-	commands["disable"] = Command{disableCommand, parseArgs, "disable", ""}
-	commands["enable"] = Command{enableCommand, parseArgs, "enable", ""}
-	commands["rename"] = Command{renameCommand, parseArgs, "rename", ""}
-	commands["delete"] = Command{deleteCommand, parseArgs, "delete", ""}
+	commands["migrate"] = Command{migrateCommand, parseArgs, "geneos migrate [TYPE] [NAME...]",
+		`Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
+.rc.orig.`}
+	commands["revert"] = Command{revertCommand, parseArgs, "geneos revert [TYPE] [NAME...]",
+		`Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
+Any changes to the instance configuration since initial migration will be lost as the .rc file
+is never written to.`}
+
+	commands["show"] = Command{showCommand, parseArgs,
+		`geneos show
+	geneos show [global|user]
+	geneos show [TYPE] [NAME...]`,
+		`Show the JSON format configuration. With no arguments show the running configuration that
+results from loading the global and user configurations and resolving any enviornment variables that
+override scope. If the liternal keyword 'global' or 'user' is supplied then any on-disk configuration
+for the respective options will be shown. If a component TYPE and/or instance NAME(s) are supplied
+then the JSON configuration for those instances are output as a JSON array. This is regardless of the
+instance using a legacy .rc file or a native JSON configuration.
+
+Passwords and secrets are redacted in a very simplistic manner simply to prevent visibility in
+casual viewing.`}
+
+	commands["set"] = Command{setCommand, parseArgs,
+		`geneos set [global|user] KEY=VALUE [KEY=VALUE...]
+	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
+		``}
+
+	commands["disable"] = Command{disableCommand, parseArgs, "geneos disable [TYPE] [NAME...]",
+		`Mark any matching instances as disabled. The instances are also stopped.`}
+
+	commands["enable"] = Command{enableCommand, parseArgs, "geneos enable [TYPE] [NAME...]",
+		`Mark any matcing instances as enabled and if this is a change then start the instance.`}
+
+	commands["rename"] = Command{renameCommand, nil, "geneos rename [TYPE] FROM TO",
+		`Rename the matching instance. TYPE is optional to resolve any ambiguities if two instances
+share the same name. No configuration changes outside the instance JSON config file are done. As
+any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
+The instance is stopped and restarted after the instance directory and configuration are changed.
+It is an error to try to rename an instance to one that already exists with the same name.
+	
+NOT YET IMPLEMENED.`}
+
+	commands["delete"] = Command{deleteCommand, parseArgs, "geneos delete [TYPE] [NAME...]",
+		`Delete the matching instances. This will only work on instances that are disabled to prevent
+accidental deletion. The insatnce directory is removed without being backed-up.
+
+NOT YET IMPLEMENTED.`}
+
 }
 
 var initDirs = []string{
@@ -235,7 +275,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 			log.Fatalln(err)
 		}
 		if len(dirs) != 0 {
-			log.Fatalln("directory exists and is not empty")
+			log.Fatalf("target directory %q exists and is not empty", dir)
 		}
 	} else {
 		// need to create out own, chown new directories only
@@ -447,31 +487,31 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 //
 // support for Env slice in probe (and generally)
 //
-func setCommand(ct ComponentType, names []string) (err error) {
-	if len(names) == 0 {
+func setCommand(ct ComponentType, args []string) (err error) {
+	if len(args) == 0 {
 		return os.ErrInvalid
 	}
 
 	// read the cofig into a struct, make changes, then save it out again,
 	// to sanitise the contents - or generate an error
-	switch names[0] {
+	switch args[0] {
 	case "global":
-		return setConfig(globalConfig, names[1:])
+		return setConfig(globalConfig, args[1:])
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
-		return setConfig(filepath.Join(userConfDir, "geneos.json"), names[1:])
+		return setConfig(filepath.Join(userConfDir, "geneos.json"), args[1:])
 	}
 
 	// check if all args have an '=' - if so default to "set user"
-	eqs := len(names)
-	for _, arg := range names {
+	eqs := len(args)
+	for _, arg := range args {
 		if strings.Contains(arg, "=") {
 			eqs--
 		}
 	}
 	if eqs == 0 {
 		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), names)
+		setConfig(filepath.Join(userConfDir, "geneos.json"), args)
 		return
 	}
 
@@ -482,8 +522,8 @@ func setCommand(ct ComponentType, names []string) (err error) {
 	var cs []Instance
 	var setFlag bool
 
-	for _, name := range names {
-		if !strings.Contains(name, "=") {
+	for _, arg := range args {
+		if !strings.Contains(arg, "=") {
 			// if any settings have been seen but there is a non-setting
 			// then stop processing, maybe error out
 			if setFlag {
@@ -493,7 +533,7 @@ func setCommand(ct ComponentType, names []string) (err error) {
 			}
 
 			// this is still an instance name, squirrel away and loop
-			for _, c := range NewComponent(ct, name) {
+			for _, c := range NewComponent(ct, arg) {
 				// migration required to set values
 				if err = loadConfig(c, true); err != nil {
 					log.Println(Type(c), Name(c), "cannot load configuration")
@@ -509,7 +549,7 @@ func setCommand(ct ComponentType, names []string) (err error) {
 		// 'geneos set probe Env=JAVA_HOME=/path'
 		// remove with leading '-' ?
 		// 'geneos set probe Env=-PASSWORD'
-		s := strings.SplitN(name, "=", 2)
+		s := strings.SplitN(arg, "=", 2)
 		k, v := s[0], s[1]
 
 		// loop through all provided components, set the parameter(s)
