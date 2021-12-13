@@ -1,5 +1,10 @@
 package main
 
+import (
+	"path/filepath"
+	"strconv"
+)
+
 type Licd struct {
 	Components
 	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
@@ -28,6 +33,17 @@ func NewLicd(name string) (c *Licd) {
 }
 
 func licdCommand(c Instance) (args, env []string) {
+	return
+}
+
+func licdCreate(name string, username string) (c Instance, err error) {
+	// fill in the blanks
+	c = NewLicd(name)
+	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.LicdPortRange)))
+	setField(c, Prefix(c)+"User", username)
+	conffile := filepath.Join(Home(c), Type(c).String()+".json")
+	writeConfigFile(conffile, c)
+	// default config XML etc.
 	return
 }
 

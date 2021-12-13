@@ -38,9 +38,6 @@ user in the instance configuration or the default user. Currently only one file 
 time.`}
 }
 
-// call the component specific create functions
-//
-// like "init", diff if root or not
 func commandCreate(ct ComponentType, args []string) (err error) {
 	if len(args) == 0 {
 		log.Fatalln("not enough args")
@@ -64,6 +61,8 @@ func commandCreate(ct ComponentType, args []string) (err error) {
 		gatewayCreate(name, username)
 	case Netprobes:
 		netprobeCreate(name, username)
+	case Licds:
+		licdCreate(name, username)
 	default:
 
 		return ErrNotSupported
