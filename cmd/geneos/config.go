@@ -63,15 +63,15 @@ func init() {
 		sudo geneos init geneos /opt/itrs
 `}
 
-	commands["migrate"] = Command{migrateCommand, parseArgs, "geneos migrate [TYPE] [NAME...]",
+	commands["migrate"] = Command{commandMigrate, parseArgs, "geneos migrate [TYPE] [NAME...]",
 		`Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
 .rc.orig.`}
-	commands["revert"] = Command{revertCommand, parseArgs, "geneos revert [TYPE] [NAME...]",
+	commands["revert"] = Command{commandRevert, parseArgs, "geneos revert [TYPE] [NAME...]",
 		`Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
 Any changes to the instance configuration since initial migration will be lost as the .rc file
 is never written to.`}
 
-	commands["show"] = Command{showCommand, parseArgs,
+	commands["show"] = Command{commandShow, parseArgs,
 		`geneos show
 	geneos show [global|user]
 	geneos show [TYPE] [NAME...]`,
@@ -85,18 +85,18 @@ instance using a legacy .rc file or a native JSON configuration.
 Passwords and secrets are redacted in a very simplistic manner simply to prevent visibility in
 casual viewing.`}
 
-	commands["set"] = Command{setCommand, parseArgs,
+	commands["set"] = Command{commandSet, parseArgs,
 		`geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
 		``}
 
-	commands["disable"] = Command{disableCommand, parseArgs, "geneos disable [TYPE] [NAME...]",
+	commands["disable"] = Command{commandDisable, parseArgs, "geneos disable [TYPE] [NAME...]",
 		`Mark any matching instances as disabled. The instances are also stopped.`}
 
-	commands["enable"] = Command{enableCommand, parseArgs, "geneos enable [TYPE] [NAME...]",
+	commands["enable"] = Command{commandEneable, parseArgs, "geneos enable [TYPE] [NAME...]",
 		`Mark any matcing instances as enabled and if this is a change then start the instance.`}
 
-	commands["rename"] = Command{renameCommand, nil, "geneos rename [TYPE] FROM TO",
+	commands["rename"] = Command{commandRename, nil, "geneos rename [TYPE] FROM TO",
 		`Rename the matching instance. TYPE is optional to resolve any ambiguities if two instances
 share the same name. No configuration changes outside the instance JSON config file are done. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
@@ -105,11 +105,11 @@ It is an error to try to rename an instance to one that already exists with the 
 	
 NOT YET IMPLEMENED.`}
 
-	commands["delete"] = Command{deleteCommand, parseArgs, "geneos delete [TYPE] [NAME...]",
+	commands["delete"] = Command{commandDelete, parseArgs, "geneos delete [TYPE] [NAME...]",
 		`Delete the matching instances. This will only work on instances that are disabled to prevent
-accidental deletion. The insatnce directory is removed without being backed-up.
-
-NOT YET IMPLEMENTED.`}
+accidental deletion. The instance directory is removed without being backed-up. The user running
+the command must have the appropriate permissions and a partial deletion cannot be protected
+against.`}
 
 }
 
@@ -311,91 +311,46 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	return
 }
 
-//
-// there are two types of config, subdivided into further categories:
-//
-// 1. global and user general configs, including root dirs etc.
-// 2. per-component configs
-//
-// the config command introduces "global" and "user" keywords so these need
-// to be added to reserved lists too
-//
-// all "set" commands must only update the on-disk config of the selected
-// config, and not write out a merged config loaded from layers of scoping
-// resolution. all writes must also be as atomic as possible and not leave
-// empty files or delete original files until the new one is ready.
-//
-// "migrate" is (only) for component configs and converts an RC file to a
-// JSON, renames the old file. Can do multiple components at once. Should we
-// have a "revert" command?
-//
+func commandMigrate(ct ComponentType, names []string) (err error) {
+	return loopCommand(migrateInstance, ct, names)
+}
 
-func migrateCommand(ct ComponentType, names []string) (err error) {
-	if len(names) == 0 {
-		return os.ErrInvalid
+func migrateInstance(c Instance) (err error) {
+	if err = loadConfig(c, true); err != nil {
+		log.Println(Type(c), Name(c), "cannot migrate configuration", err)
 	}
-
-	// do components - parse the args again and load/print the config,
-	// but allow for RC files again
-	for _, name := range names {
-		for _, c := range NewComponent(ct, name) {
-			// passing true here migrates the RC file, doing nothing ir already
-			// in JSON format
-			if err = loadConfig(c, true); err != nil {
-				log.Println(Type(c), Name(c), "cannot migrate configuration", err)
-				continue
-			}
-		}
-	}
-
 	return
 }
 
-// rename rc.orig to rc, remove JSON, return
-//
-func revertCommand(ct ComponentType, names []string) (err error) {
-	if len(names) == 0 {
-		return os.ErrInvalid
-	}
-
-	// do compoents - parse the args again and load/print the config,
-	// but allow for RC files again
-	for _, name := range names {
-		for _, c := range NewComponent(ct, name) {
-			// load a config, following normal logic, first
-			if err = loadConfig(c, false); err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				continue
-			}
-			baseconf := filepath.Join(Home(c), Type(c).String())
-
-			// if *.rc file exists, remove rc.orig+JSON, continue
-			if _, err := os.Stat(baseconf + ".rc"); err == nil {
-				// ignore errors
-				if os.Remove(baseconf+".rc.orig") == nil || os.Remove(baseconf+".json") == nil {
-					log.Println(Type(c), Name(c), "removed extra config file(s)")
-				}
-				continue
-			}
-
-			if err = os.Rename(baseconf+".rc.orig", baseconf+".rc"); err != nil {
-				log.Println(Type(c), Name(c), err)
-				continue
-			}
-
-			if err = os.Remove(baseconf + ".json"); err != nil {
-				log.Println(Type(c), Name(c), err)
-				continue
-			}
-
-			log.Println(Type(c), Name(c), "reverted to RC config")
-		}
-	}
-
-	return
+func commandRevert(ct ComponentType, names []string) (err error) {
+	return loopCommand(revertInstance, ct, names)
 }
 
-func showCommand(ct ComponentType, names []string) (err error) {
+func revertInstance(c Instance) (err error) {
+	baseconf := filepath.Join(Home(c), Type(c).String())
+
+	// if *.rc file exists, remove rc.orig+JSON, continue
+	if _, err := os.Stat(baseconf + ".rc"); err == nil {
+		// ignore errors
+		if os.Remove(baseconf+".rc.orig") == nil || os.Remove(baseconf+".json") == nil {
+			DebugLog.Println(Type(c), Name(c), "removed extra config file(s)")
+		}
+		return err
+	}
+
+	if err = os.Rename(baseconf+".rc.orig", baseconf+".rc"); err != nil {
+		return
+	}
+
+	if err = os.Remove(baseconf + ".json"); err != nil {
+		return
+	}
+
+	DebugLog.Println(Type(c), Name(c), "reverted to RC config")
+	return nil
+}
+
+func commandShow(ct ComponentType, names []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(names) == 0 {
@@ -498,7 +453,7 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 //
 // support for Env slice in probe (and generally)
 //
-func setCommand(ct ComponentType, args []string) (err error) {
+func commandSet(ct ComponentType, args []string) (err error) {
 	if len(args) == 0 {
 		return os.ErrInvalid
 	}
@@ -703,7 +658,7 @@ const disableExtension = ".disabled"
 // stop if running first
 // if run as root, the disable file is owned by root too and
 // only root can remove it?
-func disableCommand(ct ComponentType, args []string) (err error) {
+func commandDisable(ct ComponentType, args []string) (err error) {
 	return loopCommand(disableInstance, ct, args)
 }
 
@@ -736,7 +691,7 @@ func disableInstance(c Instance) (err error) {
 
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
-func enableCommand(ct ComponentType, args []string) (err error) {
+func commandEneable(ct ComponentType, args []string) (err error) {
 	return loopCommand(enableInstance, ct, args)
 }
 
@@ -768,7 +723,7 @@ func isDisabled(c Instance) bool {
 // migrate RC
 // change config options the include name
 // if gateway then rename in config?
-func renameCommand(ct ComponentType, args []string) (err error) {
+func commandRename(ct ComponentType, args []string) (err error) {
 	if len(args) != 2 {
 		return ErrInvalidArgs
 	}
@@ -790,6 +745,17 @@ func renameCommand(ct ComponentType, args []string) (err error) {
 
 // also special - each component must be an exact match
 // do we want a disable then delete protection?
-func deleteCommand(ct ComponentType, args []string) (err error) {
-	return ErrNotSupported
+func commandDelete(ct ComponentType, args []string) (err error) {
+	return loopCommand(deleteInstance, ct, args)
+}
+
+func deleteInstance(c Instance) (err error) {
+	if isDisabled(c) {
+		if err = os.RemoveAll(Home(c)); err != nil {
+			log.Fatalln(err)
+		}
+		return nil
+	}
+	log.Println(Type(c), Name(c), "must be disabled before delete")
+	return nil
 }
