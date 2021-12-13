@@ -432,27 +432,6 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 	return
 }
 
-// set a (or multiple?) configuration parameters
-//
-// global or user update the respective config files
-//
-// when supplied a component type and name it applies
-// to the JSON config for that component. A migration is performed if the
-// current config is in RC format
-//
-// so we support "all" to do global updates of a parameter?
-//
-// format:
-// geneos set gateway wonderland GatePort=8888
-// geneos set global ITRSHome=/opt/geneos
-//
-// quoting is left to the shell rules and the setting is just split on the first '='
-// non '=' args are taken as other names?
-//
-// What is read only? Name, others?
-//
-// support for Env slice in probe (and generally)
-//
 func commandSet(ct ComponentType, args []string) (err error) {
 	if len(args) == 0 {
 		return os.ErrInvalid
@@ -574,9 +553,6 @@ func commandSet(ct ComponentType, args []string) (err error) {
 
 }
 
-// set envs?
-// geneos set gateway test Env+X=Y Env-Z Env=A=B
-//
 func setConfig(filename string, args []string) (err error) {
 	var c ConfigType
 	// ignore err - config may not exist, but that's OK
@@ -654,10 +630,6 @@ func writeConfigFile(file string, config interface{}) (err error) {
 
 const disableExtension = ".disabled"
 
-// geneos disable gateway example ...
-// stop if running first
-// if run as root, the disable file is owned by root too and
-// only root can remove it?
 func commandDisable(ct ComponentType, args []string) (err error) {
 	return loopCommand(disableInstance, ct, args)
 }
@@ -703,9 +675,6 @@ func enableInstance(c Instance) (err error) {
 	return
 }
 
-// an error tends to mean the disabled file is not
-// visible, so assume it's not disabled - other things
-// may be wrong but...
 func isDisabled(c Instance) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	if f, err := os.Stat(d); err == nil && f.Mode().IsRegular() {
@@ -714,7 +683,6 @@ func isDisabled(c Instance) bool {
 	return false
 }
 
-// this is special and the normal loopCommand will not work
 // 'geneos rename gateway abc xyz'
 //
 // make sure old instance is down, new instance doesn't already exist
@@ -743,8 +711,6 @@ func commandRename(ct ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }
 
-// also special - each component must be an exact match
-// do we want a disable then delete protection?
 func commandDelete(ct ComponentType, args []string) (err error) {
 	return loopCommand(deleteInstance, ct, args)
 }
