@@ -53,3 +53,21 @@ func netprobeCreate(name string, username string) (c Instance, err error) {
 	// default config XML etc.
 	return
 }
+
+var defaultNetprobeCleanList = "*.old"
+
+func netprobeClean(c Instance) (err error) {
+	return removePathList(c, RunningConfig.NetprobeCleanList)
+}
+
+var defaultNetprobePurgeList = "netprobe.log:netprobe.txt:*.snooze:*.user_assignment"
+
+func netprobePurge(c Instance) (err error) {
+	if err = stopInstance(c); err != nil {
+		return err
+	}
+	if err = netprobeClean(c); err != nil {
+		return err
+	}
+	return removePathList(c, RunningConfig.NetprobePurgeList)
+}

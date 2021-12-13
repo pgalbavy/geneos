@@ -204,16 +204,10 @@ func uploadInstance(c Instance, args []string) (err error) {
 			if destfile == "" {
 				log.Fatalln("dest path empty")
 			}
-			p := strings.Split(destfile, string(filepath.Separator))
-			if len(p) > 0 && len(p[0]) == 0 {
-				log.Fatalln("dest path must be relative")
+			destfile, err = cleanRelativePath(destfile)
+			if err != nil {
+				log.Fatalln("dest path not safe/valid")
 			}
-			for _, e := range p {
-				if e == ".." {
-					log.Fatalln("dest path cannot contain '..'")
-				}
-			}
-			destfile = filepath.Clean(destfile)
 			if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
 				if st.IsDir() {
 					destdir = true

@@ -94,17 +94,20 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 	return
 }
 
-// gateway specific cleanup
-//
-// when gateway running:
-// *.old
-// *.history
-// core.*
-// rms*
-//
-// when gateway down - above +
-// cache/
-//
-func gatewayClean() (err error) {
-	return
+var defaultGatewayCleanList = "*.old:*.history"
+
+func gatewayClean(c Instance) (err error) {
+	return removePathList(c, RunningConfig.GatewayCleanList)
+}
+
+var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
+
+func gatewayPurge(c Instance) (err error) {
+	if err = stopInstance(c); err != nil {
+		return err
+	}
+	if err = gatewayClean(c); err != nil {
+		return err
+	}
+	return removePathList(c, RunningConfig.GatewayPurgeList)
 }

@@ -38,6 +38,14 @@ type ConfigType struct {
 	GatewayPortRange  string `json:",omitempty"`
 	NetprobePortRange string `json:",omitempty"`
 	LicdPortRange     string `json:",omitempty"`
+
+	// Instance clean-up globs, two per type. Use PathListSep ':'
+	GatewayCleanList  string `json:",omitempty"`
+	GatewayPurgeList  string `json:",omitempty"`
+	NetprobeCleanList string `json:",omitempty"`
+	NetprobePurgeList string `json:",omitempty"`
+	LicdCleanList     string `json:",omitempty"`
+	LicdPurgeList     string `json:",omitempty"`
 }
 
 var RunningConfig ConfigType
@@ -135,18 +143,21 @@ func loadSysConfig() {
 		RunningConfig.ITRSHome = h
 	}
 
-	if RunningConfig.GatewayPortRange == "" {
-		RunningConfig.GatewayPortRange = gatewayPortRange
+	// defaults - make this long chain simpler
+	checkDefault(&RunningConfig.GatewayPortRange, gatewayPortRange)
+	checkDefault(&RunningConfig.NetprobePortRange, netprobePortRange)
+	checkDefault(&RunningConfig.LicdPortRange, licdPortRange)
+	checkDefault(&RunningConfig.GatewayCleanList, defaultGatewayCleanList)
+	checkDefault(&RunningConfig.GatewayPurgeList, defaultGatewayPurgeList)
+	checkDefault(&RunningConfig.NetprobeCleanList, defaultNetprobeCleanList)
+	checkDefault(&RunningConfig.NetprobePurgeList, defaultNetprobePurgeList)
+	checkDefault(&RunningConfig.LicdCleanList, defaultLicdCleanList)
+	checkDefault(&RunningConfig.LicdPurgeList, defaultLicdPurgeList)
+}
 
-	}
-
-	if RunningConfig.NetprobePortRange == "" {
-		RunningConfig.NetprobePortRange = netprobePortRange
-
-	}
-
-	if RunningConfig.LicdPortRange == "" {
-		RunningConfig.LicdPortRange = licdPortRange
+func checkDefault(v *string, d string) {
+	if *v == "" {
+		*v = d
 	}
 }
 

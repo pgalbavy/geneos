@@ -248,6 +248,47 @@ func singleCommand(fn func(Instance, []string) error, ct ComponentType, args []s
 	return nil
 }
 
+func cleanRelativePath(path string) (clean string, err error) {
+	path = strings.TrimSuffix(path, string(filepath.Separator))
+	p := strings.Split(path, string(filepath.Separator))
+	if len(p) > 0 && len(p[0]) == 0 {
+		DebugLog.Println("dest path must be relative")
+		return path, ErrInvalidArgs
+	}
+	for _, e := range p {
+		if e == ".." {
+			DebugLog.Println("dest path cannot contain '..'")
+			return path, ErrInvalidArgs
+		}
+	}
+	clean = filepath.Clean(path)
+
+	return
+}
+
+func removePathList(c Instance, paths string) (err error) {
+	list := filepath.SplitList(paths)
+	for _, p := range list {
+		// clean path, error on absolute or parent paths, like 'upload'
+		// walk globbed directories, remove everything
+		p, err = cleanRelativePath(p)
+		if err != nil {
+			log.Fatalln(p, err)
+		}
+		// glob here
+		m, err := filepath.Glob(filepath.Join(Home(c), p))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		for _, f := range m {
+			if err = os.RemoveAll(f); err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}
+	return
+}
+
 func getIntAsString(c interface{}, name string) string {
 	v := reflect.ValueOf(c).Elem().FieldByName(name)
 	if v.IsValid() && v.Kind() == reflect.Int {

@@ -30,3 +30,21 @@ func NewLicd(name string) (c *Licd) {
 func licdCommand(c Instance) (args, env []string) {
 	return
 }
+
+var defaultLicdCleanList = "*.old"
+
+func licdClean(c Instance) (err error) {
+	return removePathList(c, RunningConfig.LicdCleanList)
+}
+
+var defaultLicdPurgeList = "licd.log:licd.txt"
+
+func licdPurge(c Instance) (err error) {
+	if err = stopInstance(c); err != nil {
+		return err
+	}
+	if err = licdClean(c); err != nil {
+		return err
+	}
+	return removePathList(c, RunningConfig.LicdPurgeList)
+}

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+// TODO: Core files and other ulimits
+
 func init() {
 	commands["start"] = Command{commandStart, parseArgs, `geneos start [TYPE] [NAME...]`,
 		`Start one or more instances. All instances are run in the background and
