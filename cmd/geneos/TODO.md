@@ -10,7 +10,6 @@
 * delete command
 * check capabilities and not just root user
 * view / tail logs
-* clean command (delete cache, logs, history files etc.)
 * list / status in CSV and LSON formats
 * REST API for remote - initially read-only + rate limited
 * status and command should show user information. show should also give start time of process etc.
