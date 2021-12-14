@@ -29,8 +29,8 @@ Make sure that the `geneos` program is in your normal `PATH` - or that $HOME/go/
 
 If you have an existing Geneos installation that you manage with the legacy `gatewayctl` / `netprobectl` commands then you can try these:
 
-`geneos list` - show all components
-`geneos status` - show their running status
+`geneos ls` - list instances
+`geneos ps` - show their running status
 `geneos show` - show the default configuration values
 
 None of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
@@ -56,7 +56,7 @@ geneos start
 
 You still have to configure the Gateway to connect to the Netprobe, but all three components should now be running. You can check with:
 
-`geneos status`
+`geneos ps`
 
 ## Usage
 
@@ -94,11 +94,11 @@ Show the current version of the `geneos` program, which should match the tag of 
 * `geneos help`
 General help, initially a list of all the supported commands.
 
-* `geneos list [TYPE]`
-Output a list of all configured components. If a compoent type is supplied then list just that particular type.
+* `geneos ls [TYPE] [NAME...]`
+Output a list of all configured instances. If a TYPE and/or NAME(s) are supplied then list those that match.
 
-* `geneos status [TYPE] [names...]`
-As above but show the running status of each matching component. If no names are given than all components are shown.
+* `geneos ps [TYPE] [NAME...]`
+Show details of running instances.
 
 #### Environment Commands
 

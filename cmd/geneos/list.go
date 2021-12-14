@@ -16,8 +16,7 @@ Future versions will support CSV or JSON output formats for automation and monit
 	commands["list"] = Command{commandLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
 
 	commands["ps"] = Command{commandPS, parseArgs, "geneos ps [TYPE] [NAMES...]",
-		`Show the status of the matching instances. This includes the component type, if it is running
-and if so with what PID.
+		`Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 	commands["status"] = Command{commandPS, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}

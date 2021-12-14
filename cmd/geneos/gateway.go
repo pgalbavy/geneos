@@ -58,6 +58,8 @@ func gatewayCommand(c Instance) (args, env []string) {
 		filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources"),
 		"-log",
 		filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF")),
+		// enable stats by default
+		"-stats",
 	}
 
 	if licdhost != "localhost" {
