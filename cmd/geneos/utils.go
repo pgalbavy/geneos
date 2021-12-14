@@ -186,6 +186,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string) {
 	}
 
 	// make sure names/args are unique but retain order
+	// check for reserved names here?
 	if len(args) > 1 {
 		var newnames []string
 

@@ -39,6 +39,8 @@ func findInstances(name string) (cts []ComponentType) {
 	for _, t := range ComponentTypes() {
 		compdirs := InstanceDirs(t)
 		for _, dir := range compdirs {
+			// for case insensitive match change to EqualFold here
+			// but also in NewInstance()
 			if filepath.Base(dir) == name {
 				cts = append(cts, t)
 			}
