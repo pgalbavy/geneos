@@ -533,9 +533,13 @@ func commandSet(ct ComponentType, args []string) (err error) {
 				if !exists && !remove {
 					newenv = append(newenv, v)
 				}
-				setFieldSlice(c, k, newenv)
+				if err = setFieldSlice(c, k, newenv); err != nil {
+					return
+				}
 			} else {
-				setField(c, k, v)
+				if err = setField(c, k, v); err != nil {
+					return
+				}
 			}
 			setFlag = true
 		}

@@ -144,10 +144,14 @@ func readRCConfig(c Instance) (err error) {
 	for k, v := range confs {
 		switch k {
 		case "BinSuffix":
-			setField(c, k, v)
+			if err = setField(c, k, v); err != nil {
+				return
+			}
 		default:
 			if strings.HasPrefix(k, Prefix(c)) {
-				setField(c, k, v)
+				if err = setField(c, k, v); err != nil {
+					return
+				}
 			} else {
 				// set env var
 				env = append(env, fmt.Sprintf("%s=%s", k, v))

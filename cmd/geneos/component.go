@@ -167,7 +167,7 @@ func NewComponent(ct ComponentType, name string) (c []Instance) {
 	return
 }
 
-func NewInstance(c interface{}) {
+func setDefaults(c interface{}) (err error) {
 	st := reflect.TypeOf(c)
 	sv := reflect.ValueOf(c)
 	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
@@ -186,21 +186,20 @@ func NewInstance(c interface{}) {
 			continue
 		}
 		if def, ok := ft.Tag.Lookup("default"); ok {
-			if strings.Contains(def, "{{") {
-				val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
-				if err != nil {
-					log.Println("parse error:", def)
-					continue
-				}
-
-				var b bytes.Buffer
-				if err = val.Execute(&b, c); err != nil {
-					log.Println("cannot convert:", def)
-				}
-				setField(c, ft.Name, b.String())
-			} else {
-				setField(c, ft.Name, def)
+			// treat all defaults as if they are templates
+			val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
+			if err != nil {
+				log.Println("parse error:", def)
+				continue
+			}
+			var b bytes.Buffer
+			if err = val.Execute(&b, c); err != nil {
+				log.Println("cannot convert:", def)
+			}
+			if err = setField(c, ft.Name, b.String()); err != nil {
+				return err
 			}
 		}
 	}
+	return
 }

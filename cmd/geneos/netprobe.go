@@ -28,7 +28,7 @@ func NewNetprobe(name string) (c *Netprobe) {
 	c.Root = RunningConfig.ITRSHome
 	c.Type = Netprobes
 	c.Name = name
-	NewInstance(&c)
+	setDefaults(&c)
 	return
 }
 
@@ -46,8 +46,12 @@ func netprobeCommand(c Instance) (args, env []string) {
 func netprobeCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = NewNetprobe(name)
-	setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.NetprobePortRange)))
-	setField(c, Prefix(c)+"User", username)
+	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))); err != nil {
+		return
+	}
+	if err = setField(c, Prefix(c)+"User", username); err != nil {
+		return
+	}
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	writeConfigFile(conffile, c)
 	// default config XML etc.
