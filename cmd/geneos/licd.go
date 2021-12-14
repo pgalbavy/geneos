@@ -33,6 +33,15 @@ func NewLicd(name string) (c *Licd) {
 }
 
 func licdCommand(c Instance) (args, env []string) {
+	args = []string{
+		Name(c),
+		"-port",
+		getIntAsString(c, Prefix(c)+"Port"),
+		"-log",
+		getLogfilePath(c),
+		// enable stats by default
+	}
+
 	return
 }
 

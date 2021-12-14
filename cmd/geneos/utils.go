@@ -214,7 +214,6 @@ func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string) (e
 			}
 
 			if fn, ok := funcs[Type(c)]; ok {
-				log.Println(Type(c), Name(c), "i am here")
 				if err = fn(c); err != nil {
 					log.Println(Type(c), Name(c), err)
 				}
@@ -258,6 +257,7 @@ func singleCommand(fn func(Instance, []string) error, ct ComponentType, args []s
 			log.Println(Type(c), Name(c), "cannot load configuration")
 			return
 		}
+
 		if err = fn(c, args[1:]); err != nil {
 			log.Println(Type(c), Name(c), err)
 		}
