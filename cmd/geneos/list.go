@@ -1,51 +1,78 @@
 package main
 
+import (
+	"fmt"
+	"os/user"
+	"time"
+)
+
 func init() {
-	commands["list"] = Command{commandList, parseArgs, "geneos list [TYPE] [NAME...]",
+
+	commands["ls"] = Command{commandLS, parseArgs, "geneos ls [TYPE] [NAME...]",
 		`List the matching instances and their component type.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
-	commands["status"] = Command{commandStatus, parseArgs, "geneos status [TYPE] [NAMES...]",
+
+	commands["list"] = Command{commandLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
+
+	commands["ps"] = Command{commandPS, parseArgs, "geneos ps [TYPE] [NAMES...]",
 		`Show the status of the matching instances. This includes the component type, if it is running
 and if so with what PID.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
+	commands["status"] = Command{commandPS, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}
+
 	commands["command"] = Command{commandCommand, parseArgs, "geneos command [TYPE] [NAME...]",
 		`Show the full command line for the matching instances along with any environment variables
 explicitly set for execution.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
+
 }
 
-func commandList(ct ComponentType, args []string) error {
-	return loopCommand(listInstance, ct, args)
+func commandLS(ct ComponentType, args []string) error {
+	return loopCommand(lsInstance, ct, args)
 }
 
-func listInstance(c Instance) (err error) {
-	log.Println(Type(c), Name(c))
+func lsInstance(c Instance) (err error) {
+	log.Println(Type(c), Name(c), Home(c))
 	return
 }
 
-// also:
-// user running process, maybe age (from /proc/.../status)
-// show disabled/enabled status
+// TODO: CSV and JSON versions for automation
 //
-// CSV and JSON versions for automation
-func commandStatus(ct ComponentType, args []string) error {
-	return loopCommand(statusInstance, ct, args)
+// list instance processes: type, name, uid, gid, threads, starttime, directory, fds, args (?)
+//
+func commandPS(ct ComponentType, args []string) error {
+	log.Println("Instance PID User Group Starttime Directory")
+	return loopCommand(psInstance, ct, args)
 }
 
-func statusInstance(c Instance) (err error) {
+func psInstance(c Instance) (err error) {
 	if isDisabled(c) {
-		log.Println(Type(c), Name(c), ErrDisabled)
+		// log.Println(Type(c), Name(c), ErrDisabled)
 		return nil
 	}
-	pid, err := findProc(c)
+	pid, st, err := instanceProc(c)
 	if err != nil {
-		log.Println(Type(c), Name(c), err)
-		return
+		return nil
 	}
-	log.Println(Type(c), Name(c), "PID", pid)
+
+	var u *user.User
+	var g *user.Group
+
+	username := fmt.Sprint(st.Uid)
+	groupname := fmt.Sprint(st.Gid)
+
+	if u, err = user.LookupId(fmt.Sprint(st.Uid)); err == nil {
+		username = u.Username
+	}
+	if g, err = user.LookupGroupId(fmt.Sprint(st.Gid)); err == nil {
+		groupname = g.Name
+	}
+
+	log.Printf("%s:%s %d %s %s %s %s\n", Type(c), Name(c), pid, username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c))
+
 	return
 }
 

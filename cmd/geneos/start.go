@@ -23,7 +23,7 @@ func commandStart(ct ComponentType, args []string) (err error) {
 }
 
 func startInstance(c Instance) (err error) {
-	pid, err := findProc(c)
+	pid, _, err := instanceProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)
 		return nil

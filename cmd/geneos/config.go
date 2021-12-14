@@ -707,7 +707,7 @@ func commandRename(ct ComponentType, args []string) (err error) {
 	if err = loadConfig(from, true); err != nil {
 		log.Println(Type(from), Name(from), "cannot load configuration")
 	}
-	pid, _ := findProc(from)
+	pid, _, _ := instanceProc(from)
 	if pid != 0 {
 		return ErrProcExists
 	}

@@ -4,9 +4,7 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"os/user"
@@ -24,10 +22,9 @@ import (
 // the component name must be on the command line as an exact and standalone
 // args
 //
-func findProc(c Instance) (int, error) {
+func instanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 	var pids []int
 
-	DebugLog.Println("looking for", Type(c), Name(c))
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
 	dirs, _ := filepath.Glob("/proc/[0-9]*")
@@ -39,13 +36,10 @@ func findProc(c Instance) (int, error) {
 
 	sort.Ints(pids)
 
-	for _, pid := range pids {
-		data, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	for _, pid = range pids {
+		var data []byte
+		data, err = os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
-			if !errors.Is(err, fs.ErrPermission) {
-				DebugLog.Printf("reading %q failed, err: %q\n", pid, err)
-			}
-			// an error can be transient, just debug and ignore
 			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
@@ -53,13 +47,15 @@ func findProc(c Instance) (int, error) {
 		if strings.HasPrefix(bin, Type(c).String()) {
 			for _, arg := range args[1:] {
 				if string(arg) == Name(c) {
-					DebugLog.Println(pid, "matches", bin)
-					return pid, nil
+					if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
+						st = s.Sys().(*syscall.Stat_t)
+					}
+					return
 				}
 			}
 		}
 	}
-	return 0, ErrProcNotExist
+	return 0, nil, ErrProcNotExist
 }
 
 func getUser(username string) (uid, gid int, gids []uint32, err error) {

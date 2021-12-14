@@ -26,7 +26,7 @@ func commandStop(ct ComponentType, args []string) (err error) {
 }
 
 func stopInstance(c Instance) (err error) {
-	pid, err := findProc(c)
+	pid, _, err := instanceProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
 		return nil
@@ -72,7 +72,7 @@ func commandKill(ct ComponentType, args []string) (err error) {
 }
 
 func killInstance(c Instance) (err error) {
-	pid, err := findProc(c)
+	pid, _, err := instanceProc(c)
 	if err != nil {
 		return
 	}

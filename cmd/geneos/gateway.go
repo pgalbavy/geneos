@@ -118,7 +118,7 @@ func gatewayPurge(c Instance) (err error) {
 }
 
 func gatewayReload(c Instance) (err error) {
-	pid, err := findProc(c)
+	pid, _, err := instanceProc(c)
 	if err != nil {
 		return
 	}
