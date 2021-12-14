@@ -10,3 +10,4 @@
 * list / status in CSV and LSON formats
 * REST API for remote - initially read-only + rate limited
 * command should show user information.
+* SAN configuration support
