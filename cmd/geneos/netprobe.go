@@ -71,3 +71,7 @@ func netprobePurge(c Instance) (err error) {
 	}
 	return removePathList(c, RunningConfig.NetprobePurgeList)
 }
+
+func netprobeReload(c Instance) (err error) {
+	return ErrNotSupported
+}

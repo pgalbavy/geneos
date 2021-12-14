@@ -207,6 +207,25 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string) {
 	return
 }
 
+type perComponentFuncs map[ComponentType]func(Instance) error
+
+func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string) (err error) {
+	for _, name := range args {
+		for _, c := range NewComponent(ct, name) {
+			if err = loadConfig(c, false); err != nil {
+				log.Println(Type(c), Name(c), "cannot load configuration")
+				return
+			}
+			if fn, ok := funcs[ct]; ok {
+				if err = fn(c); err != nil {
+					log.Println(Type(c), Name(c), err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // given a compoent type and a slice of args, call the function for each arg
 //
 // reply on NewComponent() checking the component type and returning a slice

@@ -25,10 +25,6 @@ func commandStop(ct ComponentType, args []string) (err error) {
 	return loopCommand(stopInstance, ct, args)
 }
 
-func commandKill(ct ComponentType, args []string) (err error) {
-	return loopCommand(kill, ct, args)
-}
-
 func stopInstance(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
@@ -71,7 +67,11 @@ func stopInstance(c Instance) (err error) {
 
 }
 
-func kill(c Instance) (err error) {
+func commandKill(ct ComponentType, args []string) (err error) {
+	return loopCommand(killInstance, ct, args)
+}
+
+func killInstance(c Instance) (err error) {
 	pid, err := findProc(c)
 	if err != nil {
 		return
@@ -90,7 +90,6 @@ func kill(c Instance) (err error) {
 
 	log.Println("killing", Type(c), Name(c), "PID", pid)
 
-	// sigkill
 	if err = proc.Signal(syscall.SIGKILL); err != nil {
 		log.Println("sending SIGKILL failed:", err)
 		return

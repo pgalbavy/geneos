@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"text/template" // text and not html for generating XML!
 )
 
@@ -110,4 +111,23 @@ func gatewayPurge(c Instance) (err error) {
 		return err
 	}
 	return removePathList(c, RunningConfig.GatewayPurgeList)
+}
+
+func gatewayReload(c Instance) (err error) {
+	pid, err := findProc(c)
+	if err != nil {
+		return
+	}
+
+	if !canControl(c) {
+		return os.ErrPermission
+	}
+
+	// send a SIGUSR1
+	proc, _ := os.FindProcess(pid)
+	if err := proc.Signal(syscall.SIGUSR1); err != nil {
+		log.Println(Type(c), Name(c), "refresh failed")
+
+	}
+	return
 }

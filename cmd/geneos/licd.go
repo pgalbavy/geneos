@@ -64,3 +64,7 @@ func licdPurge(c Instance) (err error) {
 	}
 	return removePathList(c, RunningConfig.LicdPurgeList)
 }
+
+func licdReload(c Instance) (err error) {
+	return ErrNotSupported
+}

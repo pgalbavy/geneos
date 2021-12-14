@@ -94,10 +94,10 @@ Show the current version of the `geneos` program, which should match the tag of 
 * `geneos help`
 General help, initially a list of all the supported commands.
 
-* `geneos list [component]`
+* `geneos list [TYPE]`
 Output a list of all configured components. If a compoent type is supplied then list just that particular type.
 
-* `geneos status [component] [names...]`
+* `geneos status [TYPE] [names...]`
 As above but show the running status of each matching component. If no names are given than all components are shown.
 
 #### Environment Commands
@@ -122,45 +122,48 @@ Update the component base binary link
 
 #### Instance Control Commands
 
-* `geneos start [component] [name...]`
+* `geneos start [TYPE] [NAME...]`
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
 
-* `geneos stop [component] [name...]`
+* `geneos stop [TYPE] [NAME...]`
 Like above, but stops the component(s)
 
-* `geneos kill [component] [name...]`
+* `geneos kill [TYPE] [NAME...]`
 Stops components immediately (SIGKILL is sent)
 
-* `geneos restart [component] [name...]`
+* `geneos restart [TYPE] [NAME...]`
 Restarts matching geneos components. Each component is stopped and started in sequence. If all components should be down before starting up again then use a combination of `start` and `stop` from above.
 
-* `geneos reload|refresh [component] name [name...]`
+* `geneos reload|refresh [TYPE] NAME [NAME...]`
 Cause the component to reload it's configuration or restart as appropriate.
 
-* `geneos disable [component] [name...]`
+* `geneos disable [TYPE] [NAME...]`
 Stop and disable the selected compoents by placing a file in wach working directory with a `.disable` extention
 
-* `geneos enable [component] [name...]`
+* `geneos enable [TYPE] [NAME...]`
 Remove the `.disable` lock file and start the selected components
 
-* `geneos clean [component] [names]`
+* `geneos clean [TYPE] [names]`
+Clean up component
+
+* `geneos purge [TYPE] [names]`
 Clean up component
 
 #### Instance Configuration Commands
 
-* `geneos create [component] name [name...]`
+* `geneos create [TYPE] name [NAME...]`
 Create a Geneos component configuration.
 
-* `geneos migrate [component] [instance...]`
+* `geneos migrate [TYPE] [NAME...]`
 Migrate legacy `.rc` files to `.json` and backup the original file with an `.orig` extension. This backup file can be used by the `revert` command, below, to restore the original `.rc` file(s)
 
-* `geneos revert [component] [instance...]`
+* `geneos revert [TYPE] [NAME...]`
 Revert to the original configuration files, deleting the `.json` files. Note that the `.rc` files are never changed and any configuration changes to the `.json` configuration will not be retained.
 
-* `geneos command [component] [name...]`
+* `geneos command [TYPE] [NAME...]`
 Shows details of the full command used for the component and any extra environment variables found in the configuration.
 
-* `geneos rename [component] name newname`
+* `geneos rename [TYPE] name newname`
 Rename the compoent, but this only affects the container directory, this programs JSON configursation file and does not update the contents of any other files.
 
 * `geneos delete component name`
@@ -169,7 +172,7 @@ Deletes the disabled component given. Only works on components that have been di
 * `geneos edit [user|component] [names]`
 Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
 
-* `geneos upload [component] name [file|url|-]`
+* `geneos upload [TYPE] name [file|url|-]`
 Upload a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
   `geneos upload gateway Example gateway.setup.xml`
   `geneos upload gateway Example https://server/files/gateway.setup.xml`
