@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"syscall"
 	"time"
@@ -26,22 +25,19 @@ func commandStop(ct ComponentType, args []string) (err error) {
 }
 
 func stopInstance(c Instance) (err error) {
-	pid, _, err := instanceProc(c)
+	pid, st, err := findInstanceProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
 		return nil
 	}
 
-	// who is the process running as?
-	s, _ := os.Stat(fmt.Sprintf("/proc/%d", pid))
-	st := s.Sys().(*syscall.Stat_t)
-	DebugLog.Println("process running as", st.Uid, st.Gid)
-
-	proc, _ := os.FindProcess(pid)
-
 	if !canControl(c) {
 		return os.ErrPermission
 	}
+
+	DebugLog.Println("process running as", st.Uid, st.Gid)
+
+	proc, _ := os.FindProcess(pid)
 
 	log.Println("stopping", Type(c), Name(c), "with PID", pid)
 
@@ -72,21 +68,18 @@ func commandKill(ct ComponentType, args []string) (err error) {
 }
 
 func killInstance(c Instance) (err error) {
-	pid, _, err := instanceProc(c)
+	pid, st, err := findInstanceProc(c)
 	if err != nil {
 		return
 	}
 
-	// who is the process running as?
-	s, _ := os.Stat(fmt.Sprintf("/proc/%d", pid))
-	st := s.Sys().(*syscall.Stat_t)
-	log.Println("process running as", st.Uid, st.Gid)
-
-	proc, _ := os.FindProcess(pid)
-
 	if !canControl(c) {
 		return os.ErrPermission
 	}
+
+	DebugLog.Println("process running as", st.Uid, st.Gid)
+
+	proc, _ := os.FindProcess(pid)
 
 	log.Println("killing", Type(c), Name(c), "PID", pid)
 

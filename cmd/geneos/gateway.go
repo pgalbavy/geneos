@@ -14,7 +14,7 @@ type Gateway struct {
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
-	GateLogD  string `default:"{{.GateHome}}"`
+	GateLogD  string
 	GateLogF  string `default:"gateway.log"`
 	GatePort  int    `default:"7039"`
 	GateMode  string `default:"background"`
@@ -57,7 +57,7 @@ func gatewayCommand(c Instance) (args, env []string) {
 		"-resources-dir",
 		filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources"),
 		"-log",
-		filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF")),
+		getLogfilePath(c),
 		// enable stats by default
 		"-stats",
 	}
@@ -110,6 +110,7 @@ func gatewayClean(c Instance) (err error) {
 var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
 
 func gatewayPurge(c Instance) (err error) {
+	log.Println(Type(c), Name(c), "purge")
 	if err = stopInstance(c); err != nil {
 		return err
 	}
@@ -120,7 +121,7 @@ func gatewayPurge(c Instance) (err error) {
 }
 
 func gatewayReload(c Instance) (err error) {
-	pid, _, err := instanceProc(c)
+	pid, _, err := findInstanceProc(c)
 	if err != nil {
 		return
 	}

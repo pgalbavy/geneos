@@ -52,7 +52,7 @@ func psInstance(c Instance) (err error) {
 		// log.Println(Type(c), Name(c), ErrDisabled)
 		return nil
 	}
-	pid, st, err := instanceProc(c)
+	pid, st, err := findInstanceProc(c)
 	if err != nil {
 		return nil
 	}

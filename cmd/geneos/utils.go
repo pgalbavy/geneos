@@ -22,7 +22,7 @@ import (
 // the component name must be on the command line as an exact and standalone
 // args
 //
-func instanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
+func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 	var pids []int
 
 	// safe to ignore error as it can only be bad pattern,
@@ -212,7 +212,9 @@ func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string) (e
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
 			}
-			if fn, ok := funcs[ct]; ok {
+
+			if fn, ok := funcs[Type(c)]; ok {
+				log.Println(Type(c), Name(c), "i am here")
 				if err = fn(c); err != nil {
 					log.Println(Type(c), Name(c), err)
 				}
@@ -303,6 +305,23 @@ func removePathList(c Instance, paths string) (err error) {
 	}
 	return
 }
+
+// logdir = Logd relative to Home or absolute
+func getLogfilePath(c Instance) (logdir string) {
+	logd := filepath.Clean(getString(c, Prefix(c)+"Logd"))
+	switch {
+	case logd == "":
+		logdir = Home(c)
+	case strings.HasPrefix(logd, string(os.PathSeparator)):
+		logdir = logd
+	default:
+		logdir = filepath.Join(Home(c), logd)
+	}
+	logdir = filepath.Join(logdir, getString(c, Prefix(c)+"LogF"))
+	return
+}
+
+// reflect methods to get and set struct fields
 
 func getIntAsString(c interface{}, name string) string {
 	v := reflect.ValueOf(c).Elem().FieldByName(name)

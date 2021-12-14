@@ -23,7 +23,7 @@ func commandStart(ct ComponentType, args []string) (err error) {
 }
 
 func startInstance(c Instance) (err error) {
-	pid, _, err := instanceProc(c)
+	pid, _, err := findInstanceProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)
 		return nil
@@ -52,7 +52,7 @@ func startInstance(c Instance) (err error) {
 
 	cmd.Env = append(os.Environ(), env...)
 
-	errfile := filepath.Join(getString(c, Prefix(c)+"LogD"), Type(c).String()+".txt")
+	errfile := filepath.Join(Home(c), Type(c).String()+".txt")
 
 	out, err := os.OpenFile(errfile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

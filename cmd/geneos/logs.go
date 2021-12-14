@@ -1,8 +1,6 @@
 package main
 
 import (
-	"path/filepath"
-
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -16,7 +14,7 @@ func commandLogs(ct ComponentType, args []string) error {
 }
 
 func logsInstance(c Instance) (err error) {
-	logfile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
+	logfile := getLogfilePath(c)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

@@ -33,7 +33,7 @@ func NewNetprobe(name string) (c *Netprobe) {
 }
 
 func netprobeCommand(c Instance) (args, env []string) {
-	logFile := filepath.Join(getString(c, Prefix(c)+"LogD"), getString(c, Prefix(c)+"LogF"))
+	logFile := getLogfilePath(c)
 	args = []string{
 		Name(c),
 		"-port",

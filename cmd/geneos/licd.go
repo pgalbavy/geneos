@@ -10,7 +10,7 @@ type Licd struct {
 	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
 	LicdBins  string `default:"{{join .Root \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
-	LicdLogD  string `default:"{{.LicdHome}}"`
+	LicdLogD  string
 	LicdLogF  string `default:"licd.log"`
 	LicdMode  string `default:"background"`
 	LicdPort  int    `default:"7041"`
