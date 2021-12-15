@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -89,13 +90,14 @@ func installLatest(ct ComponentType) (err error) {
 		}
 		return nil
 	default:
+
 		f, gz, err := fetchLatest(ct)
 		if err != nil {
 			return err
 		}
 		defer gz.Close()
 
-		log.Println("fetching latest", ct.String(), f)
+		log.Println("fetched latest", ct.String(), f)
 
 		if err = unarchive(f, gz); err != nil {
 			return err
@@ -330,7 +332,9 @@ func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err err
 
 	var resp *http.Response
 
-	if RunningConfig.DefaultUser != "" {
+	// if a download user is set then issue a POST with username and password
+	// in a JSON body, else just try the GET
+	if RunningConfig.DownloadUser != "" {
 		var authbody DownloadAuth
 		authbody.Username = RunningConfig.DownloadUser
 		authbody.Password = RunningConfig.DownloadPass
@@ -353,7 +357,30 @@ func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err err
 	}
 
 	u := resp.Request.URL
-	filename = filepath.Base(u.Path)
+
+	// check content-disposition here
+	// for official download site the header is in the initial response
+	// but perhaps other systems will set one later in the redirect, so
+	// leaving this indirection test here
+	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
+	if !ok {
+		cd, ok = resp.Request.Response.Header[http.CanonicalHeaderKey("content-disposition")]
+	}
+	if ok {
+		DebugLog.Println("found content-disposition:", cd[0])
+		_, params, err := mime.ParseMediaType(cd[0])
+		if err == nil {
+			DebugLog.Println(params)
+			if f, ok := params["filename"]; ok {
+				filename = f
+				DebugLog.Println("filename set from header to", filename)
+			}
+		}
+	}
+	if filename == "" {
+		filename = filepath.Base(u.Path)
+		DebugLog.Println("filename set from URL to", filename)
+	}
 	body = resp.Body
 	return
 }
