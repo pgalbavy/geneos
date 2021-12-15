@@ -233,8 +233,6 @@ func emptyArgs(ct ComponentType) (args []string) {
 	return
 }
 
-var validStringRE = regexp.MustCompile(`^[\w-]+$`)
-
 // return true while a string is considered a valid instance name
 //
 // used to consume instance names until parameters are then passed down
@@ -258,6 +256,8 @@ func reservedName(in string) (ok bool) {
 	}
 	return
 }
+
+var validStringRE = regexp.MustCompile(`^\w[\w-]*$`)
 
 func validInstanceName(in string) (ok bool) {
 	DebugLog.Printf("checking %q", in)
