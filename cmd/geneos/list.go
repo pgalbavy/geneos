@@ -1,17 +1,24 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os/user"
+	"text/tabwriter"
 	"time"
 )
 
-func init() {
+var lsJSON, psJSON bool
+var lsFlags, psFlags *flag.FlagSet
 
+func init() {
 	commands["ls"] = Command{commandLS, parseArgs, "geneos ls [TYPE] [NAME...]",
 		`List the matching instances and their component type.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
+
+	lsFlags = flag.NewFlagSet("ls", flag.ExitOnError)
+	lsFlags.BoolVar(&lsJSON, "j", false, "Output JSON")
 
 	commands["list"] = Command{commandLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
 
@@ -19,6 +26,10 @@ Future versions will support CSV or JSON output formats for automation and monit
 		`Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
+
+	psFlags = flag.NewFlagSet("ps", flag.ExitOnError)
+	psFlags.BoolVar(&psJSON, "j", false, "Output JSON")
+
 	commands["status"] = Command{commandPS, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}
 
 	commands["command"] = Command{commandCommand, parseArgs, "geneos command [TYPE] [NAME...]",
@@ -29,12 +40,23 @@ Future versions will support CSV or JSON output formats for automation and monit
 
 }
 
-func commandLS(ct ComponentType, args []string, params []string) error {
-	return loopCommand(lsInstance, ct, args, params)
+var lsTabWriter *tabwriter.Writer
+
+func commandLS(ct ComponentType, args []string, params []string) (err error) {
+	lsFlags.Parse(params)
+	DebugLog.Println("JSON", lsJSON)
+	params = lsFlags.Args()
+	lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
+	fmt.Fprintf(lsTabWriter, "Type\tName\tHome\n")
+
+	err = loopCommand(lsInstance, ct, args, params)
+	lsTabWriter.Flush()
+	return
 }
 
 func lsInstance(c Instance, params []string) (err error) {
-	log.Println(Type(c), Name(c), Home(c))
+	DebugLog.Println("params", params)
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\n", Type(c), Name(c), Home(c))
 	return
 }
 
@@ -42,9 +64,17 @@ func lsInstance(c Instance, params []string) (err error) {
 //
 // list instance processes: type, name, uid, gid, threads, starttime, directory, fds, args (?)
 //
-func commandPS(ct ComponentType, args []string, params []string) error {
-	log.Println("Instance PID User Group Starttime Directory")
-	return loopCommand(psInstance, ct, args, params)
+
+var psTabWriter *tabwriter.Writer
+
+func commandPS(ct ComponentType, args []string, params []string) (err error) {
+	psFlags.Parse(params)
+	DebugLog.Println("JSON", psJSON)
+	psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
+	fmt.Fprintf(psTabWriter, "Type:Name\tPID\tUser\tGroup\tStarttime\tHome\n")
+	err = loopCommand(psInstance, ct, args, params)
+	psTabWriter.Flush()
+	return
 }
 
 func psInstance(c Instance, params []string) (err error) {
@@ -70,7 +100,7 @@ func psInstance(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	log.Printf("%s:%s %d %s %s %s %s\n", Type(c), Name(c), pid, username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c))
+	fmt.Fprintf(psTabWriter, "%s:%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), pid, username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c))
 
 	return
 }
