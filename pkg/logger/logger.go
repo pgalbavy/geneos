@@ -77,7 +77,7 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 
 	default:
 		var fnName string = "UNKNOWN"
-		pc, _, ln, ok := runtime.Caller(4)
+		pc, _, ln, ok := runtime.Caller(3)
 		if ok {
 			fn := runtime.FuncForPC(pc)
 			if fn != nil {
