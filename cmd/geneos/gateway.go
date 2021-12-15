@@ -103,24 +103,24 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 
 var defaultGatewayCleanList = "*.old:*.history"
 
-func gatewayClean(c Instance) (err error) {
+func gatewayClean(c Instance, params []string) (err error) {
 	return removePathList(c, RunningConfig.GatewayCleanList)
 }
 
 var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
 
-func gatewayPurge(c Instance) (err error) {
+func gatewayPurge(c Instance, params []string) (err error) {
 	log.Println(Type(c), Name(c), "purge")
-	if err = stopInstance(c); err != nil {
+	if err = stopInstance(c, params); err != nil {
 		return err
 	}
-	if err = gatewayClean(c); err != nil {
+	if err = gatewayClean(c, params); err != nil {
 		return err
 	}
 	return removePathList(c, RunningConfig.GatewayPurgeList)
 }
 
-func gatewayReload(c Instance) (err error) {
+func gatewayReload(c Instance, params []string) (err error) {
 	pid, _, err := findInstanceProc(c)
 	if err != nil {
 		return

@@ -15,6 +15,6 @@ var reloadFuncs = perComponentFuncs{
 	Licds:     licdReload,
 }
 
-func commandReload(ct ComponentType, args []string) error {
-	return loopCommandMap(reloadFuncs, ct, args)
+func commandReload(ct ComponentType, args []string, params []string) error {
+	return loopCommandMap(reloadFuncs, ct, args, params)
 }

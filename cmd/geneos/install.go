@@ -56,7 +56,7 @@ Future version may support selecting a base other than 'active_prod'.`}
 //
 // 'geneos install gateway [files]'
 // 'geneos install netprobe latest'
-func commandInstall(ct ComponentType, files []string) (err error) {
+func commandInstall(ct ComponentType, files []string, params []string) (err error) {
 	if len(files) == 1 && files[0] == "latest" {
 		return installLatest(ct)
 	}
@@ -113,7 +113,7 @@ func unarchive(f string, gz io.Reader) (err error) {
 		return
 	}
 	DebugLog.Printf("parts=%v\n", parts)
-	comp := CompType(parts[1])
+	comp := parseComponentName(parts[1])
 	if comp == None || comp == Unknown {
 		log.Println("component type required")
 		return
@@ -195,7 +195,7 @@ func unarchive(f string, gz io.Reader) (err error) {
 //
 // latest is: [GA]N.M.P-DATE - GA is optional, ignore all other non-numeric
 // prefixes. Sort N.M.P using almost semantic versioning
-func commandUpdate(ct ComponentType, args []string) (err error) {
+func commandUpdate(ct ComponentType, args []string, params []string) (err error) {
 	return updateLatest(ct, false)
 }
 
@@ -229,8 +229,8 @@ func updateLatest(ct ComponentType, readonly bool) error {
 		insts := matchComponents(ct, "Base", base)
 		// stop matching instances
 		for _, i := range insts {
-			stopInstance(i)
-			defer startInstance(i)
+			stopInstance(i, nil)
+			defer startInstance(i, nil)
 		}
 		if err = os.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err

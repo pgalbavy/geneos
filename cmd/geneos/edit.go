@@ -26,7 +26,7 @@ See also 'geneos set' and 'geneos show'.`}
 //
 // run the configured editor against the instance chosen
 //
-func commandEdit(ct ComponentType, args []string) (err error) {
+func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(args) == 0 {

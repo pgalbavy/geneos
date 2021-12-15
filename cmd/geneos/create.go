@@ -38,7 +38,7 @@ user in the instance configuration or the default user. Currently only one file 
 time.`}
 }
 
-func commandCreate(ct ComponentType, args []string) (err error) {
+func commandCreate(ct ComponentType, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		log.Fatalln("not enough args")
 	}
@@ -168,8 +168,8 @@ func nextPort(from string) int {
 // backup / history track older files (date/time?)
 // no restart or reload of compnents?
 
-func commandUpload(ct ComponentType, args []string) (err error) {
-	return singleCommand(uploadInstance, ct, args)
+func commandUpload(ct ComponentType, args []string, params []string) (err error) {
+	return singleCommand(uploadInstance, ct, args, params)
 }
 
 // args are instance [file...]
@@ -183,7 +183,7 @@ func commandUpload(ct ComponentType, args []string) (err error) {
 // 'geneos upload netprobe exampel3 scripts/=myscript.sh'
 //
 // local directroreies are created
-func uploadInstance(c Instance, args []string) (err error) {
+func uploadInstance(c Instance, args []string, params []string) (err error) {
 	var destfile, backuppath string
 	var destdir bool
 	var from io.ReadCloser

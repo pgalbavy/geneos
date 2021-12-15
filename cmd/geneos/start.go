@@ -18,11 +18,11 @@ If neither TYPE or NAME(s) are given, all instances are started.
 `}
 }
 
-func commandStart(ct ComponentType, args []string) (err error) {
-	return loopCommand(startInstance, ct, args)
+func commandStart(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(startInstance, ct, args, params)
 }
 
-func startInstance(c Instance) (err error) {
+func startInstance(c Instance, params []string) (err error) {
 	pid, _, err := findInstanceProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)

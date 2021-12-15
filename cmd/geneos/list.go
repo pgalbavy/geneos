@@ -29,11 +29,11 @@ Future versions will support CSV or JSON output formats for automation and monit
 
 }
 
-func commandLS(ct ComponentType, args []string) error {
-	return loopCommand(lsInstance, ct, args)
+func commandLS(ct ComponentType, args []string, params []string) error {
+	return loopCommand(lsInstance, ct, args, params)
 }
 
-func lsInstance(c Instance) (err error) {
+func lsInstance(c Instance, params []string) (err error) {
 	log.Println(Type(c), Name(c), Home(c))
 	return
 }
@@ -42,12 +42,12 @@ func lsInstance(c Instance) (err error) {
 //
 // list instance processes: type, name, uid, gid, threads, starttime, directory, fds, args (?)
 //
-func commandPS(ct ComponentType, args []string) error {
+func commandPS(ct ComponentType, args []string, params []string) error {
 	log.Println("Instance PID User Group Starttime Directory")
-	return loopCommand(psInstance, ct, args)
+	return loopCommand(psInstance, ct, args, params)
 }
 
-func psInstance(c Instance) (err error) {
+func psInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		// log.Println(Type(c), Name(c), ErrDisabled)
 		return nil
@@ -75,20 +75,20 @@ func psInstance(c Instance) (err error) {
 	return
 }
 
-func commandCommand(ct ComponentType, args []string) (err error) {
+func commandCommand(ct ComponentType, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range NewComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println("cannot load configuration for", Type(c), Name(c))
 				return
 			}
-			commandInstance(c)
+			commandInstance(c, params)
 		}
 	}
 	return
 }
 
-func commandInstance(c Instance) {
+func commandInstance(c Instance, params []string) {
 	cmd, env := buildCommand(c)
 	if cmd != nil {
 		log.Printf("command: %q\n", cmd.String())

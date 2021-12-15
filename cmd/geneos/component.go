@@ -48,7 +48,7 @@ func (ct ComponentType) String() string {
 	return "unknown"
 }
 
-func CompType(component string) ComponentType {
+func parseComponentName(component string) ComponentType {
 	switch strings.ToLower(component) {
 	case "", "any":
 		return None

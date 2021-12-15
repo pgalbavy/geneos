@@ -86,6 +86,22 @@ These names are also reserved words and you cannot configure or manage component
 
 The program has been written in such a way that is should be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
 
+#### General Command Flags & Arguments
+
+`geneos [FLAG...] COMMAND [FLAG...] [TYPE] [NAME...] [PARAM...]`
+
+Where:
+
+* `FLAG` - parsed by the flag package
+* `COMMAND` - one of the configured command verbs
+* `TYPE` - parsed by CompType() where None means no match
+* `NAME` - one or more instance names, matching the validNames() test
+* `PARAM` - everything else, left after the last NAME is found
+
+Special case or genearlise some commands - the don't call parseArgs() or whatever. e.g. "geneos set global [PARAM...]"
+
+Reserved instance names are case-insensitive. So, for exmaple, "gateway", "Gateway" and "GATEWAY" are all reserved.
+
 #### Global Commands
 
 * `geneos version`

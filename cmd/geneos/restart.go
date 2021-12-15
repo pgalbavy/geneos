@@ -5,13 +5,13 @@ func init() {
 		`Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`}
 }
 
-func commandRestart(ct ComponentType, args []string) (err error) {
-	return loopCommand(restartInstance, ct, args)
+func commandRestart(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(restartInstance, ct, args, params)
 }
 
-func restartInstance(c Instance) (err error) {
-	if err = stopInstance(c); err == nil {
-		return startInstance(c)
+func restartInstance(c Instance, params []string) (err error) {
+	if err = stopInstance(c, params); err == nil {
+		return startInstance(c, params)
 	}
 	return
 }

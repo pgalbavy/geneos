@@ -60,22 +60,22 @@ func netprobeCreate(name string, username string) (c Instance, err error) {
 
 var defaultNetprobeCleanList = "*.old"
 
-func netprobeClean(c Instance) (err error) {
+func netprobeClean(c Instance, params []string) (err error) {
 	return removePathList(c, RunningConfig.NetprobeCleanList)
 }
 
 var defaultNetprobePurgeList = "netprobe.log:netprobe.txt:*.snooze:*.user_assignment"
 
-func netprobePurge(c Instance) (err error) {
-	if err = stopInstance(c); err != nil {
+func netprobePurge(c Instance, params []string) (err error) {
+	if err = stopInstance(c, params); err != nil {
 		return err
 	}
-	if err = netprobeClean(c); err != nil {
+	if err = netprobeClean(c, params); err != nil {
 		return err
 	}
 	return removePathList(c, RunningConfig.NetprobePurgeList)
 }
 
-func netprobeReload(c Instance) (err error) {
+func netprobeReload(c Instance, params []string) (err error) {
 	return ErrNotSupported
 }

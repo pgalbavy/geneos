@@ -12,8 +12,8 @@ import (
 )
 
 type Command struct {
-	Function     func(ComponentType, []string) error
-	ParseArgs    func([]string) (ComponentType, []string)
+	Function     func(ComponentType, []string, []string) error
+	ParseArgs    func([]string) (ComponentType, []string, []string)
 	CommandLine  string // one line command syntax
 	Descrtiption string // details
 }

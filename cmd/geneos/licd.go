@@ -62,22 +62,22 @@ func licdCreate(name string, username string) (c Instance, err error) {
 
 var defaultLicdCleanList = "*.old"
 
-func licdClean(c Instance) (err error) {
+func licdClean(c Instance, params []string) (err error) {
 	return removePathList(c, RunningConfig.LicdCleanList)
 }
 
 var defaultLicdPurgeList = "licd.log:licd.txt"
 
-func licdPurge(c Instance) (err error) {
-	if err = stopInstance(c); err != nil {
+func licdPurge(c Instance, params []string) (err error) {
+	if err = stopInstance(c, params); err != nil {
 		return err
 	}
-	if err = licdClean(c); err != nil {
+	if err = licdClean(c, params); err != nil {
 		return err
 	}
 	return removePathList(c, RunningConfig.LicdPurgeList)
 }
 
-func licdReload(c Instance) (err error) {
+func licdReload(c Instance, params []string) (err error) {
 	return ErrNotSupported
 }

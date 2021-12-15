@@ -20,11 +20,11 @@ given all instances with the matching name(s) are killed. If no instance names(s
 instances of the given type are killed. If neither typoe or instance is given, all instances are killed.`}
 }
 
-func commandStop(ct ComponentType, args []string) (err error) {
-	return loopCommand(stopInstance, ct, args)
+func commandStop(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(stopInstance, ct, args, params)
 }
 
-func stopInstance(c Instance) (err error) {
+func stopInstance(c Instance, params []string) (err error) {
 	pid, st, err := findInstanceProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
@@ -63,11 +63,11 @@ func stopInstance(c Instance) (err error) {
 
 }
 
-func commandKill(ct ComponentType, args []string) (err error) {
-	return loopCommand(killInstance, ct, args)
+func commandKill(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(killInstance, ct, args, params)
 }
 
-func killInstance(c Instance) (err error) {
+func killInstance(c Instance, params []string) (err error) {
 	pid, st, err := findInstanceProc(c)
 	if err != nil {
 		return

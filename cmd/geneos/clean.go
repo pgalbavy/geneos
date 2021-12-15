@@ -26,8 +26,8 @@ var cleanFuncs = perComponentFuncs{
 	Licds:     licdClean,
 }
 
-func commandClean(ct ComponentType, args []string) error {
-	return loopCommandMap(cleanFuncs, ct, args)
+func commandClean(ct ComponentType, args []string, params []string) error {
+	return loopCommandMap(cleanFuncs, ct, args, params)
 }
 
 var purgeFuncs = perComponentFuncs{
@@ -36,6 +36,6 @@ var purgeFuncs = perComponentFuncs{
 	Licds:     licdPurge,
 }
 
-func commandPurge(ct ComponentType, args []string) error {
-	return loopCommandMap(purgeFuncs, ct, args)
+func commandPurge(ct ComponentType, args []string, params []string) error {
+	return loopCommandMap(purgeFuncs, ct, args, params)
 }

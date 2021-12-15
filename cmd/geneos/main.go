@@ -41,17 +41,28 @@ var (
 // checked to either drop privs or to set real uids etc.
 var superuser bool = false
 
-// default home. this can be moved to a global config file
-// with a default to the home dir of the user running the command
-// var Config.Root string = "/opt/itrs"
-
 // map of all configured commands
 //
 // this is populated buy the init() functions in each
-// command specific source file and the functions must
-// have the same signature and be self-sufficient
+// command source file and the functions must
+// have the same signature and be self-sufficient, returning
+// only an error (or nil)
 var commands Commands = make(Commands)
 
+// command line general form(s):
+//
+// geneos [FLAG...] COMMAND [FLAG...] [TYPE] [NAME...] [PARAM...]
+//
+// Where:
+//
+// FLAG - parsed by the flag package
+// COMMAND - in the map above
+// TYPE - parsed by CompType where None means no match
+// NAME - one or more instance names, matching the validNames() test
+// PARAM - everything else, left after the last NAME is found
+//
+// Soecial case or genearlise some commands - the don't call parseArgs()
+// or whatever. e.g. "geneos set global [PARAM...]"
 func main() {
 	var debug, quiet, verbose bool
 
@@ -78,18 +89,20 @@ func main() {
 	var command = strings.ToLower(leftargs[0])
 	var ct ComponentType = None
 	var args []string = leftargs[1:]
+	var params []string
 
 	// parse the rest of the args depending on the command
 	if commands[command].ParseArgs != nil {
-		ct, args = commands[command].ParseArgs(leftargs[1:])
+		ct, args, params = commands[command].ParseArgs(leftargs[1:])
 	}
+	DebugLog.Println("ct", ct, "args", args, "params", params)
 
 	// if command is not an init, set or show then the ITRSHome
 	// directory must exist and be accessible to the user
 	switch command {
 	// come commands just want the raw command args, or none
 	case "help", "version", "init":
-		if err := commands[command].Function(ct, args); err != nil {
+		if err := commands[command].Function(ct, args, params); err != nil {
 			log.Fatalln(err)
 		}
 		os.Exit(0)
@@ -109,7 +122,7 @@ func main() {
 		// process set or show global|user or keep going to instances
 		if len(args) > 0 && (args[0] == "user" || args[0] == "global") {
 			// output on-disk global or user config, not resolved one
-			if err := commands[command].Function(ct, args); err != nil {
+			if err := commands[command].Function(ct, args, params); err != nil {
 				log.Fatalln(err)
 			}
 			os.Exit(0)
@@ -150,7 +163,7 @@ func main() {
 		}
 
 		// the command has to understand ct == None/Unknown
-		if err = c.Function(ct, args); err != nil {
+		if err = c.Function(ct, args, params); err != nil {
 			log.Fatalln(err)
 		}
 	}

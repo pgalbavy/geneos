@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -155,58 +156,127 @@ func canControl(c Instance) bool {
 // arg is a component type and depdup the names. A name of "all" will
 // will override the rest and result in a lookup being done
 //
-// special case (shortcircuit) "config" ?
-func parseArgs(rawargs []string) (ct ComponentType, args []string) {
+// Check for spaces in args - they would have come in in quotes - and
+// do something with them.
+//
+// Check for specific, configurable, character (default '+') and replace with space
+// e.g. Demo+Gateway -> "Demo Gateway"
+//
+// args with an '=' should be checked and only allowed if there are names?
+//
+// support glob style wildcards for instance names - allow through, let loopCommand*
+// deal with them
+//
+func parseArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
 	if len(rawargs) == 0 {
 		// wildcard everything
 		ct = None
-	} else if ct = CompType(rawargs[0]); ct == Unknown {
+	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
 		// first arg is not a known type
 		ct = None
 		args = rawargs
-		// return // ??
 	} else {
 		args = rawargs[1:]
 	}
 
 	// empty list of names = all names for that ct
 	if len(args) == 0 {
-		var confs []Instance
-		switch ct {
-		case None, Unknown:
-			// wildcard again - sort oder matters, fix
-			confs = allInstances()
-		default:
-			confs = instances(ct)
-		}
-		args = nil
-		for _, c := range confs {
-			args = append(args, Name(c))
-		}
+		args = emptyArgs(ct)
 	}
 
 	// make sure names/args are unique but retain order
 	// check for reserved names here?
-	if len(args) > 1 {
-		var newnames []string
+	// do space exchange inbound here
+	var newnames []string
 
-		m := make(map[string]bool, len(args))
-		for _, name := range args {
-			if m[name] {
-				continue
-			}
-			newnames = append(newnames, name)
-			m[name] = true
+	m := make(map[string]bool, len(args))
+	for _, name := range args {
+		// filter name here
+		if reservedName(args[0]) {
+			log.Fatalf("%q is reserved instance name", args[0])
 		}
-		args = newnames
+		if !validInstanceName(args[0]) {
+			DebugLog.Printf("%q is not a valid instance name", args[0])
+			break
+		}
+		if m[name] {
+			continue
+		}
+		newnames = append(newnames, name)
+		args = args[1:]
+		m[name] = true
+	}
+	params = args
+	args = newnames
+
+	// repeat if args is now empty (all params)
+	if len(args) == 0 {
+		args = emptyArgs(ct)
 	}
 
+	DebugLog.Println("params:", params)
 	return
 }
 
-type perComponentFuncs map[ComponentType]func(Instance) error
+func emptyArgs(ct ComponentType) (args []string) {
+	var confs []Instance
+	switch ct {
+	case None, Unknown:
+		// wildcard again - sort oder matters, fix
+		confs = allInstances()
+	default:
+		confs = instances(ct)
+	}
+	for _, c := range confs {
+		args = append(args, Name(c))
+	}
+	return
+}
 
-func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string) (err error) {
+var validStringRE = regexp.MustCompile(`^[\w-]+$`)
+
+// return true while a string is considered a valid instance name
+//
+// used to consume instance names until parameters are then passed down
+//
+// seperate reserved words and invalid syntax
+//
+func reservedName(in string) (ok bool) {
+	DebugLog.Printf("checking %q", in)
+	if parseComponentName(in) != Unknown {
+		DebugLog.Println("matches a reserved word")
+		return true
+	}
+	if RunningConfig.ReservedNames != "" {
+		list := strings.Split(in, string(os.PathListSeparator))
+		for _, n := range list {
+			if strings.EqualFold(in, n) {
+				DebugLog.Println("matches a user defined reserved name")
+				return true
+			}
+		}
+	}
+	return
+}
+
+func validInstanceName(in string) (ok bool) {
+	DebugLog.Printf("checking %q", in)
+	ok = validStringRE.MatchString(in)
+	DebugLog.Println("rexexp match", ok)
+	return
+}
+
+func spaceToReplace(in string) string {
+	return strings.ReplaceAll(in, " ", RunningConfig.ReplaceSpace)
+}
+
+func replaceToSpace(in string) string {
+	return strings.ReplaceAll(in, RunningConfig.ReplaceSpace, " ")
+}
+
+type perComponentFuncs map[ComponentType]func(Instance, []string) error
+
+func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range NewComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
@@ -215,7 +285,7 @@ func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string) (e
 			}
 
 			if fn, ok := funcs[Type(c)]; ok {
-				if err = fn(c); err != nil {
+				if err = fn(c, params); err != nil {
 					log.Println(Type(c), Name(c), err)
 				}
 			}
@@ -229,14 +299,14 @@ func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string) (e
 // reply on NewComponent() checking the component type and returning a slice
 // of all matching components for a single name in an arg (e.g all instances
 // called 'thisserver')
-func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err error) {
+func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range NewComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
 			}
-			if err = fn(c); err != nil {
+			if err = fn(c, params); err != nil {
 				log.Println(Type(c), Name(c), err)
 			}
 		}
@@ -247,7 +317,7 @@ func loopCommand(fn func(Instance) error, ct ComponentType, args []string) (err 
 // like the above but only process the first arg (if any) to allow for those commands
 // that accept only zero or one named instance and the rest of the args are parameters
 // pass the remaining args the to function
-func singleCommand(fn func(Instance, []string) error, ct ComponentType, args []string) (err error) {
+func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		// do nothing
 		return
@@ -259,7 +329,7 @@ func singleCommand(fn func(Instance, []string) error, ct ComponentType, args []s
 			return
 		}
 
-		if err = fn(c, args[1:]); err != nil {
+		if err = fn(c, args[1:], params); err != nil {
 			log.Println(Type(c), Name(c), err)
 		}
 	}

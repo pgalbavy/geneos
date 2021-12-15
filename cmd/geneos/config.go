@@ -35,6 +35,15 @@ type ConfigType struct {
 	// default is owner of ITRSHome
 	DefaultUser string `json:",omitempty"`
 
+	// Exchange the space character with this when looking at file system or
+	// command args. Default "+". Defined as string for simplicity but must be
+	// len() == 1
+	ReplaceSpace string `json:",omitempty"`
+
+	// Path List sperated additions to the reserved names list, over and above
+	// any words matched by parseComponentName()
+	ReservedNames string `json:",omitempty"`
+
 	GatewayPortRange  string `json:",omitempty"`
 	NetprobePortRange string `json:",omitempty"`
 	LicdPortRange     string `json:",omitempty"`
@@ -143,6 +152,11 @@ func loadSysConfig() {
 		RunningConfig.ITRSHome = h
 	}
 
+	if len(RunningConfig.ReplaceSpace) >= 1 {
+		ErrorLog.Printf("FakeSpace config must be exactly one character long, not: %q. Using default '+'", RunningConfig.ReplaceSpace)
+	}
+	checkDefault(&RunningConfig.ReplaceSpace, "+")
+
 	// defaults - make this long chain simpler
 	checkDefault(&RunningConfig.GatewayPortRange, gatewayPortRange)
 	checkDefault(&RunningConfig.NetprobePortRange, netprobePortRange)
@@ -184,7 +198,7 @@ func checkDefault(v *string, d string) {
 // 'geneos init [dir]' - similarly dir defaults to $HOME/geneos, providing user
 // is an error. user config is overwritten
 //
-func initCommand(ct ComponentType, args []string) (err error) {
+func initCommand(ct ComponentType, args []string, params []string) (err error) {
 	var c ConfigType
 	if ct != None {
 		log.Fatalln("cannot initialise with component type", ct, "given")
@@ -311,22 +325,22 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	return
 }
 
-func commandMigrate(ct ComponentType, names []string) (err error) {
-	return loopCommand(migrateInstance, ct, names)
+func commandMigrate(ct ComponentType, names []string, params []string) (err error) {
+	return loopCommand(migrateInstance, ct, names, params)
 }
 
-func migrateInstance(c Instance) (err error) {
+func migrateInstance(c Instance, params []string) (err error) {
 	if err = loadConfig(c, true); err != nil {
 		log.Println(Type(c), Name(c), "cannot migrate configuration", err)
 	}
 	return
 }
 
-func commandRevert(ct ComponentType, names []string) (err error) {
-	return loopCommand(revertInstance, ct, names)
+func commandRevert(ct ComponentType, names []string, params []string) (err error) {
+	return loopCommand(revertInstance, ct, names, params)
 }
 
-func revertInstance(c Instance) (err error) {
+func revertInstance(c Instance, params []string) (err error) {
 	baseconf := filepath.Join(Home(c), Type(c).String())
 
 	// if *.rc file exists, remove rc.orig+JSON, continue
@@ -350,7 +364,7 @@ func revertInstance(c Instance) (err error) {
 	return nil
 }
 
-func commandShow(ct ComponentType, names []string) (err error) {
+func commandShow(ct ComponentType, names []string, params []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(names) == 0 {
@@ -432,8 +446,9 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 	return
 }
 
-func commandSet(ct ComponentType, args []string) (err error) {
-	if len(args) == 0 {
+func commandSet(ct ComponentType, args []string, params []string) (err error) {
+	DebugLog.Println("args", args, "params", params)
+	if len(args) == 0 && len(params) == 0 {
 		return os.ErrInvalid
 	}
 
@@ -448,15 +463,15 @@ func commandSet(ct ComponentType, args []string) (err error) {
 	}
 
 	// check if all args have an '=' - if so default to "set user"
-	eqs := len(args)
+	/* eqs := len(args)
 	for _, arg := range args {
 		if strings.Contains(arg, "=") {
 			eqs--
 		}
-	}
-	if eqs == 0 {
+	} */
+	if len(args) == 0 {
 		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), args)
+		setConfig(filepath.Join(userConfDir, "geneos.json"), params)
 		return
 	}
 
@@ -464,31 +479,22 @@ func commandSet(ct ComponentType, args []string) (err error) {
 	// but allow for RC files again
 	//
 	// consume component names, stop at first parameter, error out if more names
-	var cs []Instance
-	var setFlag bool
+	var instances []Instance
 
+	// loop through named instances
 	for _, arg := range args {
-		if !strings.Contains(arg, "=") {
-			// if any settings have been seen but there is a non-setting
-			// then stop processing, maybe error out
-			if setFlag {
-				log.Println("already found settings")
-				// error out
-				break
+		for _, c := range NewComponent(ct, arg) {
+			// migration required to set values
+			if err = loadConfig(c, true); err != nil {
+				log.Println(Type(c), Name(c), "cannot load configuration")
+				continue
 			}
-
-			// this is still an instance name, squirrel away and loop
-			for _, c := range NewComponent(ct, arg) {
-				// migration required to set values
-				if err = loadConfig(c, true); err != nil {
-					log.Println(Type(c), Name(c), "cannot load configuration")
-					continue
-				}
-				cs = append(cs, c)
-			}
-			continue
+			instances = append(instances, c)
 		}
+		continue
+	}
 
+	for _, arg := range params {
 		// special handling for "Env" field, which is always
 		// a slice of environment key=value pairs
 		// 'geneos set probe Env=JAVA_HOME=/path'
@@ -497,8 +503,8 @@ func commandSet(ct ComponentType, args []string) (err error) {
 		s := strings.SplitN(arg, "=", 2)
 		k, v := s[0], s[1]
 
-		// loop through all provided components, set the parameter(s)
-		for _, c := range cs {
+		// loop through all provided instances, set the parameter(s)
+		for _, c := range instances {
 			if k == "Env" {
 				var remove bool
 				env := getSliceStrings(c, k)
@@ -541,12 +547,11 @@ func commandSet(ct ComponentType, args []string) (err error) {
 					return
 				}
 			}
-			setFlag = true
 		}
 	}
 
 	// now loop through the collected results anbd write out
-	for _, c := range cs {
+	for _, c := range instances {
 		conffile := filepath.Join(Home(c), Type(c).String()+".json")
 		if err = writeConfigFile(conffile, c); err != nil {
 			log.Println(err)
@@ -554,15 +559,14 @@ func commandSet(ct ComponentType, args []string) (err error) {
 	}
 
 	return
-
 }
 
-func setConfig(filename string, args []string) (err error) {
+func setConfig(filename string, params []string) (err error) {
 	var c ConfigType
 	// ignore err - config may not exist, but that's OK
 	_ = readConfigFile(filename, &c)
 	// change here
-	for _, set := range args {
+	for _, set := range params {
 		// skip all non '=' args
 		if !strings.Contains(set, "=") {
 			continue
@@ -634,16 +638,16 @@ func writeConfigFile(file string, config interface{}) (err error) {
 
 const disableExtension = ".disabled"
 
-func commandDisable(ct ComponentType, args []string) (err error) {
-	return loopCommand(disableInstance, ct, args)
+func commandDisable(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(disableInstance, ct, args, params)
 }
 
-func disableInstance(c Instance) (err error) {
+func disableInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		return fmt.Errorf("already disabled")
 	}
 
-	if err = stopInstance(c); err != nil && err != ErrProcNotExist {
+	if err = stopInstance(c, params); err != nil && err != ErrProcNotExist {
 		return err
 	}
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
@@ -667,14 +671,14 @@ func disableInstance(c Instance) (err error) {
 
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
-func commandEneable(ct ComponentType, args []string) (err error) {
-	return loopCommand(enableInstance, ct, args)
+func commandEneable(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(enableInstance, ct, args, params)
 }
 
-func enableInstance(c Instance) (err error) {
+func enableInstance(c Instance, params []string) (err error) {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
 	if err = os.Remove(d); err == nil || errors.Is(err, os.ErrNotExist) {
-		err = startInstance(c)
+		err = startInstance(c, params)
 	}
 	return
 }
@@ -695,7 +699,7 @@ func isDisabled(c Instance) bool {
 // migrate RC
 // change config options the include name
 // if gateway then rename in config?
-func commandRename(ct ComponentType, args []string) (err error) {
+func commandRename(ct ComponentType, args []string, params []string) (err error) {
 	if len(args) != 2 {
 		return ErrInvalidArgs
 	}
@@ -715,11 +719,11 @@ func commandRename(ct ComponentType, args []string) (err error) {
 	return ErrNotSupported
 }
 
-func commandDelete(ct ComponentType, args []string) (err error) {
-	return loopCommand(deleteInstance, ct, args)
+func commandDelete(ct ComponentType, args []string, params []string) (err error) {
+	return loopCommand(deleteInstance, ct, args, params)
 }
 
-func deleteInstance(c Instance) (err error) {
+func deleteInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		if err = os.RemoveAll(Home(c)); err != nil {
 			log.Fatalln(err)

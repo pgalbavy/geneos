@@ -9,11 +9,11 @@ func init() {
 		`Show logs for matching instances. Not fully implemented.`}
 }
 
-func commandLogs(ct ComponentType, args []string) error {
-	return loopCommand(logsInstance, ct, args)
+func commandLogs(ct ComponentType, args []string, params []string) error {
+	return loopCommand(logsInstance, ct, args, params)
 }
 
-func logsInstance(c Instance) (err error) {
+func logsInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
 	watcher, err := fsnotify.NewWatcher()

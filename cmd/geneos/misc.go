@@ -12,12 +12,12 @@ func init() {
 		`This command. Shows either a list of available commands or the help for the given COMMAND.`}
 }
 
-func commandVersion(comp ComponentType, args []string) error {
+func commandVersion(comp ComponentType, args []string, params []string) error {
 	log.Println("version: undefined")
 	return nil
 }
 
-func commandHelp(comp ComponentType, args []string) error {
+func commandHelp(comp ComponentType, args []string, params []string) error {
 	if len(args) == 0 {
 		keys := make([]string, 0, len(commands))
 		for k := range commands {
