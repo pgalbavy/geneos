@@ -2,7 +2,9 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"strings"
@@ -51,19 +53,35 @@ var superuser bool = false
 var commands Commands = make(Commands)
 
 func main() {
+	var debug, quiet, verbose bool
+
+	flag.BoolVar(&debug, "d", false, "enable debug output")
+	flag.BoolVar(&verbose, "v", false, "verbose output")
+	flag.BoolVar(&quiet, "q", false, "quiet output")
+	flag.Parse()
+	var leftargs = flag.Args()
+
+	if quiet {
+		log.SetOutput(ioutil.Discard)
+	} else if debug {
+		logger.EnableDebugLog()
+	} else if verbose {
+		log.Println("look at ME!")
+	}
+
 	loadSysConfig()
 
-	if len(os.Args) < 2 {
+	if len(leftargs) == 0 {
 		log.Fatalln("[usage here]: not enough args")
 	}
 
-	var command = strings.ToLower(os.Args[1])
+	var command = strings.ToLower(leftargs[0])
 	var ct ComponentType = None
-	var args []string = os.Args[2:]
+	var args []string = leftargs[1:]
 
 	// parse the rest of the args depending on the command
 	if commands[command].ParseArgs != nil {
-		ct, args = commands[command].ParseArgs(os.Args[2:])
+		ct, args = commands[command].ParseArgs(leftargs[1:])
 	}
 
 	// if command is not an init, set or show then the ITRSHome
@@ -79,7 +97,7 @@ func main() {
 	case "show":
 		if ct == None {
 			// check the unparsed args here
-			if len(os.Args[2:]) == 0 {
+			if len(leftargs[1:]) == 0 {
 				// output resolved config and exit
 				printConfigStructJSON(RunningConfig)
 				os.Exit(0)
