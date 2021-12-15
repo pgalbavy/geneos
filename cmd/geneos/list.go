@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os/user"
@@ -8,17 +10,19 @@ import (
 	"time"
 )
 
-var lsJSON, psJSON bool
-var lsFlags, psFlags *flag.FlagSet
+var listJSON bool
+var listCSV bool
+var listFlags, psFlags *flag.FlagSet
 
 func init() {
+	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
+	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
+	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
+
 	commands["ls"] = Command{commandLS, parseArgs, "geneos ls [TYPE] [NAME...]",
 		`List the matching instances and their component type.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
-
-	lsFlags = flag.NewFlagSet("ls", flag.ExitOnError)
-	lsFlags.BoolVar(&lsJSON, "j", false, "Output JSON")
 
 	commands["list"] = Command{commandLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
 
@@ -26,9 +30,6 @@ Future versions will support CSV or JSON output formats for automation and monit
 		`Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
-
-	psFlags = flag.NewFlagSet("ps", flag.ExitOnError)
-	psFlags.BoolVar(&psJSON, "j", false, "Output JSON")
 
 	commands["status"] = Command{commandPS, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}
 
@@ -41,22 +42,55 @@ Future versions will support CSV or JSON output formats for automation and monit
 }
 
 var lsTabWriter *tabwriter.Writer
+var csvWriter *csv.Writer
+var jsonEncoder *json.Encoder
 
 func commandLS(ct ComponentType, args []string, params []string) (err error) {
-	lsFlags.Parse(params)
-	DebugLog.Println("JSON", lsJSON)
-	params = lsFlags.Args()
-	lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-	fmt.Fprintf(lsTabWriter, "Type\tName\tHome\n")
-
-	err = loopCommand(lsInstance, ct, args, params)
-	lsTabWriter.Flush()
+	listFlags.Parse(params)
+	DebugLog.Println("JSON", listJSON)
+	DebugLog.Println("CSV", listCSV)
+	if listJSON && listCSV {
+		log.Fatalln("only one of -j or -c allowed")
+	}
+	params = listFlags.Args()
+	switch {
+	case listJSON:
+		jsonEncoder = json.NewEncoder(log.Writer())
+		//jsonEncoder.SetIndent("", "    ")
+		err = loopCommand(lsInstanceJSON, ct, args, params)
+	case listCSV:
+		csvWriter = csv.NewWriter(log.Writer())
+		csvWriter.Write([]string{"Type", "Name", "Home"})
+		err = loopCommand(lsInstanceCSV, ct, args, params)
+		csvWriter.Flush()
+	default:
+		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
+		fmt.Fprintf(lsTabWriter, "Type\tName\tHome\n")
+		err = loopCommand(lsInstancePlain, ct, args, params)
+		lsTabWriter.Flush()
+	}
 	return
 }
 
-func lsInstance(c Instance, params []string) (err error) {
+func lsInstancePlain(c Instance, params []string) (err error) {
 	DebugLog.Println("params", params)
 	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\n", Type(c), Name(c), Home(c))
+	return
+}
+
+func lsInstanceCSV(c Instance, params []string) (err error) {
+	csvWriter.Write([]string{Type(c).String(), Name(c), Home(c)})
+	return
+}
+
+type lsType struct {
+	Type string
+	Name string
+	Home string
+}
+
+func lsInstanceJSON(c Instance, params []string) (err error) {
+	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), Home(c)})
 	return
 }
 
@@ -68,8 +102,9 @@ func lsInstance(c Instance, params []string) (err error) {
 var psTabWriter *tabwriter.Writer
 
 func commandPS(ct ComponentType, args []string, params []string) (err error) {
-	psFlags.Parse(params)
-	DebugLog.Println("JSON", psJSON)
+	listFlags.Parse(params)
+	DebugLog.Println("JSON", listJSON)
+	DebugLog.Println("CSV", listCSV)
 	psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 	fmt.Fprintf(psTabWriter, "Type:Name\tPID\tUser\tGroup\tStarttime\tHome\n")
 	err = loopCommand(psInstance, ct, args, params)
