@@ -12,7 +12,7 @@ import (
 
 var listJSON bool
 var listCSV bool
-var listFlags, psFlags *flag.FlagSet
+var listFlags *flag.FlagSet
 
 func init() {
 	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
