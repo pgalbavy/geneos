@@ -119,7 +119,7 @@ func logTailInstance(c Instance, params []string) (err error) {
 		log.Println(err)
 	}
 	if len(text) != 0 {
-		filterOutput(logfile, strings.NewReader(text))
+		filterOutput(logfile, strings.NewReader(text+"\n"))
 	}
 	return nil
 }
@@ -203,6 +203,7 @@ func filterOutput(logfile string, reader io.Reader) {
 	default:
 		outHeader(logfile)
 		io.Copy(log.Writer(), reader)
+		//log.Println()
 	}
 }
 
@@ -235,7 +236,7 @@ func logFollowInstance(c Instance, params []string) (err error) {
 		log.Println(err)
 	}
 	if len(text) != 0 {
-		filterOutput(logfile, strings.NewReader(text))
+		filterOutput(logfile, strings.NewReader(text+"\n"))
 	}
 
 	DebugLog.Println("watching", logfile)
