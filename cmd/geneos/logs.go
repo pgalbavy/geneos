@@ -252,7 +252,6 @@ func watchLogs() (err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//defer watcher.Close()
 
 	go func() {
 		for {
