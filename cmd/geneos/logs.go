@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"flag"
 	"io"
@@ -118,8 +119,7 @@ func logTailInstance(c Instance, params []string) (err error) {
 		log.Println(err)
 	}
 	if len(text) != 0 {
-		outHeader(logfile)
-		log.Print(text)
+		filterOutput(logfile, strings.NewReader(text))
 	}
 	return nil
 }
@@ -180,6 +180,32 @@ func isLineSep(r rune) bool {
 	return unicode.Is(unicode.Zp, r)
 }
 
+func filterOutput(logfile string, reader io.Reader) {
+	switch {
+	case logsInclude != "":
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.Contains(line, logsInclude) {
+				outHeader(logfile)
+				log.Println(line)
+			}
+		}
+	case logsExclude != "":
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if !strings.Contains(line, logsExclude) {
+				outHeader(logfile)
+				log.Println(line)
+			}
+		}
+	default:
+		outHeader(logfile)
+		io.Copy(log.Writer(), reader)
+	}
+}
+
 func logCatInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
@@ -188,9 +214,9 @@ func logCatInstance(c Instance, params []string) (err error) {
 		return
 	}
 	tails[logfile] = tail{lines, Type(c), Name(c)}
-	outHeader(logfile)
 	defer lines.Close()
-	_, err = io.Copy(log.Writer(), lines)
+	filterOutput(logfile, lines)
+
 	return
 }
 
@@ -209,8 +235,7 @@ func logFollowInstance(c Instance, params []string) (err error) {
 		log.Println(err)
 	}
 	if len(text) != 0 {
-		outHeader(logfile)
-		log.Print(text)
+		filterOutput(logfile, strings.NewReader(text))
 	}
 
 	DebugLog.Println("watching", logfile)
@@ -248,9 +273,7 @@ func watchLogs() (err error) {
 }
 
 func copyFromFile(logfile string) {
-	outHeader(logfile)
-
 	if f, ok := tails[logfile]; ok {
-		io.Copy(log.Writer(), f.f)
+		filterOutput(logfile, f.f)
 	}
 }
