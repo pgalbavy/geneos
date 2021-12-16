@@ -105,16 +105,31 @@ func commandPS(ct ComponentType, args []string, params []string) (err error) {
 	listFlags.Parse(params)
 	DebugLog.Println("JSON", listJSON)
 	DebugLog.Println("CSV", listCSV)
-	psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-	fmt.Fprintf(psTabWriter, "Type:Name\tPID\tUser\tGroup\tStarttime\tHome\n")
-	err = loopCommand(psInstance, ct, args, params)
-	psTabWriter.Flush()
+	if listJSON && listCSV {
+		log.Fatalln("only one of -j or -c allowed")
+	}
+	params = listFlags.Args()
+	switch {
+	case listJSON:
+		jsonEncoder = json.NewEncoder(log.Writer())
+		//jsonEncoder.SetIndent("", "    ")
+		err = loopCommand(psInstanceJSON, ct, args, params)
+	case listCSV:
+		csvWriter = csv.NewWriter(log.Writer())
+		csvWriter.Write([]string{"Type:Name", "PID", "User", "Group", "Starttime", "Home"})
+		err = loopCommand(psInstanceCSV, ct, args, params)
+		csvWriter.Flush()
+	default:
+		psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
+		fmt.Fprintf(psTabWriter, "Type:Name\tPID\tUser\tGroup\tStarttime\tHome\n")
+		err = loopCommand(psInstancePlain, ct, args, params)
+		psTabWriter.Flush()
+	}
 	return
 }
 
-func psInstance(c Instance, params []string) (err error) {
+func psInstancePlain(c Instance, params []string) (err error) {
 	if isDisabled(c) {
-		// log.Println(Type(c), Name(c), ErrDisabled)
 		return nil
 	}
 	pid, st, err := findInstanceProc(c)
@@ -136,6 +151,70 @@ func psInstance(c Instance, params []string) (err error) {
 	}
 
 	fmt.Fprintf(psTabWriter, "%s:%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), pid, username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c))
+
+	return
+}
+
+func psInstanceCSV(c Instance, params []string) (err error) {
+	if isDisabled(c) {
+		return nil
+	}
+	pid, st, err := findInstanceProc(c)
+	if err != nil {
+		return nil
+	}
+
+	var u *user.User
+	var g *user.Group
+
+	username := fmt.Sprint(st.Uid)
+	groupname := fmt.Sprint(st.Gid)
+
+	if u, err = user.LookupId(fmt.Sprint(st.Uid)); err == nil {
+		username = u.Username
+	}
+	if g, err = user.LookupGroupId(fmt.Sprint(st.Gid)); err == nil {
+		groupname = g.Name
+	}
+
+	csvWriter.Write([]string{Type(c).String() + ":" + Name(c), fmt.Sprint(pid), username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c)})
+
+	return
+}
+
+type psType struct {
+	Type      string
+	Name      string
+	PID       string
+	User      string
+	Group     string
+	Starttime string
+	Home      string
+}
+
+func psInstanceJSON(c Instance, params []string) (err error) {
+	if isDisabled(c) {
+		return nil
+	}
+	pid, st, err := findInstanceProc(c)
+	if err != nil {
+		return nil
+	}
+
+	var u *user.User
+	var g *user.Group
+
+	username := fmt.Sprint(st.Uid)
+	groupname := fmt.Sprint(st.Gid)
+
+	if u, err = user.LookupId(fmt.Sprint(st.Uid)); err == nil {
+		username = u.Username
+	}
+	if g, err = user.LookupGroupId(fmt.Sprint(st.Gid)); err == nil {
+		groupname = g.Name
+	}
+
+	jsonEncoder.Encode(psType{Type(c).String(), Name(c), fmt.Sprint(pid), username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }
