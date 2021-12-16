@@ -28,7 +28,7 @@ const (
 
 // currently supported types, for looping
 // (go doesn't allow const slices, a function is the workaround)
-func ComponentTypes() []ComponentType {
+func componentTypes() []ComponentType {
 	return []ComponentType{Gateways, Netprobes, Licds}
 }
 
@@ -82,15 +82,15 @@ type Components struct {
 // type is initialised
 //
 // No side-effects
-func InstanceDirs(ct ComponentType) []string {
-	return dirs(InstanceDir(ct))
+func instanceDirs(ct ComponentType) []string {
+	return dirs(instanceDir(ct))
 }
 
 // as above, this method returns metadata before the underlying
 // type is initialised
 //
 // No side-effects
-func InstanceDir(ct ComponentType) string {
+func instanceDir(ct ComponentType) string {
 	return filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s")
 }
 

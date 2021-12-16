@@ -22,22 +22,22 @@ type Commands map[string]Command
 
 // return a single slice of all instances, ordered and grouped
 func allInstances() (confs []Instance) {
-	for _, ct := range ComponentTypes() {
+	for _, ct := range componentTypes() {
 		confs = append(confs, instances(ct)...)
 	}
 	return
 }
 
 func instances(ct ComponentType) (confs []Instance) {
-	for _, name := range InstanceDirs(ct) {
+	for _, name := range instanceDirs(ct) {
 		confs = append(confs, NewComponent(ct, name)...)
 	}
 	return
 }
 
 func findInstances(name string) (cts []ComponentType) {
-	for _, t := range ComponentTypes() {
-		compdirs := InstanceDirs(t)
+	for _, t := range componentTypes() {
+		compdirs := instanceDirs(t)
 		for _, dir := range compdirs {
 			// for case insensitive match change to EqualFold here
 			// but also in NewInstance()
@@ -77,7 +77,6 @@ func loadConfig(c Instance, update bool) (err error) {
 }
 
 func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
-	// XXX abstract this stuff away
 	binary := filepath.Join(getString(c, Prefix(c)+"Bins"),
 		getString(c, Prefix(c)+"Base"),
 		getString(c, "BinSuffix"))
@@ -100,7 +99,7 @@ func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
 	case Licds:
 		args, env = licdCommand(c)
 	default:
-		//
+		return
 	}
 
 	opts := strings.Fields(getString(c, Prefix(c)+"Opts"))
@@ -119,9 +118,7 @@ func readRCConfig(c Instance) (err error) {
 	if err != nil {
 		return
 	}
-
-	wd := filepath.Join(InstanceDir(Type(c)), Name(c))
-	DebugLog.Printf("loading config from %s/%s.rc", wd, Type(c))
+	DebugLog.Printf("loading config from %s/%s.rc", Home(c), Type(c))
 
 	confs := make(map[string]string)
 

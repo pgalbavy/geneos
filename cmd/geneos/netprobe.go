@@ -43,6 +43,7 @@ func netprobeCommand(c Instance) (args, env []string) {
 	return
 }
 
+// create a plain netprobe instance
 func netprobeCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = NewNetprobe(name)

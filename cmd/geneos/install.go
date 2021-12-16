@@ -80,7 +80,7 @@ func commandInstall(ct ComponentType, files []string, params []string) (err erro
 func installLatest(ct ComponentType) (err error) {
 	switch ct {
 	case None:
-		for _, t := range ComponentTypes() {
+		for _, t := range componentTypes() {
 			if err = installLatest(t); err != nil {
 				if !errors.Is(err, fs.ErrExist) {
 					return
@@ -207,7 +207,7 @@ func updateLatest(ct ComponentType, readonly bool) error {
 
 	switch ct {
 	case None:
-		for _, t := range ComponentTypes() {
+		for _, t := range componentTypes() {
 			updateLatest(t, readonly)
 		}
 	case Gateways, Netprobes, Licds:
