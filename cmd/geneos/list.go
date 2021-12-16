@@ -60,7 +60,7 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 		err = loopCommand(lsInstanceJSON, ct, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Home"})
+		csvWriter.Write([]string{"Type", "Name", "Disabled", "Home"})
 		err = loopCommand(lsInstanceCSV, ct, args, params)
 		csvWriter.Flush()
 	default:
@@ -74,23 +74,36 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 
 func lsInstancePlain(c Instance, params []string) (err error) {
 	DebugLog.Println("params", params)
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\n", Type(c), Name(c), Home(c))
+	var suffix string
+	if isDisabled(c) {
+		suffix = "*"
+	}
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\n", Type(c), Name(c)+suffix, Home(c))
 	return
 }
 
 func lsInstanceCSV(c Instance, params []string) (err error) {
-	csvWriter.Write([]string{Type(c).String(), Name(c), Home(c)})
+	var dis string = "N"
+	if isDisabled(c) {
+		dis = "Y"
+	}
+	csvWriter.Write([]string{Type(c).String(), Name(c), dis, Home(c)})
 	return
 }
 
 type lsType struct {
-	Type string
-	Name string
-	Home string
+	Type     string
+	Name     string
+	Disabled string
+	Home     string
 }
 
 func lsInstanceJSON(c Instance, params []string) (err error) {
-	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), Home(c)})
+	var dis string = "N"
+	if isDisabled(c) {
+		dis = "Y"
+	}
+	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), dis, Home(c)})
 	return
 }
 

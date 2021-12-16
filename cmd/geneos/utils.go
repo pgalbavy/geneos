@@ -233,10 +233,6 @@ func emptyArgs(ct ComponentType) (args []string) {
 	return
 }
 
-// return true while a string is considered a valid instance name
-//
-// used to consume instance names until parameters are then passed down
-//
 // seperate reserved words and invalid syntax
 //
 func reservedName(in string) (ok bool) {
@@ -260,6 +256,10 @@ func reservedName(in string) (ok bool) {
 // spaces are valid - dumb, but valid - for now
 var validStringRE = regexp.MustCompile(`^\w[\w -]*$`)
 
+// return true while a string is considered a valid instance name
+//
+// used to consume instance names until parameters are then passed down
+//
 func validInstanceName(in string) (ok bool) {
 	DebugLog.Printf("checking %q", in)
 	ok = validStringRE.MatchString(in)
