@@ -18,7 +18,7 @@ var logsInclude, logsExclude string
 
 func init() {
 	logsFlags = flag.NewFlagSet("logs", flag.ExitOnError)
-	logsFlags.IntVar(&logsLines, "n", 20, "Lines to tail")
+	logsFlags.IntVar(&logsLines, "n", 10, "Lines to tail")
 	logsFlags.BoolVar(&logsFollow, "f", false, "Follow file")
 	logsFlags.BoolVar(&logsCat, "c", false, "Cat whole file")
 	logsFlags.StringVar(&logsInclude, "g", "", "Filter output with STRING")
@@ -28,7 +28,7 @@ func init() {
 		`Show logs for matching instances. Not fully implemented.
 
 Options:
-	-n NUM		- show last NUM lines, default 20
+	-n NUM		- show last NUM lines, default 10
 	-f		- follow
 	-c		- cat log file(s)
 	-g STRING	- "grep" STRING (plain, non-regexp)
@@ -42,6 +42,19 @@ When one instance given just stream, otherwise each output block is prefixed by 
 }
 
 var watcher *fsnotify.Watcher
+
+// struct to hold logfile details
+type tail struct {
+	f *os.File
+	t ComponentType
+	n string
+}
+
+// map of log file path to File set to the last position read
+var tails map[string]tail = make(map[string]tail)
+
+// last logfile written out
+var lastout string
 
 func commandLogs(ct ComponentType, args []string, params []string) (err error) {
 	logsFlags.Parse(params)
@@ -79,15 +92,27 @@ func commandLogs(ct ComponentType, args []string, params []string) (err error) {
 	return
 }
 
+func outHeader(logfile string) {
+	if lastout == logfile {
+		return
+	}
+	if lastout != "" {
+		log.Println()
+	}
+	log.Printf("==> %s:%s %s <==\n", tails[logfile].t, tails[logfile].n, logfile)
+	lastout = logfile
+}
+
 func logTailInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	log.Println("**** log for", Type(c), Name(c), "****")
 	lines, err := os.Open(logfile)
 	if err != nil {
 		return
 	}
 	defer lines.Close()
+	tails[logfile] = tail{lines, Type(c), Name(c)}
+	outHeader(logfile)
 
 	text, err := tailLines(lines, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
@@ -151,11 +176,12 @@ func isLineSep(r rune) bool {
 func logCatInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	log.Println("**** log for", Type(c), Name(c), "****")
 	lines, err := os.Open(logfile)
 	if err != nil {
 		return
 	}
+	tails[logfile] = tail{lines, Type(c), Name(c)}
+	outHeader(logfile)
 	defer lines.Close()
 	_, err = io.Copy(log.Writer(), lines)
 	return
@@ -164,9 +190,23 @@ func logCatInstance(c Instance, params []string) (err error) {
 func logFollowInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
+	f, err := os.Open(logfile)
+	if err != nil {
+		return
+	}
+	tails[logfile] = tail{f, Type(c), Name(c)}
+	outHeader(logfile)
+
+	// output up to this point
+	text, err := tailLines(tails[logfile].f, logsLines)
+	if err != nil && !errors.Is(err, io.EOF) {
+		log.Println(err)
+	}
+	log.Print(text)
+
 	DebugLog.Println("watching", logfile)
 	if err = watcher.Add(logfile); err != nil {
-		log.Fatalln("watcher.Add():", logfile, err)
+		DebugLog.Fatalln("watcher.Add():", logfile, err)
 	}
 
 	return
@@ -184,10 +224,10 @@ func watchLogs() (err error) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Println("event:", event)
+				DebugLog.Println("event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
-					copyFromFile()
+					DebugLog.Println("modified file:", event.Name)
+					copyFromFile(event.Name)
 				}
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
@@ -198,6 +238,10 @@ func watchLogs() (err error) {
 	return
 }
 
-func copyFromFile() {
+func copyFromFile(logfile string) {
+	outHeader(logfile)
 
+	if f, ok := tails[logfile]; ok {
+		io.Copy(log.Writer(), f.f)
+	}
 }
