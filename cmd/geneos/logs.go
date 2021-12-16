@@ -112,13 +112,15 @@ func logTailInstance(c Instance, params []string) (err error) {
 	}
 	defer lines.Close()
 	tails[logfile] = tail{lines, Type(c), Name(c)}
-	outHeader(logfile)
 
 	text, err := tailLines(lines, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
 		log.Println(err)
 	}
-	log.Print(text)
+	if len(text) != 0 {
+		outHeader(logfile)
+		log.Print(text)
+	}
 	return nil
 }
 
@@ -134,6 +136,11 @@ func tailLines(file *os.File, linecount int) (text string, err error) {
 	var chunk int64 = int64(linecount * charsPerLine)
 	var buf []byte = make([]byte, chunk)
 
+	if linecount == 0 {
+		// see to end and return
+		_, err = file.Seek(0, os.SEEK_END)
+		return
+	}
 	// save current end of file
 	// end, err := file.Seek(0, io.SeekEnd)
 	st, _ := file.Stat()
@@ -195,14 +202,16 @@ func logFollowInstance(c Instance, params []string) (err error) {
 		return
 	}
 	tails[logfile] = tail{f, Type(c), Name(c)}
-	outHeader(logfile)
 
 	// output up to this point
 	text, err := tailLines(tails[logfile].f, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
 		log.Println(err)
 	}
-	log.Print(text)
+	if len(text) != 0 {
+		outHeader(logfile)
+		log.Print(text)
+	}
 
 	DebugLog.Println("watching", logfile)
 	if err = watcher.Add(logfile); err != nil {
