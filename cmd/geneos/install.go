@@ -35,7 +35,7 @@ the official download site. The filename must of of the format:
 The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
 for the package is created using the VERSION from the archive filename.`}
 
-	commands["update"] = Command{commandUpdate, parseArgs, "geneos update [TYPE] VERSION",
+	commands["update"] = Command{commandUpdate, checkComponentArg, "geneos update [TYPE] VERSION",
 		`Update the symlink for the default base name of the package used to VERSION. The base directory,
 for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
 in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not
@@ -211,10 +211,15 @@ func unarchive(f string, gz io.Reader) (err error) {
 // latest is: [GA]N.M.P-DATE - GA is optional, ignore all other non-numeric
 // prefixes. Sort N.M.P using almost semantic versioning
 func commandUpdate(ct ComponentType, args []string, params []string) (err error) {
-	return updateToVersion(ct, "latest", true)
+	version := "latest"
+	if len(args) > 0 {
+		version = args[0]
+	}
+	return updateToVersion(ct, version, true)
 }
 
-func updateToVersion(ct ComponentType, version string, overwrite bool) error {
+// check selected version exists first
+func updateToVersion(ct ComponentType, version string, overwrite bool) (err error) {
 	base := "active_prod"
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String())
 	basepath := filepath.Join(basedir, base)
@@ -222,11 +227,18 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) error {
 	switch ct {
 	case None:
 		for _, t := range componentTypes() {
-			updateToVersion(t, version, overwrite)
+			if err = updateToVersion(t, version, overwrite); err != nil {
+				log.Println(err)
+			}
 		}
 	case Gateways, Netprobes, Licds:
 		if version == "" || version == "latest" {
 			version = latestDir(basedir)
+		}
+		// does the version directory exist?
+		if _, err = os.Stat(filepath.Join(basedir, version)); err != nil {
+			err = fmt.Errorf("update %s to version %s failed: %w", ct, version, err)
+			return err
 		}
 		current, err := os.Readlink(basepath)
 		if err != nil && errors.Is(err, &fs.PathError{}) {
