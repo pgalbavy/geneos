@@ -58,14 +58,12 @@ casual viewing.`}
 	commands["enable"] = Command{commandEneable, parseArgs, "geneos enable [TYPE] [NAME...]",
 		`Mark any matcing instances as enabled and if this is a change then start the instance.`}
 
-	commands["rename"] = Command{commandRename, nil, "geneos rename [TYPE] FROM TO",
-		`Rename the matching instance. TYPE is optional to resolve any ambiguities if two instances
+	commands["rename"] = Command{commandRename, checkComponentArg, "geneos rename TYPE FROM TO",
+		`Rename the matching instance. TYPE is requied to resolve any ambiguities if two instances
 share the same name. No configuration changes outside the instance JSON config file are done. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
 The instance is stopped and restarted after the instance directory and configuration are changed.
-It is an error to try to rename an instance to one that already exists with the same name.
-	
-NOT YET IMPLEMENED.`}
+It is an error to try to rename an instance to one that already exists with the same name.`}
 
 	commands["delete"] = Command{commandDelete, parseArgs, "geneos delete [TYPE] [NAME...]",
 		`Delete the matching instances. This will only work on instances that are disabled to prevent
@@ -704,23 +702,45 @@ func isDisabled(c Instance) bool {
 // change config options the include name
 // if gateway then rename in config?
 func commandRename(ct ComponentType, args []string, params []string) (err error) {
+	if ct == None {
+		DebugLog.Println("no component type found")
+		return ErrNotSupported
+	}
 	if len(args) != 2 {
 		return ErrInvalidArgs
 	}
-	to := NewComponent(ct, args[1])[0]
-	if err = loadConfig(to, false); err == nil {
-		return fmt.Errorf("%s: %w", args[1], fs.ErrExist)
-	}
-	from := NewComponent(ct, args[0])[0]
+	oldname := args[0]
+	newname := args[1]
+
+	DebugLog.Println("rename", ct, oldname, newname)
+	from := NewComponent(ct, oldname)[0]
 	if err = loadConfig(from, true); err != nil {
-		log.Println(Type(from), Name(from), "cannot load configuration")
+		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
-	pid, _, _ := findInstanceProc(from)
-	if pid != 0 {
-		return ErrProcExists
+	tos := NewComponent(ct, newname)
+	to := tos[0]
+	if len(tos) == 0 {
+		return fmt.Errorf("%s %s: %w", ct, newname, ErrInvalidArgs)
+	}
+	if err = loadConfig(to, false); err == nil {
+		return fmt.Errorf("%s %s already exists", ct, newname)
 	}
 
-	return ErrNotSupported
+	stopInstance(from, nil)
+
+	if err = os.Rename(Home(from), Home(to)); err != nil {
+		DebugLog.Println("rename failed:", Home(from), Home(tos), err)
+		return
+	}
+
+	setField(from, "Name", newname)
+	setField(from, Prefix(from)+"Home", filepath.Join(instanceDir(ct), newname))
+	conffile := filepath.Join(Home(from), ct.String()+".json")
+	writeConfigFile(conffile, from)
+	log.Println(ct, oldname, "renamed to", newname)
+	startInstance(from, nil)
+
+	return
 }
 
 func commandDelete(ct ComponentType, args []string, params []string) (err error) {
