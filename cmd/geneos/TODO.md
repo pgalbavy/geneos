@@ -4,7 +4,6 @@
 * Command line verbosity control - PARTIAL
 * TLS support
 * Docker / Compose file build from selection of components
-* Rename command
 * check capabilities and not just setuid/root user
 * REST API for remote - initially read-only + rate limited
 * command should show user information
