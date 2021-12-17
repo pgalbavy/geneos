@@ -12,53 +12,6 @@ import (
 	"strings"
 )
 
-var globalConfig = "/etc/geneos/geneos.json"
-
-// Todo:
-//  Port ranges for new components
-//
-type ConfigType struct {
-	// Root directory for all operations
-	ITRSHome string `json:",omitempty"`
-
-	// Root URL for all downloads of software archives
-	DownloadURL  string `json:",omitempty"`
-	DownloadUser string `json:",omitempty"`
-	DownloadPass string `json:",omitempty"`
-
-	// Username to start components if not explicitly defined
-	// and we are running with elevated privileges
-	//
-	// When running as a normal user this is unused and
-	// we simply test a defined user against the running user
-	//
-	// default is owner of ITRSHome
-	DefaultUser string `json:",omitempty"`
-
-	// Exchange the space character with this when looking at file system or
-	// command args. Default "+". Defined as string for simplicity but must be
-	// len() == 1
-	ReplaceSpace string `json:",omitempty"`
-
-	// Path List sperated additions to the reserved names list, over and above
-	// any words matched by parseComponentName()
-	ReservedNames string `json:",omitempty"`
-
-	GatewayPortRange  string `json:",omitempty"`
-	NetprobePortRange string `json:",omitempty"`
-	LicdPortRange     string `json:",omitempty"`
-
-	// Instance clean-up globs, two per type. Use PathListSep ':'
-	GatewayCleanList  string `json:",omitempty"`
-	GatewayPurgeList  string `json:",omitempty"`
-	NetprobeCleanList string `json:",omitempty"`
-	NetprobePurgeList string `json:",omitempty"`
-	LicdCleanList     string `json:",omitempty"`
-	LicdPurgeList     string `json:",omitempty"`
-}
-
-var RunningConfig ConfigType
-
 func init() {
 	commands["init"] = Command{initCommand, nil, `geneos init [username] [directory]`,
 		`Initialise a geneos installation by creating a suitable directory hierarhcy and
@@ -121,6 +74,53 @@ the command must have the appropriate permissions and a partial deletion cannot 
 against.`}
 
 }
+
+var globalConfig = "/etc/geneos/geneos.json"
+
+// Todo:
+//  Port ranges for new components
+//
+type ConfigType struct {
+	// Root directory for all operations
+	ITRSHome string `json:",omitempty"`
+
+	// Root URL for all downloads of software archives
+	DownloadURL  string `json:",omitempty"`
+	DownloadUser string `json:",omitempty"`
+	DownloadPass string `json:",omitempty"`
+
+	// Username to start components if not explicitly defined
+	// and we are running with elevated privileges
+	//
+	// When running as a normal user this is unused and
+	// we simply test a defined user against the running user
+	//
+	// default is owner of ITRSHome
+	DefaultUser string `json:",omitempty"`
+
+	// Exchange the space character with this when looking at file system or
+	// command args. Default "+". Defined as string for simplicity but must be
+	// len() == 1
+	ReplaceSpace string `json:",omitempty"`
+
+	// Path List sperated additions to the reserved names list, over and above
+	// any words matched by parseComponentName()
+	ReservedNames string `json:",omitempty"`
+
+	GatewayPortRange  string `json:",omitempty"`
+	NetprobePortRange string `json:",omitempty"`
+	LicdPortRange     string `json:",omitempty"`
+
+	// Instance clean-up globs, two per type. Use PathListSep ':'
+	GatewayCleanList  string `json:",omitempty"`
+	GatewayPurgeList  string `json:",omitempty"`
+	NetprobeCleanList string `json:",omitempty"`
+	NetprobePurgeList string `json:",omitempty"`
+	LicdCleanList     string `json:",omitempty"`
+	LicdPurgeList     string `json:",omitempty"`
+}
+
+var RunningConfig ConfigType
 
 var initDirs = []string{
 	"packages/netprobe",
