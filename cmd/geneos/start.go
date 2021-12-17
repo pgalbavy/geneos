@@ -10,12 +10,8 @@ import (
 
 func init() {
 	commands["start"] = Command{commandStart, parseArgs, `geneos start [TYPE] [NAME...]`,
-		`Start one or more instances. All instances are run in the background and
-STDOUT and STDERR are redirected to a '.txt' file in the instance directory.
-If no TYPE is given all instances with the matching NAME(s) are started.
-If no instance NAME(s) are given then all instances of the given TYPE are started.
-If neither TYPE or NAME(s) are given, all instances are started.
-`}
+		`Start one or more matching instances. All instances are run in the background and
+STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
 }
 
 func commandStart(ct ComponentType, args []string, params []string) (err error) {

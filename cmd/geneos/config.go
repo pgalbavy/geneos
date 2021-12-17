@@ -96,11 +96,6 @@ type ConfigType struct {
 	// default is owner of ITRSHome
 	DefaultUser string `json:",omitempty"`
 
-	// Exchange the space character with this when looking at file system or
-	// command args. Default "+". Defined as string for simplicity but must be
-	// len() == 1
-	ReplaceSpace string `json:",omitempty"`
-
 	// Path List sperated additions to the reserved names list, over and above
 	// any words matched by parseComponentName()
 	ReservedNames string `json:",omitempty"`
@@ -149,11 +144,6 @@ func loadSysConfig() {
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
 		RunningConfig.ITRSHome = h
 	}
-
-	if len(RunningConfig.ReplaceSpace) >= 1 {
-		ErrorLog.Printf("FakeSpace config must be exactly one character long, not: %q. Using default '+'", RunningConfig.ReplaceSpace)
-	}
-	checkDefault(&RunningConfig.ReplaceSpace, "+")
 
 	// defaults - make this long chain simpler
 	checkDefault(&RunningConfig.GatewayPortRange, gatewayPortRange)

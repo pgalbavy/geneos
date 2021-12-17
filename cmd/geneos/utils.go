@@ -282,14 +282,6 @@ func validInstanceName(in string) (ok bool) {
 	return
 }
 
-func spaceToReplace(in string) string {
-	return strings.ReplaceAll(in, " ", RunningConfig.ReplaceSpace)
-}
-
-func replaceToSpace(in string) string {
-	return strings.ReplaceAll(in, RunningConfig.ReplaceSpace, " ")
-}
-
 type perComponentFuncs map[ComponentType]func(Instance, []string) error
 
 func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string, params []string) (err error) {

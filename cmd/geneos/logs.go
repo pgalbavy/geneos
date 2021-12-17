@@ -12,19 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-var logsFlags *flag.FlagSet
-var logsFollow, logsCat bool
-var logsLines int
-var logsInclude, logsExclude string
-
 func init() {
-	logsFlags = flag.NewFlagSet("logs", flag.ExitOnError)
-	logsFlags.IntVar(&logsLines, "n", 10, "Lines to tail")
-	logsFlags.BoolVar(&logsFollow, "f", false, "Follow file")
-	logsFlags.BoolVar(&logsCat, "c", false, "Cat whole file")
-	logsFlags.StringVar(&logsInclude, "g", "", "Filter output with STRING")
-	logsFlags.StringVar(&logsExclude, "v", "", "Filter output with STRING")
-
 	commands["logs"] = Command{commandLogs, parseArgs, "geneos logs [TYPE] [NAME...]",
 		`Show logs for matching instances. Not fully implemented.
 
@@ -40,7 +28,20 @@ Options:
 
 When one instance given just stream, otherwise each output block is prefixed by instance details.
 `}
+
+	logsFlags = flag.NewFlagSet("logs", flag.ExitOnError)
+	logsFlags.IntVar(&logsLines, "n", 10, "Lines to tail")
+	logsFlags.BoolVar(&logsFollow, "f", false, "Follow file")
+	logsFlags.BoolVar(&logsCat, "c", false, "Cat whole file")
+	logsFlags.StringVar(&logsInclude, "g", "", "Filter output with STRING")
+	logsFlags.StringVar(&logsExclude, "v", "", "Filter output with STRING")
+
 }
+
+var logsFlags *flag.FlagSet
+var logsFollow, logsCat bool
+var logsLines int
+var logsInclude, logsExclude string
 
 var watcher *fsnotify.Watcher
 
@@ -124,30 +125,23 @@ func logTailInstance(c Instance, params []string) (err error) {
 	return nil
 }
 
-// given a seekable file, go to the end and read blocks until
-// the start iof the N-the line from the end. Stop if we reach the start of
-// the file. Return the string from the start of that line to the end of the
-// file (end when passed in, growing file is allowed)
-//
-// support unicode
 func tailLines(file *os.File, linecount int) (text string, err error) {
 	// reasonable guess at bytes per line to use as a multiplier
 	const charsPerLine = 132
 	var chunk int64 = int64(linecount * charsPerLine)
 	var buf []byte = make([]byte, chunk)
+	var i int64
+	var alllines []string = []string{""}
 
 	if linecount == 0 {
-		// see to end and return
+		// seek to end and return
 		_, err = file.Seek(0, os.SEEK_END)
 		return
 	}
-	// save current end of file
-	// end, err := file.Seek(0, io.SeekEnd)
+
 	st, _ := file.Stat()
 	end := st.Size()
 
-	var i int64
-	var alllines []string = []string{""}
 	for i = 1 + end/chunk; i > 0; i-- {
 		n, err := file.ReadAt(buf, (i-1)*chunk)
 		if err != nil && !errors.Is(err, io.EOF) {
@@ -155,7 +149,7 @@ func tailLines(file *os.File, linecount int) (text string, err error) {
 		}
 		strbuf := string(buf[:n])
 
-		// split buffer, count alllines, if enough shortcut a return
+		// split buffer, count lines, if enough shortcut a return
 		// else keep alllines[0] (partial end of previous line), save the rest and
 		// repeat until beginning of file or N lines
 		newlines := strings.FieldsFunc(strbuf+alllines[0], isLineSep)
