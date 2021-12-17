@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -51,26 +50,23 @@ func findInstances(name string) (cts []ComponentType) {
 
 func loadConfig(c Instance, update bool) (err error) {
 	// load the JSON config file is available, otherwise load
-	// the "legacy" .rc file and try to write out a JSON file
-	// for later re-use
+	// the "legacy" .rc file and optionally write out a JSON file
+	// for later re-use, while renaming .rc file
 	baseconf := filepath.Join(Home(c), Type(c).String())
 	j := baseconf + ".json"
-	jsonFile, err := os.ReadFile(j)
-	if err == nil {
-		if err = json.Unmarshal(jsonFile, &c); err != nil {
-			return
+
+	if err = readConfigFile(j, &c); err == nil {
+		return
+	}
+	if err = readRCConfig(c); err != nil {
+		return
+	}
+	if update {
+		// select if we want this or not
+		if err = writeConfigFile(baseconf+".json", c); err == nil {
+			os.Rename(baseconf+".rc", baseconf+".rc.orig")
 		}
-	} else {
-		if err = readRCConfig(c); err != nil {
-			return
-		}
-		if update {
-			// select if we want this or not
-			if err = writeConfigFile(baseconf+".json", c); err == nil {
-				os.Rename(baseconf+".rc", baseconf+".rc.orig")
-			}
-			log.Println(Type(c), Name(c), "migrated to JSON config")
-		}
+		log.Println(Type(c), Name(c), "migrated to JSON config")
 	}
 
 	return
@@ -113,6 +109,7 @@ func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
 }
 
 // save off extra env too
+// XXX - scan file line by line, protect memory
 func readRCConfig(c Instance) (err error) {
 	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {

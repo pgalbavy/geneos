@@ -582,13 +582,17 @@ func setConfig(filename string, params []string) (err error) {
 }
 
 func readConfigFile(file string, config interface{}) (err error) {
-	if f, err := os.ReadFile(file); err == nil {
-		return json.Unmarshal(f, &config)
+	jsonFile, err := os.Open(file)
+	if err != nil {
+		return
 	}
-	return
+	dec := json.NewDecoder(jsonFile)
+	return dec.Decode(&config)
 }
 
 // try to be atomic, lots of edge cases, UNIX/Linux only
+// we know the size of config structs is typicall small, so just marshal
+// in memory
 func writeConfigFile(file string, config interface{}) (err error) {
 	// marshal
 	buffer, err := json.MarshalIndent(config, "", "    ")
