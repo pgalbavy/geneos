@@ -167,6 +167,21 @@ func canControl(c Instance) bool {
 // support glob style wildcards for instance names - allow through, let loopCommand*
 // deal with them
 //
+func checkComponentArg(rawargs []string) (ct ComponentType, args []string, params []string) {
+	if len(rawargs) == 0 {
+		// wildcard everything
+		ct = None
+	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
+		// first arg is not a known type
+		ct = None
+		args = rawargs
+	} else {
+		args = rawargs[1:]
+	}
+
+	return
+}
+
 func parseArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
 	if len(rawargs) == 0 {
 		// wildcard everything
