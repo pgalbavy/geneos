@@ -11,24 +11,29 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 func init() {
-	commands["install"] = Command{commandInstall, parseArgs, "geneos install [TYPE] [latest|FILE...]",
-		`Install the supplied FILE(s) in the packages/ directory, or fetch the latest version from the official
-download site. The filename must of of the format:
+	commands["install"] = Command{commandInstall, checkComponentArg, "geneos install FILE...",
+		`Install the supplied FILE(s) in the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
 
-The TYPE, if supplied, only influences the downloaded archive and is ignored for local files. The directory
-for the package is created using the VERSION from the archive filename.
+The directory for the package is created using the VERSION from the archive filename.`}
 
-Future support will include URLs and/or specific versions for downloads as well as options to override the
-segments of the archive name used.
-`}
+	commands["download"] = Command{commandDownload, checkComponentArg, "geneos download [TYPE] [latest|FILTER|URL...]",
+		`Download and install the sources in the packages directory or latest version(s) from
+the official download site. The filename must of of the format:
+
+	geneos-TYPE-VERSION*.tar.gz
+
+The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
+for the package is created using the VERSION from the archive filename.`}
 
 	commands["update"] = Command{commandUpdate, parseArgs, "geneos update [TYPE] VERSION",
 		`Update the symlink for the default base name of the package used to VERSION. The base directory,
@@ -57,8 +62,8 @@ Future version may support selecting a base other than 'active_prod'.`}
 // 'geneos install gateway [files]'
 // 'geneos install netprobe latest'
 func commandInstall(ct ComponentType, files []string, params []string) (err error) {
-	if len(files) == 1 && files[0] == "latest" {
-		return installLatest(ct)
+	if ct != None {
+		log.Fatalln("Must not specify a compoenent type, only archive files")
 	}
 
 	for _, archive := range files {
@@ -74,43 +79,53 @@ func commandInstall(ct ComponentType, files []string, params []string) (err erro
 			return err
 		}
 	}
-	return updateLatest(ct, true)
+	// create a symlink only if one doesn't exist
+	return updateToVersion(ct, "latest", false)
 }
 
-func installLatest(ct ComponentType) (err error) {
+func commandDownload(ct ComponentType, files []string, params []string) (err error) {
+	version := "latest"
+	if len(files) > 0 {
+		version = files[0]
+	}
+	return downloadComponent(ct, version)
+}
+
+func downloadComponent(ct ComponentType, version string) (err error) {
 	switch ct {
 	case None:
 		for _, t := range componentTypes() {
-			if err = installLatest(t); err != nil {
-				if !errors.Is(err, fs.ErrExist) {
-					return
+			if err = downloadComponent(t, version); err != nil {
+				if errors.Is(err, fs.ErrExist) {
+					log.Println(err)
+					continue
 				}
-				log.Println(err)
+				return
 			}
 		}
 		return nil
 	default:
-
-		f, gz, err := fetchLatest(ct)
+		f, gz, err := downloadArchive(ct, version)
 		if err != nil {
 			return err
 		}
 		defer gz.Close()
 
-		log.Println("fetched latest", ct.String(), f)
+		log.Println("fetched", ct.String(), f)
 
 		if err = unarchive(f, gz); err != nil {
 			return err
 		}
-		return updateLatest(ct, true)
+		return updateToVersion(ct, version, false)
 	}
 }
 
+var archiveRE = regexp.MustCompile(`^geneos-(\w+)-([\w\.-]+?)[\.-]?linux`)
+
 func unarchive(f string, gz io.Reader) (err error) {
-	parts := strings.Split(f, "-")
-	if parts[0] != "geneos" {
-		log.Println("file must be named geneos-TYPE-VERSION*.tar.gz:", f)
-		return
+	parts := archiveRE.FindStringSubmatch(f)
+	if len(parts) == 0 {
+		log.Fatalln("invalid archive name format:", f)
 	}
 	DebugLog.Printf("parts=%v\n", parts)
 	comp := parseComponentName(parts[1])
@@ -196,11 +211,10 @@ func unarchive(f string, gz io.Reader) (err error) {
 // latest is: [GA]N.M.P-DATE - GA is optional, ignore all other non-numeric
 // prefixes. Sort N.M.P using almost semantic versioning
 func commandUpdate(ct ComponentType, args []string, params []string) (err error) {
-	return updateLatest(ct, false)
+	return updateToVersion(ct, "latest", true)
 }
 
-func updateLatest(ct ComponentType, readonly bool) error {
-	version := "latest"
+func updateToVersion(ct ComponentType, version string, overwrite bool) error {
 	base := "active_prod"
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String())
 	basepath := filepath.Join(basedir, base)
@@ -208,22 +222,22 @@ func updateLatest(ct ComponentType, readonly bool) error {
 	switch ct {
 	case None:
 		for _, t := range componentTypes() {
-			updateLatest(t, readonly)
+			updateToVersion(t, version, overwrite)
 		}
 	case Gateways, Netprobes, Licds:
 		if version == "" || version == "latest" {
-			version = getLatest(basedir)
+			version = latestDir(basedir)
 		}
 		current, err := os.Readlink(basepath)
 		if err != nil && errors.Is(err, &fs.PathError{}) {
 			log.Println("cannot read link", basepath)
 		}
-		if current != "" && readonly {
+		if current != "" && !overwrite {
 			return nil
 		}
 		// empty current is fine
 		if current == version {
-			log.Println(base, "is already linked to", version)
+			log.Println(ct, base, "is already linked to", version)
 			return nil
 		}
 		insts := matchComponents(ct, "Base", base)
@@ -238,38 +252,51 @@ func updateLatest(ct ComponentType, readonly bool) error {
 		if err = os.Symlink(version, basepath); err != nil {
 			return err
 		}
-		log.Println(ct.String(), base, "updated to", version)
+		log.Println(ct, base, "updated to", version)
 	default:
 		return ErrNotSupported
 	}
 	return nil
 }
 
+var versRE = regexp.MustCompile(`^\d+(\.\d+){0,2}`)
+
 // given a directory find the "latest" version of the form
 // [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
-func getLatest(dir string) (latest string) {
+func latestDir(dir string) (latest string) {
 	dirs, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	m := make([]int, 3)
+	max := make([]int, 3)
 	for _, v := range dirs {
 		if !v.IsDir() {
 			continue
 		}
 		// strip 'GA' prefix and get name
 		d := strings.TrimPrefix(v.Name(), "GA")
+		if !versRE.MatchString(d) {
+			DebugLog.Println(d, "does not match a valid directory pattern")
+			continue
+		}
 		s := strings.SplitN(d, ".", 3)
-		n := slicetoi(s)
+		next := slicetoi(s)
 
-		for y := range m {
-			if n[y] < m[y] {
-				break
-			}
-			if n[y] > m[y] {
+	OUTER:
+		for i := range max {
+			switch {
+			case next[i] < max[i]:
+				break OUTER
+			case next[i] > max[i]:
+				// do a final lexical scan for suffixes?
 				latest = v.Name()
-				m[y] = n[y]
-				continue
+				max[i] = next[i]
+			default:
+				// if equal and we are on last number, lexical comparison
+				// to pick up suffixes
+				if len(max) == i+1 && v.Name() > latest {
+					latest = v.Name()
+				}
 			}
 		}
 	}
@@ -310,27 +337,38 @@ func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
 // until anon access is allowed
 //
 
-const defaultURL = "https://resources.itrsgroup.com/download/latest"
+const defaultURL = "https://resources.itrsgroup.com/download/latest/"
 
 type DownloadAuth struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-var downloadComponent = map[ComponentType]string{
+var downloadMap = map[ComponentType]string{
 	Gateways:  "Gateway+2",
 	Netprobes: "Netprobe",
 	Licds:     "Licence+Daemon",
 }
 
-//
-func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err error) {
+// XXX use HEAD to check match and compare to on disk versions
+func downloadArchive(ct ComponentType, version string) (filename string, body io.ReadCloser, err error) {
 	baseurl := RunningConfig.DownloadURL
 	if baseurl == "" {
 		baseurl = defaultURL
 	}
 
 	var resp *http.Response
+
+	downloadURL, _ := url.Parse(baseurl)
+	path, _ := url.Parse(downloadMap[ct])
+	v := url.Values{}
+	v.Set("os", "linux")
+	if version != "latest" {
+		v.Set("title", version)
+	}
+	path.RawQuery = v.Encode()
+	source := downloadURL.ResolveReference(path).String()
+	DebugLog.Println("source url:", source)
 
 	// if a download user is set then issue a POST with username and password
 	// in a JSON body, else just try the GET
@@ -345,15 +383,18 @@ func fetchLatest(ct ComponentType) (filename string, body io.ReadCloser, err err
 			log.Fatalln(err)
 		}
 
-		resp, err = http.Post(baseurl+"/"+downloadComponent[ct]+"?os=linux", "application/json", bytes.NewBuffer(authjson))
+		resp, err = http.Post(source, "application/json", bytes.NewBuffer(authjson))
 	} else {
-		resp, err = http.Get(baseurl + "/" + downloadComponent[ct] + "?os=linux")
+		resp, err = http.Get(source)
 	}
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if resp.StatusCode != 200 {
-		log.Fatalln(resp.Status)
+	if resp.StatusCode > 299 {
+		err = fmt.Errorf("cannot download %s package version %s: %s", ct, version, resp.Status)
+		resp.Body.Close()
+		return
+		// log.Fatalln(resp.Status)
 	}
 
 	u := resp.Request.URL

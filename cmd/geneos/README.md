@@ -46,7 +46,7 @@ This path is where the `packages` and `gateway` directories live. If you do not 
 ```bash
 geneos init
 geneos set DownloadUser="email" DownloadPass="password"
-geneos install latest
+geneos download latest
 geneos create gateway Gateway1
 geneos create netprobe Netprobe1
 geneos create licd Licd1
@@ -130,10 +130,13 @@ Set a program-wide configuration option. The default is to update the `user` con
 The instance specific version of the `set` command is described below.
 #### Package Managemwent Commands
 
-* `geneos install [archives...]` - Not yet
-Install a release archive in the `packages` hierarchy.
+* `geneos install [FILE...]`
+Install a release archive in the `packages` directory.
 
-* `geneos update component`
+* `geneos download [TYPE] [lastest|URL...]`
+Download and install a release archive in the `packages` directory.
+
+* `geneos update [TYPE] [VERSION]`
 Update the component base binary link
 
 #### Instance Control Commands
