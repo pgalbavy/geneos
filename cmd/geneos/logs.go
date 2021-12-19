@@ -140,7 +140,10 @@ func tailLines(file *os.File, linecount int) (text string, err error) {
 		return
 	}
 
-	st, _ := file.Stat()
+	st, err := file.Stat()
+	if err != nil {
+		return
+	}
 	end := st.Size()
 
 	for i = 1 + end/chunk; i > 0; i-- {
@@ -221,17 +224,13 @@ func logCatInstance(c Instance, params []string) (err error) {
 func logFollowInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	f, err := os.Open(logfile)
-	if err != nil {
-		return
-	}
+	f, _ := os.Open(logfile)
+	// perfectly valid to not have a file to watch at start
 	tails[logfile] = &tail{f, Type(c), Name(c)}
 
 	// output up to this point
-	text, err := tailLines(tails[logfile].f, logsLines)
-	if err != nil && !errors.Is(err, io.EOF) {
-		log.Println(err)
-	}
+	text, _ := tailLines(tails[logfile].f, logsLines)
+
 	if len(text) != 0 {
 		filterOutput(logfile, strings.NewReader(text+"\n"))
 	}
@@ -240,9 +239,6 @@ func logFollowInstance(c Instance, params []string) (err error) {
 
 	// add parent directory, to watch for changes
 	// no worries about tidying up, process is short lived
-	if err = watcher.Add(logfile); err != nil {
-		DebugLog.Fatalln("watcher.Add():", logfile, err)
-	}
 	if err = watcher.Add(filepath.Dir(logfile)); err != nil {
 		DebugLog.Fatalln("watcher.Add():", logfile, err)
 	}
@@ -271,12 +267,8 @@ func watchLogs() (err error) {
 							tail.f.Close()
 						}
 						if tail.f, err = os.Open(event.Name); err != nil {
-							log.Println("cannot re-open", err)
+							log.Println("cannot (re)open", err)
 						}
-						if err = watcher.Add(event.Name); err != nil {
-							log.Println("cannot watch", err)
-						}
-						DebugLog.Println("watching", event.Name)
 					case event.Op&fsnotify.Write > 0:
 						DebugLog.Println("modified file:", event.Name)
 						copyFromFile(event.Name)
