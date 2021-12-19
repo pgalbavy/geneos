@@ -120,7 +120,7 @@ func Home(c Instance) string {
 
 func Prefix(c Instance) string {
 	if len(Type(c).String()) < 4 {
-		return "Unkn"
+		return "Default"
 	}
 	return strings.Title(Type(c).String()[0:4])
 }

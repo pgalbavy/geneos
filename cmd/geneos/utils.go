@@ -60,8 +60,7 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 }
 
 func getUser(username string) (uid, gid int, gids []uint32, err error) {
-	uid = -1
-	gid = -1
+	uid, gid = -1, -1
 
 	if username == "" {
 		username = RunningConfig.DefaultUser
@@ -136,7 +135,7 @@ func canControl(c Instance) bool {
 
 	u, err := user.Lookup(username)
 	if err != nil {
-		// user not found, should fails
+		// user not found, should fail
 		return false
 	}
 

@@ -127,13 +127,13 @@ func gatewayReload(c Instance, params []string) (err error) {
 	}
 
 	if !canControl(c) {
-		return os.ErrPermission
+		return ErrPermission
 	}
 
 	// send a SIGUSR1
 	proc, _ := os.FindProcess(pid)
 	if err := proc.Signal(syscall.SIGUSR1); err != nil {
-		log.Println(Type(c), Name(c), "refresh failed")
+		log.Println(Type(c), Name(c), "refresh failed", err)
 
 	}
 	return

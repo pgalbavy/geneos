@@ -164,6 +164,9 @@ func main() {
 
 		// the command has to understand ct == None/Unknown
 		if err = c.Function(ct, args, params); err != nil {
+			if err == ErrInvalidArgs {
+				log.Fatalf("Usage: %q", c.CommandLine)
+			}
 			log.Fatalln(err)
 		}
 	}

@@ -189,7 +189,7 @@ func checkDefault(v *string, d string) {
 func initCommand(ct ComponentType, args []string, params []string) (err error) {
 	var c ConfigType
 	if ct != None {
-		log.Fatalln("cannot initialise with component type", ct, "given")
+		return ErrInvalidArgs
 	}
 
 	if superuser {
@@ -238,8 +238,10 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 			log.Fatalln("directory exists and is not empty")
 		}
 	} else {
-		// need to create out own, chown new directories only
-		os.MkdirAll(dir, 0775)
+		// need to create out own, chown base directory only
+		if err = os.MkdirAll(dir, 0775); err != nil {
+			log.Fatalln(err)
+		}
 	}
 	if err = os.Chown(dir, uid, gid); err != nil {
 		log.Fatalln(err)
@@ -255,11 +257,13 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	// create directories
 	for _, d := range initDirs {
 		dir := filepath.Join(c.ITRSHome, d)
-		os.MkdirAll(dir, 0775)
+		if err = os.MkdirAll(dir, 0775); err != nil {
+			log.Fatalln(err)
+		}
 	}
 	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
 		if err == nil {
-			log.Println("chown", path, uid, gid)
+			DebugLog.Println("chown", path, uid, gid)
 			err = os.Chown(path, uid, gid)
 		}
 		return err
@@ -291,8 +295,10 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 			log.Fatalf("target directory %q exists and is not empty", dir)
 		}
 	} else {
-		// need to create out own, chown new directories only
-		os.MkdirAll(dir, 0775)
+		// need to create out own, chown base directory only
+		if err = os.MkdirAll(dir, 0775); err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	userConfDir, err := os.UserConfigDir()
@@ -308,7 +314,9 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	// create directories
 	for _, d := range initDirs {
 		dir := filepath.Join(c.ITRSHome, d)
-		os.MkdirAll(dir, 0775)
+		if err = os.MkdirAll(dir, 0775); err != nil {
+			log.Fatalln(err)
+		}
 	}
 	return
 }
@@ -582,49 +590,47 @@ func readConfigFile(file string, config interface{}) (err error) {
 // we know the size of config structs is typicall small, so just marshal
 // in memory
 func writeConfigFile(file string, config interface{}) (err error) {
-	// marshal
 	buffer, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
 	}
 
-	// get these early
-	uid := -1
-	gid := -1
+	uid, gid := -1, -1
 	if superuser {
 		username := getString(config, Prefix(config)+"User")
-		if username != "" {
-			if uid, gid, _, err = getUser(username); err != nil {
-				return err
-			}
+		if username == "" {
+			log.Fatalln("cannot find non-root user to write config file", file)
+		}
+		if uid, gid, _, err = getUser(username); err != nil {
+			return err
 		}
 	}
 
-	// atomic-ish write
 	dir, name := filepath.Split(file)
 	// try to ensure directory exists
-	if err = os.MkdirAll(dir, 0775); err == nil && superuser {
-		// remember to change directory ownership
-		os.Chown(dir, uid, gid)
+	if err = os.MkdirAll(dir, 0775); err == nil {
+		// change final directory ownership
+		_ = os.Chown(dir, uid, gid)
 	}
 	f, err := os.CreateTemp(dir, name)
 	if err != nil {
-		err = fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
-		return
+		return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
 	}
 	defer os.Remove(f.Name())
+	// use Println to get a final newline
 	if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
 		return
 	}
 
+	// update file perms and owner before final rename to overwrite
+	// existing file
+	if err = f.Chmod(0664); err != nil {
+		return
+	}
 	if err = f.Chown(uid, gid); err != nil {
 		return err
 	}
 
-	// XXX - these should not be hardwired
-	if err = f.Chmod(0664); err != nil {
-		return
-	}
 	return os.Rename(f.Name(), file)
 }
 
@@ -636,24 +642,23 @@ func commandDisable(ct ComponentType, args []string, params []string) (err error
 
 func disableInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
-		return fmt.Errorf("already disabled")
+		return ErrDisabled
 	}
-
-	if err = stopInstance(c, params); err != nil && err != ErrProcNotExist {
-		return err
-	}
-	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	f, err := os.Create(d)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
 	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
 	if err != nil {
-		os.Remove(f.Name())
 		return
 	}
+
+	if err = stopInstance(c, params); err != nil && err != ErrProcNotExist {
+		return
+	}
+
+	f, err := os.Create(filepath.Join(Home(c), Type(c).String()+disableExtension))
+	if err != nil {
+		return
+	}
+	defer f.Close()
 
 	if err = f.Chown(uid, gid); err != nil {
 		os.Remove(f.Name())
@@ -668,8 +673,7 @@ func commandEneable(ct ComponentType, args []string, params []string) (err error
 }
 
 func enableInstance(c Instance, params []string) (err error) {
-	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	if err = os.Remove(d); err == nil || errors.Is(err, os.ErrNotExist) {
+	if err = os.Remove(filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
 		err = startInstance(c, params)
 	}
 	return
@@ -683,54 +687,58 @@ func isDisabled(c Instance) bool {
 	return false
 }
 
-// 'geneos rename gateway abc xyz'
-//
-// make sure old instance is down, new instance doesn't already exist
-// clean up old instance
-// rename directory
-// migrate RC
-// change config options the include name
-// if gateway then rename in config?
 func commandRename(ct ComponentType, args []string, params []string) (err error) {
-	if ct == None {
-		DebugLog.Println("no component type found")
-		return ErrNotSupported
-	}
-	if len(args) != 2 {
+	if ct == None || len(args) != 2 {
 		return ErrInvalidArgs
 	}
+
 	oldname := args[0]
 	newname := args[1]
 
 	DebugLog.Println("rename", ct, oldname, newname)
-	from := NewComponent(ct, oldname)[0]
-	if err = loadConfig(from, true); err != nil {
+	oldconf := NewComponent(ct, oldname)[0]
+	if err = loadConfig(oldconf, true); err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
 	tos := NewComponent(ct, newname)
-	to := tos[0]
+	newconf := tos[0]
 	if len(tos) == 0 {
 		return fmt.Errorf("%s %s: %w", ct, newname, ErrInvalidArgs)
 	}
-	if err = loadConfig(to, false); err == nil {
+	if err = loadConfig(newconf, false); err == nil {
 		return fmt.Errorf("%s %s already exists", ct, newname)
 	}
 
-	stopInstance(from, nil)
+	stopInstance(oldconf, nil)
 
-	if err = os.Rename(Home(from), Home(to)); err != nil {
-		DebugLog.Println("rename failed:", Home(from), Home(tos), err)
+	// save for recover, as config gets changed
+	oldhome := Home(oldconf)
+	newhome := Home(newconf)
+
+	if err = os.Rename(oldhome, newhome); err != nil {
+		DebugLog.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
 
-	setField(from, "Name", newname)
-	setField(from, Prefix(from)+"Home", filepath.Join(instanceDir(ct), newname))
-	conffile := filepath.Join(Home(from), ct.String()+".json")
-	writeConfigFile(conffile, from)
-	log.Println(ct, oldname, "renamed to", newname)
-	startInstance(from, nil)
+	if err = setField(oldconf, "Name", newname); err != nil {
+		// try to recover
+		_ = os.Rename(newhome, oldhome)
+		return
+	}
+	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(instanceDir(ct), newname)); err != nil {
+		// try to recover
+		_ = os.Rename(newhome, oldhome)
+		return
+		//
+	}
 
-	return
+	// config changes don't matter until writing config succeeds
+	if err = writeConfigFile(filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
+		_ = os.Rename(newhome, oldhome)
+		return
+	}
+	log.Println(ct, oldname, "renamed to", newname)
+	return startInstance(oldconf, nil)
 }
 
 func commandDelete(ct ComponentType, args []string, params []string) (err error) {

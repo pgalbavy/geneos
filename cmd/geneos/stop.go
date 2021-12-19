@@ -28,7 +28,7 @@ func stopInstance(c Instance, params []string) (err error) {
 	}
 
 	if !canControl(c) {
-		return os.ErrPermission
+		return ErrPermission
 	}
 
 	DebugLog.Println("process running as", st.Uid, st.Gid)
@@ -70,7 +70,7 @@ func killInstance(c Instance, params []string) (err error) {
 	}
 
 	if !canControl(c) {
-		return os.ErrPermission
+		return ErrPermission
 	}
 
 	DebugLog.Println("process running as", st.Uid, st.Gid)

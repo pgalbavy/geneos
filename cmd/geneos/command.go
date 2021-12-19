@@ -64,6 +64,7 @@ func loadConfig(c Instance, update bool) (err error) {
 	if update {
 		// select if we want this or not
 		if err = writeConfigFile(baseconf+".json", c); err == nil {
+			// preserves ownership and permnissions
 			os.Rename(baseconf+".rc", baseconf+".rc.orig")
 		}
 		log.Println(Type(c), Name(c), "migrated to JSON config")
