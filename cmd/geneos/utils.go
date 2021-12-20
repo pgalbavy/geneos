@@ -71,11 +71,11 @@ func getUser(username string) (uid, gid int, gids []uint32, err error) {
 		return
 	}
 	uid, err = strconv.Atoi(u.Uid)
-	if err != nil {
+	if err != nil || uid < 0 {
 		log.Fatalln("uid out of range:", u.Uid)
 	}
 	gid, err = strconv.Atoi(u.Gid)
-	if err != nil {
+	if err != nil || gid < 0 {
 		log.Fatalln("gid out of range:", u.Gid)
 	}
 	groups, _ := u.GroupIds()
