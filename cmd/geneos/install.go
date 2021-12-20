@@ -161,7 +161,17 @@ func unarchive(f string, gz io.Reader) (err error) {
 		}
 		// log.Println("file:", hdr.Name, "size", hdr.Size)
 		// strip leading component name
-		name := strings.TrimPrefix(hdr.Name, comp.String())
+		// do not trust tar archives to contain safe paths
+		var name string
+		name = strings.TrimPrefix(hdr.Name, comp.String()+"/")
+		if name == "" {
+			continue
+		}
+		DebugLog.Println("name:", name)
+		name, err = cleanRelativePath(name)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		path := filepath.Join(basedir, name)
 		switch hdr.Typeflag {
 		case tar.TypeReg:
