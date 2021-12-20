@@ -243,7 +243,7 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 			log.Fatalln(err)
 		}
 	}
-	if err = os.Chown(dir, uid, gid); err != nil {
+	if err = os.Chown(dir, int(uid), int(gid)); err != nil {
 		log.Fatalln(err)
 	}
 	c.ITRSHome = dir
@@ -264,7 +264,7 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
 		if err == nil {
 			DebugLog.Println("chown", path, uid, gid)
-			err = os.Chown(path, uid, gid)
+			err = os.Chown(path, int(uid), int(gid))
 		}
 		return err
 	})
@@ -601,9 +601,11 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		if username == "" {
 			log.Fatalln("cannot find non-root user to write config file", file)
 		}
-		if uid, gid, _, err = getUser(username); err != nil {
+		ux, gx, _, err := getUser(username)
+		if err != nil {
 			return err
 		}
+		uid, gid = int(ux), int(gx)
 	}
 
 	dir, name := filepath.Split(file)
@@ -660,7 +662,7 @@ func disableInstance(c Instance, params []string) (err error) {
 	}
 	defer f.Close()
 
-	if err = f.Chown(uid, gid); err != nil {
+	if err = f.Chown(int(uid), int(gid)); err != nil {
 		os.Remove(f.Name())
 	}
 	return

@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"os/user"
@@ -59,8 +60,8 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 	return 0, nil, ErrProcNotExist
 }
 
-func getUser(username string) (uid, gid int, gids []uint32, err error) {
-	uid, gid = -1, -1
+func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
+	uid, gid = math.MaxUint32, math.MaxUint32
 
 	if username == "" {
 		username = RunningConfig.DefaultUser
@@ -70,18 +71,20 @@ func getUser(username string) (uid, gid int, gids []uint32, err error) {
 	if err != nil {
 		return
 	}
-	uid, err = strconv.Atoi(u.Uid)
-	if err != nil || uid < 0 {
+	ux, err := strconv.Atoi(u.Uid)
+	if err != nil || ux < 0 || ux > math.MaxUint32 {
 		log.Fatalln("uid out of range:", u.Uid)
 	}
-	gid, err = strconv.Atoi(u.Gid)
-	if err != nil || gid < 0 {
+	uid = uint32(ux)
+	gx, err := strconv.Atoi(u.Gid)
+	if err != nil || gx < 0 || gx > math.MaxUint32 {
 		log.Fatalln("gid out of range:", u.Gid)
 	}
+	gid = uint32(gx)
 	groups, _ := u.GroupIds()
 	for _, g := range groups {
 		gid, err := strconv.Atoi(g)
-		if err != nil || gid < 0 {
+		if err != nil || gid < 0 || gid > math.MaxUint32 {
 			log.Fatalln("gid out of range:", g)
 		}
 		gids = append(gids, uint32(gid))
@@ -100,7 +103,7 @@ func setuser(cmd *exec.Cmd, username string) (err error) {
 	}
 
 	// do not set-up credentials if no-change
-	if os.Getuid() == uid {
+	if os.Getuid() == int(uid) {
 		return nil
 	}
 

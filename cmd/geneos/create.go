@@ -267,7 +267,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = os.Chown(filepath.Dir(destpath), uid, gid); err != nil {
+			if err = os.Chown(filepath.Dir(destpath), int(uid), int(gid)); err != nil {
 				return err
 			}
 		}
@@ -289,7 +289,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	}
 	defer out.Close()
 
-	if err = out.Chown(uid, gid); err != nil {
+	if err = out.Chown(int(uid), int(gid)); err != nil {
 		os.Remove(out.Name())
 		if backuppath != "" {
 			if err = os.Rename(backuppath, destpath); err != nil {
