@@ -70,11 +70,20 @@ func getUser(username string) (uid, gid int, gids []uint32, err error) {
 	if err != nil {
 		return
 	}
-	uid, _ = strconv.Atoi(u.Uid)
-	gid, _ = strconv.Atoi(u.Gid)
+	uid, err = strconv.Atoi(u.Uid)
+	if err != nil {
+		log.Fatalln("uid out of range:", u.Uid)
+	}
+	gid, err = strconv.Atoi(u.Gid)
+	if err != nil {
+		log.Fatalln("gid out of range:", u.Gid)
+	}
 	groups, _ := u.GroupIds()
 	for _, g := range groups {
-		gid, _ := strconv.Atoi(g)
+		gid, err := strconv.Atoi(g)
+		if err != nil || gid < 0 {
+			log.Fatalln("gid out of range:", g)
+		}
 		gids = append(gids, uint32(gid))
 	}
 	return
@@ -86,7 +95,7 @@ func getUser(username string) (uid, gid int, gids []uint32, err error) {
 //
 func setuser(cmd *exec.Cmd, username string) (err error) {
 	uid, gid, gids, err := getUser(username)
-	if err != nil {
+	if err != nil || uid < 0 || gid < 0 {
 		return
 	}
 
