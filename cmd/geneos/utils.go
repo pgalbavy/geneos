@@ -71,12 +71,12 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 	if err != nil {
 		return
 	}
-	ux, err := strconv.Atoi(u.Uid)
+	ux, err := strconv.ParseInt(u.Uid, 10, 32)
 	if err != nil || ux < 0 || ux > math.MaxUint32 {
 		log.Fatalln("uid out of range:", u.Uid)
 	}
 	uid = uint32(ux)
-	gx, err := strconv.Atoi(u.Gid)
+	gx, err := strconv.ParseInt(u.Gid, 10, 32)
 	if err != nil || gx < 0 || gx > math.MaxUint32 {
 		log.Fatalln("gid out of range:", u.Gid)
 	}
