@@ -197,7 +197,7 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
 	}
-	log.Println("installed", filename, "to", basedir)
+	log.Printf("installed %q to %q\n", filename, basedir)
 
 	return
 }
