@@ -83,7 +83,7 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 	gid = uint32(gx)
 	groups, _ := u.GroupIds()
 	for _, g := range groups {
-		gid, err := strconv.Atoi(g)
+		gid, err := strconv.ParseInt(g, 10, 32)
 		if err != nil || gid < 0 || gid > math.MaxUint32 {
 			log.Fatalln("gid out of range:", g)
 		}
