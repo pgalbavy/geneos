@@ -67,14 +67,14 @@ func commandInstall(ct ComponentType, files []string, params []string) (err erro
 	}
 
 	for _, archive := range files {
-		f := filepath.Base(archive)
+		filename := filepath.Base(archive)
 		gz, err := os.Open(archive)
 		if err != nil {
 			return err
 		}
 		defer gz.Close()
 
-		if err = unarchive(f, gz); err != nil {
+		if err = unarchive(filename, gz); err != nil {
 			log.Println(err)
 			return err
 		}
@@ -105,15 +105,15 @@ func downloadComponent(ct ComponentType, version string) (err error) {
 		}
 		return nil
 	default:
-		f, gz, err := downloadArchive(ct, version)
+		filename, gz, err := downloadArchive(ct, version)
 		if err != nil {
 			return err
 		}
 		defer gz.Close()
 
-		log.Println("fetched", ct.String(), f)
+		log.Println("fetched", ct.String(), filename)
 
-		if err = unarchive(f, gz); err != nil {
+		if err = unarchive(filename, gz); err != nil {
 			return err
 		}
 		return updateToVersion(ct, version, false)
@@ -122,10 +122,10 @@ func downloadComponent(ct ComponentType, version string) (err error) {
 
 var archiveRE = regexp.MustCompile(`^geneos-(\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func unarchive(f string, gz io.Reader) (err error) {
-	parts := archiveRE.FindStringSubmatch(f)
+func unarchive(filename string, gz io.Reader) (err error) {
+	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
-		log.Fatalln("invalid archive name format:", f)
+		log.Fatalln("invalid archive name format:", filename)
 	}
 	DebugLog.Printf("parts=%v\n", parts)
 	comp := parseComponentName(parts[1])
@@ -202,7 +202,7 @@ func unarchive(f string, gz io.Reader) (err error) {
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
 	}
-	log.Println("installed", f, "to", basedir)
+	log.Println("installed", filename, "to", basedir)
 
 	return
 }
@@ -419,8 +419,6 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		// log.Fatalln(resp.Status)
 	}
 
-	u := resp.Request.URL
-
 	// check content-disposition here
 	// for official download site the header is in the initial response
 	// but perhaps other systems will set one later in the redirect, so
@@ -441,7 +439,8 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		}
 	}
 	if filename == "" {
-		filename = filepath.Base(u.Path)
+		url := resp.Request.URL
+		filename = filepath.Base(url.EscapedPath())
 		DebugLog.Println("filename set from URL to", filename)
 	}
 	body = resp.Body
