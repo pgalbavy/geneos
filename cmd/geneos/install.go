@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -170,11 +171,10 @@ func unarchive(filename string, gz io.Reader) (err error) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		path := filepath.Join(basedir, name)
+		fullpath := filepath.Join(basedir, name)
 		switch hdr.Typeflag {
 		case tar.TypeReg:
-			DebugLog.Println("file:", path)
-			out, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
+			out, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
 			if err != nil {
 				return err
 			}
@@ -188,14 +188,11 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			}
 			out.Close()
 		case tar.TypeDir:
-			DebugLog.Println("directory:", path)
-			if err = os.MkdirAll(path, hdr.FileInfo().Mode()); err != nil {
+			if err = os.MkdirAll(fullpath, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
 		case tar.TypeSymlink, tar.TypeGNULongLink:
 			// sanitize
-			DebugLog.Println("link:", path)
-
 			link := strings.TrimPrefix(hdr.Linkname, "/")
 			if filepath.IsAbs(link) {
 				log.Fatalln("archive contains absolute symlink target")
@@ -204,7 +201,7 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			os.Symlink(link, path)
+			os.Symlink(link, fullpath)
 		default:
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
@@ -389,14 +386,14 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 	var resp *http.Response
 
 	downloadURL, _ := url.Parse(baseurl)
-	path, _ := url.Parse(downloadMap[ct])
+	realpath, _ := url.Parse(downloadMap[ct])
 	v := url.Values{}
 	v.Set("os", "linux")
 	if version != "latest" {
 		v.Set("title", version)
 	}
-	path.RawQuery = v.Encode()
-	source := downloadURL.ResolveReference(path).String()
+	realpath.RawQuery = v.Encode()
+	source := downloadURL.ResolveReference(realpath).String()
 	DebugLog.Println("source url:", source)
 
 	// if a download user is set then issue a POST with username and password
@@ -442,9 +439,12 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 			}
 		}
 	}
+	// if no content-disposition, then grab the path from the response URL
 	if filename == "" {
-		url := resp.Request.URL
-		filename = filepath.Base(url.EscapedPath())
+		filename, err = cleanRelativePath(path.Base(resp.Request.URL.Path))
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 	body = resp.Body
 	return
