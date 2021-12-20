@@ -353,19 +353,21 @@ func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType
 }
 
 func cleanRelativePath(path string) (clean string, err error) {
-	path = strings.TrimSuffix(path, string(filepath.Separator))
-	p := strings.Split(path, string(filepath.Separator))
-	if len(p) > 0 && len(p[0]) == 0 {
+	// remove trailing directory seperator(s)
+	path = strings.TrimRight(path, string(filepath.Separator))
+	if filepath.IsAbs(path) {
 		DebugLog.Println("dest path must be relative")
-		return path, ErrInvalidArgs
+		return "", ErrInvalidArgs
 	}
+	path = filepath.Clean(path)
+	p := strings.Split(path, string(filepath.Separator))
 	for _, e := range p {
 		if e == ".." {
 			DebugLog.Println("dest path cannot contain '..'")
 			return path, ErrInvalidArgs
 		}
 	}
-	clean = filepath.Clean(path)
+	clean = path
 
 	return
 }
