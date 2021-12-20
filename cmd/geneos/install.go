@@ -125,9 +125,8 @@ var archiveRE = regexp.MustCompile(`^geneos-(\w+)-([\w\.-]+?)[\.-]?linux`)
 func unarchive(filename string, gz io.Reader) (err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
-		log.Fatalln("invalid archive name format:", filename)
+		log.Fatalf("invalid archive name format: %q", filename)
 	}
-	DebugLog.Printf("parts=%v\n", parts)
 	comp := parseComponentName(parts[1])
 	if comp == None || comp == Unknown {
 		log.Println("component type required")
@@ -167,7 +166,6 @@ func unarchive(filename string, gz io.Reader) (err error) {
 		if name == "" {
 			continue
 		}
-		DebugLog.Println("name:", name)
 		name, err = cleanRelativePath(name)
 		if err != nil {
 			log.Fatalln(err)
@@ -188,16 +186,13 @@ func unarchive(filename string, gz io.Reader) (err error) {
 				log.Println("lengths different:", hdr.Size, n)
 			}
 			out.Close()
-			DebugLog.Println("file:", path)
 		case tar.TypeDir:
 			if err = os.MkdirAll(path, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
-			DebugLog.Println("dir:", path)
 		case tar.TypeSymlink, tar.TypeGNULongLink:
 			link := strings.TrimPrefix(hdr.Linkname, "/")
 			os.Symlink(link, path)
-			DebugLog.Println("link:", path, "->", link)
 		default:
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
@@ -428,20 +423,16 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		cd, ok = resp.Request.Response.Header[http.CanonicalHeaderKey("content-disposition")]
 	}
 	if ok {
-		DebugLog.Println("found content-disposition:", cd[0])
 		_, params, err := mime.ParseMediaType(cd[0])
 		if err == nil {
-			DebugLog.Println(params)
 			if f, ok := params["filename"]; ok {
 				filename = f
-				DebugLog.Println("filename set from header to", filename)
 			}
 		}
 	}
 	if filename == "" {
 		url := resp.Request.URL
 		filename = filepath.Base(url.EscapedPath())
-		DebugLog.Println("filename set from URL to", filename)
 	}
 	body = resp.Body
 	return
