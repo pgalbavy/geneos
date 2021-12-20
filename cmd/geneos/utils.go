@@ -6,9 +6,12 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"mime"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -336,6 +339,7 @@ func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []str
 // like the above but only process the first arg (if any) to allow for those commands
 // that accept only zero or one named instance and the rest of the args are parameters
 // pass the remaining args the to function
+//
 func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		// do nothing
@@ -348,11 +352,35 @@ func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType
 			return
 		}
 
-		if err = fn(c, args[1:], params); err != nil {
+		// empty remaining args, prepend to params
+		if err = fn(c, []string{}, append(args[1:], params...)); err != nil {
 			log.Println(Type(c), Name(c), err)
 		}
 	}
 	return nil
+}
+
+func filenameFromHTTPResp(resp *http.Response) (filename string, err error) {
+	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
+	if !ok {
+		cd, ok = resp.Request.Response.Header[http.CanonicalHeaderKey("content-disposition")]
+	}
+	if ok {
+		_, params, err := mime.ParseMediaType(cd[0])
+		if err == nil {
+			if f, ok := params["filename"]; ok {
+				filename = f
+			}
+		}
+	}
+	// if no content-disposition, then grab the path from the response URL
+	if filename == "" {
+		filename, err = cleanRelativePath(path.Base(resp.Request.URL.Path))
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 func cleanRelativePath(path string) (clean string, err error) {

@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -423,28 +421,9 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		// log.Fatalln(resp.Status)
 	}
 
-	// check content-disposition here
-	// for official download site the header is in the initial response
-	// but perhaps other systems will set one later in the redirect, so
-	// leaving this indirection test here
-	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
-	if !ok {
-		cd, ok = resp.Request.Response.Header[http.CanonicalHeaderKey("content-disposition")]
-	}
-	if ok {
-		_, params, err := mime.ParseMediaType(cd[0])
-		if err == nil {
-			if f, ok := params["filename"]; ok {
-				filename = f
-			}
-		}
-	}
-	// if no content-disposition, then grab the path from the response URL
-	if filename == "" {
-		filename, err = cleanRelativePath(path.Base(resp.Request.URL.Path))
-		if err != nil {
-			log.Fatalln(err)
-		}
+	filename, err = filenameFromHTTPResp(resp)
+	if err != nil {
+		log.Fatalln(err)
 	}
 	body = resp.Body
 	return

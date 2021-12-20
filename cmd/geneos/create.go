@@ -185,26 +185,28 @@ func commandUpload(ct ComponentType, args []string, params []string) (err error)
 // local directroreies are created
 func uploadInstance(c Instance, args []string, params []string) (err error) {
 	var destfile, backuppath string
-	var destdir bool
 	var from io.ReadCloser
 
-	if len(args) == 0 {
-		log.Fatalln("no file name provided")
+	if Type(c) == None || Type(c) == Unknown {
+		return ErrNotSupported
 	}
+
+	if len(params) == 0 {
+		log.Fatalln("no file/url provided")
+	}
+	destdir := Home(c)
 
 	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
 	if err != nil {
 		return err
 	}
 
-	if Type(c) == None || Type(c) == Unknown {
-		return ErrNotSupported
-	}
+	// eventually loop through all params
 
-	source := args[0]
-	s := strings.SplitN(source, "=", 2)
-	// did we have an '=' ?
-	if len(s) == 2 {
+	source := params[0]
+
+	if strings.Contains(source, "=") {
+		s := strings.SplitN(source, "=", 2)
 		// do some basic validation on user-supplied destination
 		destfile = s[0]
 		if destfile == "" {
@@ -212,11 +214,13 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 		}
 		destfile, err = cleanRelativePath(destfile)
 		if err != nil {
-			log.Fatalln("dest path not safe/valid")
+			log.Fatalln("dest path not safe/valid:", err)
 		}
+		// if the destination exists is it a directory?
 		if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
 			if st.IsDir() {
-				destdir = true
+				destdir = filepath.Join(Home(c), destfile)
+				destfile = ""
 			}
 		}
 		source = s[1]
@@ -224,66 +228,78 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 			log.Fatalln("no source defined")
 		}
 	}
+
+	// see if it's a URL
 	u, err := url.Parse(source)
 	if err != nil {
 		return err
 	}
-	if strings.HasPrefix(u.Scheme, "http") {
+
+	switch {
+	case strings.HasPrefix(u.Scheme, "http"):
 		resp, err := http.Get(u.String())
 		if err != nil {
 			return err
 		}
-		from = resp.Body
-		if destdir {
-			destfile = filepath.Join(destfile, filepath.Base(resp.Request.URL.Path))
-		} else if destfile == "" {
-			destfile = filepath.Base(resp.Request.URL.Path)
+
+		if destfile == "" {
+			// XXX check content-disposition or use basename or response URL if no destfile defined
+			destfile, err = filenameFromHTTPResp(resp)
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}
+
+		from = resp.Body
 		defer from.Close()
-	} else if source == "-" {
-		if destfile == "" || destdir {
+
+	case source == "-":
+		if destfile == "" {
 			log.Fatalln("for stdin a destination file must be provided, e.g. file.txt=-")
 		}
 		from = os.Stdin
-	} else {
+		source = "STDIN"
+		defer from.Close()
+
+	default:
 		// support globbing later
 		from, err = os.Open(source)
 		if err != nil {
 			return err
 		}
-		if destdir {
-			destfile = filepath.Join(destfile, filepath.Base(source))
-		} else if destfile == "" {
+		if destfile == "" {
 			destfile = filepath.Base(source)
 		}
 		defer from.Close()
 	}
 
-	destpath := filepath.Join(Home(c), destfile)
-	if _, err := os.Stat(filepath.Dir(destpath)); err != nil {
-		err = os.MkdirAll(filepath.Dir(destpath), 0775)
+	destfile = filepath.Join(destdir, destfile)
+
+	if _, err := os.Stat(filepath.Dir(destfile)); err != nil {
+		err = os.MkdirAll(filepath.Dir(destfile), 0775)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			log.Fatalln(err)
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = os.Chown(filepath.Dir(destpath), int(uid), int(gid)); err != nil {
+			if err = os.Chown(filepath.Dir(destfile), int(uid), int(gid)); err != nil {
 				return err
 			}
 		}
 	}
 
-	if st, err := os.Stat(destpath); err == nil {
+	// xxx - wrong way around. create tmp first, move over later
+	if st, err := os.Stat(destfile); err == nil {
 		if !st.Mode().IsRegular() {
 			log.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")
-		backuppath = destpath + "." + datetime + ".old"
-		if err = os.Rename(destpath, backuppath); err != nil {
+		backuppath = destfile + "." + datetime + ".old"
+		if err = os.Rename(destfile, backuppath); err != nil {
 			return err
 		}
 	}
-	out, err := os.Create(destpath)
+	out, err := os.Create(destfile)
 	if err != nil {
 		return err
 	}
@@ -292,7 +308,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	if err = out.Chown(int(uid), int(gid)); err != nil {
 		os.Remove(out.Name())
 		if backuppath != "" {
-			if err = os.Rename(backuppath, destpath); err != nil {
+			if err = os.Rename(backuppath, destfile); err != nil {
 				return err
 			}
 			return err
@@ -302,5 +318,6 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	if _, err = io.Copy(out, from); err != nil {
 		return err
 	}
+	log.Println("uploaded", source, "to", out.Name())
 	return nil
 }
