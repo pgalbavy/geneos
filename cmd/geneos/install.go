@@ -173,6 +173,7 @@ func unarchive(filename string, gz io.Reader) (err error) {
 		path := filepath.Join(basedir, name)
 		switch hdr.Typeflag {
 		case tar.TypeReg:
+			DebugLog.Println("file:", path)
 			out, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
 			if err != nil {
 				return err
@@ -187,11 +188,22 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			}
 			out.Close()
 		case tar.TypeDir:
+			DebugLog.Println("directory:", path)
 			if err = os.MkdirAll(path, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
 		case tar.TypeSymlink, tar.TypeGNULongLink:
+			// sanitize
+			DebugLog.Println("link:", path)
+
 			link := strings.TrimPrefix(hdr.Linkname, "/")
+			if filepath.IsAbs(link) {
+				log.Fatalln("archive contains absolute symlink target")
+			}
+			link, err = cleanRelativePath(link)
+			if err != nil {
+				log.Fatalln(err)
+			}
 			os.Symlink(link, path)
 		default:
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
