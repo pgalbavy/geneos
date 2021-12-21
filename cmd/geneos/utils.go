@@ -102,7 +102,7 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 //
 func setuser(cmd *exec.Cmd, username string) (err error) {
 	uid, gid, gids, err := getUser(username)
-	if err != nil || uid < 0 || gid < 0 {
+	if err != nil {
 		return
 	}
 
