@@ -8,11 +8,11 @@ import (
 )
 
 func init() {
-	commands["stop"] = Command{commandStop, parseArgs, `geneos stop [type] [instance...]`,
+	commands["stop"] = Command{commandStop, nil, parseArgs, `geneos stop [type] [instance...]`,
 		`Stop one or more matching instances. First a SIGTERM is sent and if the instance is still running
 after a few seconds then a SIGKILL is sent to the process(es).`}
 
-	commands["kill"] = Command{commandKill, parseArgs, `geneos kill [type] [instance...]`,
+	commands["kill"] = Command{commandKill, nil, parseArgs, `geneos kill [type] [instance...]`,
 		`Immediately stop one or more matching instances. A SIGKILL is sent to the instance(s).`}
 }
 

@@ -9,7 +9,7 @@ import (
 // TODO: Core files and other ulimits
 
 func init() {
-	commands["start"] = Command{commandStart, parseArgs, `geneos start [TYPE] [NAME...]`,
+	commands["start"] = Command{commandStart, nil, parseArgs, `geneos start [TYPE] [NAME...]`,
 		`Start one or more matching instances. All instances are run in the background and
 STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
 }

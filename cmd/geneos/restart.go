@@ -1,7 +1,7 @@
 package main
 
 func init() {
-	commands["restart"] = Command{commandRestart, parseArgs, "geneos restart [TYPE] [NAME...]",
+	commands["restart"] = Command{commandRestart, nil, parseArgs, "geneos restart [TYPE] [NAME...]",
 		`Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`}
 }
 

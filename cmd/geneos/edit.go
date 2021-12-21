@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	commands["edit"] = Command{commandEdit, parseArgs,
+	commands["edit"] = Command{commandEdit, nil, parseArgs,
 		`geneos edit [global|user]
 	geneos edit [TYPE] [NAME...]`,
 		`Open a text editor for JSON configuration file(s). If the literal word 'global' or 'user' is

@@ -15,14 +15,14 @@ import (
 )
 
 func init() {
-	commands["create"] = Command{commandCreate, parseArgs, "geneos create TYPE NAME",
+	commands["create"] = Command{commandCreate, nil, parseArgs, "geneos create TYPE NAME",
 		`Create an instance called NAME with the TYPE supplied. The details will depends on the
 TYPE. Currently the listening port is selected automatically and other options are defaulted. If
 these need to be changed before starting, see the edit command.
 
 Gateways are given a minimal configuration file.`}
 
-	commands["upload"] = Command{commandUpload, parseArgs, "geneos upload [TYPE] NAME [DEST=]SRC",
+	commands["upload"] = Command{commandUpload, nil, parseArgs, "geneos upload [TYPE] NAME [DEST=]SRC",
 		`Upload a file to the instance directory. This can be used to add configuration or license
 files or scripts for gateways and netprobes to run. The SRC can be a local path or a url or a '-'
 for stdin. DEST is local pathname ending in either a filename or a directory. Is the SRC is '-'

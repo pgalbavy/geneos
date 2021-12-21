@@ -91,9 +91,13 @@ func main() {
 	var args []string = leftargs[1:]
 	var params []string
 
+	if commands[command].ParseFlags != nil {
+		args = commands[command].ParseFlags(args)
+	}
+
 	// parse the rest of the args depending on the command
 	if commands[command].ParseArgs != nil {
-		ct, args, params = commands[command].ParseArgs(leftargs[1:])
+		ct, args, params = commands[command].ParseArgs(args)
 	}
 	logDebug.Println("ct", ct, "args", args, "params", params)
 

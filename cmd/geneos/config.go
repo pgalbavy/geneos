@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	commands["init"] = Command{initCommand, nil, `geneos init [username] [directory]`,
+	commands["init"] = Command{initCommand, nil, nil, `geneos init [username] [directory]`,
 		`Initialise a geneos installation by creating a suitable directory hierarhcy and
 	a user configuration file, setting the username and directory given as defaults.
 	If 'username' is supplied then the command must either be run as root or the given user.
@@ -25,15 +25,15 @@ func init() {
 		sudo geneos init geneos /opt/itrs
 `}
 
-	commands["migrate"] = Command{commandMigrate, parseArgs, "geneos migrate [TYPE] [NAME...]",
+	commands["migrate"] = Command{commandMigrate, nil, parseArgs, "geneos migrate [TYPE] [NAME...]",
 		`Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
 .rc.orig.`}
-	commands["revert"] = Command{commandRevert, parseArgs, "geneos revert [TYPE] [NAME...]",
+	commands["revert"] = Command{commandRevert, nil, parseArgs, "geneos revert [TYPE] [NAME...]",
 		`Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
 Any changes to the instance configuration since initial migration will be lost as the .rc file
 is never written to.`}
 
-	commands["show"] = Command{commandShow, parseArgs,
+	commands["show"] = Command{commandShow, nil, parseArgs,
 		`geneos show
 	geneos show [global|user]
 	geneos show [TYPE] [NAME...]`,
@@ -47,25 +47,25 @@ instance using a legacy .rc file or a native JSON configuration.
 Passwords and secrets are redacted in a very simplistic manner simply to prevent visibility in
 casual viewing.`}
 
-	commands["set"] = Command{commandSet, parseArgs,
+	commands["set"] = Command{commandSet, nil, parseArgs,
 		`geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
 		``}
 
-	commands["disable"] = Command{commandDisable, parseArgs, "geneos disable [TYPE] [NAME...]",
+	commands["disable"] = Command{commandDisable, nil, parseArgs, "geneos disable [TYPE] [NAME...]",
 		`Mark any matching instances as disabled. The instances are also stopped.`}
 
-	commands["enable"] = Command{commandEneable, parseArgs, "geneos enable [TYPE] [NAME...]",
+	commands["enable"] = Command{commandEneable, nil, parseArgs, "geneos enable [TYPE] [NAME...]",
 		`Mark any matcing instances as enabled and if this is a change then start the instance.`}
 
-	commands["rename"] = Command{commandRename, checkComponentArg, "geneos rename TYPE FROM TO",
+	commands["rename"] = Command{commandRename, nil, checkComponentArg, "geneos rename TYPE FROM TO",
 		`Rename the matching instance. TYPE is requied to resolve any ambiguities if two instances
 share the same name. No configuration changes outside the instance JSON config file are done. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
 The instance is stopped and restarted after the instance directory and configuration are changed.
 It is an error to try to rename an instance to one that already exists with the same name.`}
 
-	commands["delete"] = Command{commandDelete, parseArgs, "geneos delete [TYPE] [NAME...]",
+	commands["delete"] = Command{commandDelete, nil, parseArgs, "geneos delete [TYPE] [NAME...]",
 		`Delete the matching instances. This will only work on instances that are disabled to prevent
 accidental deletion. The instance directory is removed without being backed-up. The user running
 the command must have the appropriate permissions and a partial deletion cannot be protected

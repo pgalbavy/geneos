@@ -5,10 +5,10 @@ import (
 )
 
 func init() {
-	commands["version"] = Command{commandVersion, nil, "geneos version",
+	commands["version"] = Command{commandVersion, nil, nil, "geneos version",
 		`Display the current version number. Currently not implmeented.`}
 
-	commands["help"] = Command{commandHelp, nil, "geneos help [COMMAND]",
+	commands["help"] = Command{commandHelp, nil, nil, "geneos help [COMMAND]",
 		`This command. Shows either a list of available commands or the help for the given COMMAND.`}
 }
 

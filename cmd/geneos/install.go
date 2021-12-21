@@ -18,14 +18,14 @@ import (
 )
 
 func init() {
-	commands["install"] = Command{commandInstall, checkComponentArg, "geneos install FILE...",
+	commands["install"] = Command{commandInstall, nil, checkComponentArg, "geneos install FILE...",
 		`Install the supplied FILE(s) in the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
 
 The directory for the package is created using the VERSION from the archive filename.`}
 
-	commands["download"] = Command{commandDownload, checkComponentArg, "geneos download [TYPE] [latest|FILTER|URL...]",
+	commands["download"] = Command{commandDownload, nil, checkComponentArg, "geneos download [TYPE] [latest|FILTER|URL...]",
 		`Download and install the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
@@ -34,7 +34,7 @@ the official download site. The filename must of of the format:
 The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
 for the package is created using the VERSION from the archive filename.`}
 
-	commands["update"] = Command{commandUpdate, checkComponentArg, "geneos update [TYPE] VERSION",
+	commands["update"] = Command{commandUpdate, nil, checkComponentArg, "geneos update [TYPE] VERSION",
 		`Update the symlink for the default base name of the package used to VERSION. The base directory,
 for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
 in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not
@@ -52,6 +52,8 @@ over a directory with the same numerical versions. All other directories name fo
 behaviour.
 
 Future version may support selecting a base other than 'active_prod'.`}
+
+	// need overwrite flags
 }
 
 //

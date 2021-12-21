@@ -14,10 +14,10 @@ import (
 )
 
 func init() {
-	commands["logs"] = Command{commandLogs, parseArgs, "geneos logs [TYPE] [NAME...]",
-		`Show logs for matching instances. Not fully implemented.
+	commands["logs"] = Command{commandLogs, logsFlag, parseArgs, "geneos logs [FLAGS] [TYPE] [NAME...]",
+		`Show logs for matching instances.
 
-Options:
+FLAGS:
 	-n NUM		- show last NUM lines, default 10
 	-f		- follow
 	-c		- cat log file(s)
@@ -59,10 +59,13 @@ var tails map[string]*tail = make(map[string]*tail)
 // last logfile written out
 var lastout string
 
-func commandLogs(ct ComponentType, args []string, params []string) (err error) {
-	logsFlags.Parse(params)
-	params = logsFlags.Args()
+func logsFlag(args []string) []string {
+	logsFlags.Parse(args)
+	return logsFlags.Args()
 
+}
+
+func commandLogs(ct ComponentType, args []string, params []string) (err error) {
 	// validate options
 	if logsInclude != "" && logsExclude != "" {
 		logError.Fatalln("Only one of -g or -v can be given")

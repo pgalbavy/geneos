@@ -19,21 +19,21 @@ func init() {
 	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
 	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
 
-	commands["ls"] = Command{commandLS, parseArgs, "geneos ls [TYPE] [NAME...]",
+	commands["ls"] = Command{commandLS, flagsLS, parseArgs, "geneos ls [TYPE] [NAME...]",
 		`List the matching instances and their component type.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
-	commands["list"] = Command{commandLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
+	commands["list"] = Command{commandLS, flagsLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
 
-	commands["ps"] = Command{commandPS, parseArgs, "geneos ps [TYPE] [NAMES...]",
+	commands["ps"] = Command{commandPS, nil, parseArgs, "geneos ps [TYPE] [NAMES...]",
 		`Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
-	commands["status"] = Command{commandPS, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}
+	commands["status"] = Command{commandPS, nil, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}
 
-	commands["command"] = Command{commandCommand, parseArgs, "geneos command [TYPE] [NAME...]",
+	commands["command"] = Command{commandCommand, nil, parseArgs, "geneos command [TYPE] [NAME...]",
 		`Show the full command line for the matching instances along with any environment variables
 explicitly set for execution.
 
@@ -45,14 +45,18 @@ var lsTabWriter *tabwriter.Writer
 var csvWriter *csv.Writer
 var jsonEncoder *json.Encoder
 
+func flagsLS(args []string) []string {
+	listFlags.Parse(args)
+	return listFlags.Args()
+
+}
+
 func commandLS(ct ComponentType, args []string, params []string) (err error) {
-	listFlags.Parse(params)
 	logDebug.Println("JSON", listJSON)
 	logDebug.Println("CSV", listCSV)
 	if listJSON && listCSV {
 		logError.Fatalln("only one of -j or -c allowed")
 	}
-	params = listFlags.Args()
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
