@@ -13,7 +13,7 @@ func init() {
 }
 
 func commandVersion(comp ComponentType, args []string, params []string) error {
-	log.Println("version: v0.7.0")
+	log.Println("version: v0.7.1")
 	return nil
 }
 
