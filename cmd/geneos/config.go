@@ -452,10 +452,10 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 	// to sanitise the contents - or generate an error
 	switch args[0] {
 	case "global":
-		return setConfig(globalConfig, args[1:])
+		return setConfig(globalConfig, params)
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
-		return setConfig(filepath.Join(userConfDir, "geneos.json"), args[1:])
+		return setConfig(filepath.Join(userConfDir, "geneos.json"), params)
 	}
 
 	// check if all args have an '=' - if so default to "set user"
@@ -560,7 +560,9 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 func setConfig(filename string, params []string) (err error) {
 	var c ConfigType
 	// ignore err - config may not exist, but that's OK
-	_ = readConfigFile(filename, &c)
+	if err = readConfigFile(filename, &c); err != nil {
+		return
+	}
 	// change here
 	for _, set := range params {
 		// skip all non '=' args
@@ -572,7 +574,6 @@ func setConfig(filename string, params []string) (err error) {
 		if err = setField(&c, k, v); err != nil {
 			return
 		}
-
 	}
 	return writeConfigFile(filename, c)
 }
