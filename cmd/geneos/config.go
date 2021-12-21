@@ -202,17 +202,17 @@ func initCommand(ct ComponentType, args []string, params []string) (err error) {
 
 func initAsRoot(c *ConfigType, args []string) (err error) {
 	if len(args) == 0 {
-		log.Fatalln("init requires a user when run as root")
+		logError.Fatalln("init requires a user when run as root")
 	}
 	username := args[0]
 	uid, gid, _, err := getUser(username)
 
 	if err != nil {
-		log.Fatalln("invalid user", username)
+		logError.Fatalln("invalid user", username)
 	}
 	u, err := user.Lookup(username)
 	if err != nil {
-		log.Fatalln("user lookup failed")
+		logError.Fatalln("user lookup failed")
 	}
 
 	var dir string
@@ -232,24 +232,24 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 		// check empty
 		dirs, err := os.ReadDir(dir)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		if len(dirs) != 0 {
-			log.Fatalln("directory exists and is not empty")
+			logError.Fatalln("directory exists and is not empty")
 		}
 	} else {
 		// need to create out own, chown base directory only
 		if err = os.MkdirAll(dir, 0775); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 	if err = os.Chown(dir, int(uid), int(gid)); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	c.ITRSHome = dir
 	c.DefaultUser = username
 	if err = writeConfigFile(globalConfig, c); err != nil {
-		log.Fatalln("cannot write global config", err)
+		logError.Fatalln("cannot write global config", err)
 	}
 	// if everything else worked, remove any existing user config
 	_ = os.Remove(filepath.Join(u.HomeDir, ".config", "geneos.json"))
@@ -258,7 +258,7 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	for _, d := range initDirs {
 		dir := filepath.Join(c.ITRSHome, d)
 		if err = os.MkdirAll(dir, 0775); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
@@ -281,7 +281,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	case 1: // home = abs path
 		dir, _ = filepath.Abs(args[0])
 	default:
-		log.Fatalln("too many args")
+		logError.Fatalln("too many args")
 	}
 
 	// dir must first not exist (or be empty) and then be createable
@@ -289,21 +289,21 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 		// check empty
 		dirs, err := os.ReadDir(dir)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		if len(dirs) != 0 {
-			log.Fatalf("target directory %q exists and is not empty", dir)
+			logError.Fatalf("target directory %q exists and is not empty", dir)
 		}
 	} else {
 		// need to create out own, chown base directory only
 		if err = os.MkdirAll(dir, 0775); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 
 	userConfDir, err := os.UserConfigDir()
 	if err != nil {
-		log.Fatalln("no user config directory")
+		logError.Fatalln("no user config directory")
 	}
 	userConfFile := filepath.Join(userConfDir, "geneos.json")
 	c.ITRSHome = dir
@@ -315,7 +315,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	for _, d := range initDirs {
 		dir := filepath.Join(c.ITRSHome, d)
 		if err = os.MkdirAll(dir, 0775); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 	return
@@ -599,7 +599,7 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	if superuser {
 		username := getString(config, Prefix(config)+"User")
 		if username == "" {
-			log.Fatalln("cannot find non-root user to write config file", file)
+			logError.Fatalln("cannot find non-root user to write config file", file)
 		}
 		ux, gx, _, err := getUser(username)
 		if err != nil {
@@ -750,7 +750,7 @@ func commandDelete(ct ComponentType, args []string, params []string) (err error)
 func deleteInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		if err = os.RemoveAll(Home(c)); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		return nil
 	}

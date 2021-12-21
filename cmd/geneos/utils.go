@@ -77,19 +77,19 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 	}
 	ux, err := strconv.ParseInt(u.Uid, 10, 32)
 	if err != nil || ux < 0 || ux > math.MaxUint32 {
-		log.Fatalln("uid out of range:", u.Uid)
+		logError.Fatalln("uid out of range:", u.Uid)
 	}
 	uid = uint32(ux)
 	gx, err := strconv.ParseInt(u.Gid, 10, 32)
 	if err != nil || gx < 0 || gx > math.MaxUint32 {
-		log.Fatalln("gid out of range:", u.Gid)
+		logError.Fatalln("gid out of range:", u.Gid)
 	}
 	gid = uint32(gx)
 	groups, _ := u.GroupIds()
 	for _, g := range groups {
 		gid, err := strconv.ParseInt(g, 10, 32)
 		if err != nil || gid < 0 || gid > math.MaxUint32 {
-			log.Fatalln("gid out of range:", g)
+			logError.Fatalln("gid out of range:", g)
 		}
 		gids = append(gids, uint32(gid))
 	}
@@ -223,7 +223,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 	for _, name := range args {
 		// filter name here
 		if reservedName(args[0]) {
-			log.Fatalf("%q is reserved instance name", args[0])
+			logError.Fatalf("%q is reserved instance name", args[0])
 		}
 		if !validInstanceName(args[0]) {
 			logDebug.Printf("%q is not a valid instance name", args[0])
@@ -402,16 +402,16 @@ func removePathList(c Instance, paths string) (err error) {
 		// walk globbed directories, remove everything
 		p, err = cleanRelativePath(p)
 		if err != nil {
-			log.Fatalln(p, err)
+			logError.Fatalln(p, err)
 		}
 		// glob here
 		m, err := filepath.Glob(filepath.Join(Home(c), p))
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		for _, f := range m {
 			if err = os.RemoveAll(f); err != nil {
-				log.Fatalln(err)
+				logError.Fatalln(err)
 			}
 		}
 	}

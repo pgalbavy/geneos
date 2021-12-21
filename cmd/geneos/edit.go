@@ -36,7 +36,7 @@ func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 	}
 
 	if superuser {
-		log.Fatalln("no editing as root, for now")
+		logError.Fatalln("no editing as root, for now")
 	}
 
 	editor := os.Getenv("VISUAL")

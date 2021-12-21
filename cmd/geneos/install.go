@@ -62,7 +62,7 @@ Future version may support selecting a base other than 'active_prod'.`}
 // 'geneos install netprobe latest'
 func commandInstall(ct ComponentType, files []string, params []string) (err error) {
 	if ct != None {
-		log.Fatalln("Must not specify a compoenent type, only archive files")
+		logError.Fatalln("Must not specify a compoenent type, only archive files")
 	}
 
 	for _, archive := range files {
@@ -124,7 +124,7 @@ var archiveRE = regexp.MustCompile(`^geneos-(\w+)-([\w\.-]+?)[\.-]?linux`)
 func unarchive(filename string, gz io.Reader) (err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
-		log.Fatalf("invalid archive name format: %q", filename)
+		logError.Fatalf("invalid archive name format: %q", filename)
 	}
 	comp := parseComponentName(parts[1])
 	if comp == None || comp == Unknown {
@@ -167,7 +167,7 @@ func unarchive(filename string, gz io.Reader) (err error) {
 		}
 		name, err = cleanRelativePath(name)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		fullpath := filepath.Join(basedir, name)
 		switch hdr.Typeflag {
@@ -193,11 +193,11 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			// sanitize
 			link := strings.TrimPrefix(hdr.Linkname, "/")
 			if filepath.IsAbs(link) {
-				log.Fatalln("archive contains absolute symlink target")
+				logError.Fatalln("archive contains absolute symlink target")
 			}
 			link, err = cleanRelativePath(link)
 			if err != nil {
-				log.Fatalln(err)
+				logError.Fatalln(err)
 			}
 			os.Symlink(link, fullpath)
 		default:
@@ -290,7 +290,7 @@ var versRE = regexp.MustCompile(`^\d+(\.\d+){0,2}`)
 func latestDir(dir string) (latest string) {
 	dirs, err := os.ReadDir(dir)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	max := make([]int, 3)
 	for _, v := range dirs {
@@ -404,7 +404,7 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		var authjson []byte
 		authjson, err = json.Marshal(authbody)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 
 		resp, err = http.Post(source, "application/json", bytes.NewBuffer(authjson))
@@ -412,18 +412,18 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		resp, err = http.Get(source)
 	}
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	if resp.StatusCode > 299 {
 		err = fmt.Errorf("cannot download %s package version %s: %s", ct, version, resp.Status)
 		resp.Body.Close()
 		return
-		// log.Fatalln(resp.Status)
+		// logError.Fatalln(resp.Status)
 	}
 
 	filename, err = filenameFromHTTPResp(resp, downloadURL)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	body = resp.Body
 	return

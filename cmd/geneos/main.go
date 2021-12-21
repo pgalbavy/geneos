@@ -83,7 +83,7 @@ func main() {
 	loadSysConfig()
 
 	if len(leftargs) == 0 {
-		log.Fatalln("[usage here]: not enough args")
+		logError.Fatalln("[usage here]: not enough args")
 	}
 
 	var command = strings.ToLower(leftargs[0])
@@ -103,7 +103,7 @@ func main() {
 	// come commands just want the raw command args, or none
 	case "help", "version", "init":
 		if err := commands[command].Function(ct, args, params); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		os.Exit(0)
 	// 'geneos show [user|global]'
@@ -123,7 +123,7 @@ func main() {
 		if len(args) > 0 && (args[0] == "user" || args[0] == "global") {
 			// output on-disk global or user config, not resolved one
 			if err := commands[command].Function(ct, args, params); err != nil {
-				log.Fatalln(err)
+				logError.Fatalln(err)
 			}
 			os.Exit(0)
 		}
@@ -131,14 +131,14 @@ func main() {
 	default:
 		// test home dir, stop if invalid
 		if RunningConfig.ITRSHome == "" {
-			log.Fatalln("home directory is not set")
+			logError.Fatalln("home directory is not set")
 		}
 		s, err := os.Stat(RunningConfig.ITRSHome)
 		if err != nil {
-			log.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
+			logError.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
 		}
 		if !s.IsDir() {
-			log.Fatalln(RunningConfig.ITRSHome, "is not a directory")
+			logError.Fatalln(RunningConfig.ITRSHome, "is not a directory")
 		}
 
 		// we have a valid home directory, now set default user if
@@ -146,11 +146,11 @@ func main() {
 		if RunningConfig.DefaultUser == "" {
 			s2 := s.Sys().(*syscall.Stat_t)
 			if s2.Uid == 0 {
-				log.Fatalf("home directory %q: owned by root and no default user configured", RunningConfig.ITRSHome)
+				logError.Fatalf("home directory %q: owned by root and no default user configured", RunningConfig.ITRSHome)
 			}
 			u, err := user.LookupId(fmt.Sprint(s2.Uid))
 			if err != nil {
-				log.Fatalln(RunningConfig.ITRSHome, err)
+				logError.Fatalln(RunningConfig.ITRSHome, err)
 			}
 			RunningConfig.DefaultUser = u.Username
 		}
@@ -165,9 +165,9 @@ func main() {
 		// the command has to understand ct == None/Unknown
 		if err = c.Function(ct, args, params); err != nil {
 			if err == ErrInvalidArgs {
-				log.Fatalf("Usage: %q", c.CommandLine)
+				logError.Fatalf("Usage: %q", c.CommandLine)
 			}
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 	os.Exit(0)

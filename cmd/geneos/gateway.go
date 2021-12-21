@@ -87,7 +87,7 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 	// default config XML etc.
 	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(emptyXMLTemplate)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	cf, err := os.OpenFile(filepath.Join(Home(c), "gateway.setup.xml"), os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
@@ -96,7 +96,7 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 	}
 	defer cf.Close()
 	if err = t.Execute(cf, c); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	return
 }

@@ -40,7 +40,7 @@ time.`}
 
 func commandCreate(ct ComponentType, args []string, params []string) (err error) {
 	if len(args) == 0 {
-		log.Fatalln("not enough args")
+		logError.Fatalln("not enough args")
 	}
 
 	// check validty and reserved words here
@@ -56,7 +56,7 @@ func commandCreate(ct ComponentType, args []string, params []string) (err error)
 
 	switch ct {
 	case None, Unknown:
-		log.Fatalln("component type must be specified")
+		logError.Fatalln("component type must be specified")
 	case Gateways:
 		if _, err = gatewayCreate(name, username); err != nil {
 			return
@@ -192,7 +192,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	}
 
 	if len(params) == 0 {
-		log.Fatalln("no file/url provided")
+		logError.Fatalln("no file/url provided")
 	}
 	destdir := Home(c)
 
@@ -211,11 +211,11 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 		if !strings.HasPrefix(splitsource[0], "https://") && !strings.HasPrefix(splitsource[0], "http://") {
 			// do some basic validation on user-supplied destination
 			if splitsource[0] == "" {
-				log.Fatalln("dest path empty")
+				logError.Fatalln("dest path empty")
 			}
 			destfile, err = cleanRelativePath(splitsource[0])
 			if err != nil {
-				log.Fatalln("dest path must be relative to (and in) instance directory")
+				logError.Fatalln("dest path must be relative to (and in) instance directory")
 			}
 			// if the destination exists is it a directory?
 			if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
@@ -226,7 +226,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 			}
 			source = splitsource[1]
 			if source == "" {
-				log.Fatalln("no source defined")
+				logError.Fatalln("no source defined")
 			}
 		}
 	}
@@ -248,7 +248,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 			// XXX check content-disposition or use basename or response URL if no destfile defined
 			destfile, err = filenameFromHTTPResp(resp, u)
 			if err != nil {
-				log.Fatalln(err)
+				logError.Fatalln(err)
 			}
 		}
 
@@ -257,7 +257,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 
 	case source == "-":
 		if destfile == "" {
-			log.Fatalln("for stdin a destination file must be provided, e.g. file.txt=-")
+			logError.Fatalln("for stdin a destination file must be provided, e.g. file.txt=-")
 		}
 		from = os.Stdin
 		source = "STDIN"
@@ -280,7 +280,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	if _, err := os.Stat(filepath.Dir(destfile)); err != nil {
 		err = os.MkdirAll(filepath.Dir(destfile), 0775)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		// if created, chown the last element
 		if err == nil {
@@ -293,7 +293,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	// xxx - wrong way around. create tmp first, move over later
 	if st, err := os.Stat(destfile); err == nil {
 		if !st.Mode().IsRegular() {
-			log.Fatalln("dest exists and is not a plain file")
+			logError.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")
 		backuppath = destfile + "." + datetime + ".old"

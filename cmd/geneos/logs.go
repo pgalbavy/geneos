@@ -65,11 +65,11 @@ func commandLogs(ct ComponentType, args []string, params []string) (err error) {
 
 	// validate options
 	if logsInclude != "" && logsExclude != "" {
-		log.Fatalln("Only one of -g or -v can be given")
+		logError.Fatalln("Only one of -g or -v can be given")
 	}
 
 	if logsCat && logsFollow {
-		log.Fatalln("Only one of -c or -f can be given")
+		logError.Fatalln("Only one of -c or -f can be given")
 	}
 
 	switch {
@@ -149,7 +149,7 @@ func tailLines(file *os.File, linecount int) (text string, err error) {
 	for i = 1 + end/chunk; i > 0; i-- {
 		n, err := file.ReadAt(buf, (i-1)*chunk)
 		if err != nil && !errors.Is(err, io.EOF) {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		strbuf := string(buf[:n])
 
@@ -250,7 +250,7 @@ func watchLogs() (err error) {
 	// set up watcher
 	watcher, err = fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		logError.Fatal(err)
 	}
 
 	go func() {

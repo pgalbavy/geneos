@@ -50,7 +50,7 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 	logDebug.Println("JSON", listJSON)
 	logDebug.Println("CSV", listCSV)
 	if listJSON && listCSV {
-		log.Fatalln("only one of -j or -c allowed")
+		logError.Fatalln("only one of -j or -c allowed")
 	}
 	params = listFlags.Args()
 	switch {
@@ -119,7 +119,7 @@ func commandPS(ct ComponentType, args []string, params []string) (err error) {
 	logDebug.Println("JSON", listJSON)
 	logDebug.Println("CSV", listCSV)
 	if listJSON && listCSV {
-		log.Fatalln("only one of -j or -c allowed")
+		logError.Fatalln("only one of -j or -c allowed")
 	}
 	params = listFlags.Args()
 	switch {
