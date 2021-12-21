@@ -388,7 +388,7 @@ func filenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err
 func cleanRelativePath(path string) (clean string, err error) {
 	clean = filepath.Clean(path)
 	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "../") {
-		logDebug.Println("dest path must be relative and descending only")
+		logDebug.Printf("path %q must be relative and descending only", clean)
 		return "", ErrInvalidArgs
 	}
 

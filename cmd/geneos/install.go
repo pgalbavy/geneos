@@ -193,11 +193,8 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			if filepath.IsAbs(hdr.Linkname) {
 				logError.Fatalln("archive contains absolute symlink target")
 			}
-			link, err := cleanRelativePath(hdr.Linkname)
-			if err != nil {
-				logError.Fatalln(err)
-			}
-			os.Symlink(link, fullpath)
+			// linkname can be anything, since it's fullpath we are creating
+			os.Symlink(hdr.Linkname, fullpath)
 		default:
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
