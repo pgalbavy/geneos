@@ -9,10 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
-	"wonderland.org/geneos/pkg/logger"
 	"wonderland.org/geneos/pkg/plugins"
 	"wonderland.org/geneos/pkg/samplers"
 )
@@ -20,12 +18,6 @@ import (
 func init() {
 	// geneos.EnableDebugLog()
 }
-
-var (
-	Logger      = logger.Logger
-	DebugLogger = logger.DebugLogger
-	ErrorLogger = logger.ErrorLogger
-)
 
 type PowerwallSampler struct {
 	samplers.Samplers

@@ -48,7 +48,7 @@ func (c Client) post(data methodCall) (result methodResponse, err error) {
 	body := bytes.NewReader(output)
 	resp, err := c.Post(c.URL(), "text/xml", body)
 	if err != nil {
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 

@@ -47,8 +47,8 @@ var jsonEncoder *json.Encoder
 
 func commandLS(ct ComponentType, args []string, params []string) (err error) {
 	listFlags.Parse(params)
-	DebugLog.Println("JSON", listJSON)
-	DebugLog.Println("CSV", listCSV)
+	logDebug.Println("JSON", listJSON)
+	logDebug.Println("CSV", listCSV)
 	if listJSON && listCSV {
 		log.Fatalln("only one of -j or -c allowed")
 	}
@@ -73,7 +73,7 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 }
 
 func lsInstancePlain(c Instance, params []string) (err error) {
-	DebugLog.Println("params", params)
+	logDebug.Println("params", params)
 	var suffix string
 	if isDisabled(c) {
 		suffix = "*"
@@ -116,8 +116,8 @@ var psTabWriter *tabwriter.Writer
 
 func commandPS(ct ComponentType, args []string, params []string) (err error) {
 	listFlags.Parse(params)
-	DebugLog.Println("JSON", listJSON)
-	DebugLog.Println("CSV", listCSV)
+	logDebug.Println("JSON", listJSON)
+	logDebug.Println("CSV", listCSV)
 	if listJSON && listCSV {
 		log.Fatalln("only one of -j or -c allowed")
 	}

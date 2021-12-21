@@ -27,7 +27,7 @@ func (d Dataview) String() string {
 func (d Dataview) IsValid() bool {
 	res, err := d.viewExists(d.EntityName(), d.SamplerName(), d.dataviewName)
 	if err != nil {
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return false
 	}
 	return res
@@ -54,9 +54,9 @@ func (d *Dataview) SetDataviewName(dataview string, groupname string) {
 // Close removes the dataview from the sampler
 // It does not cleanup the data structure
 func (d Dataview) Close() (err error) {
-	DebugLogger.Print("called")
+	logDebug.Print("called")
 	if !d.IsValid() {
-		ErrorLogger.Print("closing an invalid dataview")
+		logError.Print("closing an invalid dataview")
 		return
 	}
 	view, group := d.DataviewGroupNames()
@@ -71,7 +71,7 @@ func (d Dataview) Close() (err error) {
 func (d Dataview) UpdateCell(rowname string, columnname string, value interface{}) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	cellname := rowname + "." + columnname
@@ -89,7 +89,7 @@ func (d Dataview) UpdateCell(rowname string, columnname string, value interface{
 func (d Dataview) UpdateTable(columns []string, values ...[]string) (err error) {
 	if !d.IsValid() {
 		err = fmt.Errorf("UpdateTable(%q): dataview doesn't exist", d.dataviewName)
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	var table [][]string = append([][]string{columns}, values...)
@@ -100,7 +100,7 @@ func (d Dataview) UpdateTable(columns []string, values ...[]string) (err error) 
 func (d Dataview) AddRow(name string) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	err = d.addTableRow(d.EntityName(), d.SamplerName(), d.dataviewName, name)
@@ -110,7 +110,7 @@ func (d Dataview) AddRow(name string) (err error) {
 func (d Dataview) UpdateRow(name string, args ...interface{}) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	var s []string
@@ -124,7 +124,7 @@ func (d Dataview) UpdateRow(name string, args ...interface{}) (err error) {
 func (d Dataview) RowNames() (rownames []string, err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	rownames, err = d.getRowNames(d.EntityName(), d.SamplerName(), d.dataviewName)
@@ -137,7 +137,7 @@ func (d Dataview) RowNames() (rownames []string, err error) {
 func (d Dataview) RowNamesOlderThan(unixtime int64) (rownames []string, err error) {
 	rownames, err = d.getRowNamesOlderThan(d.EntityName(), d.SamplerName(), d.dataviewName, unixtime)
 	if err != nil {
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	return
@@ -146,7 +146,7 @@ func (d Dataview) RowNamesOlderThan(unixtime int64) (rownames []string, err erro
 func (d Dataview) CountRows() (int, error) {
 	if !d.IsValid() {
 		err := err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return 0, err
 	}
 	return d.getRowCount(d.EntityName(), d.SamplerName(), d.dataviewName)
@@ -155,7 +155,7 @@ func (d Dataview) CountRows() (int, error) {
 func (d Dataview) RemoveRow(name string) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	err = d.removeTableRow(d.EntityName(), d.SamplerName(), d.dataviewName, name)
@@ -165,7 +165,7 @@ func (d Dataview) RemoveRow(name string) (err error) {
 func (d Dataview) AddColumn(name string) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	err = d.addTableColumn(d.EntityName(), d.SamplerName(), d.dataviewName, name)
@@ -177,7 +177,7 @@ func (d Dataview) AddColumn(name string) (err error) {
 func (d Dataview) ColumnNames() (columnnames []string, err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	columnnames, err = d.getColumnNames(d.EntityName(), d.SamplerName(), d.dataviewName)
@@ -190,7 +190,7 @@ func (d Dataview) ColumnNames() (columnnames []string, err error) {
 func (d Dataview) CountColumns() (int, error) {
 	if !d.IsValid() {
 		err := err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return 0, err
 	}
 	return d.getColumnCount(d.EntityName(), d.SamplerName(), d.dataviewName)
@@ -202,26 +202,26 @@ func (d Dataview) CountColumns() (int, error) {
 func (d Dataview) Headline(name string, args ...string) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	res, err := d.headlineExists(d.EntityName(), d.SamplerName(), d.dataviewName, name)
 	if err != nil {
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	if !res {
 		err = d.addHeadline(d.EntityName(), d.SamplerName(), d.dataviewName, name)
 	}
 	if err != nil {
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	if len(args) > 0 {
 		s := fmt.Sprintf("%v", args[0])
 		err = d.updateHeadline(d.EntityName(), d.SamplerName(), d.dataviewName, name, s)
 		if err != nil {
-			ErrorLogger.Print(err)
+			logError.Print(err)
 			return
 		}
 	}
@@ -231,7 +231,7 @@ func (d Dataview) Headline(name string, args ...string) (err error) {
 func (d Dataview) CountHeadlines() (int, error) {
 	if !d.IsValid() {
 		err := err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return 0, err
 	}
 	return d.getHeadlineCount(d.EntityName(), d.SamplerName(), d.dataviewName)
@@ -240,7 +240,7 @@ func (d Dataview) CountHeadlines() (int, error) {
 func (d Dataview) HeadlineNames() (headlinenames []string, err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	headlinenames, err = d.getHeadlineNames(d.EntityName(), d.SamplerName(), d.dataviewName)
@@ -253,12 +253,12 @@ func (d Dataview) HeadlineNames() (headlinenames []string, err error) {
 func (d Dataview) RemoveHeadline(name string) (err error) {
 	if !d.IsValid() {
 		err = err_dataview_exists
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	res, err := d.headlineExists(d.EntityName(), d.SamplerName(), d.dataviewName, name)
 	if !res {
-		ErrorLogger.Print(err)
+		logError.Print(err)
 		return
 	}
 	return d.removeHeadline(d.EntityName(), d.SamplerName(), d.dataviewName, name)

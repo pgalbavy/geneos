@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime" // placeholder
 	"time"
 )
@@ -33,8 +34,9 @@ type Level int
 const (
 	INFO Level = iota
 	DEBUG
-	ERROR
 	WARNING
+	ERROR
+	FATAL
 )
 
 func (level Level) String() string {
@@ -72,12 +74,18 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 
 	var line string
 	switch g.Level {
+	case FATAL:
+		line = fmt.Sprintf("%s%s", prefix, p)
+		io.WriteString(g.Writer, line)
+		os.Exit(1)
+	case ERROR:
+		line = fmt.Sprintf("%s%s", prefix, p)
 	case INFO:
 		line = fmt.Sprintf("%s%s", prefix, p)
 
-	default:
+	case DEBUG:
 		var fnName string = "UNKNOWN"
-		pc, _, ln, ok := runtime.Caller(3)
+		pc, f, ln, ok := runtime.Caller(3)
 		if ok {
 			fn := runtime.FuncForPC(pc)
 			if fn != nil {
@@ -85,7 +93,12 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 			}
 		}
 
-		line = fmt.Sprintf("%s%s() line %d %s", prefix, fnName, ln, p)
+		// filename is either relative (-trimpath) or the basename with a ./ prefix
+		// this lets VSCode make the location clickable
+		if filepath.IsAbs(f) {
+			f = "./" + filepath.Base(f)
+		}
+		line = fmt.Sprintf("%s%s() %s:%d %s", prefix, fnName, f, ln, p)
 	}
-	return g.Writer.Write([]byte(line))
+	return io.WriteString(g.Writer, line)
 }

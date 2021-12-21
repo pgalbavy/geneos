@@ -138,13 +138,13 @@ func setuser(cmd *exec.Cmd, username string) (err error) {
 //
 func canControl(c Instance) bool {
 	if superuser {
-		DebugLog.Println("I am root")
+		logDebug.Println("I am root")
 		return true
 	}
 
 	username := getString(c, Prefix(c)+"User")
 	if len(username) == 0 {
-		DebugLog.Println("no user configured")
+		logDebug.Println("no user configured")
 		// assume the caller with try to set-up the correct user
 		return true
 	}
@@ -226,7 +226,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 			log.Fatalf("%q is reserved instance name", args[0])
 		}
 		if !validInstanceName(args[0]) {
-			DebugLog.Printf("%q is not a valid instance name", args[0])
+			logDebug.Printf("%q is not a valid instance name", args[0])
 			break
 		}
 		if m[name] {
@@ -244,7 +244,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 		args = emptyArgs(ct)
 	}
 
-	DebugLog.Println("params:", params)
+	logDebug.Println("params:", params)
 	return
 }
 
@@ -266,16 +266,16 @@ func emptyArgs(ct ComponentType) (args []string) {
 // seperate reserved words and invalid syntax
 //
 func reservedName(in string) (ok bool) {
-	DebugLog.Printf("checking %q", in)
+	logDebug.Printf("checking %q", in)
 	if parseComponentName(in) != Unknown {
-		DebugLog.Println("matches a reserved word")
+		logDebug.Println("matches a reserved word")
 		return true
 	}
 	if RunningConfig.ReservedNames != "" {
 		list := strings.Split(in, string(os.PathListSeparator))
 		for _, n := range list {
 			if strings.EqualFold(in, n) {
-				DebugLog.Println("matches a user defined reserved name")
+				logDebug.Println("matches a user defined reserved name")
 				return true
 			}
 		}
@@ -291,9 +291,9 @@ var validStringRE = regexp.MustCompile(`^\w[\w -]*$`)
 // used to consume instance names until parameters are then passed down
 //
 func validInstanceName(in string) (ok bool) {
-	DebugLog.Printf("checking %q", in)
+	logDebug.Printf("checking %q", in)
 	ok = validStringRE.MatchString(in)
-	DebugLog.Println("rexexp match", ok)
+	logDebug.Println("rexexp match", ok)
 	return
 }
 
@@ -388,7 +388,7 @@ func filenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err
 func cleanRelativePath(path string) (clean string, err error) {
 	clean = filepath.Clean(path)
 	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "../") {
-		DebugLog.Println("dest path must be relative and descending only")
+		logDebug.Println("dest path must be relative and descending only")
 		return "", ErrInvalidArgs
 	}
 

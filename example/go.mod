@@ -10,7 +10,7 @@ require (
 
 require (
 	github.com/go-ole/go-ole v1.2.5 // indirect
-	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 )
 
 replace wonderland.org/geneos => ../

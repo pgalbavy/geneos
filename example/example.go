@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
+	"wonderland.org/geneos/pkg/logger"
 	"wonderland.org/geneos/pkg/plugins"
 	"wonderland.org/geneos/pkg/streams"
 
@@ -19,6 +19,12 @@ import (
 func init() {
 	// logger.EnableDebugLog()
 }
+
+var (
+	log      = logger.Log
+	logDebug = logger.Debug
+	logError = logger.Error
+)
 
 func main() {
 	var wg sync.WaitGroup

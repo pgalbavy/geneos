@@ -14,9 +14,9 @@ func init() {
 }
 
 var (
-	Logger      = logger.Logger
-	DebugLogger = logger.DebugLogger
-	ErrorLogger = logger.ErrorLogger
+	log      = logger.Log
+	logDebug = logger.Debug
+	logError = logger.Error
 )
 
 type MemorySampler struct {

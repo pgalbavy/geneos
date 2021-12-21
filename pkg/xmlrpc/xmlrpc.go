@@ -9,9 +9,9 @@ func init() {
 }
 
 var (
-	Logger      = logger.Log
-	DebugLogger = logger.Debug
-	ErrorLogger = logger.Error
+	log      = logger.Log
+	logDebug = logger.Debug
+	logError = logger.Error
 )
 
 // The XMLRPC type is a simple one
@@ -21,7 +21,7 @@ type XMLRPC interface {
 }
 
 func NewClient(url string, entityName string, samplerName string) (sampler Sampler, err error) {
-	DebugLogger.Printf("%q, %q, %q", url, entityName, samplerName)
+	logDebug.Printf("%q, %q, %q", url, entityName, samplerName)
 	c := Client{}
 	c.SetURL(url)
 	return c.NewSampler(entityName, samplerName)

@@ -116,7 +116,7 @@ func readRCConfig(c Instance) (err error) {
 	if err != nil {
 		return
 	}
-	DebugLog.Printf("loading config from %s/%s.rc", Home(c), Type(c))
+	logDebug.Printf("loading config from %s/%s.rc", Home(c), Type(c))
 
 	confs := make(map[string]string)
 

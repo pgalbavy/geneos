@@ -11,9 +11,9 @@ func init() {
 }
 
 var (
-	Logger      = logger.Logger
-	DebugLogger = logger.DebugLogger
-	ErrorLogger = logger.ErrorLogger
+	log      = logger.Logger
+	logDebug = logger.DebugLogger
+	logError = logger.ErrorLogger
 )
 
 type GenericData struct {

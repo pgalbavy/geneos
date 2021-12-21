@@ -300,7 +300,7 @@ func latestDir(dir string) (latest string) {
 		// strip 'GA' prefix and get name
 		d := strings.TrimPrefix(v.Name(), "GA")
 		if !versRE.MatchString(d) {
-			DebugLog.Println(d, "does not match a valid directory pattern")
+			logDebug.Println(d, "does not match a valid directory pattern")
 			continue
 		}
 		s := strings.SplitN(d, ".", 3)
@@ -392,7 +392,7 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 	}
 	realpath.RawQuery = v.Encode()
 	source := downloadURL.ResolveReference(realpath).String()
-	DebugLog.Println("source url:", source)
+	logDebug.Println("source url:", source)
 
 	// if a download user is set then issue a POST with username and password
 	// in a JSON body, else just try the GET

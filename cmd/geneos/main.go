@@ -23,8 +23,8 @@ func init() {
 // package for normal logging
 var (
 	log      = logger.Log
-	DebugLog = logger.Debug
-	ErrorLog = logger.Error
+	logDebug = logger.Debug
+	logError = logger.Error
 )
 
 // define standard errors for reuse
@@ -95,7 +95,7 @@ func main() {
 	if commands[command].ParseArgs != nil {
 		ct, args, params = commands[command].ParseArgs(leftargs[1:])
 	}
-	DebugLog.Println("ct", ct, "args", args, "params", params)
+	logDebug.Println("ct", ct, "args", args, "params", params)
 
 	// if command is not an init, set or show then the ITRSHome
 	// directory must exist and be accessible to the user
@@ -159,7 +159,7 @@ func main() {
 
 		c, ok := commands[command]
 		if !ok {
-			ErrorLog.Fatalln("unknown command", command)
+			logError.Fatalln("unknown command", command)
 		}
 
 		// the command has to understand ct == None/Unknown

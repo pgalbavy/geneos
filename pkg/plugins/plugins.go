@@ -21,14 +21,14 @@ type Connection struct {
 }
 
 var (
-	Logger      = logger.Log
-	DebugLogger = logger.Debug
-	ErrorLogger = logger.Error
+	log      = logger.Log
+	logDebug = logger.Debug
+	logError = logger.Error
 )
 
 // wrap calls to xmlrpc
 func Sampler(url string, entityName string, samplerName string) (s Connection, err error) {
-	DebugLogger.Printf("called")
+	logDebug.Printf("called")
 	sampler, err := xmlrpc.NewClient(url, entityName, samplerName)
 	s = Connection{sampler}
 	return

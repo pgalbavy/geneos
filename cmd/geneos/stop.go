@@ -31,7 +31,7 @@ func stopInstance(c Instance, params []string) (err error) {
 		return ErrPermission
 	}
 
-	DebugLog.Println("process running as", st.Uid, st.Gid)
+	logDebug.Println("process running as", st.Uid, st.Gid)
 
 	proc, _ := os.FindProcess(pid)
 
@@ -46,7 +46,7 @@ func stopInstance(c Instance, params []string) (err error) {
 	for i := 0; i < 10; i++ {
 		time.Sleep(250 * time.Millisecond)
 		if err = proc.Signal(syscall.Signal(0)); err != nil {
-			DebugLog.Println(Type(c), "terminated")
+			logDebug.Println(Type(c), "terminated")
 			return nil
 		}
 	}
@@ -73,7 +73,7 @@ func killInstance(c Instance, params []string) (err error) {
 		return ErrPermission
 	}
 
-	DebugLog.Println("process running as", st.Uid, st.Gid)
+	logDebug.Println("process running as", st.Uid, st.Gid)
 
 	proc, _ := os.FindProcess(pid)
 

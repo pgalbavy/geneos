@@ -19,9 +19,9 @@ func init() {
 }
 
 var (
-	Logger      = logger.Log
-	DebugLogger = logger.Debug
-	ErrorLogger = logger.Error
+	log      = logger.Log
+	logDebug = logger.Debug
+	logError = logger.Error
 )
 
 type SamplerInstance interface {
@@ -82,7 +82,7 @@ func (p *Samplers) initSamplerInternal() error {
 	if v, ok := interface{}(p.Plugins).(interface{ InitSampler() error }); ok {
 		return v.InitSampler()
 	}
-	Logger.Print("no InitSampler() found in plugin")
+	log.Print("no InitSampler() found in plugin")
 	return nil
 }
 
@@ -90,12 +90,12 @@ func (p *Samplers) doSampleInterval() error {
 	if v, ok := interface{}(p.Plugins).(interface{ DoSample() error }); ok {
 		return v.DoSample()
 	}
-	Logger.Print("no DoSample() found in plugin")
+	log.Print("no DoSample() found in plugin")
 	return nil
 }
 
 func (s *Samplers) New(p plugins.Connection, name string, group string) error {
-	DebugLogger.Print("called")
+	logDebug.Print("called")
 	s.name, s.group = name, group
 	return s.initDataviews(p)
 }
@@ -162,7 +162,7 @@ func (p *Samplers) Start(wg *sync.WaitGroup) (err error) {
 			}
 		}
 		wg.Done()
-		Logger.Printf("sampler %q exiting\n", p)
+		log.Printf("sampler %q exiting\n", p)
 
 	}()
 	return

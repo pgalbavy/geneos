@@ -263,7 +263,7 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	}
 	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
 		if err == nil {
-			DebugLog.Println("chown", path, uid, gid)
+			logDebug.Println("chown", path, uid, gid)
 			err = os.Chown(path, int(uid), int(gid))
 		}
 		return err
@@ -343,7 +343,7 @@ func revertInstance(c Instance, params []string) (err error) {
 	if _, err := os.Stat(baseconf + ".rc"); err == nil {
 		// ignore errors
 		if os.Remove(baseconf+".rc.orig") == nil || os.Remove(baseconf+".json") == nil {
-			DebugLog.Println(Type(c), Name(c), "removed extra config file(s)")
+			logDebug.Println(Type(c), Name(c), "removed extra config file(s)")
 		}
 		return err
 	}
@@ -356,7 +356,7 @@ func revertInstance(c Instance, params []string) (err error) {
 		return
 	}
 
-	DebugLog.Println(Type(c), Name(c), "reverted to RC config")
+	logDebug.Println(Type(c), Name(c), "reverted to RC config")
 	return nil
 }
 
@@ -443,7 +443,7 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 }
 
 func commandSet(ct ComponentType, args []string, params []string) (err error) {
-	DebugLog.Println("args", args, "params", params)
+	logDebug.Println("args", args, "params", params)
 	if len(args) == 0 && len(params) == 0 {
 		return os.ErrInvalid
 	}
@@ -697,7 +697,7 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	oldname := args[0]
 	newname := args[1]
 
-	DebugLog.Println("rename", ct, oldname, newname)
+	logDebug.Println("rename", ct, oldname, newname)
 	oldconf := NewComponent(ct, oldname)[0]
 	if err = loadConfig(oldconf, true); err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
@@ -718,7 +718,7 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	newhome := Home(newconf)
 
 	if err = os.Rename(oldhome, newhome); err != nil {
-		DebugLog.Println("rename failed:", oldhome, newhome, err)
+		logDebug.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
 

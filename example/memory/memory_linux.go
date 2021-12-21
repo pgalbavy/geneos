@@ -1,9 +1,10 @@
+//go:build linux
 // +build linux
+
 package memory
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 
 	extmemory "github.com/mackerelio/go-osstat/memory"

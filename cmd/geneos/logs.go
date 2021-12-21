@@ -235,12 +235,12 @@ func logFollowInstance(c Instance, params []string) (err error) {
 		filterOutput(logfile, strings.NewReader(text+"\n"))
 	}
 
-	DebugLog.Println("watching", logfile)
+	logDebug.Println("watching", logfile)
 
 	// add parent directory, to watch for changes
 	// no worries about tidying up, process is short lived
 	if err = watcher.Add(filepath.Dir(logfile)); err != nil {
-		DebugLog.Fatalln("watcher.Add():", logfile, err)
+		logDebug.Fatalln("watcher.Add():", logfile, err)
 	}
 
 	return
@@ -257,12 +257,12 @@ func watchLogs() (err error) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				DebugLog.Println("event:", event)
+				logDebug.Println("event:", event)
 				// check directory changes too
 				if tail, ok := tails[event.Name]; ok {
 					switch {
 					case event.Op&fsnotify.Create > 0:
-						DebugLog.Println("create", event.Name)
+						logDebug.Println("create", event.Name)
 						if tail.f != nil {
 							tail.f.Close()
 						}
@@ -270,10 +270,10 @@ func watchLogs() (err error) {
 							log.Println("cannot (re)open", err)
 						}
 					case event.Op&fsnotify.Write > 0:
-						DebugLog.Println("modified file:", event.Name)
+						logDebug.Println("modified file:", event.Name)
 						copyFromFile(event.Name)
 					case event.Op&fsnotify.Rename > 0, event.Op&fsnotify.Remove > 0:
-						DebugLog.Println("rename/remove", event.Name)
+						logDebug.Println("rename/remove", event.Name)
 						tail.f.Close()
 						tail.f = nil
 					}
@@ -291,7 +291,7 @@ func watchLogs() (err error) {
 func copyFromFile(logfile string) {
 	if tail, ok := tails[logfile]; ok {
 		if tail.f != nil {
-			DebugLog.Println("tail", logfile)
+			logDebug.Println("tail", logfile)
 			filterOutput(logfile, tail.f)
 		}
 	}
