@@ -8,6 +8,7 @@ import (
 	"math"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -360,7 +361,7 @@ func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType
 	return nil
 }
 
-func filenameFromHTTPResp(resp *http.Response) (filename string, err error) {
+func filenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err error) {
 	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
 	if !ok {
 		cd, ok = resp.Request.Response.Header[http.CanonicalHeaderKey("content-disposition")]
@@ -373,9 +374,10 @@ func filenameFromHTTPResp(resp *http.Response) (filename string, err error) {
 			}
 		}
 	}
+
 	// if no content-disposition, then grab the path from the response URL
 	if filename == "" {
-		filename, err = cleanRelativePath(path.Base(resp.Request.URL.Path))
+		filename, err = cleanRelativePath(path.Base(u.Path))
 		if err != nil {
 			return
 		}
@@ -384,21 +386,11 @@ func filenameFromHTTPResp(resp *http.Response) (filename string, err error) {
 }
 
 func cleanRelativePath(path string) (clean string, err error) {
-	// remove trailing directory seperator(s)
-	path = strings.TrimRight(path, string(filepath.Separator))
-	if filepath.IsAbs(path) {
-		DebugLog.Println("dest path must be relative")
+	clean = filepath.Clean(path)
+	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "../") {
+		DebugLog.Println("dest path must be relative and descending only")
 		return "", ErrInvalidArgs
 	}
-	path = filepath.Clean(path)
-	p := strings.Split(path, string(filepath.Separator))
-	for _, e := range p {
-		if e == ".." {
-			DebugLog.Println("dest path cannot contain '..'")
-			return path, ErrInvalidArgs
-		}
-	}
-	clean = path
 
 	return
 }

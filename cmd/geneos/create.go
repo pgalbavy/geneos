@@ -205,27 +205,29 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 
 	source := params[0]
 
-	if strings.Contains(source, "=") {
-		s := strings.SplitN(source, "=", 2)
-		// do some basic validation on user-supplied destination
-		destfile = s[0]
-		if destfile == "" {
-			log.Fatalln("dest path empty")
-		}
-		destfile, err = cleanRelativePath(destfile)
-		if err != nil {
-			log.Fatalln("dest path not safe/valid:", err)
-		}
-		// if the destination exists is it a directory?
-		if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
-			if st.IsDir() {
-				destdir = filepath.Join(Home(c), destfile)
-				destfile = ""
+	splitsource := strings.SplitN(source, "=", 2)
+	if len(splitsource) > 1 {
+		// if the left is a http(s) url then skip '=' split (protect queries)
+		if !strings.HasPrefix(splitsource[0], "https://") && !strings.HasPrefix(splitsource[0], "http://") {
+			// do some basic validation on user-supplied destination
+			if splitsource[0] == "" {
+				log.Fatalln("dest path empty")
 			}
-		}
-		source = s[1]
-		if source == "" {
-			log.Fatalln("no source defined")
+			destfile, err = cleanRelativePath(splitsource[0])
+			if err != nil {
+				log.Fatalln("dest path must be relative to (and in) instance directory")
+			}
+			// if the destination exists is it a directory?
+			if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
+				if st.IsDir() {
+					destdir = filepath.Join(Home(c), destfile)
+					destfile = ""
+				}
+			}
+			source = splitsource[1]
+			if source == "" {
+				log.Fatalln("no source defined")
+			}
 		}
 	}
 
@@ -236,7 +238,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	}
 
 	switch {
-	case strings.HasPrefix(u.Scheme, "http"):
+	case u.Scheme == "https" || u.Scheme == "http":
 		resp, err := http.Get(u.String())
 		if err != nil {
 			return err
@@ -244,7 +246,7 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 
 		if destfile == "" {
 			// XXX check content-disposition or use basename or response URL if no destfile defined
-			destfile, err = filenameFromHTTPResp(resp)
+			destfile, err = filenameFromHTTPResp(resp, u)
 			if err != nil {
 				log.Fatalln(err)
 			}

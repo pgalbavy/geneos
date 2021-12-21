@@ -421,7 +421,7 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		// log.Fatalln(resp.Status)
 	}
 
-	filename, err = filenameFromHTTPResp(resp)
+	filename, err = filenameFromHTTPResp(resp, downloadURL)
 	if err != nil {
 		log.Fatalln(err)
 	}
