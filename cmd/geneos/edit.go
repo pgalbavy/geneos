@@ -27,16 +27,9 @@ See also 'geneos set' and 'geneos show'.`}
 // run the configured editor against the instance chosen
 //
 func commandEdit(ct ComponentType, args []string, params []string) (err error) {
-	// default to combined global + user config
-	// allow overrides to show specific or components
+	// default for no args is to edit user config
 	if len(args) == 0 {
-		// special case "config show" for resolved settings
-		log.Println("not enough args")
-		return
-	}
-
-	if superuser {
-		logError.Fatalln("no editing as root, for now")
+		args = []string{"user"}
 	}
 
 	editor := os.Getenv("VISUAL")
@@ -58,6 +51,11 @@ func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 		userConfDir, _ := os.UserConfigDir()
 		editConfigFiles(editor, filepath.Join(userConfDir, "geneos.json"))
 		return
+	}
+
+	// instance config files ?
+	if superuser {
+		logError.Fatalln("no editing instance configs as root, for now")
 	}
 
 	// loop instances - parse the args again and load/print the config,
@@ -89,5 +87,7 @@ func editConfigFiles(editor string, files ...string) (err error) {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
+
+	// change file ownerships back here - but to who?
 	return
 }

@@ -448,6 +448,12 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 		return os.ErrInvalid
 	}
 
+	if len(args) == 0 {
+		userConfDir, _ := os.UserConfigDir()
+		setConfig(filepath.Join(userConfDir, "geneos.json"), params)
+		return
+	}
+
 	// read the cofig into a struct, make changes, then save it out again,
 	// to sanitise the contents - or generate an error
 	switch args[0] {
@@ -456,19 +462,6 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
 		return setConfig(filepath.Join(userConfDir, "geneos.json"), params)
-	}
-
-	// check if all args have an '=' - if so default to "set user"
-	/* eqs := len(args)
-	for _, arg := range args {
-		if strings.Contains(arg, "=") {
-			eqs--
-		}
-	} */
-	if len(args) == 0 {
-		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), params)
-		return
 	}
 
 	// components - parse the args again and load/print the config,

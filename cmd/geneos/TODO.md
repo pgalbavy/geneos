@@ -1,6 +1,7 @@
 # To Do list
 
 * Positive confirmations of all commands unless quiet mode - PARTIAL
+  * Should be an 'action taken' return from commands for output
 * Command line verbosity control - PARTIAL
 * TLS support
 * Docker / Compose file build from selection of components
