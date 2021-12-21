@@ -190,12 +190,10 @@ func unarchive(filename string, gz io.Reader) (err error) {
 				return
 			}
 		case tar.TypeSymlink, tar.TypeGNULongLink:
-			// sanitize
-			link := strings.TrimPrefix(hdr.Linkname, "/")
-			if filepath.IsAbs(link) {
+			if filepath.IsAbs(hdr.Linkname) {
 				logError.Fatalln("archive contains absolute symlink target")
 			}
-			link, err = cleanRelativePath(link)
+			link, err := cleanRelativePath(hdr.Linkname)
 			if err != nil {
 				logError.Fatalln(err)
 			}
