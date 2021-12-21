@@ -80,9 +80,6 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 		os.Exit(1)
 	case ERROR:
 		line = fmt.Sprintf("%s%s", prefix, p)
-	case INFO:
-		line = fmt.Sprintf("%s%s", prefix, p)
-
 	case DEBUG:
 		var fnName string = "UNKNOWN"
 		pc, f, ln, ok := runtime.Caller(3)
@@ -99,6 +96,8 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 			f = "./" + filepath.Base(f)
 		}
 		line = fmt.Sprintf("%s%s() %s:%d %s", prefix, fnName, f, ln, p)
+	default:
+		line = fmt.Sprintf("%s%s", prefix, p)
 	}
 	return io.WriteString(g.Writer, line)
 }
