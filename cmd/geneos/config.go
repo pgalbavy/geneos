@@ -404,18 +404,22 @@ func commandShow(ct ComponentType, names []string, params []string) (err error) 
 	return
 }
 
-func printConfigSliceJSON(Slice []Instance) (err error) {
-	s := "["
+func printConfigSliceJSON(Slice []Instance) {
+	js := []string{}
+
 	for _, i := range Slice {
-		if x, err := marshalStruct(i, "    "); err == nil {
-			s += "\n    " + x + "\n"
+		x, err := marshalStruct(i, "    ")
+		if err != nil {
+			// recover later
+			logError.Fatalln(err)
 		}
+		js = append(js, x)
+
 	}
-	s += "]"
+	s := "[\n    " + strings.Join(js, ",\n    ") + "\n]"
 	log.Println(s)
 
 	return
-
 }
 
 func printConfigStructJSON(Config interface{}) (err error) {
