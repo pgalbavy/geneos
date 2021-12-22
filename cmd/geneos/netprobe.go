@@ -6,7 +6,7 @@ import (
 )
 
 type Netprobe struct {
-	Components
+	Common
 	NetpHome  string `default:"{{join .Root \"netprobe\" \"netprobes\" .Name}}"`
 	NetpBins  string `default:"{{join .Root \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
@@ -22,14 +22,18 @@ type Netprobe struct {
 
 const netprobePortRange = "7036,7100-"
 
-func NewNetprobe(name string) (c *Netprobe) {
+func init() {
+	components[Netprobes] = ComponentFuncs{NewNetprobe}
+}
+
+func NewNetprobe(name string) interface{} {
 	// Bootstrap
-	c = &Netprobe{}
+	c := &Netprobe{}
 	c.Root = RunningConfig.ITRSHome
 	c.Type = Netprobes.String()
 	c.Name = name
 	setDefaults(&c)
-	return
+	return c
 }
 
 func netprobeCommand(c Instance) (args, env []string) {

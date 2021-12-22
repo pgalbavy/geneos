@@ -29,7 +29,7 @@ func startInstance(c Instance, params []string) (err error) {
 		return ErrDisabled
 	}
 
-	cmd, env := buildCommand(c)
+	cmd, env := buildCmd(c)
 	if cmd == nil {
 		return fmt.Errorf("buildCommand returned nil")
 	}

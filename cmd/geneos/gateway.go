@@ -10,7 +10,7 @@ import (
 )
 
 type Gateway struct {
-	Components
+	Common
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
@@ -33,14 +33,18 @@ const gatewayPortRange = "7039,7100-"
 //go:embed emptyGateway.xml
 var emptyXMLTemplate string
 
-func NewGateway(name string) (c *Gateway) {
+func init() {
+	components[Gateways] = ComponentFuncs{NewGateway}
+}
+
+func NewGateway(name string) interface{} {
 	// Bootstrap
-	c = &Gateway{}
+	c := &Gateway{}
 	c.Root = RunningConfig.ITRSHome
 	c.Type = Gateways.String()
 	c.Name = name
 	setDefaults(&c)
-	return
+	return c
 }
 
 func gatewayCommand(c Instance) (args, env []string) {

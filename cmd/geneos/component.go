@@ -26,6 +26,36 @@ const (
 	Webservers
 )
 
+type ComponentFuncs struct {
+	New func(string) interface{}
+}
+
+type Components map[ComponentType]ComponentFuncs
+
+var components Components = make(Components)
+
+// The Instance type is a placeholder interface that can be passed to
+// functions which then use reflection to get and set concrete data
+// depending on the underlying component type
+type Instance interface {
+	// empty
+}
+
+// The Common type is the common data shared by all component types
+type Common struct {
+	Instance `json:"-"`
+	// The Name of an instance. This may be different to the instance
+	// directory name during certain operations, e.g. rename
+	Name string `json:"Name"`
+	// The ComponentType of an instance
+	Type string `json:"-"`
+	// The root directory of the Geneos installation. Used in template
+	// default settings for component types
+	Root string `json:"-"`
+	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
+	Env []string `json:",omitempty"`
+}
+
 // currently supported types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 func componentTypes() []ComponentType {
@@ -63,28 +93,6 @@ func parseComponentName(component string) ComponentType {
 	default:
 		return Unknown
 	}
-}
-
-// The Instance type is a placeholder interface that can be passed to
-// functions which then use reflection to get and set concrete data
-// depending on the underlying component type
-type Instance interface {
-	// empty
-}
-
-// The Components type is the common data shared by all component types
-type Components struct {
-	Instance `json:"-"`
-	// The Name of an instance. This may be different to the instance
-	// directory name during certain operations, e.g. rename
-	Name string `json:"Name"`
-	// The ComponentType of an instance
-	Type string `json:"-"`
-	// The root directory of the Geneos installation. Used in template
-	// default settings for component types
-	Root string `json:"-"`
-	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
-	Env []string `json:",omitempty"`
 }
 
 // Return a slice of all directories for a given ComponentType. No checking is done
@@ -150,24 +158,18 @@ func sortedDirs(dir string) []string {
 // When not called with a component type of None, the instance does not
 // have to exist on disk.
 func NewComponent(ct ComponentType, name string) (c []Instance) {
-	switch ct {
-	case None:
+	if ct == None {
 		cs := findInstances(name)
 		for _, cm := range cs {
 			c = append(c, NewComponent(cm, name)...)
 		}
-	case Gateways:
-		c = []Instance{NewGateway(name)}
-	case Netprobes:
-		c = []Instance{NewNetprobe(name)}
-	case Licds:
-		c = []Instance{NewLicd(name)}
-	case Webservers:
-		log.Println("webserver not supported yet")
-	default:
-		log.Println("unknown component", ct)
+		return
 	}
-	return
+	cm, ok := components[ct]
+	if !ok {
+		logError.Fatalln(ct, ErrNotSupported)
+	}
+	return []Instance{cm.New(name)}
 }
 
 // a template function to support "{{join .X .Y}}"

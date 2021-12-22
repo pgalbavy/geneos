@@ -250,7 +250,7 @@ func commandCommand(ct ComponentType, args []string, params []string) (err error
 }
 
 func commandInstance(c Instance, params []string) {
-	cmd, env := buildCommand(c)
+	cmd, env := buildCmd(c)
 	if cmd != nil {
 		log.Printf("command: %q\n", cmd.String())
 		log.Println("env:")
