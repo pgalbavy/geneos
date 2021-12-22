@@ -34,7 +34,7 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	components[Gateways] = ComponentFuncs{NewGateway}
+	components[Gateways] = ComponentFuncs{NewGateway, gatewayCommand}
 }
 
 func NewGateway(name string) interface{} {

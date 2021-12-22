@@ -27,7 +27,8 @@ const (
 )
 
 type ComponentFuncs struct {
-	New func(string) interface{}
+	New     func(string) interface{}
+	Command func(Instance) ([]string, []string)
 }
 
 type Components map[ComponentType]ComponentFuncs

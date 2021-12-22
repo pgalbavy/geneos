@@ -106,19 +106,11 @@ func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 		return
 	}
 
-	var args []string
-
-	// This should probably be part of an indirect struct
-	switch Type(c) {
-	case Gateways:
-		args, env = gatewayCommand(c)
-	case Netprobes:
-		args, env = netprobeCommand(c)
-	case Licds:
-		args, env = licdCommand(c)
-	default:
+	cm, ok := components[Type(c)]
+	if !ok {
 		return
 	}
+	args, env := cm.Command(c)
 
 	opts := strings.Fields(getString(c, Prefix(c)+"Opts"))
 	args = append(args, opts...)
