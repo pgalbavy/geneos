@@ -64,46 +64,51 @@ func findInstances(name string) (cts []ComponentType) {
 	return
 }
 
+// loadConfig will load the JSON config file is available, otherwise
+// try to load the "legacy" .rc file and optionally write out a JSON file
+// for later re-use, while renaming .rc file as a backup
 func loadConfig(c Instance, update bool) (err error) {
-	// load the JSON config file is available, otherwise load
-	// the "legacy" .rc file and optionally write out a JSON file
-	// for later re-use, while renaming .rc file
 	baseconf := filepath.Join(Home(c), Type(c).String())
 	j := baseconf + ".json"
 
 	if err = readConfigFile(j, &c); err == nil {
+		// return if NO error, else drop through
 		return
 	}
 	if err = readRCConfig(c); err != nil {
 		return
 	}
 	if update {
-		// select if we want this or not
-		if err = writeConfigFile(baseconf+".json", c); err == nil {
-			// preserves ownership and permnissions
-			os.Rename(baseconf+".rc", baseconf+".rc.orig")
+		if err = writeConfigFile(baseconf+".json", c); err != nil {
+			logError.Println("failed to wrtite config file:", err)
+			return
 		}
-		log.Println(Type(c), Name(c), "migrated to JSON config")
+		if err = os.Rename(baseconf+".rc", baseconf+".rc.orig"); err != nil {
+			logError.Println("failed to rename old config:", err)
+		}
+		logDebug.Println(Type(c), Name(c), "migrated to JSON config")
 	}
 
 	return
 }
 
-func buildCommand(c Instance) (cmd *exec.Cmd, env []string) {
+// buildCmd gathers the path to the binary, arguments and any environment variables
+// for an instance and returns an exec.Cmd, almost ready for execution. Callers
+// will add more details such as working directories, user and group etc.
+func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 	binary := filepath.Join(getString(c, Prefix(c)+"Bins"),
 		getString(c, Prefix(c)+"Base"),
 		getString(c, "BinSuffix"))
 
-	// test binary for access
+	// test binary for access - fail early
 	if _, err := os.Stat(binary); err != nil {
-		log.Println("binary not found:", binary)
+		log.Println(err)
 		return
 	}
 
 	var args []string
 
-	// XXX args and env vary depending on Component type - the below is for Gateway
-	// this should be pushed out to each compoent's own file
+	// This should probably be part of an indirect struct
 	switch Type(c) {
 	case Gateways:
 		args, env = gatewayCommand(c)
