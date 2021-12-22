@@ -23,10 +23,10 @@ type Licd struct {
 const licdPortRange = "7041,7100-"
 
 func init() {
-	components[Licds] = ComponentFuncs{NewLicd, licdCommand, licdCreate, licdClean, licdPurge, licdReload}
+	components[Licds] = ComponentFuncs{licdNew, licdCommand, licdCreate, licdClean, licdPurge, licdReload}
 }
 
-func NewLicd(name string) interface{} {
+func licdNew(name string) interface{} {
 	// Bootstrap
 	c := &Licd{}
 	c.Root = RunningConfig.ITRSHome
@@ -51,7 +51,7 @@ func licdCommand(c Instance) (args, env []string) {
 
 func licdCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
-	c = NewLicd(name)
+	c = licdNew(name)
 	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.LicdPortRange))); err != nil {
 		return
 	}

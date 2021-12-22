@@ -23,10 +23,10 @@ type Netprobe struct {
 const netprobePortRange = "7036,7100-"
 
 func init() {
-	components[Netprobes] = ComponentFuncs{NewNetprobe, netprobeCommand, netprobeCreate, netprobeClean, netprobePurge, netprobeReload}
+	components[Netprobes] = ComponentFuncs{netprobeNew, netprobeCommand, netprobeCreate, netprobeClean, netprobePurge, netprobeReload}
 }
 
-func NewNetprobe(name string) interface{} {
+func netprobeNew(name string) interface{} {
 	// Bootstrap
 	c := &Netprobe{}
 	c.Root = RunningConfig.ITRSHome
@@ -50,7 +50,7 @@ func netprobeCommand(c Instance) (args, env []string) {
 // create a plain netprobe instance
 func netprobeCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
-	c = NewNetprobe(name)
+	c = netprobeNew(name)
 	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))); err != nil {
 		return
 	}

@@ -34,10 +34,10 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	components[Gateways] = ComponentFuncs{NewGateway, gatewayCommand, gatewayCreate, gatewayClean, gatewayPurge, gatewayReload}
+	components[Gateways] = ComponentFuncs{gatewayNew, gatewayCommand, gatewayCreate, gatewayClean, gatewayPurge, gatewayReload}
 }
 
-func NewGateway(name string) interface{} {
+func gatewayNew(name string) interface{} {
 	// Bootstrap
 	c := &Gateway{}
 	c.Root = RunningConfig.ITRSHome
@@ -79,7 +79,7 @@ func gatewayCommand(c Instance) (args, env []string) {
 
 func gatewayCreate(name string, username string) (c Instance, err error) {
 	// fill in the blanks
-	c = NewGateway(name)
+	c = gatewayNew(name)
 	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))); err != nil {
 		return
 	}
