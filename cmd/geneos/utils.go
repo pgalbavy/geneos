@@ -297,26 +297,6 @@ func validInstanceName(in string) (ok bool) {
 	return
 }
 
-type perComponentFuncs map[ComponentType]func(Instance, []string) error
-
-func loopCommandMap(funcs perComponentFuncs, ct ComponentType, args []string, params []string) (err error) {
-	for _, name := range args {
-		for _, c := range NewComponent(ct, name) {
-			if err = loadConfig(c, false); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration")
-				return
-			}
-
-			if fn, ok := funcs[Type(c)]; ok {
-				if err = fn(c, params); err != nil {
-					log.Println(Type(c), Name(c), err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
 // given a compoent type and a slice of args, call the function for each arg
 //
 // reply on NewComponent() checking the component type and returning a slice

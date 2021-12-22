@@ -20,22 +20,26 @@ files and directories are removed as the user running the command, which could b
 No further checks are done.`}
 }
 
-var cleanFuncs = perComponentFuncs{
-	Gateways:  gatewayClean,
-	Netprobes: netprobeClean,
-	Licds:     licdClean,
-}
-
 func commandClean(ct ComponentType, args []string, params []string) error {
-	return loopCommandMap(cleanFuncs, ct, args, params)
+	return loopCommand(cleanInstance, ct, args, params)
 }
 
-var purgeFuncs = perComponentFuncs{
-	Gateways:  gatewayPurge,
-	Netprobes: netprobePurge,
-	Licds:     licdPurge,
+func cleanInstance(c Instance, params []string) (err error) {
+	cm, ok := components[Type(c)]
+	if !ok || cm.Clean == nil {
+		return ErrNotSupported
+	}
+	return cm.Clean(c, params)
 }
 
 func commandPurge(ct ComponentType, args []string, params []string) error {
-	return loopCommandMap(purgeFuncs, ct, args, params)
+	return loopCommand(purgeInstance, ct, args, params)
+}
+
+func purgeInstance(c Instance, params []string) (err error) {
+	cm, ok := components[Type(c)]
+	if !ok || cm.Purge == nil {
+		return ErrNotSupported
+	}
+	return cm.Purge(c, params)
 }
