@@ -23,7 +23,14 @@ type Licd struct {
 const licdPortRange = "7041,7100-"
 
 func init() {
-	components[Licds] = ComponentFuncs{licdNew, licdCommand, licdCreate, licdClean, licdPurge, licdReload}
+	components[Licds] = ComponentFuncs{
+		New:     licdNew,
+		Command: licdCommand,
+		Create:  licdCreate,
+		Clean:   licdClean,
+		Purge:   licdPurge,
+		Reload:  licdReload,
+	}
 }
 
 func licdNew(name string) interface{} {

@@ -27,7 +27,7 @@ type Command struct {
 	// Example syntax for short help output
 	CommandLine string
 	// More detailed help
-	Descrtiption string // details
+	Description string // details
 }
 
 // The Commands type is a map of command text (as a string) to a Command structure

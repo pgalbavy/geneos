@@ -31,7 +31,7 @@ func commandHelp(comp ComponentType, args []string, params []string) error {
 		return nil
 	}
 	if c, ok := commands[args[0]]; ok {
-		log.Printf("%s:\n\n\t%s\n\n%s", args[0], c.CommandLine, c.Descrtiption)
+		log.Printf("%s:\n\n\t%s\n\n%s", args[0], c.CommandLine, c.Description)
 		return nil
 	}
 	return ErrInvalidArgs
