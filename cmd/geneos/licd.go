@@ -26,7 +26,7 @@ func NewLicd(name string) (c *Licd) {
 	// Bootstrap
 	c = &Licd{}
 	c.Root = RunningConfig.ITRSHome
-	c.Type = Licds
+	c.Type = Licds.String()
 	c.Name = name
 	setDefaults(&c)
 	return

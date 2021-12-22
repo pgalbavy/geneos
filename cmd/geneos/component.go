@@ -65,49 +65,46 @@ func parseComponentName(component string) ComponentType {
 	}
 }
 
+// The Instance type is a placeholder interface that can be passed to
+// functions which then use reflection to get and set concrete data
+// depending on the underlying component type
 type Instance interface {
 	// empty
 }
 
+// The Components type is the common data shared by all component types
 type Components struct {
 	Instance `json:"-"`
-	Name     string        `json:"Name"`
-	Type     ComponentType `json:"-"`
-	Root     string        `json:"-"`
-	Env      []string      `json:",omitempty"` // environment variables to set
+	// The Name of an instance. This may be different to the instance
+	// directory name during certain operations, e.g. rename
+	Name string `json:"Name"`
+	// The ComponentType of an instance
+	Type string `json:"-"`
+	// The root directory of the Geneos installation. Used in template
+	// default settings for component types
+	Root string `json:"-"`
+	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
+	Env []string `json:",omitempty"`
 }
 
-// this method does NOT take a Component as it's used to return
-// metadata for where to find Components before the underlying
-// type is initialised
+// Return a slice of all directories for a given ComponentType. No checking is done
+// to validate that the directory is a populated instance.
 //
 // No side-effects
 func instanceDirs(ct ComponentType) []string {
-	return dirs(instanceDir(ct))
+	return sortedDirs(componentDir(ct))
 }
 
-// as above, this method returns metadata before the underlying
-// type is initialised
-//
-// No side-effects
-func instanceDir(ct ComponentType) string {
+// Return the base directory for a ComponentType
+func componentDir(ct ComponentType) string {
 	return filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s")
 }
 
-func Type(c Instance) ComponentType {
-	fv := reflect.ValueOf(c)
-	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
-		fv = fv.Elem()
-	}
-	if !fv.IsValid() {
-		return None
-	}
-	v := fv.FieldByName("Type")
+// Accessor functions
 
-	if v.IsValid() {
-		return v.Interface().(ComponentType)
-	}
-	return None
+// Return the ComponentType for an Instance
+func Type(c Instance) ComponentType {
+	return parseComponentName(getString(c, "Type"))
 }
 
 func Name(c Instance) string {
@@ -125,16 +122,17 @@ func Prefix(c Instance) string {
 	return strings.Title(Type(c).String()[0:4])
 }
 
-func sortDirs(files []fs.DirEntry) {
+// Given a slice of directory entries, sort in place
+func sortDirEntries(files []fs.DirEntry) {
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].Name() < files[j].Name()
 	})
 }
 
-// return a sorted list of directories
-func dirs(dir string) []string {
+// Return a sorted list of sub-directories
+func sortedDirs(dir string) []string {
 	files, _ := os.ReadDir(dir)
-	sortDirs(files)
+	sortDirEntries(files)
 	components := make([]string, 0, len(files))
 	for _, file := range files {
 		if file.IsDir() {
@@ -144,8 +142,13 @@ func dirs(dir string) []string {
 	return components
 }
 
-var textJoinFuncs = template.FuncMap{"join": filepath.Join}
-
+// Return a new Instance with the given name, as a slice, initialised
+// with whatever defaults the component type requires. If ComponentType
+// is None then as a special case we return a slice of all instances that
+// match the given name per component type.
+//
+// When not called with a component type of None, the instance does not
+// have to exist on disk.
 func NewComponent(ct ComponentType, name string) (c []Instance) {
 	switch ct {
 	case None:
@@ -167,6 +170,13 @@ func NewComponent(ct ComponentType, name string) (c []Instance) {
 	return
 }
 
+// a template function to support "{{join .X .Y}}"
+var textJoinFuncs = template.FuncMap{"join": filepath.Join}
+
+// setDefaults() is a common function called by component New*()
+// functions to iterate over the component specific instance
+// struct and set the defaults as defined in the 'defaults'
+// struct tags.
 func setDefaults(c interface{}) (err error) {
 	st := reflect.TypeOf(c)
 	sv := reflect.ValueOf(c)

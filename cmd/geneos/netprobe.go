@@ -26,7 +26,7 @@ func NewNetprobe(name string) (c *Netprobe) {
 	// Bootstrap
 	c = &Netprobe{}
 	c.Root = RunningConfig.ITRSHome
-	c.Type = Netprobes
+	c.Type = Netprobes.String()
 	c.Name = name
 	setDefaults(&c)
 	return

@@ -721,7 +721,7 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 		_ = os.Rename(newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(instanceDir(ct), newname)); err != nil {
+	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(componentDir(ct), newname)); err != nil {
 		// try to recover
 		_ = os.Rename(newhome, oldhome)
 		return

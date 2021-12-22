@@ -37,7 +37,7 @@ func NewGateway(name string) (c *Gateway) {
 	// Bootstrap
 	c = &Gateway{}
 	c.Root = RunningConfig.ITRSHome
-	c.Type = Gateways
+	c.Type = Gateways.String()
 	c.Name = name
 	setDefaults(&c)
 	return
