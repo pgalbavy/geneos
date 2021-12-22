@@ -23,7 +23,7 @@ type Netprobe struct {
 const netprobePortRange = "7036,7100-"
 
 func init() {
-	components[Netprobes] = ComponentFuncs{NewNetprobe, netprobeCommand}
+	components[Netprobes] = ComponentFuncs{NewNetprobe, netprobeCommand, netprobeCreate, netprobeClean, netprobePurge, netprobeReload}
 }
 
 func NewNetprobe(name string) interface{} {

@@ -54,24 +54,12 @@ func commandCreate(ct ComponentType, args []string, params []string) (err error)
 		username = u.Username
 	}
 
-	switch ct {
-	case None, Unknown:
-		logError.Fatalln("component type must be specified")
-	case Gateways:
-		if _, err = gatewayCreate(name, username); err != nil {
-			return
-		}
-	case Netprobes:
-		if _, err = netprobeCreate(name, username); err != nil {
-			return
-		}
-	case Licds:
-		if _, err = licdCreate(name, username); err != nil {
-			return
-		}
-	default:
+	cm, ok := components[ct]
+	if !ok || cm.Create == nil {
 		return ErrNotSupported
 	}
+	_, err = cm.Create(name, username)
+
 	return
 }
 

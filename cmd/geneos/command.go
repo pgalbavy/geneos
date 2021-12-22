@@ -110,6 +110,9 @@ func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 	if !ok {
 		return
 	}
+	if cm.Command == nil {
+		return
+	}
 	args, env := cm.Command(c)
 
 	opts := strings.Fields(getString(c, Prefix(c)+"Opts"))

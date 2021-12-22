@@ -29,6 +29,10 @@ const (
 type ComponentFuncs struct {
 	New     func(string) interface{}
 	Command func(Instance) ([]string, []string)
+	Create  func(string, string) (Instance, error)
+	Clean   func(Instance, []string) error
+	Purge   func(Instance, []string) error
+	Reload  func(Instance, []string) error
 }
 
 type Components map[ComponentType]ComponentFuncs
@@ -169,6 +173,9 @@ func NewComponent(ct ComponentType, name string) (c []Instance) {
 	cm, ok := components[ct]
 	if !ok {
 		logError.Fatalln(ct, ErrNotSupported)
+	}
+	if cm.New == nil {
+		return []Instance{}
 	}
 	return []Instance{cm.New(name)}
 }
