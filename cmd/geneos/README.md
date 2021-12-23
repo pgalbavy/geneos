@@ -161,11 +161,8 @@ Stop and disable the selected compoents by placing a file in wach working direct
 * `geneos enable [TYPE] [NAME...]`
 Remove the `.disable` lock file and start the selected components
 
-* `geneos clean [TYPE] [names]`
-Clean up component
-
-* `geneos purge [TYPE] [names]`
-Clean up component
+* `geneos clean [-f] [TYPE] [names]`
+Clean up component directory. Optionally 'full' clean, with an instance restart.
 
 #### Instance Configuration Commands
 
