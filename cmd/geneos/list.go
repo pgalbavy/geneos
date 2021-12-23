@@ -15,23 +15,15 @@ var listCSV bool
 var listFlags *flag.FlagSet
 
 func init() {
-	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
-	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
-	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
-
-	commands["ls"] = Command{commandLS, flagsLS, parseArgs, "geneos ls [TYPE] [NAME...]",
+	commands["ls"] = Command{commandLS, flagsList, parseArgs, "geneos ls [TYPE] [NAME...]",
 		`List the matching instances and their component type.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
-	commands["list"] = Command{commandLS, flagsLS, parseArgs, "geneos list [TYPE] [NAME...]", `See 'geneos ls' command`}
-
-	commands["ps"] = Command{commandPS, nil, parseArgs, "geneos ps [TYPE] [NAMES...]",
+	commands["ps"] = Command{commandPS, flagsList, parseArgs, "geneos ps [TYPE] [NAMES...]",
 		`Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
-
-	commands["status"] = Command{commandPS, nil, parseArgs, "geneos status [TYPE] [NAMES...]", `See 'geneos ps' command`}
 
 	commands["command"] = Command{commandCommand, nil, parseArgs, "geneos command [TYPE] [NAME...]",
 		`Show the full command line for the matching instances along with any environment variables
@@ -39,24 +31,24 @@ explicitly set for execution.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
+	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
+	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
+	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
 }
 
 var lsTabWriter *tabwriter.Writer
 var csvWriter *csv.Writer
 var jsonEncoder *json.Encoder
 
-func flagsLS(args []string) []string {
+func flagsList(args []string) []string {
 	listFlags.Parse(args)
-	return listFlags.Args()
-
-}
-
-func commandLS(ct ComponentType, args []string, params []string) (err error) {
-	logDebug.Println("JSON", listJSON)
-	logDebug.Println("CSV", listCSV)
 	if listJSON && listCSV {
 		logError.Fatalln("only one of -j or -c allowed")
 	}
+	return listFlags.Args()
+}
+
+func commandLS(ct ComponentType, args []string, params []string) (err error) {
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -118,14 +110,17 @@ func lsInstanceJSON(c Instance, params []string) (err error) {
 
 var psTabWriter *tabwriter.Writer
 
+type psType struct {
+	Type      string
+	Name      string
+	PID       string
+	User      string
+	Group     string
+	Starttime string
+	Home      string
+}
+
 func commandPS(ct ComponentType, args []string, params []string) (err error) {
-	listFlags.Parse(params)
-	logDebug.Println("JSON", listJSON)
-	logDebug.Println("CSV", listCSV)
-	if listJSON && listCSV {
-		logError.Fatalln("only one of -j or -c allowed")
-	}
-	params = listFlags.Args()
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -197,16 +192,6 @@ func psInstanceCSV(c Instance, params []string) (err error) {
 	csvWriter.Write([]string{Type(c).String() + ":" + Name(c), fmt.Sprint(pid), username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c)})
 
 	return
-}
-
-type psType struct {
-	Type      string
-	Name      string
-	PID       string
-	User      string
-	Group     string
-	Starttime string
-	Home      string
 }
 
 func psInstanceJSON(c Instance, params []string) (err error) {
