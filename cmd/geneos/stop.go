@@ -24,7 +24,7 @@ func stopInstance(c Instance, params []string) (err error) {
 	pid, st, err := findInstanceProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
-		return nil
+		return
 	}
 
 	if !canControl(c) {
