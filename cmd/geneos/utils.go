@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"mime"
@@ -309,7 +310,7 @@ func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []str
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
 			}
-			if err = fn(c, params); err != nil {
+			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
 				log.Println(Type(c), Name(c), err)
 			}
 		}
