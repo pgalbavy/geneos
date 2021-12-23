@@ -1,28 +1,31 @@
 package main
 
+import "flag"
+
 func init() {
 	commands["clean"] = Command{
 		Function:    commandClean,
-		ParseFlags:  nil,
+		ParseFlags:  cleanFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: "geneos clean [TYPE] [NAME...]",
-		Description: `Clean one or more instance home directories. If a TYPE is not supplied, all instances
-matching NAME(s) will be cleaned. If NAME is not supplied then all instances of the TYPE
-will be cleaned. If neither TYPE or NAME is supplied all instances will be cleaned. The files
-and directories removed will depend on both the TYPE.
+		CommandLine: "geneos clean [-f] [TYPE] [NAME...]",
+		Description: `Clean matching instances, stopping instances if requested for deeper cleaning.
 
-The list of paths cannot be absolute and cannot contain parent '..' references, this is because
-files and directories are removed as the user running the command, which could be root.
-No further checks are done.`,
+FLAGS:
+		-f		- full clean. Stops and restarts instances. Only restarts instances it stopped.
+
+`,
 	}
 
-	commands["purge"] = Command{commandPurge, nil, parseArgs, "geneos purge [TYPE] [NAME...]",
-		`Stop the matching instances and remove all the files and directories that 'clean' would as well
-as most other dynamically created files. The instance is not restarted.
+	cleanFlags = flag.NewFlagSet("clean", flag.ExitOnError)
+	cleanFlags.BoolVar(&cleanForce, "f", false, "Full clean, stops instances")
+}
 
-The list of paths cannot be absolute and cannot contain parent '..' references, this is because
-files and directories are removed as the user running the command, which could be root.
-No further checks are done.`}
+var cleanFlags *flag.FlagSet
+var cleanForce bool
+
+func cleanFlag(args []string) []string {
+	cleanFlags.Parse(args)
+	return cleanFlags.Args()
 }
 
 func commandClean(ct ComponentType, args []string, params []string) error {
@@ -35,16 +38,4 @@ func cleanInstance(c Instance, params []string) (err error) {
 		return ErrNotSupported
 	}
 	return cm.Clean(c, params)
-}
-
-func commandPurge(ct ComponentType, args []string, params []string) error {
-	return loopCommand(purgeInstance, ct, args, params)
-}
-
-func purgeInstance(c Instance, params []string) (err error) {
-	cm, ok := components[Type(c)]
-	if !ok || cm.Purge == nil {
-		return ErrNotSupported
-	}
-	return cm.Purge(c, params)
 }

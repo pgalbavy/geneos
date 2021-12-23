@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"path/filepath"
 	"strconv"
 )
@@ -28,7 +29,6 @@ func init() {
 		Command: licdCommand,
 		Create:  licdCreate,
 		Clean:   licdClean,
-		Purge:   licdPurge,
 		Reload:  licdReload,
 	}
 }
@@ -72,21 +72,30 @@ func licdCreate(name string, username string) (c Instance, err error) {
 }
 
 var defaultLicdCleanList = "*.old"
-
-func licdClean(c Instance, params []string) (err error) {
-	return removePathList(c, RunningConfig.LicdCleanList)
-}
-
 var defaultLicdPurgeList = "licd.log:licd.txt"
 
-func licdPurge(c Instance, params []string) (err error) {
-	if err = stopInstance(c, params); err != nil {
-		return err
+func licdClean(c Instance, params []string) (err error) {
+	logDebug.Println(Type(c), Name(c), "clean")
+	if cleanForce {
+		var stopped bool = true
+		err = stopInstance(c, params)
+		if err != nil {
+			if errors.Is(err, ErrProcNotExist) {
+				stopped = false
+			} else {
+				return err
+			}
+		}
+		if err = removePathList(c, RunningConfig.LicdCleanList); err != nil {
+			return err
+		}
+		err = removePathList(c, RunningConfig.LicdPurgeList)
+		if stopped {
+			err = startInstance(c, params)
+		}
+		return
 	}
-	if err = licdClean(c, params); err != nil {
-		return err
-	}
-	return removePathList(c, RunningConfig.LicdPurgeList)
+	return removePathList(c, RunningConfig.LicdCleanList)
 }
 
 func licdReload(c Instance, params []string) (err error) {

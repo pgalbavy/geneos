@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -39,7 +40,6 @@ func init() {
 		Command: gatewayCommand,
 		Create:  gatewayCreate,
 		Clean:   gatewayClean,
-		Purge:   gatewayPurge,
 		Reload:  gatewayReload,
 	}
 }
@@ -113,22 +113,30 @@ func gatewayCreate(name string, username string) (c Instance, err error) {
 }
 
 var defaultGatewayCleanList = "*.old:*.history"
-
-func gatewayClean(c Instance, params []string) (err error) {
-	return removePathList(c, RunningConfig.GatewayCleanList)
-}
-
 var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
 
-func gatewayPurge(c Instance, params []string) (err error) {
-	log.Println(Type(c), Name(c), "purge")
-	if err = stopInstance(c, params); err != nil {
-		return err
+func gatewayClean(c Instance, params []string) (err error) {
+	logDebug.Println(Type(c), Name(c), "clean")
+	if cleanForce {
+		var stopped bool = true
+		err = stopInstance(c, params)
+		if err != nil {
+			if errors.Is(err, ErrProcNotExist) {
+				stopped = false
+			} else {
+				return err
+			}
+		}
+		if err = removePathList(c, RunningConfig.GatewayCleanList); err != nil {
+			return err
+		}
+		err = removePathList(c, RunningConfig.GatewayPurgeList)
+		if stopped {
+			err = startInstance(c, params)
+		}
+		return
 	}
-	if err = gatewayClean(c, params); err != nil {
-		return err
-	}
-	return removePathList(c, RunningConfig.GatewayPurgeList)
+	return removePathList(c, RunningConfig.GatewayCleanList)
 }
 
 func gatewayReload(c Instance, params []string) (err error) {

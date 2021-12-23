@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"path/filepath"
 	"strconv"
 )
@@ -28,7 +29,6 @@ func init() {
 		Command: netprobeCommand,
 		Create:  netprobeCreate,
 		Clean:   netprobeClean,
-		Purge:   netprobePurge,
 		Reload:  netprobeReload,
 	}
 }
@@ -71,21 +71,30 @@ func netprobeCreate(name string, username string) (c Instance, err error) {
 }
 
 var defaultNetprobeCleanList = "*.old"
-
-func netprobeClean(c Instance, params []string) (err error) {
-	return removePathList(c, RunningConfig.NetprobeCleanList)
-}
-
 var defaultNetprobePurgeList = "netprobe.log:netprobe.txt:*.snooze:*.user_assignment"
 
-func netprobePurge(c Instance, params []string) (err error) {
-	if err = stopInstance(c, params); err != nil {
-		return err
+func netprobeClean(c Instance, params []string) (err error) {
+	logDebug.Println(Type(c), Name(c), "clean")
+	if cleanForce {
+		var stopped bool = true
+		err = stopInstance(c, params)
+		if err != nil {
+			if errors.Is(err, ErrProcNotExist) {
+				stopped = false
+			} else {
+				return err
+			}
+		}
+		if err = removePathList(c, RunningConfig.NetprobeCleanList); err != nil {
+			return err
+		}
+		err = removePathList(c, RunningConfig.NetprobePurgeList)
+		if stopped {
+			err = startInstance(c, params)
+		}
+		return
 	}
-	if err = netprobeClean(c, params); err != nil {
-		return err
-	}
-	return removePathList(c, RunningConfig.NetprobePurgeList)
+	return removePathList(c, RunningConfig.NetprobeCleanList)
 }
 
 func netprobeReload(c Instance, params []string) (err error) {
