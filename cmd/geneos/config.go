@@ -418,8 +418,6 @@ func printConfigSliceJSON(Slice []Instance) {
 	}
 	s := "[\n    " + strings.Join(js, ",\n    ") + "\n]"
 	log.Println(s)
-
-	return
 }
 
 func printConfigStructJSON(Config interface{}) (err error) {
@@ -650,7 +648,7 @@ func disableInstance(c Instance, params []string) (err error) {
 		return
 	}
 
-	if err = stopInstance(c, params); err != nil && err != ErrProcNotExist {
+	if err = stopInstance(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
 		return
 	}
 
