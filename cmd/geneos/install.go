@@ -208,19 +208,6 @@ func unarchive(filename string, gz io.Reader) (err error) {
 	return
 }
 
-//
-// update a version of component packages
-//
-// 'geneos update gateway 5.8.0'
-// 'geneos update netprobe latest active_dev'
-//
-// defaults all components, 'latest' and 'active_prod'
-//
-// check if already the same, then
-// stop, update, start any instances using that link
-//
-// latest is: [GA]N.M.P-DATE - GA is optional, ignore all other non-numeric
-// prefixes. Sort N.M.P using almost semantic versioning
 func commandUpdate(ct ComponentType, args []string, params []string) (err error) {
 	version := "latest"
 	if len(args) > 0 {
