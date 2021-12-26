@@ -5,8 +5,6 @@ func init() {
 		`Signal the matching instances to reload their configurations, depending on the component TYPE.
 
 Not fully implemented except for Gateways.`}
-
-	commands["refresh"] = Command{commandReload, nil, parseArgs, "see reload", ""}
 }
 
 func commandReload(ct ComponentType, args []string, params []string) error {
