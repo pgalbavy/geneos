@@ -10,14 +10,10 @@ import (
 	"time"
 )
 
-var listJSON bool
-var listCSV bool
-var listFlags *flag.FlagSet
-
 func init() {
 	commands["ls"] = Command{commandLS, flagsList, parseArgs, "geneos ls [TYPE] [NAME...]",
 		`List the matching instances and their component type.
-
+	
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
 	commands["ps"] = Command{commandPS, flagsList, parseArgs, "geneos ps [TYPE] [NAMES...]",
@@ -35,6 +31,10 @@ Future versions will support CSV or JSON output formats for automation and monit
 	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
 	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
 }
+
+var listFlags *flag.FlagSet
+var listJSON bool
+var listCSV bool
 
 var lsTabWriter *tabwriter.Writer
 var csvWriter *csv.Writer
