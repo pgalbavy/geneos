@@ -2,18 +2,27 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"os"
 	"syscall"
 	"time"
 )
 
 func init() {
-	commands["stop"] = Command{commandStop, nil, parseArgs, `geneos stop [type] [instance...]`,
+	commands["stop"] = Command{commandStop, stopFlag, parseArgs, `geneos stop [type] [instance...]`,
 		`Stop one or more matching instances. First a SIGTERM is sent and if the instance is still running
 after a few seconds then a SIGKILL is sent to the process(es).`}
 
-	commands["kill"] = Command{commandKill, nil, parseArgs, `geneos kill [type] [instance...]`,
-		`Immediately stop one or more matching instances. A SIGKILL is sent to the instance(s).`}
+	stopFlags = flag.NewFlagSet("stop", flag.ExitOnError)
+	stopFlags.BoolVar(&stopKill, "f", false, "Force stop by senind an immediate SIGKILL")
+}
+
+var stopFlags *flag.FlagSet
+var stopKill bool
+
+func stopFlag(args []string) []string {
+	stopFlags.Parse(args)
+	return stopFlags.Args()
 }
 
 func commandStop(ct ComponentType, args []string, params []string) (err error) {
@@ -35,53 +44,29 @@ func stopInstance(c Instance, params []string) (err error) {
 
 	proc, _ := os.FindProcess(pid)
 
-	log.Println("stopping", Type(c), Name(c), "with PID", pid)
+	if !stopKill {
+		log.Println("stopping", Type(c), Name(c), "with PID", pid)
 
-	if err = proc.Signal(syscall.SIGTERM); err != nil {
-		log.Println("sending SIGTERM failed:", err)
-		return
-	}
+		if err = proc.Signal(syscall.SIGTERM); err != nil {
+			log.Println("sending SIGTERM failed:", err)
+			return
+		}
 
-	// send a signal 0 in a loop to check if the process has terminated
-	for i := 0; i < 10; i++ {
-		time.Sleep(250 * time.Millisecond)
-		if err = proc.Signal(syscall.Signal(0)); err != nil {
-			logDebug.Println(Type(c), "terminated")
-			return nil
+		// send a signal 0 in a loop to check if the process has terminated
+		for i := 0; i < 10; i++ {
+			time.Sleep(250 * time.Millisecond)
+			if err = proc.Signal(syscall.Signal(0)); err != nil {
+				logDebug.Println(Type(c), "terminated")
+				return nil
+			}
 		}
 	}
 
-	// if still running then sigkill
+	// if -f or still running then sigkill
 	if err = proc.Signal(syscall.SIGKILL); err != nil {
 		log.Println("sending SIGKILL failed:", err)
 	}
+	log.Println("killed", Type(c), Name(c), "with PID", pid)
 	return
 
-}
-
-func commandKill(ct ComponentType, args []string, params []string) (err error) {
-	return loopCommand(killInstance, ct, args, params)
-}
-
-func killInstance(c Instance, params []string) (err error) {
-	pid, st, err := findInstanceProc(c)
-	if err != nil {
-		return
-	}
-
-	if !canControl(c) {
-		return ErrPermission
-	}
-
-	logDebug.Println("process running as", st.Uid, st.Gid)
-
-	proc, _ := os.FindProcess(pid)
-
-	log.Println("killing", Type(c), Name(c), "PID", pid)
-
-	if err = proc.Signal(syscall.SIGKILL); err != nil {
-		log.Println("sending SIGKILL failed:", err)
-		return
-	}
-	return
 }

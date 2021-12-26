@@ -129,8 +129,8 @@ Set a program-wide configuration option. The default is to update the `user` con
 The instance specific version of the `set` command is described below.
 #### Package Managemwent Commands
 
-* `geneos install [FILE...]`
-Install a release archive in the `packages` directory.
+* `geneos unpack [FILE...]`
+Unpacks a local release archive into the `packages` directory.
 
 * `geneos download [TYPE] [lastest|URL...]`
 Download and install a release archive in the `packages` directory.
@@ -143,11 +143,9 @@ Update the component base binary link
 * `geneos start [TYPE] [NAME...]`
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
 
-* `geneos stop [TYPE] [NAME...]`
+* `geneos stop [-f] [TYPE] [NAME...]`
 Like above, but stops the component(s)
-
-* `geneos kill [TYPE] [NAME...]`
-Stops components immediately (SIGKILL is sent)
+-f terminates forcefully - i.e. a SIGKILL is immediately sent
 
 * `geneos restart [TYPE] [NAME...]`
 Restarts matching geneos components. Each component is stopped and started in sequence. If all components should be down before starting up again then use a combination of `start` and `stop` from above.
