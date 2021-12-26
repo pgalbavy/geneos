@@ -18,15 +18,15 @@ import (
 )
 
 func init() {
-	commands["install"] = Command{commandInstall, nil, checkComponentArg, "geneos install FILE...",
-		`Install the supplied FILE(s) in the packages/ directory. The filename(s) must of of the form:
+	commands["unpack"] = Command{commandUnpack, nil, checkComponentArg, "geneos unpack FILE...",
+		`Unpacks the supplied archive FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
 
 The directory for the package is created using the VERSION from the archive filename.`}
 
 	commands["download"] = Command{commandDownload, nil, checkComponentArg, "geneos download [TYPE] [latest|FILTER|URL...]",
-		`Download and install the sources in the packages directory or latest version(s) from
+		`Download and unpack the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
 	geneos-TYPE-VERSION*.tar.gz
@@ -60,9 +60,7 @@ Future version may support selecting a base other than 'active_prod'.`}
 // if there is no 'active_prod' link then attach it to the latest version
 // installed
 //
-// 'geneos install gateway [files]'
-// 'geneos install netprobe latest'
-func commandInstall(ct ComponentType, files []string, params []string) (err error) {
+func commandUnpack(ct ComponentType, files []string, params []string) (err error) {
 	if ct != None {
 		logError.Fatalln("Must not specify a compoenent type, only archive files")
 	}
@@ -204,7 +202,7 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
 	}
-	log.Printf("installed %q to %q\n", filename, basedir)
+	log.Printf("unpacked %q to %q\n", filename, basedir)
 	return
 }
 
