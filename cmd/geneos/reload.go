@@ -1,8 +1,12 @@
 package main
 
 func init() {
-	commands["reload"] = Command{commandReload, nil, parseArgs, "geneos reload [TYPE] [NAME...]",
-		`Signal the matching instances to reload their configurations, depending on the component TYPE.
+	commands["reload"] = Command{
+		Function:    commandReload,
+		ParseFlags:  nil,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos reload [TYPE] [NAME...]",
+		Description: `Signal the matching instances to reload their configurations, depending on the component TYPE.
 
 Not fully implemented except for Gateways.`}
 }

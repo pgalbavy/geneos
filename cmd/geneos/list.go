@@ -11,18 +11,30 @@ import (
 )
 
 func init() {
-	commands["ls"] = Command{commandLS, flagsList, parseArgs, "geneos ls [TYPE] [NAME...]",
-		`List the matching instances and their component type.
+	commands["ls"] = Command{
+		Function:    commandLS,
+		ParseFlags:  flagsList,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos ls [-c|-j] [TYPE] [NAME...]",
+		Description: `List the matching instances and their component type.
 	
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
-	commands["ps"] = Command{commandPS, flagsList, parseArgs, "geneos ps [TYPE] [NAMES...]",
-		`Show the status of the matching instances.
+	commands["ps"] = Command{
+		Function:    commandPS,
+		ParseFlags:  flagsList,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos ps [-c|-j] [TYPE] [NAMES...]",
+		Description: `Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
-	commands["command"] = Command{commandCommand, nil, parseArgs, "geneos command [TYPE] [NAME...]",
-		`Show the full command line for the matching instances along with any environment variables
+	commands["command"] = Command{
+		Function:    commandCommand,
+		ParseFlags:  nil,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos command [TYPE] [NAME...]",
+		Description: `Show the full command line for the matching instances along with any environment variables
 explicitly set for execution.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}

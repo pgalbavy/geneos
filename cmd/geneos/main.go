@@ -13,6 +13,8 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
+const releaseVersion = "v0.7.1"
+
 func init() {
 	if os.Geteuid() == 0 || os.Getuid() == 0 {
 		superuser = true

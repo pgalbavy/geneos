@@ -25,15 +25,15 @@ const netprobePortRange = "7036,7100-"
 
 func init() {
 	components[Netprobes] = ComponentFuncs{
-		New:     netprobeNew,
-		Command: netprobeCommand,
-		Create:  netprobeCreate,
-		Clean:   netprobeClean,
-		Reload:  netprobeReload,
+		Instance: netprobeInstance,
+		Command:  netprobeCommand,
+		New:      netprobeNew,
+		Clean:    netprobeClean,
+		Reload:   netprobeReload,
 	}
 }
 
-func netprobeNew(name string) interface{} {
+func netprobeInstance(name string) interface{} {
 	// Bootstrap
 	c := &Netprobe{}
 	c.Root = RunningConfig.ITRSHome
@@ -55,9 +55,9 @@ func netprobeCommand(c Instance) (args, env []string) {
 }
 
 // create a plain netprobe instance
-func netprobeCreate(name string, username string) (c Instance, err error) {
+func netprobeNew(name string, username string) (c Instance, err error) {
 	// fill in the blanks
-	c = netprobeNew(name)
+	c = netprobeInstance(name)
 	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))); err != nil {
 		return
 	}

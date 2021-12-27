@@ -5,15 +5,23 @@ import (
 )
 
 func init() {
-	commands["version"] = Command{commandVersion, nil, nil, "geneos version",
-		`Display the current version number. Currently not implmeented.`}
+	commands["version"] = Command{
+		Function:    commandVersion,
+		ParseFlags:  nil,
+		ParseArgs:   nil,
+		CommandLine: "geneos version",
+		Description: `Display the current version number: ` + releaseVersion}
 
-	commands["help"] = Command{commandHelp, nil, nil, "geneos help [COMMAND]",
-		`This command. Shows either a list of available commands or the help for the given COMMAND.`}
+	commands["help"] = Command{
+		Function:    commandHelp,
+		ParseFlags:  nil,
+		ParseArgs:   nil,
+		CommandLine: "geneos help [COMMAND]",
+		Description: `This command. Shows either a list of available commands or the help for the given COMMAND.`}
 }
 
 func commandVersion(comp ComponentType, args []string, params []string) error {
-	log.Println("version: v0.7.1")
+	log.Println("version:", releaseVersion)
 	return nil
 }
 

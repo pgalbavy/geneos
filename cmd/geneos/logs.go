@@ -14,8 +14,12 @@ import (
 )
 
 func init() {
-	commands["logs"] = Command{commandLogs, logsFlag, parseArgs, "geneos logs [FLAGS] [TYPE] [NAME...]",
-		`Show logs for matching instances.
+	commands["logs"] = Command{
+		Function:    commandLogs,
+		ParseFlags:  logsFlag,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos logs [FLAGS] [TYPE] [NAME...]",
+		Description: `Show logs for matching instances.
 
 FLAGS:
 	-n NUM		- show last NUM lines, default 10

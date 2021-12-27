@@ -36,15 +36,15 @@ var emptyXMLTemplate string
 
 func init() {
 	components[Gateways] = ComponentFuncs{
-		New:     gatewayNew,
-		Command: gatewayCommand,
-		Create:  gatewayCreate,
-		Clean:   gatewayClean,
-		Reload:  gatewayReload,
+		Instance: gatewayInstance,
+		Command:  gatewayCommand,
+		New:      gatewayNew,
+		Clean:    gatewayClean,
+		Reload:   gatewayReload,
 	}
 }
 
-func gatewayNew(name string) interface{} {
+func gatewayInstance(name string) interface{} {
 	// Bootstrap
 	c := &Gateway{}
 	c.Root = RunningConfig.ITRSHome
@@ -84,9 +84,9 @@ func gatewayCommand(c Instance) (args, env []string) {
 	return
 }
 
-func gatewayCreate(name string, username string) (c Instance, err error) {
+func gatewayNew(name string, username string) (c Instance, err error) {
 	// fill in the blanks
-	c = gatewayNew(name)
+	c = gatewayInstance(name)
 	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))); err != nil {
 		return
 	}

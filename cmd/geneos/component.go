@@ -27,12 +27,12 @@ const (
 )
 
 type ComponentFuncs struct {
-	New     func(string) interface{}
-	Command func(Instance) ([]string, []string)
-	Create  func(string, string) (Instance, error)
-	Clean   func(Instance, []string) error
-	Purge   func(Instance, []string) error
-	Reload  func(Instance, []string) error
+	Instance func(string) interface{}
+	Command  func(Instance) ([]string, []string)
+	New      func(string, string) (Instance, error)
+	Clean    func(Instance, []string) error
+	Purge    func(Instance, []string) error
+	Reload   func(Instance, []string) error
 }
 
 type Components map[ComponentType]ComponentFuncs
@@ -174,10 +174,10 @@ func NewComponent(ct ComponentType, name string) (c []Instance) {
 	if !ok {
 		logError.Fatalln(ct, ErrNotSupported)
 	}
-	if cm.New == nil {
+	if cm.Instance == nil {
 		return []Instance{}
 	}
-	return []Instance{cm.New(name)}
+	return []Instance{cm.Instance(name)}
 }
 
 // a template function to support "{{join .X .Y}}"

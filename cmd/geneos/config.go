@@ -13,8 +13,12 @@ import (
 )
 
 func init() {
-	commands["init"] = Command{initCommand, nil, nil, `geneos init [username] [directory]`,
-		`Initialise a geneos installation by creating a suitable directory hierarhcy and
+	commands["init"] = Command{
+		Function:    commandInit,
+		ParseFlags:  nil,
+		ParseArgs:   nil,
+		CommandLine: `geneos init [username] [directory]`,
+		Description: `Initialise a geneos installation by creating a suitable directory hierarhcy and
 	a user configuration file, setting the username and directory given as defaults.
 	If 'username' is supplied then the command must either be run as root or the given user.
 	If 'directory' is given then the parent directory must be writable by the user, unless
@@ -25,19 +29,31 @@ func init() {
 		sudo geneos init geneos /opt/itrs
 `}
 
-	commands["migrate"] = Command{commandMigrate, nil, parseArgs, "geneos migrate [TYPE] [NAME...]",
-		`Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
+	commands["migrate"] = Command{
+		Function:    commandMigrate,
+		ParseFlags:  nil,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos migrate [TYPE] [NAME...]",
+		Description: `Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
 .rc.orig.`}
-	commands["revert"] = Command{commandRevert, nil, parseArgs, "geneos revert [TYPE] [NAME...]",
-		`Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
+
+	commands["revert"] = Command{
+		Function:    commandRevert,
+		ParseFlags:  nil,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos revert [TYPE] [NAME...]",
+		Description: `Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
 Any changes to the instance configuration since initial migration will be lost as the .rc file
 is never written to.`}
 
-	commands["show"] = Command{commandShow, nil, parseArgs,
-		`geneos show
-	geneos show [global|user]
-	geneos show [TYPE] [NAME...]`,
-		`Show the JSON format configuration. With no arguments show the running configuration that
+	commands["show"] = Command{
+		Function:   commandShow,
+		ParseFlags: nil,
+		ParseArgs:  parseArgs,
+		CommandLine: `geneos show
+geneos show [global|user]
+geneos show [TYPE] [NAME...]`,
+		Description: `Show the JSON format configuration. With no arguments show the running configuration that
 results from loading the global and user configurations and resolving any enviornment variables that
 override scope. If the liternal keyword 'global' or 'user' is supplied then any on-disk configuration
 for the respective options will be shown. If a component TYPE and/or instance NAME(s) are supplied
@@ -47,26 +63,31 @@ instance using a legacy .rc file or a native JSON configuration.
 Passwords and secrets are redacted in a very simplistic manner simply to prevent visibility in
 casual viewing.`}
 
-	commands["set"] = Command{commandSet, nil, parseArgs,
-		`geneos set [global|user] KEY=VALUE [KEY=VALUE...]
-	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
-		``}
+	commands["set"] = Command{
+		Function:   commandSet,
+		ParseFlags: nil,
+		ParseArgs:  parseArgs,
+		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
+geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
+		Description: ``}
 
-	commands["disable"] = Command{commandDisable, nil, parseArgs, "geneos disable [TYPE] [NAME...]",
-		`Mark any matching instances as disabled. The instances are also stopped.`}
-
-	commands["enable"] = Command{commandEneable, nil, parseArgs, "geneos enable [TYPE] [NAME...]",
-		`Mark any matcing instances as enabled and if this is a change then start the instance.`}
-
-	commands["rename"] = Command{commandRename, nil, checkComponentArg, "geneos rename TYPE FROM TO",
-		`Rename the matching instance. TYPE is requied to resolve any ambiguities if two instances
+	commands["rename"] = Command{
+		Function:    commandRename,
+		ParseFlags:  nil,
+		ParseArgs:   checkComponentArg,
+		CommandLine: "geneos rename TYPE FROM TO",
+		Description: `Rename the matching instance. TYPE is requied to resolve any ambiguities if two instances
 share the same name. No configuration changes outside the instance JSON config file are done. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
 The instance is stopped and restarted after the instance directory and configuration are changed.
 It is an error to try to rename an instance to one that already exists with the same name.`}
 
-	commands["delete"] = Command{commandDelete, nil, parseArgs, "geneos delete [TYPE] [NAME...]",
-		`Delete the matching instances. This will only work on instances that are disabled to prevent
+	commands["delete"] = Command{
+		Function:    commandDelete,
+		ParseFlags:  nil,
+		ParseArgs:   parseArgs,
+		CommandLine: "geneos delete [TYPE] [NAME...]",
+		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
 accidental deletion. The instance directory is removed without being backed-up. The user running
 the command must have the appropriate permissions and a partial deletion cannot be protected
 against.`}
@@ -186,7 +207,7 @@ func checkDefault(v *string, d string) {
 // 'geneos init [dir]' - similarly dir defaults to $HOME/geneos, providing user
 // is an error. user config is overwritten
 //
-func initCommand(ct ComponentType, args []string, params []string) (err error) {
+func commandInit(ct ComponentType, args []string, params []string) (err error) {
 	var c ConfigType
 	if ct != None {
 		return ErrInvalidArgs
@@ -630,59 +651,6 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	}
 
 	return os.Rename(f.Name(), file)
-}
-
-const disableExtension = ".disabled"
-
-func commandDisable(ct ComponentType, args []string, params []string) (err error) {
-	return loopCommand(disableInstance, ct, args, params)
-}
-
-func disableInstance(c Instance, params []string) (err error) {
-	if isDisabled(c) {
-		return ErrDisabled
-	}
-
-	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
-	if err != nil {
-		return
-	}
-
-	if err = stopInstance(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
-		return
-	}
-
-	f, err := os.Create(filepath.Join(Home(c), Type(c).String()+disableExtension))
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	if err = f.Chown(int(uid), int(gid)); err != nil {
-		os.Remove(f.Name())
-	}
-	return
-}
-
-// simpler than disable, just try to remove the flag file
-// we do also start the component(s)
-func commandEneable(ct ComponentType, args []string, params []string) (err error) {
-	return loopCommand(enableInstance, ct, args, params)
-}
-
-func enableInstance(c Instance, params []string) (err error) {
-	if err = os.Remove(filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
-		err = startInstance(c, params)
-	}
-	return
-}
-
-func isDisabled(c Instance) bool {
-	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	if f, err := os.Stat(d); err == nil && f.Mode().IsRegular() {
-		return true
-	}
-	return false
 }
 
 func commandRename(ct ComponentType, args []string, params []string) (err error) {
