@@ -15,23 +15,23 @@ import (
 func init() {
 	commands["init"] = Command{
 		Function:    commandInit,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
-		CommandLine: `geneos init [username] [directory]`,
+		CommandLine: `geneos init [USERNAME] [DIRECTORY]`,
 		Description: `Initialise a geneos installation by creating a suitable directory hierarhcy and
-	a user configuration file, setting the username and directory given as defaults.
-	If 'username' is supplied then the command must either be run as root or the given user.
-	If 'directory' is given then the parent directory must be writable by the user, unless
-	running as root, otherwise a 'geneos' directory is created in the user's home area.
-	If run as root a username MUST be given and only the username specific configuration
-	file is created. If the directory exists then it must be empty. Exmaple:
+a user configuration file, setting the username and directory given as defaults.
+If 'username' is supplied then the command must either be run as root or the given user.
+If 'directory' is given then the parent directory must be writable by the user, unless
+running as root, otherwise a 'geneos' directory is created in the user's home area.
+If run as root a username MUST be given and only the username specific configuration
+file is created. If the directory exists then it must be empty. Exmaple:
 
-		sudo geneos init geneos /opt/itrs
+	sudo geneos init geneos /opt/itrs
 `}
 
 	commands["migrate"] = Command{
 		Function:    commandMigrate,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos migrate [TYPE] [NAME...]",
 		Description: `Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
@@ -39,20 +39,20 @@ func init() {
 
 	commands["revert"] = Command{
 		Function:    commandRevert,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: "geneos revert [TYPE] [NAME...]",
+		CommandLine: `geneos revert [TYPE] [NAME...]`,
 		Description: `Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
 Any changes to the instance configuration since initial migration will be lost as the .rc file
 is never written to.`}
 
 	commands["show"] = Command{
 		Function:   commandShow,
-		ParseFlags: nil,
+		ParseFlags: defaultFlag,
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos show
-geneos show [global|user]
-geneos show [TYPE] [NAME...]`,
+	geneos show [global|user]
+	geneos show [TYPE] [NAME...]`,
 		Description: `Show the JSON format configuration. With no arguments show the running configuration that
 results from loading the global and user configurations and resolving any enviornment variables that
 override scope. If the liternal keyword 'global' or 'user' is supplied then any on-disk configuration
@@ -65,17 +65,17 @@ casual viewing.`}
 
 	commands["set"] = Command{
 		Function:   commandSet,
-		ParseFlags: nil,
+		ParseFlags: defaultFlag,
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
-geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
+	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
 		Description: ``}
 
 	commands["rename"] = Command{
 		Function:    commandRename,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos rename TYPE FROM TO",
+		CommandLine: `geneos rename TYPE FROM TO`,
 		Description: `Rename the matching instance. TYPE is requied to resolve any ambiguities if two instances
 share the same name. No configuration changes outside the instance JSON config file are done. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
@@ -84,9 +84,9 @@ It is an error to try to rename an instance to one that already exists with the 
 
 	commands["delete"] = Command{
 		Function:    commandDelete,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: "geneos delete [TYPE] [NAME...]",
+		CommandLine: `geneos delete [TYPE] [NAME...]`,
 		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
 accidental deletion. The instance directory is removed without being backed-up. The user running
 the command must have the appropriate permissions and a partial deletion cannot be protected

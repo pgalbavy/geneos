@@ -15,7 +15,7 @@ import (
 func init() {
 	commands["start"] = Command{
 		Function:    commandStart,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: `geneos start [TYPE] [NAME...]`,
 		Description: `Start one or more matching instances. All instances are run in the background and
@@ -32,6 +32,7 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 
 	stopFlags = flag.NewFlagSet("stop", flag.ExitOnError)
 	stopFlags.BoolVar(&stopKill, "f", false, "Force stop by senind an immediate SIGKILL")
+	stopFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["restart"] = Command{
 		Function:    commandRestart,
@@ -42,17 +43,18 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
 	restartFlags.BoolVar(&restartAll, "a", false, "Start all instances, not just those already running")
+	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["disable"] = Command{
 		Function:    commandDisable,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos disable [TYPE] [NAME...]",
 		Description: `Mark any matching instances as disabled. The instances are also stopped.`}
 
 	commands["enable"] = Command{
 		Function:    commandEneable,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos enable [TYPE] [NAME...]",
 		Description: `Mark any matcing instances as enabled and if this changes stateus then start the instance.`}
@@ -127,8 +129,9 @@ func startInstance(c Instance, params []string) (err error) {
 	return
 }
 
-func stopFlag(args []string) []string {
+func stopFlag(command string, args []string) []string {
 	stopFlags.Parse(args)
+	checkHelpFlag(command)
 	return stopFlags.Args()
 }
 
@@ -182,8 +185,9 @@ func commandRestart(ct ComponentType, args []string, params []string) (err error
 	return loopCommand(restartInstance, ct, args, params)
 }
 
-func restartFlag(args []string) []string {
+func restartFlag(command string, args []string) []string {
 	restartFlags.Parse(args)
+	checkHelpFlag(command)
 	return restartFlags.Args()
 }
 

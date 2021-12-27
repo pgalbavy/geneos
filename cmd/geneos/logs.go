@@ -29,7 +29,8 @@ FLAGS:
 	-v STRING	- "grep -v" STRING (plain, non-regexp)
 
 -g and -v cannot be combined
--c and -f cannot be combined and -n is ignored
+-c and -f cannot be combined
+-n is ignored when -c is given
 
 When one instance given just stream, otherwise each output block is prefixed by instance details.
 `}
@@ -38,9 +39,9 @@ When one instance given just stream, otherwise each output block is prefixed by 
 	logsFlags.IntVar(&logsLines, "n", 10, "Lines to tail")
 	logsFlags.BoolVar(&logsFollow, "f", false, "Follow file")
 	logsFlags.BoolVar(&logsCat, "c", false, "Cat whole file")
-	logsFlags.StringVar(&logsInclude, "g", "", "Filter output with STRING")
-	logsFlags.StringVar(&logsExclude, "v", "", "Filter output with STRING")
-
+	logsFlags.StringVar(&logsInclude, "g", "", "Match lines with STRING")
+	logsFlags.StringVar(&logsExclude, "v", "", "Match lines without STRING")
+	logsFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
 var logsFlags *flag.FlagSet
@@ -63,10 +64,10 @@ var tails map[string]*tail = make(map[string]*tail)
 // last logfile written out
 var lastout string
 
-func logsFlag(args []string) []string {
+func logsFlag(command string, args []string) []string {
 	logsFlags.Parse(args)
+	checkHelpFlag(command)
 	return logsFlags.Args()
-
 }
 
 func commandLogs(ct ComponentType, args []string, params []string) (err error) {

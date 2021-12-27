@@ -17,7 +17,7 @@ import (
 func init() {
 	commands["new"] = Command{
 		Function:    commandNew,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos new TYPE NAME",
 		Description: `Create a new instance called NAME with the TYPE supplied. The details will depends on the
@@ -28,7 +28,7 @@ Gateways are given a minimal configuration file.`}
 
 	commands["upload"] = Command{
 		Function:    commandUpload,
-		ParseFlags:  nil,
+		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos upload [TYPE] NAME [DEST=]SRC",
 		Description: `Upload a file to the instance directory. This can be used to add configuration or license

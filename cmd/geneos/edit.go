@@ -9,7 +9,7 @@ import (
 func init() {
 	commands["edit"] = Command{
 		Function:   commandEdit,
-		ParseFlags: nil,
+		ParseFlags: defaultFlag,
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos edit [global|user]
 geneos edit [TYPE] [NAME...]`,

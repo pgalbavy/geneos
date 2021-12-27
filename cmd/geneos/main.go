@@ -94,7 +94,7 @@ func main() {
 	var params []string
 
 	if commands[command].ParseFlags != nil {
-		args = commands[command].ParseFlags(args)
+		args = commands[command].ParseFlags(command, args)
 	}
 
 	// parse the rest of the args depending on the command

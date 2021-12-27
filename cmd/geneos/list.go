@@ -42,6 +42,7 @@ Future versions will support CSV or JSON output formats for automation and monit
 	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
 	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
 	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
+	listFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
 var listFlags *flag.FlagSet
@@ -52,8 +53,9 @@ var lsTabWriter *tabwriter.Writer
 var csvWriter *csv.Writer
 var jsonEncoder *json.Encoder
 
-func flagsList(args []string) []string {
+func flagsList(command string, args []string) []string {
 	listFlags.Parse(args)
+	checkHelpFlag(command)
 	if listJSON && listCSV {
 		logError.Fatalln("only one of -j or -c allowed")
 	}

@@ -11,20 +11,22 @@ func init() {
 		Description: `Clean matching instances, stopping instances if requested for deeper cleaning.
 
 FLAGS:
-		-f		- full clean. Stops and restarts instances. Only restarts instances it stopped.
+	-f - full clean. Stops and restarts instances. Only restarts instances it stopped.
 
 `,
 	}
 
 	cleanFlags = flag.NewFlagSet("clean", flag.ExitOnError)
 	cleanFlags.BoolVar(&cleanForce, "f", false, "Full clean, stops instances")
+	cleanFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
 var cleanFlags *flag.FlagSet
 var cleanForce bool
 
-func cleanFlag(args []string) []string {
+func cleanFlag(command string, args []string) []string {
 	cleanFlags.Parse(args)
+	checkHelpFlag(command)
 	return cleanFlags.Args()
 }
 

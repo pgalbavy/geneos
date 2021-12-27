@@ -18,15 +18,23 @@ import (
 )
 
 func init() {
-	commands["unpack"] = Command{commandUnpack, nil, checkComponentArg, "geneos unpack FILE...",
-		`Unpacks the supplied archive FILE(s) in to the packages/ directory. The filename(s) must of of the form:
+	commands["unpack"] = Command{
+		Function:    commandUnpack,
+		ParseFlags:  defaultFlag,
+		ParseArgs:   checkComponentArg,
+		CommandLine: "geneos unpack FILE [FILE...]",
+		Description: `Unpacks the supplied archive FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
 
 The directory for the package is created using the VERSION from the archive filename.`}
 
-	commands["download"] = Command{commandDownload, nil, checkComponentArg, "geneos download [TYPE] [latest|FILTER|URL...]",
-		`Download and unpack the sources in the packages directory or latest version(s) from
+	commands["download"] = Command{
+		Function:    commandDownload,
+		ParseFlags:  defaultFlag,
+		ParseArgs:   checkComponentArg,
+		CommandLine: "geneos download [TYPE] [latest|FILTER|URL...]",
+		Description: `Download and unpack the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
 	geneos-TYPE-VERSION*.tar.gz
@@ -34,8 +42,12 @@ the official download site. The filename must of of the format:
 The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
 for the package is created using the VERSION from the archive filename.`}
 
-	commands["update"] = Command{commandUpdate, nil, checkComponentArg, "geneos update [TYPE] VERSION",
-		`Update the symlink for the default base name of the package used to VERSION. The base directory,
+	commands["update"] = Command{
+		Function:    commandUpdate,
+		ParseFlags:  defaultFlag,
+		ParseArgs:   checkComponentArg,
+		CommandLine: "geneos update [TYPE] VERSION",
+		Description: `Update the symlink for the default base name of the package used to VERSION. The base directory,
 for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
 in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not
 supplied, all supported component types are updated to VERSION.
