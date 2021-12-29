@@ -11,7 +11,9 @@
   * sensible/valid naming for csr fields
 * Docker / Compose file build from selection of components
 * check capabilities and not just setuid/root user
-* REST API for remote - initially read-only + rate limited
+* Run REST commands against gateways
+  * initially just a framework that picks up port number etc.
+  * specific command output parsing
 * command should show user information
 * SAN configuration support
   * config file. template, creation
