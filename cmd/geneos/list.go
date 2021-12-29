@@ -236,19 +236,10 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 }
 
 func commandCommand(ct ComponentType, args []string, params []string) (err error) {
-	for _, name := range args {
-		for _, c := range NewComponent(ct, name) {
-			if err = loadConfig(c, false); err != nil {
-				log.Println("cannot load configuration for", Type(c), Name(c))
-				return
-			}
-			commandInstance(c, params)
-		}
-	}
-	return
+	return loopCommand(commandInstance, ct, args, params)
 }
 
-func commandInstance(c Instance, params []string) {
+func commandInstance(c Instance, params []string) (err error) {
 	cmd, env := buildCmd(c)
 	if cmd != nil {
 		log.Printf("command: %q\n", cmd.String())
@@ -257,4 +248,5 @@ func commandInstance(c Instance, params []string) {
 			log.Println(e)
 		}
 	}
+	return
 }
