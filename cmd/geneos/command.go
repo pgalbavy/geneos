@@ -24,7 +24,7 @@ type Command struct {
 	// is a ComponentType and then separate command args from optional parameters. Any args that do not match
 	// instance names are left on the params slice. It is up to the command
 	ParseArgs func([]string) (ComponentType, []string, []string)
-	// Example syntax for short help output
+	// Command Syntax
 	CommandLine string
 	// More detailed help
 	Description string // details
@@ -96,10 +96,7 @@ func loadConfig(c Instance, update bool) (err error) {
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers
 // will add more details such as working directories, user and group etc.
 func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
-	binary := filepath.Join(getString(c, Prefix(c)+"Bins"),
-		getString(c, Prefix(c)+"Base"),
-		getString(c, "BinSuffix"))
-
+	binary := getString(c, Prefix(c)+"Exec")
 	// test binary for access - fail early
 	if _, err := os.Stat(binary); err != nil {
 		log.Println(err)

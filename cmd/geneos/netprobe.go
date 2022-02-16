@@ -8,9 +8,11 @@ import (
 
 type Netprobe struct {
 	Common
+	BinSuffix string `default:"netprobe.linux_64"`
 	NetpHome  string `default:"{{join .Root \"netprobe\" \"netprobes\" .Name}}"`
 	NetpBins  string `default:"{{join .Root \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
+	NetpExec  string `default:"{{join .NetpBins .NetpBase .BinSuffix}}"`
 	NetpLogD  string `default:"{{.NetpHome}}"`
 	NetpLogF  string `default:"netprobe.log"`
 	NetpPort  int    `default:"7036"`
@@ -18,7 +20,6 @@ type Netprobe struct {
 	NetpOpts  string // =-nopassword
 	NetpLibs  string `default:"{{join .NetpBins .NetpBase \"lib64\"}}:{{join .NetpBins .NetpBase}}"`
 	NetpUser  string
-	BinSuffix string `default:"netprobe.linux_64"`
 }
 
 const netprobePortRange = "7036,7100-"

@@ -12,9 +12,11 @@ import (
 
 type Gateway struct {
 	Common
+	BinSuffix string `default:"gateway2.linux_64"`
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
+	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
 	GateLogD  string
 	GateLogF  string `default:"gateway.log"`
 	GatePort  int    `default:"7039"`
@@ -24,7 +26,6 @@ type Gateway struct {
 	GateOpts  string
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
 	GateUser  string
-	BinSuffix string `default:"gateway2.linux_64"`
 	// new
 
 }
