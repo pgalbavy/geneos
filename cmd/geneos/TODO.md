@@ -1,5 +1,9 @@
 # To Do list
 
+* Fix bootstrapping of ITRSHome with the 'geneos set user ITRSHome=xxx' command
+* Add options to init command to do all basic steps for a simple environment
+* Add support for GateExec etc. and also ignore or transform unknown options
+* Allow immediate passing in of a license file to the 'init' command - then create a licd instance
 * Positive confirmations of all commands unless quiet mode - PARTIAL
   * Should be an 'action taken' return from commands for output
 * Command line verbosity control - PARTIAL

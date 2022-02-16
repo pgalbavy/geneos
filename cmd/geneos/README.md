@@ -46,9 +46,9 @@ This path is where the `packages` and `gateway` directories live. If you do not 
 ```bash
 geneos init
 geneos download latest
-geneos create gateway Gateway1
-geneos create netprobe Netprobe1
-geneos create licd Licd1
+geneos new gateway Gateway1
+geneos new netprobe Netprobe1
+geneos new licd Licd1
 geneos upload licd Licd1 geneos.lic
 geneos start
 ```

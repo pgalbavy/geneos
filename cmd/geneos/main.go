@@ -106,14 +106,14 @@ func main() {
 	// if command is not an init, set or show then the ITRSHome
 	// directory must exist and be accessible to the user
 	switch command {
-	// come commands just want the raw command args, or none
 	case "help", "version", "init":
+		// some commands just want the raw command args, or none
 		if err := commands[command].Function(ct, args, params); err != nil {
 			logError.Fatalln(err)
 		}
 		os.Exit(0)
-	// 'geneos show [user|global]'
 	case "show":
+		// 'geneos show [user|global]'
 		if ct == None {
 			// check the unparsed args here
 			if len(leftargs[1:]) == 0 {
@@ -126,6 +126,7 @@ func main() {
 		fallthrough
 	case "set", "edit":
 		// process set or show global|user or keep going to instances
+		// XXX with the new ParseArgs method, args may not be empty as it may contain the settings. need to check
 		if len(args) == 0 || (len(args) > 0 && (args[0] == "user" || args[0] == "global")) {
 			// output on-disk global or user config, not resolved one
 			if err := commands[command].Function(ct, args, params); err != nil {

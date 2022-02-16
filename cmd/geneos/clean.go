@@ -8,6 +8,7 @@ func init() {
 		ParseFlags:  cleanFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos clean [-f] [TYPE] [NAME...]",
+		Summary:     "Clean-up instance directory",
 		Description: `Clean matching instances, stopping instances if requested for deeper cleaning.
 
 FLAGS:

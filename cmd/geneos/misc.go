@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"sort"
+	"text/tabwriter"
 )
 
 func init() {
@@ -43,9 +45,15 @@ func commandHelp(comp ComponentType, args []string, params []string) error {
 		}
 		sort.Strings(keys)
 		log.Println("The following commands are available:")
+		helpTabWriter := tabwriter.NewWriter(log.Writer(), 8, 8, 4, ' ', 0)
 		for _, c := range keys {
-			log.Printf("  %s\n   - %s", c, commands[c].CommandLine)
+			if commands[c].Summary != "" {
+				fmt.Fprintf(helpTabWriter, "\t%s\t%s\n", c, commands[c].Summary)
+			} else {
+				fmt.Fprintf(helpTabWriter, "\t%s\t%s\n", c, commands[c].CommandLine)
+			}
 		}
+		helpTabWriter.Flush()
 		return nil
 	}
 	if c, ok := commands[args[0]]; ok {

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/fs"
 	"os"
@@ -17,7 +18,7 @@ func init() {
 		Function:    commandInit,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
-		CommandLine: `geneos init [USERNAME] [DIRECTORY]`,
+		CommandLine: `geneos init [-d] [-a FILE] [USERNAME] [DIRECTORY]`,
 		Description: `Initialise a geneos installation by creating a suitable directory hierarhcy and
 a user configuration file, setting the username and directory given as defaults.
 If 'username' is supplied then the command must either be run as root or the given user.
@@ -27,7 +28,18 @@ If run as root a username MUST be given and only the username specific configura
 file is created. If the directory exists then it must be empty. Exmaple:
 
 	sudo geneos init geneos /opt/itrs
+
+If the "-d" flag is given then the command performs all the steps necessary to initialise and start
+a basic system using the demo features of the gateway to avoid need for a license file.
+
+If the "-a" flag is given along with the path to a license file then all the necessary steps are
+run to initialise 
 `}
+
+	initFlags = flag.NewFlagSet("init", flag.ExitOnError)
+	initFlags.BoolVar(&initDemo, "d", false, "Perform initialisation steps for a demo setup and start environment")
+	initFlags.StringVar(&initAll, "a", "", "Perform initialisation steps using provided license file and start environment")
+	initFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["migrate"] = Command{
 		Function:    commandMigrate,
@@ -69,7 +81,8 @@ casual viewing.`}
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
-		Description: ``}
+
+		Description: `Set a value in the configuration of either the user, globally or for a specific instance.`}
 
 	commands["rename"] = Command{
 		Function:    commandRename,
@@ -93,6 +106,10 @@ the command must have the appropriate permissions and a partial deletion cannot 
 against.`}
 
 }
+
+var initFlags *flag.FlagSet
+var initDemo bool
+var initAll string
 
 var globalConfig = "/etc/geneos/geneos.json"
 
@@ -187,28 +204,14 @@ func checkDefault(v *string, d string) {
 //
 // initialise a geneos installation
 //
-// take defaults from global or user config if they exist
-// if not then parameters:
-// defaults - current (non-root) user and home directory
-// or
-// e.g. 'sudo geneos init username /homedir'
-// also creates config files if they don't exist, but no
-// update to allow multiple parallel installs
+// if no directory given and not running as root and the last component of the user's
+// home direcvtory is NOT "geneos" then create a directory "geneos", else
 //
-// if not called as superuser "do the right thing", set
-// ownerships to current user, create user config file
-// and not global
-//
-// as root:
-// 'geneos init user [dir]' = dir defaults to $HOME/geneos for the user given
-// - global config *is* overwritten, user config is removed
-//
-// as user:
-// 'geneos init [dir]' - similarly dir defaults to $HOME/geneos, providing user
-// is an error. user config is overwritten
 //
 func commandInit(ct ComponentType, args []string, params []string) (err error) {
 	var c ConfigType
+
+	// none of the arguments can be a reserved type
 	if ct != None {
 		return ErrInvalidArgs
 	}
@@ -238,13 +241,20 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 
 	var dir string
 	if len(args) == 1 {
-		// if a user's homedir then add geneos, unless ?
-		dir = filepath.Join(u.HomeDir, "geneos")
+		// If user's home dir doesn't end in "geneos" then create a directory "geneos" else
+		// use the home directory directly
+		dir = u.HomeDir
+		if filepath.Base(u.HomeDir) != "geneos" {
+			dir = filepath.Join(u.HomeDir, "geneos")
+		}
 	} else {
 		// must be an absolute path or relative to given user's home
 		dir = args[1]
 		if !strings.HasPrefix(dir, "/") {
-			dir = filepath.Join(u.HomeDir, dir)
+			dir = u.HomeDir
+			if filepath.Base(u.HomeDir) != "geneos" {
+				dir = filepath.Join(u.HomeDir, dir)
+			}
 		}
 	}
 
@@ -298,7 +308,10 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	u, _ := user.Current()
 	switch len(args) {
 	case 0: // default home + geneos
-		dir = filepath.Join(u.HomeDir, "geneos")
+		dir = u.HomeDir
+		if filepath.Base(u.HomeDir) != "geneos" {
+			dir = filepath.Join(u.HomeDir, "geneos")
+		}
 	case 1: // home = abs path
 		dir, _ = filepath.Abs(args[0])
 	default:
@@ -312,8 +325,11 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 		if err != nil {
 			logError.Fatalln(err)
 		}
-		if len(dirs) != 0 {
-			logError.Fatalf("target directory %q exists and is not empty", dir)
+		// ignore dot files
+		for _, entry := range dirs {
+			if !strings.HasPrefix(entry.Name(), ".") {
+				logError.Fatalf("target directory %q exists and is not empty", dir)
+			}
 		}
 	} else {
 		// need to create out own, chown base directory only
@@ -720,4 +736,10 @@ func deleteInstance(c Instance, params []string) (err error) {
 	}
 	log.Println(Type(c), Name(c), "must be disabled before delete")
 	return nil
+}
+
+func initFlag(command string, args []string) []string {
+	initFlags.Parse(args)
+	checkHelpFlag(command)
+	return initFlags.Args()
 }

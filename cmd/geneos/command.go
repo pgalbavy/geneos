@@ -26,6 +26,8 @@ type Command struct {
 	ParseArgs func([]string) (ComponentType, []string, []string)
 	// Command Syntax
 	CommandLine string
+	// Short description
+	Summary string
 	// More detailed help
 	Description string // details
 }
