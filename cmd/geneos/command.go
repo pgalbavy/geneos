@@ -99,11 +99,6 @@ func loadConfig(c Instance, update bool) (err error) {
 // will add more details such as working directories, user and group etc.
 func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 	binary := getString(c, Prefix(c)+"Exec")
-	// test binary for access - fail early
-	if _, err := os.Stat(binary); err != nil {
-		log.Println(err)
-		return
-	}
 
 	cm, ok := components[Type(c)]
 	if !ok {

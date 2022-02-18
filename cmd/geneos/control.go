@@ -80,6 +80,11 @@ func startInstance(c Instance, params []string) (err error) {
 		return ErrDisabled
 	}
 
+	binary := getString(c, Prefix(c)+"Exec")
+	if _, err = os.Stat(binary); err != nil {
+		return
+	}
+
 	cmd, env := buildCmd(c)
 	if cmd == nil {
 		return fmt.Errorf("buildCommand returned nil")
