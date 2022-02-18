@@ -51,7 +51,6 @@ func licdCommand(c Instance) (args, env []string) {
 		getIntAsString(c, Prefix(c)+"Port"),
 		"-log",
 		getLogfilePath(c),
-		// enable stats by default
 	}
 
 	return

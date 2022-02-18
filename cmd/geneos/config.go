@@ -16,24 +16,49 @@ import (
 func init() {
 	commands["init"] = Command{
 		Function:    commandInit,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  initFlag,
 		ParseArgs:   nil,
 		CommandLine: `geneos init [-d] [-a FILE] [USERNAME] [DIRECTORY]`,
-		Description: `Initialise a geneos installation by creating a suitable directory hierarhcy and
-a user configuration file, setting the username and directory given as defaults.
-If 'username' is supplied then the command must either be run as root or the given user.
-If 'directory' is given then the parent directory must be writable by the user, unless
-running as root, otherwise a 'geneos' directory is created in the user's home area.
-If run as root a username MUST be given and only the username specific configuration
-file is created. If the directory exists then it must be empty. Exmaple:
+		Summary:     `Initialise a Geneos installation`,
+		Description: `Initialise a Geneos installation by creating the directory hierarchy and
+user configuration file, with the USERNAME and DIRECTORY if supplied.
+DIRECTORY must be an absolute path and this is used to distinguish it
+from USERNAME.
+
+DIRECTORY defaults to ${HOME}/geneos for the selected user
+unless the last compoonent of ${HOME} is 'geneos' in which case the
+home directory is used. e.g. if the user is 'geneos' and the home
+directory is '/opt/geneos' then that is used, but if it were a user
+'itrs' which a home directory of '/home/itrs' then the directory
+'home/itrs/geneos' would be used. This only applies when no DIRECTORY
+is explicitly supplied.
+
+When DIRECTORY is given it must be an absolute path and the parent
+directory must be writable by the user - either running the command
+or given as USERNAME.
+
+DIRECTORY, whether explict or implied, must not exist or be empty of
+all except "dot" files and directories.
+
+When run with superuser privileges a USERNAME must be supplied and
+only the configuration file for that user is created. e.g.:
 
 	sudo geneos init geneos /opt/itrs
 
-If the "-d" flag is given then the command performs all the steps necessary to initialise and start
-a basic system using the demo features of the gateway to avoid need for a license file.
+When USERNAME is supplied then the command must either be run with
+superuser privileges or be run by the same user.
 
-If the "-a" flag is given along with the path to a license file then all the necessary steps are
-run to initialise 
+Flags:
+
+If the "-d" flag is given then the command performs all the steps
+necessary to initialise and start a basic system using the demo
+features of the gateway to avoid need for a license file.
+
+If the "-a" flag is given along with the path to a license file then
+all the necessary steps are run to initialise a basic system using
+simple names for all components.
+
+The '-d' and '-a' flags are mutually exclusive.
 `}
 
 	initFlags = flag.NewFlagSet("init", flag.ExitOnError)
@@ -138,17 +163,20 @@ type ConfigType struct {
 	// any words matched by parseComponentName()
 	ReservedNames string `json:",omitempty"`
 
-	GatewayPortRange  string `json:",omitempty"`
-	NetprobePortRange string `json:",omitempty"`
-	LicdPortRange     string `json:",omitempty"`
+	GatewayPortRange   string `json:",omitempty"`
+	NetprobePortRange  string `json:",omitempty"`
+	LicdPortRange      string `json:",omitempty"`
+	WebserverPortRange string `json:",omitempty"`
 
 	// Instance clean-up globs, two per type. Use PathListSep ':'
-	GatewayCleanList  string `json:",omitempty"`
-	GatewayPurgeList  string `json:",omitempty"`
-	NetprobeCleanList string `json:",omitempty"`
-	NetprobePurgeList string `json:",omitempty"`
-	LicdCleanList     string `json:",omitempty"`
-	LicdPurgeList     string `json:",omitempty"`
+	GatewayCleanList   string `json:",omitempty"`
+	GatewayPurgeList   string `json:",omitempty"`
+	NetprobeCleanList  string `json:",omitempty"`
+	NetprobePurgeList  string `json:",omitempty"`
+	LicdCleanList      string `json:",omitempty"`
+	LicdPurgeList      string `json:",omitempty"`
+	WebserverCleanList string `json:",omitempty"`
+	WebserverPurgeList string `json:",omitempty"`
 }
 
 var RunningConfig ConfigType
@@ -187,12 +215,15 @@ func loadSysConfig() {
 	checkDefault(&RunningConfig.GatewayPortRange, gatewayPortRange)
 	checkDefault(&RunningConfig.NetprobePortRange, netprobePortRange)
 	checkDefault(&RunningConfig.LicdPortRange, licdPortRange)
+	checkDefault(&RunningConfig.WebserverPortRange, webserverPortRange)
 	checkDefault(&RunningConfig.GatewayCleanList, defaultGatewayCleanList)
 	checkDefault(&RunningConfig.GatewayPurgeList, defaultGatewayPurgeList)
 	checkDefault(&RunningConfig.NetprobeCleanList, defaultNetprobeCleanList)
 	checkDefault(&RunningConfig.NetprobePurgeList, defaultNetprobePurgeList)
 	checkDefault(&RunningConfig.LicdCleanList, defaultLicdCleanList)
 	checkDefault(&RunningConfig.LicdPurgeList, defaultLicdPurgeList)
+	checkDefault(&RunningConfig.WebserverCleanList, defaultWebserverCleanList)
+	checkDefault(&RunningConfig.WebserverPurgeList, defaultWebserverPurgeList)
 }
 
 func checkDefault(v *string, d string) {
@@ -216,17 +247,44 @@ func commandInit(ct ComponentType, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
+	// cannot pass both flags
+	if initDemo && initAll != "" {
+		return ErrInvalidArgs
+	}
+
 	if superuser {
 		err = initAsRoot(&c, args)
 	} else {
 		err = initAsUser(&c, args)
 	}
+
+	// create a demo environment
+	if initDemo {
+		e := []string{}
+		g := []string{"Demo Gateway"}
+		n := []string{"localhost"}
+		commandDownload(None, e, e)
+		commandNew(Gateway, g, e)
+		commandSet(Gateway, g, []string{"GateOpts=-demo"})
+		commandNew(Netprobe, n, e)
+		// call parseArgs() on an empty list to populate for loopCommand()
+		ct, args, params := parseArgs(e)
+		commandStart(ct, args, params)
+		commandPS(ct, args, params)
+		return
+	}
+
+	// create a basic environment with license file
+	if initAll != "" {
+		return
+	}
+
 	return
 }
 
 func initAsRoot(c *ConfigType, args []string) (err error) {
 	if len(args) == 0 {
-		logError.Fatalln("init requires a user when run as root")
+		logError.Fatalln("init requires a USERNAME when run as root")
 	}
 	username := args[0]
 	uid, gid, _, err := getUser(username)
@@ -241,8 +299,8 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 
 	var dir string
 	if len(args) == 1 {
-		// If user's home dir doesn't end in "geneos" then create a directory "geneos" else
-		// use the home directory directly
+		// If user's home dir doesn't end in "geneos" then create a
+		// directory "geneos" else use the home directory directly
 		dir = u.HomeDir
 		if filepath.Base(u.HomeDir) != "geneos" {
 			dir = filepath.Join(u.HomeDir, "geneos")
@@ -642,11 +700,14 @@ func writeConfigFile(file string, config interface{}) (err error) {
 	}
 
 	dir, name := filepath.Split(file)
+	dir = strings.TrimSuffix(dir, "/")
 	// try to ensure directory exists
-	if err = os.MkdirAll(dir, 0775); err == nil {
-		// change final directory ownership
-		_ = os.Chown(dir, uid, gid)
+	if err = os.MkdirAll(dir, 0775); err != nil {
+		return
 	}
+	// change final directory ownership
+	_ = os.Chown(dir, uid, gid)
+
 	f, err := os.CreateTemp(dir, name)
 	if err != nil {
 		return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
@@ -663,7 +724,7 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		return
 	}
 	if err = f.Chown(uid, gid); err != nil {
-		return err
+		return
 	}
 
 	return os.Rename(f.Name(), file)
