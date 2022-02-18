@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type Licd2 struct {
+type Licds struct {
 	Common
 	BinSuffix string `default:"licd.linux_64"`
 	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
@@ -36,7 +36,7 @@ func init() {
 
 func licdInstance(name string) interface{} {
 	// Bootstrap
-	c := &Licd2{}
+	c := &Licds{}
 	c.Root = RunningConfig.ITRSHome
 	c.Type = Licd.String()
 	c.Name = name
