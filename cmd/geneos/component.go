@@ -64,7 +64,7 @@ type Common struct {
 // currently supported types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 func componentTypes() []ComponentType {
-	return []ComponentType{Gateway, Netprobe, Licd}
+	return []ComponentType{Gateway, Netprobe, Licd, Webserver}
 }
 
 func (ct ComponentType) String() string {
