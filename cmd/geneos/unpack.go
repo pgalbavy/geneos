@@ -239,7 +239,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 				log.Println(err)
 			}
 		}
-	case Gateways, Netprobes, Licds:
+	case Gateway, Netprobe, Licd:
 		if version == "" || version == "latest" {
 			version = latestDir(basedir)
 		}
@@ -365,9 +365,9 @@ type DownloadAuth struct {
 }
 
 var downloadMap = map[ComponentType]string{
-	Gateways:  "Gateway+2",
-	Netprobes: "Netprobe",
-	Licds:     "Licence+Daemon",
+	Gateway:  "Gateway+2",
+	Netprobe: "Netprobe",
+	Licd:     "Licence+Daemon",
 }
 
 // XXX use HEAD to check match and compare to on disk versions

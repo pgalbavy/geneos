@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type Licd struct {
+type Licd2 struct {
 	Common
 	BinSuffix string `default:"licd.linux_64"`
 	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
@@ -25,7 +25,7 @@ type Licd struct {
 const licdPortRange = "7041,7100-"
 
 func init() {
-	components[Licds] = ComponentFuncs{
+	components[Licd] = ComponentFuncs{
 		Instance: licdInstance,
 		Command:  licdCommand,
 		New:      licdNew,
@@ -36,9 +36,9 @@ func init() {
 
 func licdInstance(name string) interface{} {
 	// Bootstrap
-	c := &Licd{}
+	c := &Licd2{}
 	c.Root = RunningConfig.ITRSHome
-	c.Type = Licds.String()
+	c.Type = Licd.String()
 	c.Name = name
 	setDefaults(&c)
 	return c

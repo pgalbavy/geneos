@@ -20,10 +20,10 @@ const (
 	None ComponentType = iota
 	// Unknown - doesn't match component type
 	Unknown
-	Gateways
-	Netprobes
-	Licds
-	Webservers
+	Gateway
+	Netprobe
+	Licd
+	Webserver
 )
 
 type ComponentFuncs struct {
@@ -64,20 +64,20 @@ type Common struct {
 // currently supported types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 func componentTypes() []ComponentType {
-	return []ComponentType{Gateways, Netprobes, Licds}
+	return []ComponentType{Gateway, Netprobe, Licd}
 }
 
 func (ct ComponentType) String() string {
 	switch ct {
 	case None:
 		return "none"
-	case Gateways:
+	case Gateway:
 		return "gateway"
-	case Netprobes:
+	case Netprobe:
 		return "netprobe"
-	case Licds:
+	case Licd:
 		return "licd"
-	case Webservers:
+	case Webserver:
 		return "webserver"
 	}
 	return "unknown"
@@ -88,13 +88,13 @@ func parseComponentName(component string) ComponentType {
 	case "", "any":
 		return None
 	case "gateway", "gateways":
-		return Gateways
+		return Gateway
 	case "netprobe", "probe", "netprobes", "probes":
-		return Netprobes
+		return Netprobe
 	case "licd", "licds":
-		return Licds
+		return Licd
 	case "webserver", "webservers", "webdashboard", "dashboards":
-		return Webservers
+		return Webserver
 	default:
 		return Unknown
 	}

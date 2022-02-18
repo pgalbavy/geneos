@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type Netprobe struct {
+type Netprobes struct {
 	Common
 	BinSuffix string `default:"netprobe.linux_64"`
 	NetpHome  string `default:"{{join .Root \"netprobe\" \"netprobes\" .Name}}"`
@@ -25,7 +25,7 @@ type Netprobe struct {
 const netprobePortRange = "7036,7100-"
 
 func init() {
-	components[Netprobes] = ComponentFuncs{
+	components[Netprobe] = ComponentFuncs{
 		Instance: netprobeInstance,
 		Command:  netprobeCommand,
 		New:      netprobeNew,
@@ -36,9 +36,9 @@ func init() {
 
 func netprobeInstance(name string) interface{} {
 	// Bootstrap
-	c := &Netprobe{}
+	c := &Netprobes{}
 	c.Root = RunningConfig.ITRSHome
-	c.Type = Netprobes.String()
+	c.Type = Netprobe.String()
 	c.Name = name
 	setDefaults(&c)
 	return c

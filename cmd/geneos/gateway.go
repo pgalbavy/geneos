@@ -10,7 +10,7 @@ import (
 	"text/template" // text and not html for generating XML!
 )
 
-type Gateway struct {
+type Gateways struct {
 	Common
 	BinSuffix string `default:"gateway2.linux_64"`
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
@@ -26,8 +26,6 @@ type Gateway struct {
 	GateOpts  string
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
 	GateUser  string
-	// new
-
 }
 
 const gatewayPortRange = "7039,7100-"
@@ -36,7 +34,7 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	components[Gateways] = ComponentFuncs{
+	components[Gateway] = ComponentFuncs{
 		Instance: gatewayInstance,
 		Command:  gatewayCommand,
 		New:      gatewayNew,
@@ -47,9 +45,9 @@ func init() {
 
 func gatewayInstance(name string) interface{} {
 	// Bootstrap
-	c := &Gateway{}
+	c := &Gateways{}
 	c.Root = RunningConfig.ITRSHome
-	c.Type = Gateways.String()
+	c.Type = Gateway.String()
 	c.Name = name
 	setDefaults(&c)
 	return c
