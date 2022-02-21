@@ -185,11 +185,13 @@ var initDirs = []string{
 	"packages/netprobe",
 	"packages/gateway",
 	"packages/licd",
+	"packages/webserver",
 	"netprobe/netprobes",
 	"gateway/gateways",
 	"gateway/gateway_shared",
 	"gateway/gateway_config",
 	"licd/licds",
+	"webserver/webservers",
 }
 
 // load system config from global and user JSON files and process any

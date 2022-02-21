@@ -85,7 +85,7 @@ func commandUnpack(ct ComponentType, files []string, params []string) (err error
 		}
 		defer gz.Close()
 
-		if err = unarchive(filename, gz); err != nil {
+		if err = unarchive(ct, filename, gz); err != nil {
 			log.Println(err)
 			return err
 		}
@@ -124,27 +124,22 @@ func downloadComponent(ct ComponentType, version string) (err error) {
 
 		log.Println("fetched", ct.String(), filename)
 
-		if err = unarchive(filename, gz); err != nil {
+		if err = unarchive(ct, filename, gz); err != nil {
 			return err
 		}
 		return updateToVersion(ct, version, false)
 	}
 }
 
-var archiveRE = regexp.MustCompile(`^geneos-(\w+)-([\w\.-]+?)[\.-]?linux`)
+var archiveRE = regexp.MustCompile(`^geneos-(web-server|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func unarchive(filename string, gz io.Reader) (err error) {
+func unarchive(ct ComponentType, filename string, gz io.Reader) (err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
 		logError.Fatalf("invalid archive name format: %q", filename)
 	}
-	comp := parseComponentName(parts[1])
-	if comp == None || comp == Unknown {
-		log.Println("component type required")
-		return
-	}
 	version := parts[2]
-	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", comp.String(), version)
+	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String(), version)
 	if _, err = os.Stat(basedir); err == nil {
 		return fmt.Errorf("%s: %w", basedir, fs.ErrExist)
 	}
@@ -170,10 +165,15 @@ func unarchive(filename string, gz io.Reader) (err error) {
 			return
 		}
 		// log.Println("file:", hdr.Name, "size", hdr.Size)
-		// strip leading component name
+		// strip leading component name (XXX - except webserver)
 		// do not trust tar archives to contain safe paths
 		var name string
-		name = strings.TrimPrefix(hdr.Name, comp.String()+"/")
+		switch ct {
+		case Webserver:
+			name = hdr.Name
+		default:
+			name = strings.TrimPrefix(hdr.Name, ct.String()+"/")
+		}
 		if name == "" {
 			continue
 		}
@@ -184,6 +184,12 @@ func unarchive(filename string, gz io.Reader) (err error) {
 		fullpath := filepath.Join(basedir, name)
 		switch hdr.Typeflag {
 		case tar.TypeReg:
+			// check (and created) containing directories - account for munged tar files
+			dir := filepath.Dir(fullpath)
+			if err = os.MkdirAll(dir, 0777); err != nil {
+				return
+			}
+
 			out, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
 			if err != nil {
 				return err
@@ -239,7 +245,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 				log.Println(err)
 			}
 		}
-	case Gateway, Netprobe, Licd:
+	case Gateway, Netprobe, Licd, Webserver:
 		if version == "" || version == "latest" {
 			version = latestDir(basedir)
 		}
@@ -365,9 +371,10 @@ type DownloadAuth struct {
 }
 
 var downloadMap = map[ComponentType]string{
-	Gateway:  "Gateway+2",
-	Netprobe: "Netprobe",
-	Licd:     "Licence+Daemon",
+	Gateway:   "Gateway+2",
+	Netprobe:  "Netprobe",
+	Licd:      "Licence+Daemon",
+	Webserver: "Web+Dashboard",
 }
 
 // XXX use HEAD to check match and compare to on disk versions
