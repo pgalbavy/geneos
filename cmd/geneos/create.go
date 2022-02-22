@@ -188,8 +188,6 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 		logError.Fatalln("no file/url provided")
 	}
 
-	// eventually loop through all params
-
 	for _, source := range params {
 		if err = uploadFile(c, source); err != nil {
 			return
