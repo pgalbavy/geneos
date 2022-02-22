@@ -2,8 +2,6 @@
 
 (unordered)
 
-* Add options to init command to do all basic steps for a simple environment
-* Allow immediate passing in of a license file to the 'init' command - then create a licd instance
 * Positive confirmations of all commands unless quiet mode - PARTIAL
   * Should be an 'action taken' return from commands for output
 * Command line verbosity control - PARTIAL
@@ -27,4 +25,5 @@
 * support download versions - done?
 * web dashboard - mostly done, better port numbers and ssl to do
 * FIX2 netprobe
-* modularise component types, make future addins easier
+* modularise component types, make future addins easier - PARTIAL
+* Add one line help entries to commands
