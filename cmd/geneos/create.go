@@ -180,9 +180,6 @@ func commandUpload(ct ComponentType, args []string, params []string) (err error)
 //
 // local directroreies are created
 func uploadInstance(c Instance, args []string, params []string) (err error) {
-	var destfile, backuppath string
-	var from io.ReadCloser
-
 	if Type(c) == None || Type(c) == Unknown {
 		return ErrNotSupported
 	}
@@ -190,21 +187,33 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	if len(params) == 0 {
 		logError.Fatalln("no file/url provided")
 	}
-	destdir := Home(c)
+
+	// eventually loop through all params
+
+	for _, source := range params {
+		if err = uploadFile(c, source); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func uploadFile(c Instance, source string) (err error) {
+	var backuppath string
+	var from io.ReadCloser
 
 	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
 	if err != nil {
 		return err
 	}
 
-	// eventually loop through all params
+	destdir := Home(c)
+	destfile := ""
 
-	source := params[0]
-
-	splitsource := strings.SplitN(source, "=", 2)
-	if len(splitsource) > 1 {
-		// if the left is a http(s) url then skip '=' split (protect queries)
-		if !strings.HasPrefix(splitsource[0], "https://") && !strings.HasPrefix(splitsource[0], "http://") {
+	// if the source is a http(s) url then skip '=' split (protect queries in URL)
+	if !strings.HasPrefix(source, "https://") && !strings.HasPrefix(source, "http://") {
+		splitsource := strings.SplitN(source, "=", 2)
+		if len(splitsource) > 1 {
 			// do some basic validation on user-supplied destination
 			if splitsource[0] == "" {
 				logError.Fatalln("dest path empty")
