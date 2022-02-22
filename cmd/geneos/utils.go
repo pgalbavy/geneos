@@ -26,8 +26,8 @@ import (
 // locate a process by compoent type and name
 //
 // the component type must be part of the basename of the executable and
-// the component name must be on the command line as an exact and standalone
-// args
+// the component name must be on the command line as an exact and
+// standalone args
 //
 func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 	var pids []int
@@ -51,13 +51,35 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 		}
 		args := bytes.Split(data, []byte("\000"))
 		bin := filepath.Base(string(args[0]))
-		if strings.HasPrefix(bin, Type(c).String()) {
+		switch Type(c) {
+		case Webserver:
+			var wdOK, jarOK bool
+			if bin != "java" {
+				continue
+			}
 			for _, arg := range args[1:] {
-				if string(arg) == Name(c) {
+				if string(arg) == "-Dworking.directory="+Home(c) {
+					wdOK = true
+				}
+				if strings.HasSuffix(string(arg), "geneos-web-server.jar") {
+					jarOK = true
+				}
+				if wdOK && jarOK {
 					if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
 						st = s.Sys().(*syscall.Stat_t)
 					}
 					return
+				}
+			}
+		default:
+			if strings.HasPrefix(bin, Type(c).String()) {
+				for _, arg := range args[1:] {
+					if string(arg) == Name(c) {
+						if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
+							st = s.Sys().(*syscall.Stat_t)
+						}
+						return
+					}
 				}
 			}
 		}
