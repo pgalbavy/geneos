@@ -421,9 +421,9 @@ func removePathList(c Instance, paths string) (err error) {
 	return
 }
 
-// logdir = Logd relative to Home or absolute
+// logdir = LogD relative to Home or absolute
 func getLogfilePath(c Instance) (logdir string) {
-	logd := filepath.Clean(getString(c, Prefix(c)+"Logd"))
+	logd := filepath.Clean(getString(c, Prefix(c)+"LogD"))
 	switch {
 	case logd == "":
 		logdir = Home(c)
