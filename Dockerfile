@@ -16,7 +16,4 @@ RUN apt update && apt install -y fontconfig
 RUN useradd -ms /bin/bash geneos
 USER geneos
 WORKDIR /home/geneos
-EXPOSE 8080/tcp
-# ENV ITRS_HOME=/home/geneos
-RUN geneos init
 CMD [ "bash" ]

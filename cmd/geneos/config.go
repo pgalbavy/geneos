@@ -260,6 +260,9 @@ func commandInit(ct ComponentType, args []string, params []string) (err error) {
 		err = initAsUser(&c, args)
 	}
 
+	// now reload config, after init
+	loadSysConfig()
+
 	// create a demo environment
 	if initDemo {
 		e := []string{}
@@ -269,6 +272,7 @@ func commandInit(ct ComponentType, args []string, params []string) (err error) {
 		commandNew(Gateway, g, e)
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
 		commandNew(Netprobe, n, e)
+		commandNew(Webserver, []string{"demo"}, e)
 		// call parseArgs() on an empty list to populate for loopCommand()
 		ct, args, params := parseArgs(e)
 		commandStart(ct, args, params)
@@ -278,7 +282,24 @@ func commandInit(ct ComponentType, args []string, params []string) (err error) {
 
 	// create a basic environment with license file
 	if initAll != "" {
-		return
+		h, err := os.Hostname()
+		if err != nil {
+			return err
+		}
+		e := []string{}
+		g := []string{h}
+		n := []string{"localhost"}
+		commandDownload(None, e, e)
+		commandNew(Licd, g, e)
+		commandUpload(Licd, g, []string{"geneos.lic=" + initAll})
+		commandNew(Gateway, g, e)
+		commandNew(Netprobe, n, e)
+		commandNew(Webserver, g, e)
+		// call parseArgs() on an empty list to populate for loopCommand()
+		ct, args, params := parseArgs(e)
+		commandStart(ct, args, params)
+		commandPS(ct, args, params)
+		return nil
 	}
 
 	return
