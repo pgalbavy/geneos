@@ -2,7 +2,6 @@
 
 (unordered)
 
-* Fix bootstrapping of ITRSHome with the 'geneos set user ITRSHome=xxx' command
 * Add options to init command to do all basic steps for a simple environment
 * Allow immediate passing in of a license file to the 'init' command - then create a licd instance
 * Positive confirmations of all commands unless quiet mode - PARTIAL
@@ -26,6 +25,6 @@
 * standalone collection agent
 * centralised config
 * support download versions - done?
-* web dashboard
+* web dashboard - mostly done, better port numbers and ssl to do
 * FIX2 netprobe
 * modularise component types, make future addins easier
