@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strconv"
 )
@@ -19,12 +20,12 @@ type Webservers struct {
 	WebsPort int    `default:"8080"`
 	WebsOpts string
 	WebsLibs string `default:"{{join .WebsBins .WebsBase \"JRE/lib\"}}:{{join .WebsBins .WebsBase \"lib64\"}}"`
-	WebsXmx  string `default:"512M"`
+	WebsXmx  string `default:"1024M"`
 
 	WebsUser string
 }
 
-const webserverPortRange = "7041,7100-"
+const webserverPortRange = "8080,8100-"
 
 func init() {
 	components[Webserver] = ComponentFuncs{
@@ -50,26 +51,52 @@ func webserverCommand(c Instance) (args, env []string) {
 	WebsHome := getString(c, Prefix(c)+"Home")
 	WebsBase := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"))
 	args = []string{
-		"-Duser.home=" + WebsHome,
+		// "-Duser.home=" + WebsHome,
+		"-XX:+UseConcMarkSweepGC",
 		"-Xmx" + getString(c, Prefix(c)+"Xmx"),
+		"-server",
+		"-Djava.io.tmpdir=" + WebsHome + "/webapps",
 		"-Djava.awt.headless=true",
-		"-Dcom.itrsgroup.configuration.file=" + WebsHome + "/config/config.xml",
 		"-DsecurityConfig=" + WebsHome + "/config/security.xml",
+		"-Dcom.itrsgroup.configuration.file=" + WebsHome + "/config/config.xml",
+		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
 		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
 		"-Djava.library.path=" + getString(c, Prefix(c)+"Libs"),
-		"-Dlog4j.configuration=file:" + WebsHome + "/config/log4j.properties",
+		"-Dlog4j2.configurationFile=file:" + WebsHome + "/config/log4j2.properties",
 		"-Dworking.directory=" + WebsHome,
 		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
+		// SSO
+		"-Dcom.itrsgroup.sso.config.file=" + WebsHome + "/config/sso.properties",
+		"-Djava.security.auth.login.config=" + WebsHome + "/config/login.conf",
+		"-Djava.security.krb5.conf=/etc/krb5.conf",
 		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
 		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",
-		"-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp",
+		"-XX:+HeapDumpOnOutOfMemoryError",
+		"-XX:HeapDumpPath=/tmp",
 		"-jar", WebsBase + "/geneos-web-server.jar",
 		"-dir", WebsBase + "/webapps",
 		"-port", getIntAsString(c, Prefix(c)+"Port"),
-		"-log", getLogfilePath(c),
+		// "-ssl true",
+		"-maxThreads 254",
+		// "-log", getLogfilePath(c),
 	}
 
 	return
+}
+
+// list of file patterns to copy?
+// from WebBins + WebBase + /config
+
+var webserverFiles = []string{
+	"config/config.xml=config.xml.min.tmpl",
+	"config/=log4j.properties",
+	"config/=log4j2.properties",
+	"config/=logging.properties",
+	"config/=login.conf",
+	"config/=security.properties",
+	"config/=security.xml",
+	"config/=sso.properties",
+	"config/=users.properties",
 }
 
 func webserverNew(name string, username string) (c Instance, err error) {
@@ -83,7 +110,25 @@ func webserverNew(name string, username string) (c Instance, err error) {
 	}
 	conffile := filepath.Join(Home(c), Type(c).String()+".json")
 	err = writeConfigFile(conffile, c)
-	// default config XML etc.
+
+	// copy default configs - use existing upload routines?
+	dir, err := os.Getwd()
+	defer os.Chdir(dir)
+	configSrc := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "config")
+	if err = os.Chdir(configSrc); err != nil {
+		return
+	}
+
+	if err = os.MkdirAll(filepath.Join(Home(c), "webapps"), 0777); err != nil {
+		return
+	}
+
+	for _, source := range webserverFiles {
+		if err = uploadFile(c, source); err != nil {
+			return
+		}
+	}
+
 	return
 }
 
