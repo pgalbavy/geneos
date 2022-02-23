@@ -19,7 +19,8 @@ func init() {
 		ParseFlags:  logsFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos logs [FLAGS] [TYPE] [NAME...]",
-		Description: `Show logs for matching instances.
+		Summary:     `Show log(s) for instances.`,
+		Description: `Show log(s) for instances.
 
 FLAGS:
 	-n NUM		- show last NUM lines, default 10
@@ -32,7 +33,7 @@ FLAGS:
 -c and -f cannot be combined
 -n is ignored when -c is given
 
-When one instance given just stream, otherwise each output block is prefixed by instance details.
+When more than one instance matches each output block is prefixed by instance details.
 `}
 
 	logsFlags = flag.NewFlagSet("logs", flag.ExitOnError)

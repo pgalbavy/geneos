@@ -23,6 +23,7 @@ func init() {
 		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
 		CommandLine: "geneos unpack FILE [FILE...]",
+		Summary:     `Unpack the given downloaded software archive. Intended for sites without Internet access.`,
 		Description: `Unpacks the supplied archive FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
@@ -34,6 +35,7 @@ The directory for the package is created using the VERSION from the archive file
 		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
 		CommandLine: "geneos download [TYPE] [latest|FILTER|URL...]",
+		Summary:     `Download and unpack Geneos software archive.`,
 		Description: `Download and unpack the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
@@ -47,6 +49,7 @@ for the package is created using the VERSION from the archive filename.`}
 		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
 		CommandLine: "geneos update [TYPE] VERSION",
+		Summary:     `Update the active version of Geneos software.`,
 		Description: `Update the symlink for the default base name of the package used to VERSION. The base directory,
 for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
 in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not

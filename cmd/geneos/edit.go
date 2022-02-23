@@ -13,6 +13,7 @@ func init() {
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos edit [global|user]
 	geneos edit [TYPE] [NAME...]`,
+		Summary: `Open a test editor for instance configuration file.`,
 		Description: `Open a text editor for JSON configuration file(s). If the literal word 'global' or 'user' is
 supplied then the respective non-instance specific configuration file is opened, otherwise one
 or more configuration files are opened, depending on if TYPE and NAME(s) are supplied. The text

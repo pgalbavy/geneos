@@ -6,9 +6,10 @@ func init() {
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos reload [TYPE] [NAME...]",
+		Summary:     `Signal the instance to reload it's configuration, if supported.`,
 		Description: `Signal the matching instances to reload their configurations, depending on the component TYPE.
 
-Not fully implemented except for Gateways.`}
+Not implemented except for Gateways.`}
 }
 
 func commandReload(ct ComponentType, args []string, params []string) error {

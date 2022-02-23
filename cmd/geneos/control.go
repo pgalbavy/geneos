@@ -18,6 +18,7 @@ func init() {
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: `geneos start [TYPE] [NAME...]`,
+		Summary:     `Start one or more instances.`,
 		Description: `Start one or more matching instances. All instances are run in the background and
 STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
 
@@ -26,6 +27,7 @@ STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
 		ParseFlags:  stopFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: `geneos stop [-f] [TYPE] [NAME...]`,
+		Summary:     `Stop one or more instances`,
 		Description: `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and
 if the instance is still running after a few seconds then a SIGKILL is sent. If the -f flag
 is given the instance(s) are immediately terminated with a SIGKILL.`}
@@ -39,6 +41,7 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 		ParseFlags:  restartFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos restart [TYPE] [NAME...]",
+		Summary:     `Restart one or more instances.`,
 		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`}
 
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
@@ -50,6 +53,7 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos disable [TYPE] [NAME...]",
+		Summary:     `Disable (and stop) one or more instances.`,
 		Description: `Mark any matching instances as disabled. The instances are also stopped.`}
 
 	commands["enable"] = Command{
@@ -57,7 +61,8 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos enable [TYPE] [NAME...]",
-		Description: `Mark any matcing instances as enabled and if this changes stateus then start the instance.`}
+		Summary:     `Enable one or more instances. Only previously disabled instances are started.`,
+		Description: `Mark any matcing instances as enabled and if this changes status then start the instance.`}
 }
 
 var stopFlags *flag.FlagSet

@@ -14,6 +14,7 @@ func init() {
 		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
 		CommandLine: "geneos version",
+		Summary:     `Show version details.`,
 		Description: `Display the current version number: ` + releaseVersion}
 
 	commands["help"] = Command{
@@ -21,6 +22,7 @@ func init() {
 		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
 		CommandLine: "geneos help [COMMAND]",
+		Summary:     `Show help text for command.`,
 		Description: `This command. Shows either a list of available commands or the help for the given COMMAND.`}
 
 	defaultFlags = flag.NewFlagSet("default", flag.ContinueOnError)

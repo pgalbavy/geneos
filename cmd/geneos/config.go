@@ -71,6 +71,7 @@ The '-d' and '-a' flags are mutually exclusive.
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos migrate [TYPE] [NAME...]",
+		Summary:     `Migrate legacy .rc configuration to .json`,
 		Description: `Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
 .rc.orig.`}
 
@@ -79,6 +80,7 @@ The '-d' and '-a' flags are mutually exclusive.
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: `geneos revert [TYPE] [NAME...]`,
+		Summary:     `Revert migration of .rc files from backups.`,
 		Description: `Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
 Any changes to the instance configuration since initial migration will be lost as the .rc file
 is never written to.`}
@@ -90,6 +92,7 @@ is never written to.`}
 		CommandLine: `geneos show
 	geneos show [global|user]
 	geneos show [TYPE] [NAME...]`,
+		Summary: `Show runtime, global, user or instance configuration is JSON format`,
 		Description: `Show the JSON format configuration. With no arguments show the running configuration that
 results from loading the global and user configurations and resolving any enviornment variables that
 override scope. If the liternal keyword 'global' or 'user' is supplied then any on-disk configuration
@@ -106,7 +109,7 @@ casual viewing.`}
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
-
+		Summary:     `Set runtime, global, user or instance configuration parameters`,
 		Description: `Set a value in the configuration of either the user, globally or for a specific instance.`}
 
 	commands["rename"] = Command{
@@ -114,8 +117,9 @@ casual viewing.`}
 		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
 		CommandLine: `geneos rename TYPE FROM TO`,
-		Description: `Rename the matching instance. TYPE is requied to resolve any ambiguities if two instances
-share the same name. No configuration changes outside the instance JSON config file are done. As
+		Summary:     `Rename an instance`,
+		Description: `Rename an instance. TYPE is requied to resolve any ambiguities if two instances
+share the same name. No configuration changes outside the instance JSON config file. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
 The instance is stopped and restarted after the instance directory and configuration are changed.
 It is an error to try to rename an instance to one that already exists with the same name.`}
@@ -125,6 +129,7 @@ It is an error to try to rename an instance to one that already exists with the 
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: `geneos delete [TYPE] [NAME...]`,
+		Summary:     `Delete an instance. Instance must be stopped.`,
 		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
 accidental deletion. The instance directory is removed without being backed-up. The user running
 the command must have the appropriate permissions and a partial deletion cannot be protected

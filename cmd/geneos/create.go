@@ -20,6 +20,7 @@ func init() {
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos new TYPE NAME",
+		Summary:     `Create a new instance`,
 		Description: `Create a new instance called NAME with the TYPE supplied. The details will depends on the
 TYPE. Currently the listening port is selected automatically and other options are defaulted. If
 these need to be changed before starting, see the edit command.
@@ -31,7 +32,8 @@ Gateways are given a minimal configuration file.`}
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos upload [TYPE] NAME [DEST=]SRC",
-		Description: `Upload a file to the instance directory. This can be used to add configuration or license
+		Summary:     `Upload file(s) to an instance.`,
+		Description: `Upload file(s) to the instance directory. This can be used to add configuration or license
 files or scripts for gateways and netprobes to run. The SRC can be a local path or a url or a '-'
 for stdin. DEST is local pathname ending in either a filename or a directory. Is the SRC is '-'
 then a DEST must be provided. If DEST includes a path then it must be relative and cannot contain
