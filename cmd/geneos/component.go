@@ -93,7 +93,7 @@ func parseComponentName(component string) ComponentType {
 		return Netprobe
 	case "licd", "licds":
 		return Licd
-	case "webserver", "webservers", "webdashboard", "dashboards":
+	case "web-server", "webserver", "webservers", "webdashboard", "dashboards":
 		return Webserver
 	default:
 		return Unknown

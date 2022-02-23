@@ -77,7 +77,7 @@ Future version may support selecting a base other than 'active_prod'.`}
 //
 func commandUnpack(ct ComponentType, files []string, params []string) (err error) {
 	if ct != None {
-		logError.Fatalln("Must not specify a compoenent type, only archive files")
+		logError.Fatalln("Must not specify a component type, only archive files")
 	}
 
 	for _, archive := range files {
@@ -88,7 +88,7 @@ func commandUnpack(ct ComponentType, files []string, params []string) (err error
 		}
 		defer gz.Close()
 
-		if err = unarchive(ct, filename, gz); err != nil {
+		if _, err = unarchive(ct, filename, gz); err != nil {
 			log.Println(err)
 			return err
 		}
@@ -125,26 +125,40 @@ func downloadComponent(ct ComponentType, version string) (err error) {
 		}
 		defer gz.Close()
 
-		log.Println("fetched", ct.String(), filename)
+		log.Println("downloaded", ct.String(), filename)
 
-		if err = unarchive(ct, filename, gz); err != nil {
+		var finalVersion string
+		if finalVersion, err = unarchive(ct, filename, gz); err != nil {
 			return err
 		}
-		return updateToVersion(ct, version, false)
+		if version == "latest" {
+			return updateToVersion(ct, finalVersion, true)
+		}
+		return updateToVersion(ct, finalVersion, false)
 	}
 }
 
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func unarchive(ct ComponentType, filename string, gz io.Reader) (err error) {
+func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
 		logError.Fatalf("invalid archive name format: %q", filename)
 	}
 	version := parts[2]
+	filect := parseComponentName(parts[1])
+	switch ct {
+	case None:
+		ct = filect
+	case filect:
+		break
+	default:
+		// mismatch
+		logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
+	}
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String(), version)
 	if _, err = os.Stat(basedir); err == nil {
-		return fmt.Errorf("%s: %w", basedir, fs.ErrExist)
+		return "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
 	}
 	if err = os.MkdirAll(basedir, 0775); err != nil {
 		return
@@ -195,12 +209,12 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (err error) {
 
 			out, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
 			if err != nil {
-				return err
+				return "", err
 			}
 			n, err := io.Copy(out, tr)
 			if err != nil {
 				out.Close()
-				return err
+				return "", err
 			}
 			if n != hdr.Size {
 				log.Println("lengths different:", hdr.Size, n)
@@ -224,6 +238,7 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (err error) {
 		}
 	}
 	log.Printf("unpacked %q to %q\n", filename, basedir)
+	finalVersion = filepath.Base(basedir)
 	return
 }
 
@@ -240,6 +255,8 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 	base := "active_prod"
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String())
 	basepath := filepath.Join(basedir, base)
+
+	logDebug.Printf("checking and updating %q to %q", base, version)
 
 	switch ct {
 	case None:
@@ -266,7 +283,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 		}
 		// empty current is fine
 		if current == version {
-			log.Println(ct, base, "is already linked to", version)
+			logDebug.Println(ct, base, "is already linked to", version)
 			return nil
 		}
 		insts := matchComponents(ct, "Base", base)

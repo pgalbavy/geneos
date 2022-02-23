@@ -26,4 +26,3 @@
 * web dashboard - mostly done, better port numbers and ssl to do
 * FIX2 netprobe
 * modularise component types, make future addins easier - PARTIAL
-* Add one line help entries to commands
