@@ -73,10 +73,12 @@ func gatewayCommand(c Instance) (args, env []string) {
 	}
 
 	if licdhost != "localhost" {
+		args = append(args, "-licd-host")
 		args = append(args, licdhost)
 	}
 
 	if licdport != "7041" {
+		args = append(args, "-licd-port")
 		args = append(args, licdport)
 	}
 
