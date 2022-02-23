@@ -677,10 +677,8 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 
 func setConfig(filename string, params []string) (err error) {
 	var c ConfigType
-	if err = readConfigFile(filename, &c); err != nil {
-		// ignore err - config may not exist, but that's OK
-		// return
-	}
+	// ignore err - config may not exist, but that's OK
+	_ = readConfigFile(filename, &c)
 	// change here
 	for _, set := range params {
 		// skip all non '=' args
