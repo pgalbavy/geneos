@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,7 +14,8 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-const releaseVersion = "v0.7.1"
+//go:embed VERSION
+var releaseVersion string
 
 func init() {
 	if os.Geteuid() == 0 || os.Getuid() == 0 {
