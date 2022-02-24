@@ -68,7 +68,11 @@ func commandNew(ct ComponentType, args []string, params []string) (err error) {
 	if !ok || cm.New == nil {
 		return ErrNotSupported
 	}
-	_, err = cm.New(name, username)
+	c, err := cm.New(name, username)
+	if err != nil {
+		return
+	}
+	log.Printf("new %s %q created, listening port %s\n", Type(c), Name(c), getIntAsString(c, Prefix(c)+"Port"))
 
 	return
 }
