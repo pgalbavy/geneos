@@ -135,9 +135,9 @@ func webserverNew(name string, username string) (c Instance, err error) {
 var defaultWebserverCleanList = "*.old"
 var defaultWebserverPurgeList = "webserver.log:webserver.txt"
 
-func webserverClean(c Instance, params []string) (err error) {
+func webserverClean(c Instance, purge bool, params []string) (err error) {
 	logDebug.Println(Type(c), Name(c), "clean")
-	if cleanForce {
+	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
 		if err != nil {

@@ -74,9 +74,9 @@ func licdNew(name string, username string) (c Instance, err error) {
 var defaultLicdCleanList = "*.old"
 var defaultLicdPurgeList = "licd.log:licd.txt"
 
-func licdClean(c Instance, params []string) (err error) {
+func licdClean(c Instance, purge bool, params []string) (err error) {
 	logDebug.Println(Type(c), Name(c), "clean")
-	if cleanForce {
+	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
 		if err != nil {

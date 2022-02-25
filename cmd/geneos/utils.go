@@ -405,16 +405,17 @@ func removePathList(c Instance, paths string) (err error) {
 		// walk globbed directories, remove everything
 		p, err = cleanRelativePath(p)
 		if err != nil {
-			logError.Fatalln(p, err)
+			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
 		m, err := filepath.Glob(filepath.Join(Home(c), p))
 		if err != nil {
-			logError.Fatalln(err)
+			return err
 		}
 		for _, f := range m {
 			if err = os.RemoveAll(f); err != nil {
-				logError.Fatalln(err)
+				log.Println(err)
+				continue
 			}
 		}
 	}

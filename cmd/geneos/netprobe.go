@@ -74,9 +74,9 @@ func netprobeNew(name string, username string) (c Instance, err error) {
 var defaultNetprobeCleanList = "*.old"
 var defaultNetprobePurgeList = "netprobe.log:netprobe.txt:*.snooze:*.user_assignment"
 
-func netprobeClean(c Instance, params []string) (err error) {
+func netprobeClean(c Instance, purge bool, params []string) (err error) {
 	logDebug.Println(Type(c), Name(c), "clean")
-	if cleanForce {
+	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
 		if err != nil {

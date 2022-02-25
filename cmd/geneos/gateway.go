@@ -116,9 +116,9 @@ func gatewayNew(name string, username string) (c Instance, err error) {
 var defaultGatewayCleanList = "*.old:*.history"
 var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
 
-func gatewayClean(c Instance, params []string) (err error) {
+func gatewayClean(c Instance, purge bool, params []string) (err error) {
 	logDebug.Println(Type(c), Name(c), "clean")
-	if cleanForce {
+	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
 		if err != nil {
