@@ -129,8 +129,8 @@ Set a program-wide configuration option. The default is to update the `user` con
 The instance specific version of the `set` command is described below.
 #### Package Managemwent Commands
 
-* `geneos unpack [FILE...]`
-Unpacks a local release archive into the `packages` directory.
+* `geneos extract [FILE...]`
+Extracts a local release archive into the `packages` directory.
 
 * `geneos download [TYPE] [lastest|URL...]`
 Download and install a release archive in the `packages` directory.

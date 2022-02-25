@@ -22,7 +22,6 @@
   * command line options different
 * standalone collection agent
 * centralised config
-* support download versions - done?
 * web dashboard - mostly done, better port numbers and ssl to do
 * FIX2 netprobe
 * modularise component types, make future addins easier - PARTIAL

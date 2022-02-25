@@ -18,13 +18,13 @@ import (
 )
 
 func init() {
-	commands["unpack"] = Command{
-		Function:    commandUnpack,
+	commands["extract"] = Command{
+		Function:    commandExtract,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos unpack FILE [FILE...]",
-		Summary:     `Unpack the given downloaded software archive. Intended for sites without Internet access.`,
-		Description: `Unpacks the supplied archive FILE(s) in to the packages/ directory. The filename(s) must of of the form:
+		CommandLine: "geneos extract FILE [FILE...]",
+		Summary:     `Extract files from downloaded Geneos packages. Intended for sites without Internet access.`,
+		Description: `Extracts files from FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
 
@@ -35,8 +35,8 @@ The directory for the package is created using the VERSION from the archive file
 		ParseFlags:  defaultFlag,
 		ParseArgs:   checkComponentArg,
 		CommandLine: "geneos download [TYPE] [latest|FILTER|URL...]",
-		Summary:     `Download and unpack Geneos software archive.`,
-		Description: `Download and unpack the sources in the packages directory or latest version(s) from
+		Summary:     `Download and extract Geneos software archive.`,
+		Description: `Download and extract the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
 	geneos-TYPE-VERSION*.tar.gz
@@ -75,7 +75,7 @@ Future version may support selecting a base other than 'active_prod'.`}
 // if there is no 'active_prod' link then attach it to the latest version
 // installed
 //
-func commandUnpack(ct ComponentType, files []string, params []string) (err error) {
+func commandExtract(ct ComponentType, files []string, params []string) (err error) {
 	if ct != None {
 		logError.Fatalln("Must not specify a component type, only archive files")
 	}
@@ -237,7 +237,7 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion st
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
 	}
-	log.Printf("unpacked %q to %q\n", filename, basedir)
+	log.Printf("extracted %q to %q\n", filename, basedir)
 	finalVersion = filepath.Base(basedir)
 	return
 }

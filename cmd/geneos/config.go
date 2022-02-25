@@ -93,15 +93,22 @@ is never written to.`}
 	geneos show [global|user]
 	geneos show [TYPE] [NAME...]`,
 		Summary: `Show runtime, global, user or instance configuration is JSON format`,
-		Description: `Show the JSON format configuration. With no arguments show the running configuration that
-results from loading the global and user configurations and resolving any enviornment variables that
-override scope. If the liternal keyword 'global' or 'user' is supplied then any on-disk configuration
-for the respective options will be shown. If a component TYPE and/or instance NAME(s) are supplied
-then the JSON configuration for those instances are output as a JSON array. This is regardless of the
-instance using a legacy .rc file or a native JSON configuration.
+		Description: `Show the runtime, global, user or instance configuration.
 
-Passwords and secrets are redacted in a very simplistic manner simply to prevent visibility in
-casual viewing.`}
+With no arguments show the resolved runtime configuration that
+results from environment variables, loading built-in defaults and the
+global and user configurations.
+
+If the liternal keyword 'global' or 'user' is supplied then any
+on-disk configuration for the respective options will be shown.
+
+If a component TYPE and/or instance NAME(s) are supplied then the
+configuration for those instances are output as JSON. This is
+regardless of the instance using a legacy .rc file or a native JSON
+configuration.
+
+Passwords and secrets are redacted in a very simplistic manner simply
+to prevent visibility in casual viewing.`}
 
 	commands["set"] = Command{
 		Function:   commandSet,
@@ -109,8 +116,21 @@ casual viewing.`}
 		ParseArgs:  parseArgs,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
-		Summary:     `Set runtime, global, user or instance configuration parameters`,
-		Description: `Set a value in the configuration of either the user, globally or for a specific instance.`}
+		Summary: `Set runtime, global, user or instance configuration parameters`,
+		Description: `Set configuration item values in global, user, or for a specific
+instance.
+
+To set enironment variables for an instance use the key Env and the
+value var=value. Each new var=value is additive or overwrites an existing
+entry for 'var', e.g.
+
+	geneos set netprobe localhost Env=JAVA_HOME=/usr/lib/jre
+	geneos set netprobe localhost Env=ORACLE_HOME=/opt/oracle
+
+To remove an environment variable prefix the name with a hyphen '-', e.g.
+
+	geneos set netprobe localhost Env=-JAVA_HOME
+`}
 
 	commands["rename"] = Command{
 		Function:    commandRename,

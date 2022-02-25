@@ -9,7 +9,7 @@ func init() {
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos clean [-f] [TYPE] [NAME...]",
 		Summary:     "Clean-up instance directory",
-		Description: `Clean matching instances, stopping instances if requested for deeper cleaning.
+		Description: `Clean-up instance directories, restarting instances if doing a 'full' clean.
 
 FLAGS:
 	-f - full clean. Stops and restarts instances. Only restarts instances it stopped.
