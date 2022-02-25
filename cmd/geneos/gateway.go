@@ -19,13 +19,15 @@ type Gateways struct {
 	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
 	GateLogD  string
 	GateLogF  string `default:"gateway.log"`
-	GatePort  int    `default:"7039"`
+	GatePort  int
 	GateMode  string `default:"background"`
 	GateLicP  int    `default:"7041"`
 	GateLicH  string `default:"localhost"`
 	GateOpts  string
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
 	GateUser  string
+	GateCert  string `default:"gateway.pem"`
+	GateKey   string `default:"gateway.key"`
 }
 
 const gatewayPortRange = "7039,7100-"
@@ -62,14 +64,17 @@ func gatewayCommand(c Instance) (args, env []string) {
 
 	args = []string{
 		/* "-gateway-name",  */ Name(c),
-		"-port",
-		getIntAsString(c, Prefix(c)+"Port"),
 		"-resources-dir",
 		filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "resources"),
 		"-log",
 		getLogfilePath(c),
 		// enable stats by default
 		"-stats",
+	}
+
+	port := getIntAsString(c, Prefix(c)+"Port")
+	if port != "0" {
+		args = append([]string{"-port", port}, args...)
 	}
 
 	if licdhost != "localhost" {
