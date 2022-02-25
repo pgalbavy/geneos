@@ -19,7 +19,7 @@ type Gateways struct {
 	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
 	GateLogD  string
 	GateLogF  string `default:"gateway.log"`
-	GatePort  int
+	GatePort  int    `json:",omitempty"`
 	GateMode  string `default:"background"`
 	GateLicP  int    `default:"7041"`
 	GateLicH  string `default:"localhost"`
