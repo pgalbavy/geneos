@@ -112,7 +112,6 @@ func secureImport(files []string) (err error) {
 }
 
 func secureInstance(c Instance, params []string) (err error) {
-	log.Println("run for", Type(c), Name(c))
 	if len(params) == 0 {
 		log.Fatalln("you must supply an action to take")
 	}
@@ -169,7 +168,7 @@ func createRootCA(dir string) (err error) {
 		MaxPathLen:            2,
 	}
 
-	cert, rootKey, err := generateCertAndKey(&template, &template, nil)
+	cert, key, err := generateCertAndKey(&template, &template, nil, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -178,7 +177,7 @@ func createRootCA(dir string) (err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = writeKey(rootKey, rootKeyPath)
+	err = writeKey(key, rootKeyPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -199,8 +198,7 @@ func createIntrCA(dir string) (err error) {
 		IsCA:                  true,
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
-		//ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		MaxPathLen: 1,
+		MaxPathLen:            1,
 	}
 
 	rootCert, err := readCert(filepath.Join(dir, rootCAFile+".pem"))
@@ -212,7 +210,7 @@ func createIntrCA(dir string) (err error) {
 		log.Fatalln(err)
 	}
 
-	cert, intrKey, err := generateCertAndKey(&template, rootCert, rootKey)
+	cert, key, err := generateCertAndKey(&template, rootCert, rootKey, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -221,7 +219,7 @@ func createIntrCA(dir string) (err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = writeKey(intrKey, intrKeyPath)
+	err = writeKey(key, intrKeyPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -233,8 +231,12 @@ func createInstanceCert(c Instance) (err error) {
 	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
 
 	host, _ := os.Hostname()
+	serial, err := rand.Prime(rand.Reader, 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(int64(time.Now().Nanosecond())),
+		SerialNumber: serial,
 		Subject: pkix.Name{
 			CommonName: fmt.Sprintf("geneos %s %s certificate", Type(c), Name(c)),
 		},
@@ -256,7 +258,8 @@ func createInstanceCert(c Instance) (err error) {
 		log.Fatalln(err)
 	}
 
-	cert, key, err := generateCertAndKey(&template, intrCert, intrKey)
+	existingKey, _ := loadKey(c)
+	cert, key, err := generateCertAndKey(&template, intrCert, intrKey, existingKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -265,9 +268,12 @@ func createInstanceCert(c Instance) (err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = saveKey(c, key)
-	if err != nil {
-		log.Fatalln(err)
+
+	if existingKey == nil {
+		err = saveKey(c, key)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	log.Println("certificate created for", Type(c), Name(c))
@@ -303,7 +309,7 @@ func writeKey(key *rsa.PrivateKey, path string) (err error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
 
-	err = os.WriteFile(path, keyPEM, 0400)
+	err = os.WriteFile(path, keyPEM, 0640)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -321,12 +327,13 @@ func saveKey(c Instance, key *rsa.PrivateKey) (err error) {
 func readCert(path string) (cert *x509.Certificate, err error) {
 	certPEM, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatalln(err)
+		return
 	}
 
 	p, _ := pem.Decode(certPEM)
 	if p.Type != "CERTIFICATE" {
-		log.Fatalln("not a cert")
+		err = fmt.Errorf("not a cert")
+		return
 	}
 	return x509.ParseCertificate(p.Bytes)
 }
@@ -336,18 +343,19 @@ func loadCert(c Instance) (cert *x509.Certificate, err error) {
 		log.Fatalln(err)
 	}
 
-	return readCert(filepath.Join(Home(c), getString(Prefix(c), "Cert")))
+	return readCert(getString(c, Prefix(c)+"Cert"))
 }
 
 func readKey(path string) (key *rsa.PrivateKey, err error) {
 	keyPEM, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatalln(err)
+		return
 	}
 
 	p, _ := pem.Decode(keyPEM)
 	if p.Type != "RSA PRIVATE KEY" {
-		log.Fatalln("not a private key")
+		err = fmt.Errorf("not a private key")
+		return
 	}
 	return x509.ParsePKCS1PrivateKey(p.Bytes)
 }
@@ -357,13 +365,17 @@ func loadKey(c Instance) (key *rsa.PrivateKey, err error) {
 		log.Fatalln(err)
 	}
 
-	return readKey(filepath.Join(Home(c), getString(Prefix(c), "Key")))
+	return readKey(getString(c, Prefix(c)+"Key"))
 }
 
-func generateCertAndKey(template, parent *x509.Certificate, parentKey *rsa.PrivateKey) (cert *x509.Certificate, key *rsa.PrivateKey, err error) {
-	key, err = rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		log.Fatalln(err)
+func generateCertAndKey(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, existingKey *rsa.PrivateKey) (cert *x509.Certificate, key *rsa.PrivateKey, err error) {
+	if existingKey != nil {
+		key = existingKey
+	} else {
+		key, err = rsa.GenerateKey(rand.Reader, 4096)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	privKey := key
