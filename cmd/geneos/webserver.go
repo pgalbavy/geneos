@@ -23,8 +23,8 @@ type Webservers struct {
 	WebsXmx  string `default:"1024M"`
 	WebsUser string
 	// certs have to be turned into java trust/key stores
-	WebsCert string `default:"{{join .GateHome \"config\" \"webserver.pem\"}}"`
-	WebsKey  string `default:"{{join .GateHome \"config\" \"webserver.key\"}}"`
+	WebsCert string `default:"{{join .WebsHome \"config\" \"webserver.pem\"}}"`
+	WebsKey  string `default:"{{join .WebsHome \"config\" \"webserver.key\"}}"`
 }
 
 const webserverPortRange = "8080,8100-"

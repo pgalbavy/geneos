@@ -20,8 +20,8 @@ type Licds struct {
 	LicdOpts  string
 	LicdLibs  string `default:"{{join .LicdBins .LicdBase \"lib64\"}}"`
 	LicdUser  string
-	LicdCert  string `default:"{{join .GateHome \"licd.pem\"}}"`
-	LicdKey   string `default:"{{join .GateHome \"licd.key\"}}"`
+	LicdCert  string `default:"{{join .LicdHome \"licd.pem\"}}"`
+	LicdKey   string `default:"{{join .LicdHome \"licd.key\"}}"`
 }
 
 const licdPortRange = "7041,7100-"
