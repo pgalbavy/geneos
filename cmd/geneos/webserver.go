@@ -21,8 +21,10 @@ type Webservers struct {
 	WebsOpts string
 	WebsLibs string `default:"{{join .WebsBins .WebsBase \"JRE/lib\"}}:{{join .WebsBins .WebsBase \"lib64\"}}"`
 	WebsXmx  string `default:"1024M"`
-
 	WebsUser string
+	// certs have to be turned into java trust/key stores
+	WebsCert string `default:"{{join .GateHome \"config\" \"webserver.pem\"}}"`
+	WebsKey  string `default:"{{join .GateHome \"config\" \"webserver.key\"}}"`
 }
 
 const webserverPortRange = "8080,8100-"

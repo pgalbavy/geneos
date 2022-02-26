@@ -20,6 +20,8 @@ type Netprobes struct {
 	NetpOpts  string // =-nopassword
 	NetpLibs  string `default:"{{join .NetpBins .NetpBase \"lib64\"}}:{{join .NetpBins .NetpBase}}"`
 	NetpUser  string
+	NetpCert  string `default:"{{join .GateHome \"netprobe.pem\"}}"`
+	NetpKey   string `default:"{{join .GateHome \"netprobe.key\"}}"`
 }
 
 const netprobePortRange = "7036,7100-"

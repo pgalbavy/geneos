@@ -26,8 +26,8 @@ type Gateways struct {
 	GateOpts  string
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
 	GateUser  string
-	GateCert  string `default:"gateway.pem"`
-	GateKey   string `default:"gateway.key"`
+	GateCert  string `default:"{{join .GateHome \"gateway.pem\"}}"`
+	GateKey   string `default:"{{join .GateHome \"gateway.key\"}}"`
 }
 
 const gatewayPortRange = "7039,7100-"
