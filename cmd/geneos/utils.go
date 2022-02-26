@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"mime"
 	"net/http"
@@ -527,5 +528,40 @@ func slicetoi(s []string) (n []int) {
 		}
 		n = append(n, i)
 	}
+	return
+}
+
+func readSource(source string) (b []byte, err error) {
+	u, err := url.Parse(source)
+	if err != nil {
+		return
+	}
+
+	var from io.ReadCloser
+
+	switch {
+	case u.Scheme == "https" || u.Scheme == "http":
+		resp, err := http.Get(u.String())
+		if err != nil {
+			return nil, err
+		}
+
+		from = resp.Body
+		defer from.Close()
+
+	case source == "-":
+		from = os.Stdin
+		source = "STDIN"
+		defer from.Close()
+
+	default:
+		from, err = os.Open(source)
+		if err != nil {
+			return
+		}
+		defer from.Close()
+	}
+
+	b, err = io.ReadAll(from)
 	return
 }

@@ -30,6 +30,9 @@ func init() {
 
 var secureFlags *flag.FlagSet
 
+const rootCAFile = "rootCA"
+const intermediateFile = "geneos"
+
 func secureFlag(command string, args []string) []string {
 	secureFlags.Parse(args)
 	checkHelpFlag(command)
@@ -42,7 +45,7 @@ func secureArgs(rawargs []string) (ct ComponentType, args []string, params []str
 	}
 	subcommand := rawargs[0]
 	switch subcommand {
-	case "init":
+	case "init", "import":
 		ct = None
 		args = []string{subcommand}
 		return
@@ -63,7 +66,49 @@ func commandSecure(ct ComponentType, args []string, params []string) (err error)
 		return secureInit()
 	}
 
+	if ct == None && args[0] == "import" {
+		return secureImport(args)
+	}
+
 	return loopCommand(secureInstance, ct, args, params)
+}
+
+// import intermediate (signing) cert and key from files on command line
+// loop through args and decode pem, check type and import - filename to
+// be decided (CN.pem etc.)
+func secureImport(files []string) (err error) {
+	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
+	for _, source := range files {
+		f, err := readSource(source)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		for {
+			block, rest := pem.Decode(f)
+			if block == nil {
+				break
+			}
+			switch block.Type {
+			case "CERTIFICATE":
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				writeCert(cert, filepath.Join(tlsPath, intermediateFile+".pem"))
+			case "RSA PRIVATE KEY":
+				key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				writeKey(key, filepath.Join(tlsPath, intermediateFile+".key"))
+			default:
+				log.Fatalln("unknown PEM type:", block.Type)
+			}
+
+			f = rest
+		}
+	}
+	return
 }
 
 func secureInstance(c Instance, params []string) (err error) {
@@ -108,8 +153,8 @@ func secureInit() (err error) {
 
 func createRootCA(dir string) (err error) {
 	// create rootCA.pem / rootCA.key
-	rootCertPath := filepath.Join(dir, "rootCA.pem")
-	rootKeyPath := filepath.Join(dir, "rootCA.key")
+	rootCertPath := filepath.Join(dir, rootCAFile+".pem")
+	rootKeyPath := filepath.Join(dir, rootCAFile+".key")
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(2),
@@ -141,8 +186,8 @@ func createRootCA(dir string) (err error) {
 }
 
 func createIntrCA(dir string) (err error) {
-	intrCertPath := filepath.Join(dir, "intrCA.pem")
-	intrKeyPath := filepath.Join(dir, "intrCA.key")
+	intrCertPath := filepath.Join(dir, intermediateFile+".pem")
+	intrKeyPath := filepath.Join(dir, intermediateFile+".key")
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -158,11 +203,11 @@ func createIntrCA(dir string) (err error) {
 		MaxPathLen: 1,
 	}
 
-	rootCert, err := readCert(filepath.Join(dir, "rootCA.pem"))
+	rootCert, err := readCert(filepath.Join(dir, rootCAFile+".pem"))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	rootKey, err := readKey(filepath.Join(dir, "rootCA.key"))
+	rootKey, err := readKey(filepath.Join(dir, rootCAFile+".key"))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -202,11 +247,11 @@ func createInstanceCert(c Instance) (err error) {
 		IPAddresses:    []net.IP{net.ParseIP("127.0.0.1")},
 	}
 
-	intrCert, err := readCert(filepath.Join(tlsDir, "intrCA.pem"))
+	intrCert, err := readCert(filepath.Join(tlsDir, intermediateFile+".pem"))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	intrKey, err := readKey(filepath.Join(tlsDir, "intrCA.key"))
+	intrKey, err := readKey(filepath.Join(tlsDir, intermediateFile+".key"))
 	if err != nil {
 		log.Fatalln(err)
 	}
