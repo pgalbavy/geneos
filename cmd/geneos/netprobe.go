@@ -47,6 +47,8 @@ func netprobeInstance(name string) interface{} {
 }
 
 func netprobeCommand(c Instance) (args, env []string) {
+	certfile := getString(c, Prefix(c)+"Cert")
+	keyfile := getString(c, Prefix(c)+"Key")
 	logFile := getLogfilePath(c)
 	args = []string{
 		Name(c),
@@ -54,6 +56,15 @@ func netprobeCommand(c Instance) (args, env []string) {
 		getIntAsString(c, Prefix(c)+"Port"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
+
+	if certfile != "" {
+		args = append(args, "-secure", "-ssl-certificate", certfile)
+	}
+
+	if keyfile != "" {
+		args = append(args, "-ssl-certificate-key", keyfile)
+	}
+
 	return
 }
 

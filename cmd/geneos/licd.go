@@ -47,12 +47,23 @@ func licdInstance(name string) interface{} {
 }
 
 func licdCommand(c Instance) (args, env []string) {
+	certfile := getString(c, Prefix(c)+"Cert")
+	keyfile := getString(c, Prefix(c)+"Key")
+
 	args = []string{
 		Name(c),
 		"-port",
 		getIntAsString(c, Prefix(c)+"Port"),
 		"-log",
 		getLogfilePath(c),
+	}
+
+	if certfile != "" {
+		args = append(args, "-secure", "-ssl-certificate", certfile)
+	}
+
+	if keyfile != "" {
+		args = append(args, "-ssl-certificate-key", keyfile)
 	}
 
 	return

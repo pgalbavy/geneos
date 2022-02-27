@@ -532,12 +532,12 @@ func slicetoi(s []string) (n []int) {
 }
 
 func readSource(source string) (b []byte, err error) {
+	var from io.ReadCloser
+
 	u, err := url.Parse(source)
 	if err != nil {
 		return
 	}
-
-	var from io.ReadCloser
 
 	switch {
 	case u.Scheme == "https" || u.Scheme == "http":

@@ -23,6 +23,7 @@ type Gateways struct {
 	GateMode  string `default:"background"`
 	GateLicP  int    `default:"7041"`
 	GateLicH  string `default:"localhost"`
+	GateLicS  string
 	GateOpts  string
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
 	GateUser  string
@@ -61,6 +62,9 @@ func gatewayCommand(c Instance) (args, env []string) {
 	//
 	licdhost := getString(c, Prefix(c)+"LicH")
 	licdport := getIntAsString(c, Prefix(c)+"LicP")
+	licdsecure := getString(c, Prefix(c)+"LicS")
+	certfile := getString(c, Prefix(c)+"Cert")
+	keyfile := getString(c, Prefix(c)+"Key")
 
 	args = []string{
 		/* "-gateway-name",  */ Name(c),
@@ -72,19 +76,30 @@ func gatewayCommand(c Instance) (args, env []string) {
 		"-stats",
 	}
 
+	// only add a port arg is the value is defined - empty means use config file
 	port := getIntAsString(c, Prefix(c)+"Port")
 	if port != "0" {
 		args = append([]string{"-port", port}, args...)
 	}
 
 	if licdhost != "localhost" {
-		args = append(args, "-licd-host")
-		args = append(args, licdhost)
+		args = append(args, "-licd-host", licdhost)
 	}
 
 	if licdport != "7041" {
-		args = append(args, "-licd-port")
-		args = append(args, licdport)
+		args = append(args, "-licd-port", licdport)
+	}
+
+	if licdsecure != "" && licdsecure != "false" {
+		args = append(args, "-licd-secure")
+	}
+
+	if certfile != "" {
+		args = append(args, "-ssl-certificate", certfile)
+	}
+
+	if keyfile != "" {
+		args = append(args, "-ssl-certificate-key", keyfile)
 	}
 
 	return

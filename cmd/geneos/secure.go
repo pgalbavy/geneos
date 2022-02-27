@@ -73,44 +73,6 @@ func commandSecure(ct ComponentType, args []string, params []string) (err error)
 	return loopCommand(secureInstance, ct, args, params)
 }
 
-// import intermediate (signing) cert and key from files on command line
-// loop through args and decode pem, check type and import - filename to
-// be decided (CN.pem etc.)
-func secureImport(files []string) (err error) {
-	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
-	for _, source := range files {
-		f, err := readSource(source)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		for {
-			block, rest := pem.Decode(f)
-			if block == nil {
-				break
-			}
-			switch block.Type {
-			case "CERTIFICATE":
-				cert, err := x509.ParseCertificate(block.Bytes)
-				if err != nil {
-					log.Fatalln(err)
-				}
-				writeCert(cert, filepath.Join(tlsPath, intermediateFile+".pem"))
-			case "RSA PRIVATE KEY":
-				key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-				if err != nil {
-					log.Fatalln(err)
-				}
-				writeKey(key, filepath.Join(tlsPath, intermediateFile+".key"))
-			default:
-				log.Fatalln("unknown PEM type:", block.Type)
-			}
-
-			f = rest
-		}
-	}
-	return
-}
-
 func secureInstance(c Instance, params []string) (err error) {
 	if len(params) == 0 {
 		log.Fatalln("you must supply an action to take")
@@ -137,20 +99,61 @@ func secureInit() (err error) {
 		log.Fatalln(err)
 	}
 
-	err = createRootCA(tlsPath)
+	rootCert, err := createRootCA(tlsPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = createIntrCA(tlsPath)
+	interCert, err := createIntrCA(tlsPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// concatenate a chain
+	writeCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, interCert)
 
 	return
 }
 
-func createRootCA(dir string) (err error) {
+// import intermediate (signing) cert and key from files on command line
+// loop through args and decode pem, check type and import - filename to
+// be decided (CN.pem etc.)
+func secureImport(files []string) (err error) {
+	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
+	for _, source := range files {
+		f, err := readSource(source)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		for {
+			block, rest := pem.Decode(f)
+			if block == nil {
+				break
+			}
+			switch block.Type {
+			case "CERTIFICATE":
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				writeCert(filepath.Join(tlsPath, intermediateFile+".pem"), cert)
+			case "RSA PRIVATE KEY":
+				key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				writeKey(filepath.Join(tlsPath, intermediateFile+".key"), key)
+			default:
+				log.Fatalln("unknown PEM type:", block.Type)
+			}
+
+			f = rest
+		}
+	}
+	return
+}
+
+func createRootCA(dir string) (cert *x509.Certificate, err error) {
 	// create rootCA.pem / rootCA.key
 	rootCertPath := filepath.Join(dir, rootCAFile+".pem")
 	rootKeyPath := filepath.Join(dir, rootCAFile+".key")
@@ -168,23 +171,23 @@ func createRootCA(dir string) (err error) {
 		MaxPathLen:            2,
 	}
 
-	cert, key, err := generateCertAndKey(&template, &template, nil, nil)
+	cert, key, err := createCert(&template, &template, nil, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = writeCert(cert, rootCertPath)
+	err = writeCert(rootCertPath, cert)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = writeKey(key, rootKeyPath)
+	err = writeKey(rootKeyPath, key)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	return
 }
 
-func createIntrCA(dir string) (err error) {
+func createIntrCA(dir string) (cert *x509.Certificate, err error) {
 	intrCertPath := filepath.Join(dir, intermediateFile+".pem")
 	intrKeyPath := filepath.Join(dir, intermediateFile+".key")
 
@@ -210,16 +213,16 @@ func createIntrCA(dir string) (err error) {
 		log.Fatalln(err)
 	}
 
-	cert, key, err := generateCertAndKey(&template, rootCert, rootKey, nil)
+	cert, key, err := createCert(&template, rootCert, rootKey, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = writeCert(cert, intrCertPath)
+	err = writeCert(intrCertPath, cert)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = writeKey(key, intrKeyPath)
+	err = writeKey(intrKeyPath, key)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -258,19 +261,19 @@ func createInstanceCert(c Instance) (err error) {
 		log.Fatalln(err)
 	}
 
-	existingKey, _ := loadKey(c)
-	cert, key, err := generateCertAndKey(&template, intrCert, intrKey, existingKey)
+	existingKey, _ := readInstanceKey(c)
+	cert, key, err := createCert(&template, intrCert, intrKey, existingKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = saveCert(c, cert)
+	err = writeInstanceCert(c, cert)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	if existingKey == nil {
-		err = saveKey(c, key)
+		err = writeInstanceKey(c, key)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -280,7 +283,7 @@ func createInstanceCert(c Instance) (err error) {
 	return
 }
 
-func writeCert(cert *x509.Certificate, path string) (err error) {
+func writeCert(path string, cert *x509.Certificate) (err error) {
 	logDebug.Println("write cert to", path)
 	certPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
@@ -291,18 +294,34 @@ func writeCert(cert *x509.Certificate, path string) (err error) {
 		log.Fatalln(err)
 	}
 	return
-
 }
 
-func saveCert(c Instance, cert *x509.Certificate) (err error) {
+func writeCerts(path string, certs ...*x509.Certificate) (err error) {
+	logDebug.Println("write certs to", path)
+	var certsPEM []byte
+	for _, cert := range certs {
+		p := pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})
+		certsPEM = append(certsPEM, p...)
+	}
+	err = os.WriteFile(path, certsPEM, 0644)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return
+}
+
+func writeInstanceCert(c Instance, cert *x509.Certificate) (err error) {
 	if c == nil || Type(c) == None {
 		log.Fatalln(err)
 	}
 
-	return writeCert(cert, getString(c, Prefix(c)+"Cert"))
+	return writeCert(getString(c, Prefix(c)+"Cert"), cert)
 }
 
-func writeKey(key *rsa.PrivateKey, path string) (err error) {
+func writeKey(path string, key *rsa.PrivateKey) (err error) {
 	logDebug.Println("write key to", path)
 	keyPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -316,12 +335,12 @@ func writeKey(key *rsa.PrivateKey, path string) (err error) {
 	return
 }
 
-func saveKey(c Instance, key *rsa.PrivateKey) (err error) {
+func writeInstanceKey(c Instance, key *rsa.PrivateKey) (err error) {
 	if Type(c) == None {
 		log.Fatalln(err)
 	}
 
-	return writeKey(key, getString(c, Prefix(c)+"Key"))
+	return writeKey(getString(c, Prefix(c)+"Key"), key)
 }
 
 func readCert(path string) (cert *x509.Certificate, err error) {
@@ -338,7 +357,7 @@ func readCert(path string) (cert *x509.Certificate, err error) {
 	return x509.ParseCertificate(p.Bytes)
 }
 
-func loadCert(c Instance) (cert *x509.Certificate, err error) {
+func readInstanceCert(c Instance) (cert *x509.Certificate, err error) {
 	if Type(c) == None {
 		log.Fatalln(err)
 	}
@@ -360,7 +379,7 @@ func readKey(path string) (key *rsa.PrivateKey, err error) {
 	return x509.ParsePKCS1PrivateKey(p.Bytes)
 }
 
-func loadKey(c Instance) (key *rsa.PrivateKey, err error) {
+func readInstanceKey(c Instance) (key *rsa.PrivateKey, err error) {
 	if Type(c) == None {
 		log.Fatalln(err)
 	}
@@ -368,7 +387,7 @@ func loadKey(c Instance) (key *rsa.PrivateKey, err error) {
 	return readKey(getString(c, Prefix(c)+"Key"))
 }
 
-func generateCertAndKey(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, existingKey *rsa.PrivateKey) (cert *x509.Certificate, key *rsa.PrivateKey, err error) {
+func createCert(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, existingKey *rsa.PrivateKey) (cert *x509.Certificate, key *rsa.PrivateKey, err error) {
 	if existingKey != nil {
 		key = existingKey
 	} else {
