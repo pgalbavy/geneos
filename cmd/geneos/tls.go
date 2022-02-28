@@ -159,7 +159,7 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 		csvWriter.Write([]string{
 			"global",
 			rootCAFile,
-			fmt.Sprintf("%v", time.Until(rootCert.NotAfter).Seconds()),
+			fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
 			rootCert.NotAfter.String(),
 			rootCert.Subject.CommonName,
 			rootCert.Issuer.CommonName,
@@ -169,7 +169,7 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 		csvWriter.Write([]string{
 			"global",
 			intermediateFile,
-			fmt.Sprintf("%v", time.Until(geneosCert.NotAfter).Seconds()),
+			fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
 			geneosCert.NotAfter.String(),
 			geneosCert.Subject.CommonName,
 			geneosCert.Issuer.CommonName,
