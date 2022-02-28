@@ -30,6 +30,7 @@ func init() {
 	secureFlags = flag.NewFlagSet("secure", flag.ExitOnError)
 	// support the same flags as "ls" for lists
 	secureFlags.BoolVar(&listJSON, "j", false, "Output JSON")
+	secureFlags.BoolVar(&listJSONIndent, "i", false, "Indent / pretty print JSON")
 	secureFlags.BoolVar(&listCSV, "c", false, "Output CSV")
 	secureFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
@@ -71,7 +72,7 @@ func commandSecure(ct ComponentType, args []string, params []string) (err error)
 		if err = secureInit(); err != nil {
 			log.Fatalln(err)
 		}
-		return loopSubcommand(secureInstance, subcommand, ct, args, params)
+		return loopSubcommand(secureInstance, "new", ct, args, params)
 	case "import":
 		return secureImport(args)
 	case "ls":
@@ -106,32 +107,73 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
-		//jsonEncoder.SetIndent("", "    ")
-		jsonEncoder.Encode(lsCertType{"global", rootCAFile, time.Duration(time.Until(rootCert.NotAfter).Seconds()),
-			rootCert.NotAfter, rootCert.Subject.CommonName, rootCert.Issuer.CommonName, nil, nil})
-		jsonEncoder.Encode(lsCertType{"global", intermediateFile, time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
-			geneosCert.NotAfter, geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName, nil, nil})
+		if listJSONIndent {
+			jsonEncoder.SetIndent("", "    ")
+		}
+		jsonEncoder.Encode(lsCertType{
+			"global",
+			rootCAFile,
+			time.Duration(time.Until(rootCert.NotAfter).Seconds()),
+			rootCert.NotAfter,
+			rootCert.Subject.CommonName,
+			rootCert.Issuer.CommonName,
+			nil,
+			nil,
+		})
+		jsonEncoder.Encode(lsCertType{
+			"global",
+			intermediateFile,
+			time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
+			geneosCert.NotAfter,
+			geneosCert.Subject.CommonName,
+			geneosCert.Issuer.CommonName,
+			nil,
+			nil,
+		})
 		err = loopCommand(lsInstanceCertJSON, ct, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Remaining", "Expires", "CommonName", "Issuer", "SubjAltNames", "IPs"})
-		csvWriter.Write([]string{"global", rootCAFile, fmt.Sprintf("%v", time.Until(rootCert.NotAfter).Seconds()),
-			rootCert.NotAfter.String(), rootCert.Subject.CommonName, rootCert.Issuer.CommonName, "[]", "[]"})
-		csvWriter.Write([]string{"global", intermediateFile, fmt.Sprintf("%v", time.Until(geneosCert.NotAfter).Seconds()),
-			geneosCert.NotAfter.String(), geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName, "[]", "[]"})
+		csvWriter.Write([]string{
+			"Type",
+			"Name",
+			"Remaining",
+			"Expires",
+			"CommonName",
+			"Issuer",
+			"SubjAltNames",
+			"IPs",
+		})
+		csvWriter.Write([]string{
+			"global",
+			rootCAFile,
+			fmt.Sprintf("%v", time.Until(rootCert.NotAfter).Seconds()),
+			rootCert.NotAfter.String(),
+			rootCert.Subject.CommonName,
+			rootCert.Issuer.CommonName,
+			"[]",
+			"[]",
+		})
+		csvWriter.Write([]string{
+			"global",
+			intermediateFile,
+			fmt.Sprintf("%v", time.Until(geneosCert.NotAfter).Seconds()),
+			geneosCert.NotAfter.String(),
+			geneosCert.Subject.CommonName,
+			geneosCert.Issuer.CommonName,
+			"[]",
+			"[]",
+		})
 		err = loopCommand(lsInstanceCertCSV, ct, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 		fmt.Fprintf(lsTabWriter, "Type\tName\tRemaining\tExpires\tCommonName\tIssuer\tSubjAltNames\tIPs\n")
-		// list other certs in tls/ dir too
 		fmt.Fprintf(lsTabWriter, "global\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", rootCAFile,
 			time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
 			rootCert.Subject.CommonName, rootCert.Issuer.CommonName)
 		fmt.Fprintf(lsTabWriter, "global\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", intermediateFile,
 			time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
 			geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName)
-		// loop through matching
 		err = loopCommand(lsInstanceCert, ct, args, params)
 		lsTabWriter.Flush()
 	}
@@ -139,6 +181,7 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 }
 
 func secureInstance(c Instance, subcommand string, params []string) (err error) {
+	logDebug.Println("secureInstance:", Type(c), Name(c), subcommand, params)
 	switch subcommand {
 	case "new":
 		// create a cert, DO NOT overwrite any existing unless renewing
@@ -204,18 +247,21 @@ func secureInit() (err error) {
 		log.Fatalln(err)
 	}
 
-	rootCert, err := createRootCA(tlsPath)
+	rootCert, err := newRootCA(tlsPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	interCert, err := createIntrCA(tlsPath)
+	interCert, err := newIntrCA(tlsPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	// concatenate a chain
-	writeCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, interCert)
+	if err = writeCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, interCert); err != nil {
+		log.Fatalln(err)
+	}
+	log.Println("created chain.pem")
 
 	return
 }
@@ -258,11 +304,15 @@ func secureImport(files []string) (err error) {
 	return
 }
 
-func createRootCA(dir string) (cert *x509.Certificate, err error) {
+func newRootCA(dir string) (cert *x509.Certificate, err error) {
 	// create rootCA.pem / rootCA.key
 	rootCertPath := filepath.Join(dir, rootCAFile+".pem")
 	rootKeyPath := filepath.Join(dir, rootCAFile+".key")
 
+	if cert, err = readCert(rootCertPath); err == nil {
+		log.Println(rootCAFile, "already exists")
+		return
+	}
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(2),
 		Subject: pkix.Name{
@@ -294,9 +344,14 @@ func createRootCA(dir string) (cert *x509.Certificate, err error) {
 	return
 }
 
-func createIntrCA(dir string) (cert *x509.Certificate, err error) {
+func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 	intrCertPath := filepath.Join(dir, intermediateFile+".pem")
 	intrKeyPath := filepath.Join(dir, intermediateFile+".key")
+
+	if cert, err = readCert(intrCertPath); err == nil {
+		log.Println(intermediateFile, "already exists")
+		return
+	}
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
