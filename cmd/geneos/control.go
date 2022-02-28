@@ -15,12 +15,16 @@ import (
 func init() {
 	commands["start"] = Command{
 		Function:    commandStart,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  startFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: `geneos start [TYPE] [NAME...]`,
 		Summary:     `Start one or more instances.`,
 		Description: `Start one or more matching instances. All instances are run in the background and
 STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
+
+	startFlags = flag.NewFlagSet("start", flag.ExitOnError)
+	startFlags.BoolVar(&startLogs, "l", false, "Watch logs after start-up")
+	startFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["stop"] = Command{
 		Function:    commandStop,
@@ -46,6 +50,8 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
 	restartFlags.BoolVar(&restartAll, "a", false, "Start all instances, not just those already running")
+	restartFlags.BoolVar(&restartLogs, "l", false, "Watch logs after start-up")
+
 	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["disable"] = Command{
@@ -65,13 +71,30 @@ is given the instance(s) are immediately terminated with a SIGKILL.`}
 		Description: `Mark any matcing instances as enabled and if this changes status then start the instance.`}
 }
 
-var stopFlags *flag.FlagSet
+var stopFlags, startFlags *flag.FlagSet
 var stopKill bool
+var startLogs bool
 var restartFlags *flag.FlagSet
-var restartAll bool
+var restartAll, restartLogs bool
+
+func startFlag(command string, args []string) []string {
+	startFlags.Parse(args)
+	checkHelpFlag(command)
+	return startFlags.Args()
+}
 
 func commandStart(ct ComponentType, args []string, params []string) (err error) {
-	return loopCommand(startInstance, ct, args, params)
+	if err = loopCommand(startInstance, ct, args, params); err != nil {
+		return
+	}
+	if startLogs {
+		done := make(chan bool)
+		watchLogs()
+		defer watcher.Close()
+		err = loopCommand(logFollowInstance, ct, args, params)
+		<-done
+	}
+	return
 }
 
 func startInstance(c Instance, params []string) (err error) {
@@ -191,14 +214,26 @@ func stopInstance(c Instance, params []string) (err error) {
 
 }
 
-func commandRestart(ct ComponentType, args []string, params []string) (err error) {
-	return loopCommand(restartInstance, ct, args, params)
-}
-
 func restartFlag(command string, args []string) []string {
 	restartFlags.Parse(args)
 	checkHelpFlag(command)
 	return restartFlags.Args()
+}
+
+func commandRestart(ct ComponentType, args []string, params []string) (err error) {
+	if err = loopCommand(restartInstance, ct, args, params); err != nil {
+		logDebug.Println(err)
+		return
+	}
+
+	if restartLogs {
+		done := make(chan bool)
+		watchLogs()
+		defer watcher.Close()
+		err = loopCommand(logFollowInstance, ct, args, params)
+		<-done
+	}
+	return
 }
 
 func restartInstance(c Instance, params []string) (err error) {
