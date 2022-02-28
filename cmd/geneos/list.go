@@ -44,12 +44,13 @@ Future versions will support CSV or JSON output formats for automation and monit
 
 	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
 	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
+	listFlags.BoolVar(&listJSONIndent, "i", false, "Indent / pretty print JSON")
 	listFlags.BoolVar(&listCSV, "c", false, "Output CSV")
 	listFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
 var listFlags *flag.FlagSet
-var listJSON bool
+var listJSON, listJSONIndent bool
 var listCSV bool
 
 var lsTabWriter *tabwriter.Writer
@@ -69,7 +70,9 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
-		//jsonEncoder.SetIndent("", "    ")
+		if listJSONIndent {
+			jsonEncoder.SetIndent("", "    ")
+		}
 		err = loopCommand(lsInstanceJSON, ct, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
