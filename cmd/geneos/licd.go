@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"path/filepath"
 	"strconv"
 )
 
@@ -81,8 +80,14 @@ func licdNew(name string, username string) (c Instance, err error) {
 	if err = setField(c, Prefix(c)+"User", username); err != nil {
 		return
 	}
-	conffile := filepath.Join(Home(c), Type(c).String()+".json")
-	writeConfigFile(conffile, c)
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
+
 	// default config XML etc.
 	return
 }

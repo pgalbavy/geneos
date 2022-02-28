@@ -113,8 +113,13 @@ func webserverNew(name string, username string) (c Instance, err error) {
 	if err = setField(c, Prefix(c)+"User", username); err != nil {
 		return
 	}
-	conffile := filepath.Join(Home(c), Type(c).String()+".json")
-	err = writeConfigFile(conffile, c)
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
 
 	// copy default configs - use existing upload routines?
 	dir, err := os.Getwd()
