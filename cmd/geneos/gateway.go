@@ -17,18 +17,18 @@ type Gateways struct {
 	GateBins  string `default:"{{join .Root \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
 	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
-	GateLogD  string
+	GateLogD  string `json:",omitempty"`
 	GateLogF  string `default:"gateway.log"`
 	GatePort  int    `json:",omitempty"`
-	GateMode  string `default:"background"`
-	GateLicP  int    `default:"7041"`
-	GateLicH  string `default:"localhost"`
-	GateLicS  string
-	GateOpts  string
+	GateMode  string `json:",omitempty"`
+	GateLicP  int    `json:",omitempty"`
+	GateLicH  string `json:",omitempty"`
+	GateLicS  string `json:",omitempty"`
+	GateOpts  string `json:",omitempty"`
 	GateLibs  string `default:"{{join .GateBins .GateBase \"lib64\"}}:/usr/lib64"`
-	GateUser  string
-	GateCert  string `default:"{{join .GateHome \"gateway.pem\"}}"`
-	GateKey   string `default:"{{join .GateHome \"gateway.key\"}}"`
+	GateUser  string `json:",omitempty"`
+	GateCert  string `json:",omitempty"`
+	GateKey   string `json:",omitempty"`
 }
 
 const gatewayPortRange = "7039,7100-"
@@ -82,11 +82,11 @@ func gatewayCommand(c Instance) (args, env []string) {
 		args = append([]string{"-port", port}, args...)
 	}
 
-	if licdhost != "localhost" {
+	if licdhost != "" {
 		args = append(args, "-licd-host", licdhost)
 	}
 
-	if licdport != "7041" {
+	if licdport != "0" {
 		args = append(args, "-licd-port", licdport)
 	}
 

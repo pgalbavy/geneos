@@ -16,12 +16,12 @@ type Netprobes struct {
 	NetpLogD  string `default:"{{.NetpHome}}"`
 	NetpLogF  string `default:"netprobe.log"`
 	NetpPort  int    `default:"7036"`
-	NetpMode  string `default:"background"`
-	NetpOpts  string // =-nopassword
+	NetpMode  string `json:",omitempty"`
+	NetpOpts  string `json:",omitempty"`
 	NetpLibs  string `default:"{{join .NetpBins .NetpBase \"lib64\"}}:{{join .NetpBins .NetpBase}}"`
-	NetpUser  string
-	NetpCert  string `default:"{{join .NetpHome \"netprobe.pem\"}}"`
-	NetpKey   string `default:"{{join .NetpHome \"netprobe.key\"}}"`
+	NetpUser  string `json:",omitempty"`
+	NetpCert  string `json:",omitempty"`
+	NetpKey   string `json:",omitempty"`
 }
 
 const netprobePortRange = "7036,7100-"

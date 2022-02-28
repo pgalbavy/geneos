@@ -13,15 +13,15 @@ type Licds struct {
 	LicdBins  string `default:"{{join .Root \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
 	LicdExec  string `default:"{{join .LicdBins .LicdBase .BinSuffix}}"`
-	LicdLogD  string
+	LicdLogD  string `json:",omitempty"`
 	LicdLogF  string `default:"licd.log"`
-	LicdMode  string `default:"background"`
+	LicdMode  string `json:",omitempty"`
 	LicdPort  int    `default:"7041"`
-	LicdOpts  string
+	LicdOpts  string `json:",omitempty"`
 	LicdLibs  string `default:"{{join .LicdBins .LicdBase \"lib64\"}}"`
-	LicdUser  string
-	LicdCert  string `default:"{{join .LicdHome \"licd.pem\"}}"`
-	LicdKey   string `default:"{{join .LicdHome \"licd.key\"}}"`
+	LicdUser  string `json:",omitempty"`
+	LicdCert  string `json:",omitempty"`
+	LicdKey   string `json:",omitempty"`
 }
 
 const licdPortRange = "7041,7100-"

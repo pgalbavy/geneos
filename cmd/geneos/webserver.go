@@ -18,13 +18,13 @@ type Webservers struct {
 	WebsLogF string `default:"webserver.log"`
 	WebsMode string `default:"background"`
 	WebsPort int    `default:"8080"`
-	WebsOpts string
+	WebsOpts string `json:",omitempty"`
 	WebsLibs string `default:"{{join .WebsBins .WebsBase \"JRE/lib\"}}:{{join .WebsBins .WebsBase \"lib64\"}}"`
 	WebsXmx  string `default:"1024M"`
-	WebsUser string
+	WebsUser string `json:",omitempty"`
 	// certs have to be turned into java trust/key stores
-	WebsCert string `default:"{{join .WebsHome \"config\" \"webserver.pem\"}}"`
-	WebsKey  string `default:"{{join .WebsHome \"config\" \"webserver.key\"}}"`
+	WebsCert string `json:",omitempty"`
+	WebsKey  string `json:",omitempty"`
 }
 
 const webserverPortRange = "8080,8100-"
