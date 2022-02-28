@@ -8,11 +8,7 @@
   * Help highlight typos rather than skip them
 * Command line verbosity control - PARTIAL
 * TLS support
-  * create basic cert/key sets
-  * create real certs/keys based on CA files
   * output cacert file on stdout for sharing
-  * manage permissions / system folders
-  * sensible/valid naming for csr fields
 * Docker / Compose file build from selection of components
 * check capabilities and not just setuid/root user
 * Run REST commands against gateways
@@ -24,6 +20,6 @@
   * command line options different
 * standalone collection agent
 * centralised config
-* web dashboard - mostly done, better port numbers and ssl to do
+* web dashboard - mostly done, better port numbers and tls to do
 * FIX2 netprobe
 * modularise component types, make future addins easier - PARTIAL

@@ -24,17 +24,21 @@ func init() {
 		ParseFlags:  flagsTLS,
 		ParseArgs:   TLSArgs,
 		CommandLine: "geneos tls [init|import|new|renew|ls] ...",
-		Summary:     `TLS operations subcommand`,
-		Description: `TLS operations subcommand. The following subcommands are supported:
+		Summary:     `TLS operations`,
+		Description: `TLS operations. The following subcommands are supported:
 
 	geneos tls init
 		initialise the TLS environment, creating root and intermediate CAs and certificates for all instances
+
 	geneos tls import file [file...]
 		import certificate and private key used to sign instance certificates
+
 	geneos tls new [TYPE] [NAME]
 		create a new certificate for matching instances
+
 	geneos tls renew [TYPE] [NAME]
 		renew certificates for matching instances
+		
 	geneos tls ls [TYPE] [NAME]
 		list certificates for matcing instances, including the root and intermediate CA certs.
 		same options as for the main 'ls' command
@@ -42,13 +46,15 @@ func init() {
 
 	TLSFlags = flag.NewFlagSet("tls", flag.ExitOnError)
 	// support the same flags as "ls" for lists
-	TLSFlags.BoolVar(&listJSON, "j", false, "Output JSON")
-	TLSFlags.BoolVar(&listJSONIndent, "i", false, "Indent / pretty print JSON")
-	TLSFlags.BoolVar(&listCSV, "c", false, "Output CSV")
+	TLSFlags.BoolVar(&tLSlistJSON, "j", false, "Output JSON")
+	TLSFlags.BoolVar(&tLSlistJSONIndent, "i", false, "Indent / pretty print JSON")
+	TLSFlags.BoolVar(&tLSlistCSV, "c", false, "Output CSV")
 	TLSFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
 var TLSFlags *flag.FlagSet
+var tLSlistJSON, tLSlistJSONIndent bool
+var tLSlistCSV bool
 
 const rootCAFile = "rootCA"
 const intermediateFile = "geneos"
@@ -118,9 +124,9 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 	}
 
 	switch {
-	case listJSON:
+	case tLSlistJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
-		if listJSONIndent {
+		if tLSlistJSONIndent {
 			jsonEncoder.SetIndent("", "    ")
 		}
 		jsonEncoder.Encode(lsCertType{
@@ -144,7 +150,7 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 			nil,
 		})
 		err = loopCommand(lsInstanceCertJSON, ct, args, params)
-	case listCSV:
+	case tLSlistCSV:
 		csvWriter = csv.NewWriter(log.Writer())
 		csvWriter.Write([]string{
 			"Type",
