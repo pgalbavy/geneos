@@ -104,8 +104,11 @@ var webserverFiles = []string{
 func webserverNew(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = webserverInstance(name)
-	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))); err != nil {
-		return
+	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
+	if webport != "8080" {
+		if err = setField(c, Prefix(c)+"Port", webport); err != nil {
+			return
+		}
 	}
 	if err = setField(c, Prefix(c)+"User", username); err != nil {
 		return

@@ -72,8 +72,11 @@ func netprobeCommand(c Instance) (args, env []string) {
 func netprobeNew(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = netprobeInstance(name)
-	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))); err != nil {
-		return
+	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
+	if netport != "7036" {
+		if err = setField(c, Prefix(c)+"Port", netport); err != nil {
+			return
+		}
 	}
 	if err = setField(c, Prefix(c)+"User", username); err != nil {
 		return

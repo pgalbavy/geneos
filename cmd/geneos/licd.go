@@ -72,8 +72,11 @@ func licdCommand(c Instance) (args, env []string) {
 func licdNew(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = licdInstance(name)
-	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.LicdPortRange))); err != nil {
-		return
+	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
+	if licdport != "7041" {
+		if err = setField(c, Prefix(c)+"Port", licdport); err != nil {
+			return
+		}
 	}
 	if err = setField(c, Prefix(c)+"User", username); err != nil {
 		return

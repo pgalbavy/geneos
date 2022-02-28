@@ -108,8 +108,11 @@ func gatewayCommand(c Instance) (args, env []string) {
 func gatewayNew(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = gatewayInstance(name)
-	if err = setField(c, Prefix(c)+"Port", strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))); err != nil {
-		return
+	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
+	if gateport != "7039" {
+		if err = setField(c, Prefix(c)+"Port", gateport); err != nil {
+			return
+		}
 	}
 	if err = setField(c, Prefix(c)+"User", username); err != nil {
 		return
