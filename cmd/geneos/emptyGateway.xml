@@ -23,6 +23,10 @@
 	</authentication>
 	<operatingEnvironment>
 		<gatewayName>{{.Name}}</gatewayName>
+		<listenPorts>
+        	<secure></secure>
+        	<insecure></insecure>
+    	</listenPorts>
 		<writeStatsToFile>
 			<filename>{{join .GateHome "stats.xml"}}</filename>
 			<enablePeriodicWrite>true</enablePeriodicWrite>
