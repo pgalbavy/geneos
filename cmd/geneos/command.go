@@ -47,7 +47,7 @@ func allInstances() (confs []Instance) {
 // return a slice of instance for a given ComponentType
 func instances(ct ComponentType) (confs []Instance) {
 	for _, name := range instanceDirs(ct) {
-		confs = append(confs, NewComponent(ct, name)...)
+		confs = append(confs, newComponent(ct, name)...)
 	}
 	return
 }
@@ -57,7 +57,6 @@ func findInstances(name string) (cts []ComponentType) {
 		compdirs := instanceDirs(t)
 		for _, dir := range compdirs {
 			// for case insensitive match change to EqualFold here
-			// but also in NewInstance()
 			if filepath.Base(dir) == name {
 				cts = append(cts, t)
 			}
@@ -81,7 +80,7 @@ func loadConfig(c Instance, update bool) (err error) {
 		return
 	}
 	if update {
-		if err = writeConfigFile(baseconf+".json", c); err != nil {
+		if err = writeInstanceConfig(c); err != nil {
 			logError.Println("failed to wrtite config file:", err)
 			return
 		}

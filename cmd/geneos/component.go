@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
-	"text/template"
 )
 
 // definitions and access methods for the generic component types
@@ -161,11 +158,11 @@ func sortedDirs(dir string) []string {
 //
 // When not called with a component type of None, the instance does not
 // have to exist on disk.
-func NewComponent(ct ComponentType, name string) (c []Instance) {
+func newComponent(ct ComponentType, name string) (c []Instance) {
 	if ct == None {
 		cs := findInstances(name)
 		for _, cm := range cs {
-			c = append(c, NewComponent(cm, name)...)
+			c = append(c, newComponent(cm, name)...)
 		}
 		return
 	}
@@ -177,48 +174,4 @@ func NewComponent(ct ComponentType, name string) (c []Instance) {
 		return []Instance{}
 	}
 	return []Instance{cm.Instance(name)}
-}
-
-// a template function to support "{{join .X .Y}}"
-var textJoinFuncs = template.FuncMap{"join": filepath.Join}
-
-// setDefaults() is a common function called by component New*()
-// functions to iterate over the component specific instance
-// struct and set the defaults as defined in the 'defaults'
-// struct tags.
-func setDefaults(c interface{}) (err error) {
-	st := reflect.TypeOf(c)
-	sv := reflect.ValueOf(c)
-	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
-		st = st.Elem()
-		sv = sv.Elem()
-	}
-
-	n := sv.NumField()
-
-	for i := 0; i < n; i++ {
-		ft := st.Field(i)
-		fv := sv.Field(i)
-
-		// only set plain strings
-		if !fv.CanSet() {
-			continue
-		}
-		if def, ok := ft.Tag.Lookup("default"); ok {
-			// treat all defaults as if they are templates
-			val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
-			if err != nil {
-				log.Println("parse error:", def)
-				continue
-			}
-			var b bytes.Buffer
-			if err = val.Execute(&b, c); err != nil {
-				log.Println("cannot convert:", def)
-			}
-			if err = setField(c, ft.Name, b.String()); err != nil {
-				return err
-			}
-		}
-	}
-	return
 }

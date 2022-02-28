@@ -66,7 +66,7 @@ func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 	// but allow for RC files again
 	var cs []string
 	for _, name := range args {
-		for _, c := range NewComponent(ct, name) {
+		for _, c := range newComponent(ct, name) {
 			// try to migrate the config, which will not work if empty
 			if err = loadConfig(c, true); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration, check syntax")

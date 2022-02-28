@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/template"
 )
 
 // locate a process by compoent type and name
@@ -328,12 +329,28 @@ func validInstanceName(in string) (ok bool) {
 // called 'thisserver')
 func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []string, params []string) (err error) {
 	for _, name := range args {
-		for _, c := range NewComponent(ct, name) {
+		for _, c := range newComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
 			}
 			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
+				log.Println(Type(c), Name(c), err)
+			}
+		}
+	}
+	return nil
+}
+
+// call a function but with an extra subcommand parameter to allow some indirection
+func loopSubcommand(fn func(Instance, string, []string) error, subcommand string, ct ComponentType, args []string, params []string) (err error) {
+	for _, name := range args {
+		for _, c := range newComponent(ct, name) {
+			if err = loadConfig(c, false); err != nil {
+				log.Println(Type(c), Name(c), "cannot load configuration")
+				return
+			}
+			if err = fn(c, subcommand, params); err != nil && !errors.Is(err, ErrProcNotExist) {
 				log.Println(Type(c), Name(c), err)
 			}
 		}
@@ -351,7 +368,7 @@ func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType
 		return
 	}
 	name := args[0]
-	for _, c := range NewComponent(ct, name) {
+	for _, c := range newComponent(ct, name) {
 		if err = loadConfig(c, false); err != nil {
 			log.Println(Type(c), Name(c), "cannot load configuration")
 			return
@@ -397,6 +414,16 @@ func cleanRelativePath(path string) (clean string, err error) {
 	}
 
 	return
+}
+
+// given a filename or path, prepend the instance home directory
+// if not absolute, and clean
+func filepathForInstance(c Instance, file string) (path string) {
+	path = filepath.Clean(file)
+	if filepath.IsAbs(path) {
+		return
+	}
+	return filepath.Join(Home(c), path)
 }
 
 func removePathList(c Instance, paths string) (err error) {
@@ -563,5 +590,49 @@ func readSource(source string) (b []byte, err error) {
 	}
 
 	b, err = io.ReadAll(from)
+	return
+}
+
+// a template function to support "{{join .X .Y}}"
+var textJoinFuncs = template.FuncMap{"join": filepath.Join}
+
+// setDefaults() is a common function called by component New*()
+// functions to iterate over the component specific instance
+// struct and set the defaults as defined in the 'defaults'
+// struct tags.
+func setDefaults(c interface{}) (err error) {
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(c)
+	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
+		st = st.Elem()
+		sv = sv.Elem()
+	}
+
+	n := sv.NumField()
+
+	for i := 0; i < n; i++ {
+		ft := st.Field(i)
+		fv := sv.Field(i)
+
+		// only set plain strings
+		if !fv.CanSet() {
+			continue
+		}
+		if def, ok := ft.Tag.Lookup("default"); ok {
+			// treat all defaults as if they are templates
+			val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
+			if err != nil {
+				log.Println("parse error:", def)
+				continue
+			}
+			var b bytes.Buffer
+			if err = val.Execute(&b, c); err != nil {
+				log.Println("cannot convert:", def)
+			}
+			if err = setField(c, ft.Name, b.String()); err != nil {
+				return err
+			}
+		}
+	}
 	return
 }

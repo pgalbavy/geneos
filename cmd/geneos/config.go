@@ -532,7 +532,7 @@ func commandShow(ct ComponentType, names []string, params []string) (err error) 
 	// but allow for RC files again
 	var cs []Instance
 	for _, name := range names {
-		for _, c := range NewComponent(ct, name) {
+		for _, c := range newComponent(ct, name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				continue
@@ -595,7 +595,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 
 	if len(args) == 0 {
 		userConfDir, _ := os.UserConfigDir()
-		setConfig(filepath.Join(userConfDir, "geneos.json"), params)
+		writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
 		return
 	}
 
@@ -603,10 +603,10 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 	// to sanitise the contents - or generate an error
 	switch args[0] {
 	case "global":
-		return setConfig(globalConfig, params)
+		return writeConfigParams(globalConfig, params)
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
-		return setConfig(filepath.Join(userConfDir, "geneos.json"), params)
+		return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
 	}
 
 	// components - parse the args again and load/print the config,
@@ -617,7 +617,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 
 	// loop through named instances
 	for _, arg := range args {
-		for _, c := range NewComponent(ct, arg) {
+		for _, c := range newComponent(ct, arg) {
 			// migration required to set values
 			if err = loadConfig(c, true); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
@@ -695,7 +695,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 	return
 }
 
-func setConfig(filename string, params []string) (err error) {
+func writeConfigParams(filename string, params []string) (err error) {
 	var c ConfigType
 	// ignore err - config may not exist, but that's OK
 	_ = readConfigFile(filename, &c)
@@ -712,6 +712,11 @@ func setConfig(filename string, params []string) (err error) {
 		}
 	}
 	return writeConfigFile(filename, c)
+}
+
+func writeInstanceConfig(c Instance) (err error) {
+	err = writeConfigFile(filepath.Join(Home(c), Type(c).String()+".json"), c)
+	return
 }
 
 func readConfigFile(file string, config interface{}) (err error) {
@@ -785,11 +790,11 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	newname := args[1]
 
 	logDebug.Println("rename", ct, oldname, newname)
-	oldconf := NewComponent(ct, oldname)[0]
+	oldconf := newComponent(ct, oldname)[0]
 	if err = loadConfig(oldconf, true); err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
-	tos := NewComponent(ct, newname)
+	tos := newComponent(ct, newname)
 	newconf := tos[0]
 	if len(tos) == 0 {
 		return fmt.Errorf("%s %s: %w", ct, newname, ErrInvalidArgs)
