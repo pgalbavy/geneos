@@ -17,10 +17,14 @@ func init() {
 		Function:    commandStart,
 		ParseFlags:  startFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: `geneos start [TYPE] [NAME...]`,
+		CommandLine: `geneos start [-l] [TYPE] [NAME...]`,
 		Summary:     `Start one or more instances.`,
 		Description: `Start one or more matching instances. All instances are run in the background and
-STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
+STDOUT and STDERR are redirected to a '.txt' file in the instance directory.
+
+FLAGS:
+	-l - follow logs after starting instances
+`}
 
 	startFlags = flag.NewFlagSet("start", flag.ExitOnError)
 	startFlags.BoolVar(&startLogs, "l", false, "Watch logs after start-up")
@@ -34,19 +38,29 @@ STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`}
 		Summary:     `Stop one or more instances`,
 		Description: `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and
 if the instance is still running after a few seconds then a SIGKILL is sent. If the -f flag
-is given the instance(s) are immediately terminated with a SIGKILL.`}
+is given the instance(s) are immediately terminated with a SIGKILL.
+
+
+FLAGS:
+	-f - force stop by sending an immediate SIGKILL
+`}
 
 	stopFlags = flag.NewFlagSet("stop", flag.ExitOnError)
-	stopFlags.BoolVar(&stopKill, "f", false, "Force stop by senind an immediate SIGKILL")
+	stopFlags.BoolVar(&stopKill, "f", false, "Force stop by sending an immediate SIGKILL")
 	stopFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["restart"] = Command{
 		Function:    commandRestart,
 		ParseFlags:  restartFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: "geneos restart [TYPE] [NAME...]",
+		CommandLine: "geneos restart [-l] [TYPE] [NAME...]",
 		Summary:     `Restart one or more instances.`,
-		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`}
+		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.
+
+FLAGS:
+	-l - follow logs after starting instances
+
+`}
 
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
 	restartFlags.BoolVar(&restartAll, "a", false, "Start all instances, not just those already running")
