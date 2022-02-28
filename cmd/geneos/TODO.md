@@ -4,6 +4,8 @@
 
 * Positive confirmations of all commands unless quiet mode - PARTIAL
   * Should be an 'action taken' return from commands for output
+* Warnings when a name cannot be processed (but continue)
+  * Help highlight typos rather than skip them
 * Command line verbosity control - PARTIAL
 * TLS support
   * create basic cert/key sets
