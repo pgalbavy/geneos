@@ -19,39 +19,52 @@ import (
 )
 
 func init() {
-	commands["secure"] = Command{
-		Function:    commandSecure,
-		ParseFlags:  flagsSecure,
-		ParseArgs:   secureArgs,
-		CommandLine: "geneos secure ...",
-		Summary:     `Secure options`,
-		Description: ``}
+	commands["tls"] = Command{
+		Function:    commandTLS,
+		ParseFlags:  flagsTLS,
+		ParseArgs:   TLSArgs,
+		CommandLine: "geneos tls [init|import|new|renew|ls] ...",
+		Summary:     `TLS operations subcommand`,
+		Description: `TLS operations subcommand. The following subcommands are supported:
 
-	secureFlags = flag.NewFlagSet("secure", flag.ExitOnError)
+	geneos tls init
+		initialise the TLS environment, creating root and intermediate CAs and certificates for all instances
+	geneos tls import file [file...]
+		import certificate and private key used to sign instance certificates
+	geneos tls new [TYPE] [NAME]
+		create a new certificate for matching instances
+	geneos tls renew [TYPE] [NAME]
+		renew certificates for matching instances
+	geneos tls ls [TYPE] [NAME]
+		list certificates for matcing instances, including the root and intermediate CA certs.
+		same options as for the main 'ls' command
+`}
+
+	TLSFlags = flag.NewFlagSet("tls", flag.ExitOnError)
 	// support the same flags as "ls" for lists
-	secureFlags.BoolVar(&listJSON, "j", false, "Output JSON")
-	secureFlags.BoolVar(&listJSONIndent, "i", false, "Indent / pretty print JSON")
-	secureFlags.BoolVar(&listCSV, "c", false, "Output CSV")
-	secureFlags.BoolVar(&helpFlag, "h", false, helpUsage)
+	TLSFlags.BoolVar(&listJSON, "j", false, "Output JSON")
+	TLSFlags.BoolVar(&listJSONIndent, "i", false, "Indent / pretty print JSON")
+	TLSFlags.BoolVar(&listCSV, "c", false, "Output CSV")
+	TLSFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
-var secureFlags *flag.FlagSet
+var TLSFlags *flag.FlagSet
 
 const rootCAFile = "rootCA"
 const intermediateFile = "geneos"
 
 // skip over subcommand, which is required
-func flagsSecure(command string, args []string) (ret []string) {
+func flagsTLS(command string, args []string) (ret []string) {
 	if len(args) == 0 {
 		return
 	}
-	secureFlags.Parse(args[1:])
+	TLSFlags.Parse(args[1:])
 	checkHelpFlag(command)
-	return append([]string{args[0]}, secureFlags.Args()...)
+	return append([]string{args[0]}, TLSFlags.Args()...)
 }
 
 // pop subcommand, parse args, put subcommand back onto params?
-func secureArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
+func TLSArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
 	if len(rawargs) == 0 {
 		log.Fatalln("command requires more arguments - help text here")
 	}
@@ -61,7 +74,7 @@ func secureArgs(rawargs []string) (ct ComponentType, args []string, params []str
 	return
 }
 
-func commandSecure(ct ComponentType, args []string, params []string) (err error) {
+func commandTLS(ct ComponentType, args []string, params []string) (err error) {
 	logDebug.Println(ct, args, params)
 
 	subcommand := args[0]
@@ -69,17 +82,17 @@ func commandSecure(ct ComponentType, args []string, params []string) (err error)
 
 	switch subcommand {
 	case "init":
-		if err = secureInit(); err != nil {
+		if err = TLSInit(); err != nil {
 			log.Fatalln(err)
 		}
-		return loopSubcommand(secureInstance, "new", ct, args, params)
+		return loopSubcommand(TLSInstance, "new", ct, args, params)
 	case "import":
-		return secureImport(args)
+		return TLSImport(args)
 	case "ls":
 		return listCertsCommand(ct, args, params)
 	}
 
-	return loopSubcommand(secureInstance, subcommand, ct, args, params)
+	return loopSubcommand(TLSInstance, subcommand, ct, args, params)
 }
 
 type lsCertType struct {
@@ -180,8 +193,8 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 	return
 }
 
-func secureInstance(c Instance, subcommand string, params []string) (err error) {
-	logDebug.Println("secureInstance:", Type(c), Name(c), subcommand, params)
+func TLSInstance(c Instance, subcommand string, params []string) (err error) {
+	logDebug.Println("TLSInstance:", Type(c), Name(c), subcommand, params)
 	switch subcommand {
 	case "new":
 		// create a cert, DO NOT overwrite any existing unless renewing
@@ -239,7 +252,7 @@ func lsInstanceCertJSON(c Instance, params []string) (err error) {
 // create the tls/ directory in ITRSHome and a CA / DCA as required
 //
 // later options to allow import of a DCA
-func secureInit() (err error) {
+func TLSInit() (err error) {
 	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
 	// directory permissions do not need to be restrictive
 	err = os.MkdirAll(tlsPath, 0777)
@@ -269,7 +282,7 @@ func secureInit() (err error) {
 // import intermediate (signing) cert and key from files on command line
 // loop through args and decode pem, check type and import - filename to
 // be decided (CN.pem etc.)
-func secureImport(files []string) (err error) {
+func TLSImport(files []string) (err error) {
 	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
 	for _, source := range files {
 		f, err := readSource(source)
