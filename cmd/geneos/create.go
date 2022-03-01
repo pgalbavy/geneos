@@ -43,7 +43,7 @@ then a DEST must be provided. If DEST includes a path then it must be relative a
 	geneos upload licd example2 geneos.lic=license.txt
 	geneos upload netprobe exampel3 scripts/=myscript.sh
 	
-Directroreies are created as required. If run as root, directories and files ownership is set to the
+Directories are created as required. If run as root, directories and files ownership is set to the
 user in the instance configuration or the default user. Currently only one file can be uploaded at a
 time.`}
 }
