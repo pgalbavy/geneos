@@ -23,3 +23,9 @@
 * web dashboard - mostly done, better port numbers and tls to do
 * FIX2 netprobe
 * modularise component types, make future addins easier - PARTIAL
+* remote management support
+  * ssh and/or grpc
+  * bootstrap remote from empty (ssh)
+  * add / change / remove remote
+  * manage multiple servers as one
+  * instance@remote syntax?

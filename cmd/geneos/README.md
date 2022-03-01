@@ -11,6 +11,7 @@ The `geneos` program will help you manage your Geneos environment, one server at
 * Edit individual settings of instances
 * Automatically download and install the latest packages (authentication required, for now)
 * Update running versions - stop, update, start
+* TLS certificate generation and management
 
 
 ## Getting Started
@@ -27,7 +28,7 @@ Make sure that the `geneos` program is in your normal `PATH` - or that $HOME/go/
 
 ### Existing Installation
 
-If you have an existing Geneos installation that you manage with the legacy `gatewayctl` / `netprobectl` commands then you can try these:
+If you have an existing Geneos installation that you manage with the legacy `gatewayctl` / `netprobectl` commands then you can try these once you have set the geneos directory:
 
 `geneos ls` - list instances
 `geneos ps` - show their running status
@@ -35,11 +36,11 @@ If you have an existing Geneos installation that you manage with the legacy `gat
 
 None of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
 
-Note: You will have to set an environment variable `ITRS_HOME` pointing to the top-level directory of an existing installation or use:
+Note: You have to set an environment variable `ITRS_HOME` pointing to the top-level directory of an existing installation or set the location in the user or global configuration file:
 
 `geneos set ITRSHome=/path/to/install`
 
-This path is where the `packages` and `gateway` directories live. If you do not have an existing installation then wait until we initialise one below.
+This is the directory where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation then we initialise one below.
 
 ## New Installation
 
@@ -53,13 +54,19 @@ geneos upload licd Licd1 geneos.lic
 geneos start
 ```
 
+Instance names are case sensitive and cannot be the same as some reserved words (e.g. `gateway`, `netprobe`, `probe` and more, given below).
+
 You still have to configure the Gateway to connect to the Netprobe, but all three components should now be running. You can check with:
 
 `geneos ps`
 
+## Security and Running as Root
+
+This program has been written in such a way that is *should* be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
+
 ## Usage
 
-Please note that the precise combination of commands and parameters is changing all the time. This list below is mostly, but not completely, up-to-date.
+Please note that the full list of commands and parameters is changing all the time. This list below is mostly, but not completely, up-to-date.
 
 The general syntax is:
 
@@ -80,10 +87,6 @@ The following component types (and their aliases) are supported:
 These names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
 
 ### Commands
-
-#### Security and Running as Root
-
-The program has been written in such a way that is should be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
 
 #### General Command Flags & Arguments
 
@@ -115,10 +118,16 @@ Output a list of all configured instances. If a TYPE and/or NAME(s) are supplied
 * `geneos ps [TYPE] [NAME...]`
 Show details of running instances.
 
+* `geneos logs [-f | -n N | ...] [TYPE] [NAME...]`
+Show log(s) for matching instances. Flags allow for follow etc.
+
 #### Environment Commands
 
 * `geneos init [username] [directory]`
 Initialise the environment. 
+
+* `geneos tls ...`
+TLS operations. See below.
 
 * `geneos show [global|user]`
 Show the running configuration or, if `global` or `user` is supplied then the respective on-disk configuration files. Passwords are simplisticly redated.
@@ -140,18 +149,18 @@ Update the component base binary link
 
 #### Instance Control Commands
 
-* `geneos start [TYPE] [NAME...]`
+* `geneos start [-l] [TYPE] [NAME...]`
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
 
 * `geneos stop [-f] [TYPE] [NAME...]`
 Like above, but stops the component(s)
 -f terminates forcefully - i.e. a SIGKILL is immediately sent
 
-* `geneos restart [TYPE] [NAME...]`
+* `geneos restart [-l] [TYPE] [NAME...]`
 Restarts matching geneos components. Each component is stopped and started in sequence. If all components should be down before starting up again then use a combination of `start` and `stop` from above.
 
 * `geneos reload|refresh [TYPE] NAME [NAME...]`
-Cause the component to reload it's configuration or restart as appropriate.
+Signal the component to reload it's configuration or restart as appropriate.
 
 * `geneos disable [TYPE] [NAME...]`
 Stop and disable the selected compoents by placing a file in wach working directory with a `.disable` extention
@@ -164,7 +173,7 @@ Clean up component directory. Optionally 'full' clean, with an instance restart.
 
 #### Instance Configuration Commands
 
-* `geneos create [TYPE] name [NAME...]`
+* `geneos new [TYPE] name [NAME...]`
 Create a Geneos component configuration.
 
 * `geneos migrate [TYPE] [NAME...]`
@@ -194,10 +203,33 @@ Upload a file into an instance working directory, from local file, url or stdin 
   geneos upload gateway Example scripts/newscript.sh=myscript.sh
   geneos upload gateway Example scripts/=myscript.sh
   cat someoutput | geneos upload gateway Example config.json=-
-```
+  ```
 
 Like other commands that write to the file system is can safely be run as root as the destination directory and file will be changed to be owned by either the instance or the default user, with the caveat that any intermediate directrories above the destination sub-directory (e.g. the first two in `my/long/path`) will be owned by root.
 `geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
+
+## TLS Operations
+
+The `geneos tls` command provides a number of subcommands to create and manage certificates and instance configurations for encrypted connections.
+
+Once enabled then all new instances will also have certificates created and configuration set to use secure (encrypted) connections where possible.
+
+* `geneos tls init`
+  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populkating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command.
+
+  Any existing instances have certificates created and their configurations updated to reference them. This means that any legacy `.rc` configurations will be migrated to `.json` files.
+
+* `geneos tls import FILE [FILE...]`
+  Import certificates and keys as specified to the `tls` directory as signing certificate and key. If both are in the same file then they are split into a certificate and key and he key file is permissioned so that it is only accessible to the user running the command. [Note: This is currently untested].
+
+* `geneos tls new [TYPE] [NAME...]`
+  Create a new certificate for matching instances, siogned using the signing certificate and key. This will NOT overwrite an existing certificate and will re-use the private key if it exists. The default validity period is one year. This cannot currently be changed.
+
+* `geneos tls renew [TYPE] [NAME...]`
+  Renew a certificate for matching instances. This will overwrite an existing certificate regardless of it's current status of validity period. There must already be a private key.
+
+* `geneos tls ls [-c | -j | -i | -l] [TYPE] [NAME...]`
+  List instance certificate information. Options are the same as for the main `ls` command but the data shown is specific to certificates.
 
 ## Configuration Files
 

@@ -327,6 +327,8 @@ func validInstanceName(in string) (ok bool) {
 // reply on NewComponent() checking the component type and returning a slice
 // of all matching components for a single name in an arg (e.g all instances
 // called 'thisserver')
+//
+// try to use go routines here - mutexes required
 func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range newComponent(ct, name) {
