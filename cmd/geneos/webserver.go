@@ -33,7 +33,7 @@ func init() {
 	components[Webserver] = ComponentFuncs{
 		Instance: webserverInstance,
 		Command:  webserverCommand,
-		New:      webserverNew,
+		Add:      webserverNew,
 		Clean:    webserverClean,
 		Reload:   webserverReload,
 	}

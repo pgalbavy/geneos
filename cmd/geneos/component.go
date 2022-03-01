@@ -26,7 +26,7 @@ const (
 type ComponentFuncs struct {
 	Instance func(string) interface{}
 	Command  func(Instance) ([]string, []string)
-	New      func(string, string) (Instance, error)
+	Add      func(string, string) (Instance, error)
 	Clean    func(Instance, bool, []string) error
 	Reload   func(Instance, []string) error
 }

@@ -40,7 +40,7 @@ func init() {
 	components[Gateway] = ComponentFuncs{
 		Instance: gatewayInstance,
 		Command:  gatewayCommand,
-		New:      gatewayNew,
+		Add:      gatewayNew,
 		Clean:    gatewayClean,
 		Reload:   gatewayReload,
 	}

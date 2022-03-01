@@ -15,13 +15,13 @@ import (
 )
 
 func init() {
-	commands["new"] = Command{
-		Function:    commandNew,
+	commands["add"] = Command{
+		Function:    commandAdd,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: "geneos new TYPE NAME",
-		Summary:     `Create a new instance`,
-		Description: `Create a new instance called NAME with the TYPE supplied. The details will depends on the
+		CommandLine: "geneos add TYPE NAME",
+		Summary:     `Add a new instance`,
+		Description: `Add a new instance called NAME with the TYPE supplied. The details will depends on the
 TYPE. Currently the listening port is selected automatically and other options are defaulted. If
 these need to be changed before starting, see the edit command.
 
@@ -48,7 +48,7 @@ user in the instance configuration or the default user. Currently only one file 
 time.`}
 }
 
-func commandNew(ct ComponentType, args []string, params []string) (err error) {
+func commandAdd(ct ComponentType, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		logError.Fatalln("not enough args")
 	}
@@ -65,14 +65,14 @@ func commandNew(ct ComponentType, args []string, params []string) (err error) {
 	}
 
 	cm, ok := components[ct]
-	if !ok || cm.New == nil {
+	if !ok || cm.Add == nil {
 		return ErrNotSupported
 	}
-	c, err := cm.New(name, username)
+	c, err := cm.Add(name, username)
 	if err != nil {
 		return
 	}
-	log.Printf("new %s %q created, listening port %s\n", Type(c), Name(c), getIntAsString(c, Prefix(c)+"Port"))
+	log.Printf("new %s %q added, listening port %s\n", Type(c), Name(c), getIntAsString(c, Prefix(c)+"Port"))
 
 	return
 }

@@ -29,7 +29,7 @@ func init() {
 	components[Netprobe] = ComponentFuncs{
 		Instance: netprobeInstance,
 		Command:  netprobeCommand,
-		New:      netprobeNew,
+		Add:      netprobeNew,
 		Clean:    netprobeClean,
 		Reload:   netprobeReload,
 	}

@@ -29,7 +29,7 @@ func init() {
 	components[Licd] = ComponentFuncs{
 		Instance: licdInstance,
 		Command:  licdCommand,
-		New:      licdNew,
+		Add:      licdNew,
 		Clean:    licdClean,
 		Reload:   licdReload,
 	}

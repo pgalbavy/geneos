@@ -29,3 +29,8 @@
   * add / change / remove remote
   * manage multiple servers as one
   * instance@remote syntax?
+  * transparency - all except `logs -f` should work with ssh and sftp
+* Change `new` to `add`
+* Examine integrating `upload` into `add`
+
+
