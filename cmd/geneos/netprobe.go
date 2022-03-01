@@ -68,7 +68,7 @@ func netprobeCommand(c Instance) (args, env []string) {
 }
 
 // create a plain netprobe instance
-func netprobeAdd(name string, username string) (c Instance, err error) {
+func netprobeAdd(name string, username string, params []string) (c Instance, err error) {
 	// fill in the blanks
 	c = netprobeInstance(name)
 	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))

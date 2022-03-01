@@ -217,6 +217,7 @@ var initDirs = []string{
 	"gateway/gateway_config",
 	"licd/licds",
 	"webserver/webservers",
+	"remotes",
 }
 
 // load system config from global and user JSON files and process any

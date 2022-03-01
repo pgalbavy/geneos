@@ -105,7 +105,7 @@ func gatewayCommand(c Instance) (args, env []string) {
 	return
 }
 
-func gatewayAdd(name string, username string) (c Instance, err error) {
+func gatewayAdd(name string, username string, params []string) (c Instance, err error) {
 	// fill in the blanks
 	c = gatewayInstance(name)
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))

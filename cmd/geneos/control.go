@@ -140,7 +140,7 @@ func startInstance(c Instance, params []string) (err error) {
 	// set underlying user for child proc
 	username := getString(c, Prefix(c)+"User")
 	// pass possibly empty string down to setuser - it handles defaults
-	if err = setuser(cmd, username); err != nil {
+	if err = setUser(cmd, username); err != nil {
 		return
 	}
 

@@ -21,12 +21,13 @@ const (
 	Netprobe
 	Licd
 	Webserver
+	Remote
 )
 
 type ComponentFuncs struct {
 	Instance func(string) interface{}
 	Command  func(Instance) ([]string, []string)
-	Add      func(string, string) (Instance, error)
+	Add      func(string, string, []string) (Instance, error)
 	Clean    func(Instance, bool, []string) error
 	Reload   func(Instance, []string) error
 }
@@ -57,8 +58,9 @@ type Common struct {
 	Env []string `json:",omitempty"`
 }
 
-// currently supported types, for looping
+// currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
+// not including Remote for now
 func componentTypes() []ComponentType {
 	return []ComponentType{Gateway, Netprobe, Licd, Webserver}
 }
@@ -75,6 +77,8 @@ func (ct ComponentType) String() string {
 		return "licd"
 	case Webserver:
 		return "webserver"
+	case Remote:
+		return "remote"
 	}
 	return "unknown"
 }
@@ -91,6 +95,8 @@ func parseComponentName(component string) ComponentType {
 		return Licd
 	case "web-server", "webserver", "webservers", "webdashboard", "dashboards":
 		return Webserver
+	case "remote", "remotes":
+		return Remote
 	default:
 		return Unknown
 	}
@@ -106,7 +112,12 @@ func instanceDirs(ct ComponentType) []string {
 
 // Return the base directory for a ComponentType
 func componentDir(ct ComponentType) string {
-	return filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s")
+	switch ct {
+	case Remote:
+		return filepath.Join(RunningConfig.ITRSHome, ct.String()+"s")
+	default:
+		return filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s")
+	}
 }
 
 // Accessor functions
@@ -125,6 +136,11 @@ func Home(c Instance) string {
 }
 
 func Prefix(c Instance) string {
+	switch Type(c) {
+	case Remote:
+		return ""
+	default:
+	}
 	if len(Type(c).String()) < 4 {
 		return "Default"
 	}

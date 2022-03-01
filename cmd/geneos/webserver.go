@@ -101,7 +101,7 @@ var webserverFiles = []string{
 	"config/=users.properties",
 }
 
-func webserverAdd(name string, username string) (c Instance, err error) {
+func webserverAdd(name string, username string, params []string) (c Instance, err error) {
 	// fill in the blanks
 	c = webserverInstance(name)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))

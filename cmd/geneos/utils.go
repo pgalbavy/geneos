@@ -125,7 +125,7 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 // set-up the Cmd to set uid, gid and groups of the username given
 // Note: does not change stdout etc. which is done later
 //
-func setuser(cmd *exec.Cmd, username string) (err error) {
+func setUser(cmd *exec.Cmd, username string) (err error) {
 	uid, gid, gids, err := getUser(username)
 	if err != nil {
 		return
@@ -322,9 +322,9 @@ func validInstanceName(in string) (ok bool) {
 	return
 }
 
-// given a compoent type and a slice of args, call the function for each arg
+// given a component type and a slice of args, call the function for each arg
 //
-// reply on NewComponent() checking the component type and returning a slice
+// rely on NewComponent() checking the component type and returning a slice
 // of all matching components for a single name in an arg (e.g all instances
 // called 'thisserver')
 //

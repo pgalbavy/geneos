@@ -68,7 +68,7 @@ func commandAdd(ct ComponentType, args []string, params []string) (err error) {
 	if !ok || cm.Add == nil {
 		return ErrNotSupported
 	}
-	c, err := cm.Add(name, username)
+	c, err := cm.Add(name, username, params)
 	if err != nil {
 		return
 	}

@@ -68,7 +68,7 @@ func licdCommand(c Instance) (args, env []string) {
 	return
 }
 
-func licdAdd(name string, username string) (c Instance, err error) {
+func licdAdd(name string, username string, params []string) (c Instance, err error) {
 	// fill in the blanks
 	c = licdInstance(name)
 	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
