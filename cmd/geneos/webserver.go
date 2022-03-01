@@ -33,7 +33,7 @@ func init() {
 	components[Webserver] = ComponentFuncs{
 		Instance: webserverInstance,
 		Command:  webserverCommand,
-		Add:      webserverNew,
+		Add:      webserverAdd,
 		Clean:    webserverClean,
 		Reload:   webserverReload,
 	}
@@ -101,7 +101,7 @@ var webserverFiles = []string{
 	"config/=users.properties",
 }
 
-func webserverNew(name string, username string) (c Instance, err error) {
+func webserverAdd(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = webserverInstance(name)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))

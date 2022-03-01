@@ -40,7 +40,7 @@ func init() {
 	components[Gateway] = ComponentFuncs{
 		Instance: gatewayInstance,
 		Command:  gatewayCommand,
-		Add:      gatewayNew,
+		Add:      gatewayAdd,
 		Clean:    gatewayClean,
 		Reload:   gatewayReload,
 	}
@@ -105,7 +105,7 @@ func gatewayCommand(c Instance) (args, env []string) {
 	return
 }
 
-func gatewayNew(name string, username string) (c Instance, err error) {
+func gatewayAdd(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = gatewayInstance(name)
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))

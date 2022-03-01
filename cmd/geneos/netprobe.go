@@ -29,7 +29,7 @@ func init() {
 	components[Netprobe] = ComponentFuncs{
 		Instance: netprobeInstance,
 		Command:  netprobeCommand,
-		Add:      netprobeNew,
+		Add:      netprobeAdd,
 		Clean:    netprobeClean,
 		Reload:   netprobeReload,
 	}
@@ -68,7 +68,7 @@ func netprobeCommand(c Instance) (args, env []string) {
 }
 
 // create a plain netprobe instance
-func netprobeNew(name string, username string) (c Instance, err error) {
+func netprobeAdd(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = netprobeInstance(name)
 	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))

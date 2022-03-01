@@ -29,7 +29,7 @@ func init() {
 	components[Licd] = ComponentFuncs{
 		Instance: licdInstance,
 		Command:  licdCommand,
-		Add:      licdNew,
+		Add:      licdAdd,
 		Clean:    licdClean,
 		Reload:   licdReload,
 	}
@@ -68,7 +68,7 @@ func licdCommand(c Instance) (args, env []string) {
 	return
 }
 
-func licdNew(name string, username string) (c Instance, err error) {
+func licdAdd(name string, username string) (c Instance, err error) {
 	// fill in the blanks
 	c = licdInstance(name)
 	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
