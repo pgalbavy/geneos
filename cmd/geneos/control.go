@@ -103,7 +103,7 @@ func commandStart(ct ComponentType, args []string, params []string) (err error) 
 	}
 	if startLogs {
 		done := make(chan bool)
-		watchLogs()
+		watcher, _ = watchLogs()
 		defer watcher.Close()
 		err = loopCommand(logFollowInstance, ct, args, params)
 		<-done
@@ -242,7 +242,7 @@ func commandRestart(ct ComponentType, args []string, params []string) (err error
 
 	if restartLogs {
 		done := make(chan bool)
-		watchLogs()
+		watcher, _ = watchLogs()
 		defer watcher.Close()
 		err = loopCommand(logFollowInstance, ct, args, params)
 		<-done

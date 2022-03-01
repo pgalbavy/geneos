@@ -50,6 +50,9 @@ var logsFollow, logsCat bool
 var logsLines int
 var logsInclude, logsExclude string
 
+// global watcher for logs
+// we need this right now so that logFollowInstance() knows to add files to it
+// abstract this away somehow
 var watcher *fsnotify.Watcher
 
 // struct to hold logfile details
@@ -87,7 +90,7 @@ func commandLogs(ct ComponentType, args []string, params []string) (err error) {
 	case logsFollow:
 		// tail -f here
 		done := make(chan bool)
-		watchLogs()
+		watcher, _ = watchLogs()
 		defer watcher.Close()
 		// add logs to watcher
 		// wait for events
@@ -255,7 +258,7 @@ func logFollowInstance(c Instance, params []string) (err error) {
 	return
 }
 
-func watchLogs() (err error) {
+func watchLogs() (watcher *fsnotify.Watcher, err error) {
 	// set up watcher
 	watcher, err = fsnotify.NewWatcher()
 	if err != nil {
