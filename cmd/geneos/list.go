@@ -67,6 +67,14 @@ func flagsList(command string, args []string) []string {
 }
 
 func commandLS(ct ComponentType, args []string, params []string) (err error) {
+	if ct == Remote {
+		// geneos ls remote [NAME]
+		if len(args) == 0 {
+			// list remotes
+
+		}
+	}
+
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
