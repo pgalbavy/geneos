@@ -67,6 +67,9 @@ func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 	var cs []string
 	for _, name := range args {
 		for _, c := range newComponent(ct, name) {
+			if RemoteName(c) != LOCAL {
+				logError.Fatalln(ErrNotSupported)
+			}
 			// try to migrate the config, which will not work if empty
 			if err = loadConfig(c, true); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration, check syntax")

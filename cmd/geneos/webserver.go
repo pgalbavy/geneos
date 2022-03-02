@@ -40,11 +40,12 @@ func init() {
 }
 
 func webserverInstance(name string) interface{} {
-	// Bootstrap
+	local, remote := splitInstanceName(name)
 	c := &Webservers{}
-	c.Root = RunningConfig.ITRSHome
+	c.Root = remoteRoot(remote)
 	c.Type = Webserver.String()
-	c.Name = name
+	c.Name = local
+	c.Rem = remote
 	setDefaults(&c)
 	return c
 }
@@ -129,7 +130,7 @@ func webserverAdd(name string, username string, params []string) (c Instance, er
 		return
 	}
 
-	if err = os.MkdirAll(filepath.Join(Home(c), "webapps"), 0777); err != nil {
+	if err = mkdirAll(RemoteName(c), filepath.Join(Home(c), "webapps"), 0777); err != nil {
 		return
 	}
 

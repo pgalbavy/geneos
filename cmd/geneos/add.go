@@ -18,7 +18,7 @@ func init() {
 	commands["add"] = Command{
 		Function:    commandAdd,
 		ParseFlags:  defaultFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   parseArgsNoWildcard,
 		CommandLine: "geneos add TYPE NAME",
 		Summary:     `Add a new instance`,
 		Description: `Add a new instance called NAME with the TYPE supplied. The details will depends on the
@@ -48,6 +48,12 @@ user in the instance configuration or the default user. Currently only one file 
 time.`}
 }
 
+// Add a single instance
+//
+// XXX argument validation is minimal
+//
+// remote support would be of the form name@remotename
+//
 func commandAdd(ct ComponentType, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		logError.Fatalln("not enough args")
@@ -72,7 +78,7 @@ func commandAdd(ct ComponentType, args []string, params []string) (err error) {
 	if err != nil {
 		return
 	}
-	log.Printf("new %s %q added, listening port %s\n", Type(c), Name(c), getIntAsString(c, Prefix(c)+"Port"))
+	log.Printf("new %s %q added, port %s\n", Type(c), Name(c), getIntAsString(c, Prefix(c)+"Port"))
 
 	return
 }
@@ -227,7 +233,7 @@ func uploadFile(c Instance, source string) (err error) {
 				logError.Fatalln("dest path must be relative to (and in) instance directory")
 			}
 			// if the destination exists is it a directory?
-			if st, err := os.Stat(filepath.Join(Home(c), destfile)); err == nil {
+			if st, err := statFile(RemoteName(c), filepath.Join(Home(c), destfile)); err == nil {
 				if st.IsDir() {
 					destdir = filepath.Join(Home(c), destfile)
 					destfile = ""
@@ -274,7 +280,7 @@ func uploadFile(c Instance, source string) (err error) {
 
 	default:
 		// support globbing later
-		from, err = os.Open(source)
+		from, err = openFile(LOCAL, source)
 		if err != nil {
 			return err
 		}
@@ -286,40 +292,40 @@ func uploadFile(c Instance, source string) (err error) {
 
 	destfile = filepath.Join(destdir, destfile)
 
-	if _, err := os.Stat(filepath.Dir(destfile)); err != nil {
-		err = os.MkdirAll(filepath.Dir(destfile), 0775)
+	if _, err := statFile(RemoteName(c), filepath.Dir(destfile)); err != nil {
+		err = mkdirAll(RemoteName(c), filepath.Dir(destfile), 0775)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			logError.Fatalln(err)
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = os.Chown(filepath.Dir(destfile), int(uid), int(gid)); err != nil {
+			if err = chown(RemoteName(c), filepath.Dir(destfile), int(uid), int(gid)); err != nil {
 				return err
 			}
 		}
 	}
 
 	// xxx - wrong way around. create tmp first, move over later
-	if st, err := os.Stat(destfile); err == nil {
+	if st, err := statFile(RemoteName(c), destfile); err == nil {
 		if !st.Mode().IsRegular() {
 			logError.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")
 		backuppath = destfile + "." + datetime + ".old"
-		if err = os.Rename(destfile, backuppath); err != nil {
+		if err = renameFile(RemoteName(c), destfile, backuppath); err != nil {
 			return err
 		}
 	}
-	out, err := os.Create(destfile)
+	out, err := createFile(RemoteName(c), destfile)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
 	if err = out.Chown(int(uid), int(gid)); err != nil {
-		os.Remove(out.Name())
+		removeFile(RemoteName(c), out.Name())
 		if backuppath != "" {
-			if err = os.Rename(backuppath, destfile); err != nil {
+			if err = renameFile(RemoteName(c), backuppath, destfile); err != nil {
 				return err
 			}
 			return err

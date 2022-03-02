@@ -73,7 +73,7 @@ func flagsTLS(command string, args []string) (ret []string) {
 // pop subcommand, parse args, put subcommand back onto params?
 func TLSArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
 	if len(rawargs) == 0 {
-		log.Fatalln("command requires more arguments - help text here")
+		logError.Fatalln("command requires more arguments - help text here")
 	}
 	subcommand := rawargs[0]
 	ct, args, params = parseArgs(rawargs[1:])
@@ -90,7 +90,7 @@ func commandTLS(ct ComponentType, args []string, params []string) (err error) {
 	switch subcommand {
 	case "init":
 		if err = TLSInit(); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		return loopSubcommand(TLSInstance, "new", ct, args, params)
 	case "import":
@@ -261,24 +261,24 @@ func lsInstanceCertJSON(c Instance, params []string) (err error) {
 func TLSInit() (err error) {
 	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
 	// directory permissions do not need to be restrictive
-	err = os.MkdirAll(tlsPath, 0777)
+	err = mkdirAll(LOCAL, tlsPath, 0777)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	rootCert, err := newRootCA(tlsPath)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	interCert, err := newIntrCA(tlsPath)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	// concatenate a chain
 	if err = writeCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, interCert); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	log.Println("created chain.pem")
 
@@ -293,7 +293,7 @@ func TLSImport(files []string) (err error) {
 	for _, source := range files {
 		f, err := readSource(source)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 		for {
 			block, rest := pem.Decode(f)
@@ -304,17 +304,17 @@ func TLSImport(files []string) (err error) {
 			case "CERTIFICATE":
 				cert, err := x509.ParseCertificate(block.Bytes)
 				if err != nil {
-					log.Fatalln(err)
+					logError.Fatalln(err)
 				}
 				writeCert(filepath.Join(tlsPath, signingCertFile+".pem"), cert)
 			case "RSA PRIVATE KEY":
 				key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 				if err != nil {
-					log.Fatalln(err)
+					logError.Fatalln(err)
 				}
 				writeKey(filepath.Join(tlsPath, signingCertFile+".key"), key)
 			default:
-				log.Fatalln("unknown PEM type:", block.Type)
+				logError.Fatalln("unknown PEM type:", block.Type)
 			}
 
 			f = rest
@@ -347,16 +347,16 @@ func newRootCA(dir string) (cert *x509.Certificate, err error) {
 
 	cert, key, err := createCert(&template, &template, nil, nil)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	err = writeCert(rootCertPath, cert)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	err = writeKey(rootKeyPath, key)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	log.Println("CA certificate created for", rootCAFile)
 
@@ -387,25 +387,25 @@ func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 
 	rootCert, err := readCert(filepath.Join(dir, rootCAFile+".pem"))
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	rootKey, err := readKey(filepath.Join(dir, rootCAFile+".key"))
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	cert, key, err := createCert(&template, rootCert, rootKey, nil)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	err = writeCert(intrCertPath, cert)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	err = writeKey(intrKeyPath, key)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	log.Println("CA certificate created for", signingCertFile)
@@ -422,7 +422,7 @@ func renewInstanceCert(c Instance) (err error) {
 	host, _ := os.Hostname()
 	serial, err := rand.Prime(rand.Reader, 64)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	template := x509.Certificate{
 		SerialNumber: serial,
@@ -440,28 +440,28 @@ func renewInstanceCert(c Instance) (err error) {
 
 	intrCert, err := readCert(filepath.Join(tlsDir, signingCertFile+".pem"))
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	intrKey, err := readKey(filepath.Join(tlsDir, signingCertFile+".key"))
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	existingKey, _ := readInstanceKey(c)
 	cert, key, err := createCert(&template, intrCert, intrKey, existingKey)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	err = writeInstanceCert(c, cert)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	if existingKey == nil {
 		err = writeInstanceKey(c, key)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 
@@ -485,7 +485,7 @@ func createInstanceCert(c Instance) (err error) {
 	host, _ := os.Hostname()
 	serial, err := rand.Prime(rand.Reader, 64)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	template := x509.Certificate{
 		SerialNumber: serial,
@@ -503,26 +503,26 @@ func createInstanceCert(c Instance) (err error) {
 
 	intrCert, err := readCert(filepath.Join(tlsDir, signingCertFile+".pem"))
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	intrKey, err := readKey(filepath.Join(tlsDir, signingCertFile+".key"))
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	cert, key, err := createCert(&template, intrCert, intrKey, nil)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	err = writeInstanceCert(c, cert)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	err = writeInstanceKey(c, key)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	log.Println("certificate created for", Type(c), Name(c))
@@ -531,7 +531,7 @@ func createInstanceCert(c Instance) (err error) {
 
 func writeInstanceCert(c Instance, cert *x509.Certificate) (err error) {
 	if c == nil || Type(c) == None {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	certfile := Type(c).String() + ".pem"
 	if err = writeCert(filepath.Join(Home(c), certfile), cert); err != nil {
@@ -545,7 +545,7 @@ func writeInstanceCert(c Instance, cert *x509.Certificate) (err error) {
 
 func writeInstanceKey(c Instance, key *rsa.PrivateKey) (err error) {
 	if Type(c) == None {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	keyfile := Type(c).String() + ".key"
@@ -567,7 +567,7 @@ func writeKey(path string, key *rsa.PrivateKey) (err error) {
 
 	err = os.WriteFile(path, keyPEM, 0640)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	return
 }
@@ -580,7 +580,7 @@ func writeCert(path string, cert *x509.Certificate) (err error) {
 	})
 	err = os.WriteFile(path, certPEM, 0644)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	return
 }
@@ -597,7 +597,7 @@ func writeCerts(path string, certs ...*x509.Certificate) (err error) {
 	}
 	err = os.WriteFile(path, certsPEM, 0644)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	return
 }
@@ -628,7 +628,7 @@ func readSigningCert() (cert *x509.Certificate, err error) {
 
 func readInstanceCert(c Instance) (cert *x509.Certificate, err error) {
 	if Type(c) == None {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	return readCert(filepathForInstance(c, getString(c, Prefix(c)+"Cert")))
@@ -650,7 +650,7 @@ func readKey(path string) (key *rsa.PrivateKey, err error) {
 
 func readInstanceKey(c Instance) (key *rsa.PrivateKey, err error) {
 	if Type(c) == None {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	return readKey(filepathForInstance(c, getString(c, Prefix(c)+"Key")))
@@ -662,7 +662,7 @@ func createCert(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, e
 	} else {
 		key, err = rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 
@@ -673,12 +673,12 @@ func createCert(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, e
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, &key.PublicKey, privKey)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	cert, err = x509.ParseCertificate(certBytes)
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	return

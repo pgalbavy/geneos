@@ -111,7 +111,12 @@ func commandStart(ct ComponentType, args []string, params []string) (err error) 
 	return
 }
 
+// XXX remote support required
 func startInstance(c Instance, params []string) (err error) {
+	if RemoteName(c) != LOCAL {
+		logError.Fatalln("remote!=local", ErrNotSupported)
+	}
+
 	pid, _, err := findInstanceProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)
@@ -123,7 +128,7 @@ func startInstance(c Instance, params []string) (err error) {
 	}
 
 	binary := getString(c, Prefix(c)+"Exec")
-	if _, err = os.Stat(binary); err != nil {
+	if _, err = statFile(RemoteName(c), binary); err != nil {
 		return
 	}
 
@@ -278,14 +283,14 @@ func disableInstance(c Instance, params []string) (err error) {
 		return
 	}
 
-	f, err := os.Create(filepath.Join(Home(c), Type(c).String()+disableExtension))
+	f, err := createFile(RemoteName(c), filepath.Join(Home(c), Type(c).String()+disableExtension))
 	if err != nil {
 		return
 	}
 	defer f.Close()
 
 	if err = f.Chown(int(uid), int(gid)); err != nil {
-		os.Remove(f.Name())
+		removeFile(RemoteName(c), f.Name())
 	}
 	return
 }
@@ -297,7 +302,7 @@ func commandEneable(ct ComponentType, args []string, params []string) (err error
 }
 
 func enableInstance(c Instance, params []string) (err error) {
-	if err = os.Remove(filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
+	if err = removeFile(RemoteName(c), filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
 		err = startInstance(c, params)
 	}
 	return
@@ -305,7 +310,7 @@ func enableInstance(c Instance, params []string) (err error) {
 
 func isDisabled(c Instance) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	if f, err := os.Stat(d); err == nil && f.Mode().IsRegular() {
+	if f, err := statFile(RemoteName(c), d); err == nil && f.Mode().IsRegular() {
 		return true
 	}
 	return false

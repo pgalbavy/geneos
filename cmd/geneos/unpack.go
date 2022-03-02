@@ -82,7 +82,7 @@ func commandExtract(ct ComponentType, files []string, params []string) (err erro
 
 	for _, archive := range files {
 		filename := filepath.Base(archive)
-		gz, err := os.Open(archive)
+		gz, err := openFile(LOCAL, archive)
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func commandDownload(ct ComponentType, files []string, params []string) (err err
 func downloadComponent(ct ComponentType, version string) (err error) {
 	switch ct {
 	case None:
-		for _, t := range componentTypes() {
+		for _, t := range realComponentTypes() {
 			if err = downloadComponent(t, version); err != nil {
 				if errors.Is(err, fs.ErrExist) {
 					log.Println(err)
@@ -157,10 +157,10 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion st
 		logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
 	}
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String(), version)
-	if _, err = os.Stat(basedir); err == nil {
+	if _, err = statFile(LOCAL, basedir); err == nil {
 		return "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
 	}
-	if err = os.MkdirAll(basedir, 0775); err != nil {
+	if err = mkdirAll(LOCAL, basedir, 0775); err != nil {
 		return
 	}
 
@@ -203,7 +203,7 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion st
 		case tar.TypeReg:
 			// check (and created) containing directories - account for munged tar files
 			dir := filepath.Dir(fullpath)
-			if err = os.MkdirAll(dir, 0777); err != nil {
+			if err = mkdirAll(LOCAL, dir, 0777); err != nil {
 				return
 			}
 
@@ -221,14 +221,14 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion st
 			}
 			out.Close()
 		case tar.TypeDir:
-			if err = os.MkdirAll(fullpath, hdr.FileInfo().Mode()); err != nil {
+			if err = mkdirAll(LOCAL, fullpath, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
 		case tar.TypeSymlink, tar.TypeGNULongLink:
 			if filepath.IsAbs(hdr.Linkname) {
 				logError.Fatalln("archive contains absolute symlink target")
 			}
-			if _, err = os.Stat(fullpath); err != nil {
+			if _, err = statFile(LOCAL, fullpath); err != nil {
 				if err = os.Symlink(hdr.Linkname, fullpath); err != nil {
 					logError.Fatalln(err)
 				}
@@ -260,7 +260,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 
 	switch ct {
 	case None:
-		for _, t := range componentTypes() {
+		for _, t := range realComponentTypes() {
 			if err = updateToVersion(t, version, overwrite); err != nil {
 				log.Println(err)
 			}
@@ -270,7 +270,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 			version = latestDir(basedir)
 		}
 		// does the version directory exist?
-		if _, err = os.Stat(filepath.Join(basedir, version)); err != nil {
+		if _, err = statFile(LOCAL, filepath.Join(basedir, version)); err != nil {
 			err = fmt.Errorf("update %s to version %s failed: %w", ct, version, err)
 			return err
 		}
@@ -292,7 +292,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 			stopInstance(i, nil)
 			defer startInstance(i, nil)
 		}
-		if err = os.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		if err = removeFile(LOCAL, basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 		if err = os.Symlink(version, basepath); err != nil {
@@ -352,7 +352,7 @@ func latestDir(dir string) (latest string) {
 // given a component type and a key/value pair, return matching
 // instances
 func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
-	for _, i := range instances(ct) {
+	for _, i := range instances(LOCAL, ct) {
 		if v == getString(i, Prefix(i)+k) {
 			if err := loadConfig(&i, false); err != nil {
 				log.Println(Type(i), Name(i), "cannot load config")

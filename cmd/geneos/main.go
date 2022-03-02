@@ -142,7 +142,7 @@ func main() {
 		if RunningConfig.ITRSHome == "" {
 			logError.Fatalln("home directory is not set")
 		}
-		s, err := os.Stat(RunningConfig.ITRSHome)
+		s, err := statFile(LOCAL, RunningConfig.ITRSHome)
 		if err != nil {
 			logError.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
 		}

@@ -36,11 +36,12 @@ func init() {
 }
 
 func licdInstance(name string) interface{} {
-	// Bootstrap
+	local, remote := splitInstanceName(name)
 	c := &Licds{}
-	c.Root = RunningConfig.ITRSHome
+	c.Root = remoteRoot(remote)
 	c.Type = Licd.String()
-	c.Name = name
+	c.Name = local
+	c.Rem = remote
 	setDefaults(&c)
 	return c
 }

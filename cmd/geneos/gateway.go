@@ -47,11 +47,12 @@ func init() {
 }
 
 func gatewayInstance(name string) interface{} {
-	// Bootstrap
+	local, remote := splitInstanceName(name)
 	c := &Gateways{}
-	c.Root = RunningConfig.ITRSHome
+	c.Root = remoteRoot(remote)
 	c.Type = Gateway.String()
-	c.Name = name
+	c.Name = local
+	c.Rem = remote
 	setDefaults(&c)
 	return c
 }
@@ -130,12 +131,15 @@ func gatewayAdd(name string, username string, params []string) (c Instance, err 
 	if err != nil {
 		logError.Fatalln(err)
 	}
-	cf, err := os.OpenFile(filepath.Join(Home(c), "gateway.setup.xml"), os.O_CREATE|os.O_WRONLY, 0664)
+	cf, err := createFile(RemoteName(c), filepath.Join(Home(c), "gateway.setup.xml"))
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer cf.Close()
+	if err = cf.Chmod(0664); err != nil {
+		logError.Fatalln(err)
+	}
 	if err = t.Execute(cf, c); err != nil {
 		logError.Fatalln(err)
 	}
@@ -170,6 +174,9 @@ func gatewayClean(c Instance, purge bool, params []string) (err error) {
 }
 
 func gatewayReload(c Instance, params []string) (err error) {
+	if RemoteName(c) != LOCAL {
+		logError.Fatalln(ErrNotSupported)
+	}
 	pid, _, err := findInstanceProc(c)
 	if err != nil {
 		return

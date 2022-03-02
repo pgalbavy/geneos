@@ -36,7 +36,7 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
-	dirs, _ := filepath.Glob("/proc/[0-9]*")
+	dirs, _ := globPath(RemoteName(c), "/proc/[0-9]*")
 
 	for _, dir := range dirs {
 		pid, _ := strconv.Atoi(filepath.Base(dir))
@@ -47,7 +47,7 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 
 	for _, pid = range pids {
 		var data []byte
-		data, err = os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+		data, err = readFile(RemoteName(c), fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
 			continue
 		}
@@ -67,7 +67,7 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 					jarOK = true
 				}
 				if wdOK && jarOK {
-					if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
+					if s, err := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid)); err == nil {
 						st = s.Sys().(*syscall.Stat_t)
 					}
 					return
@@ -77,7 +77,7 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 			if strings.HasPrefix(bin, Type(c).String()) {
 				for _, arg := range args[1:] {
 					if string(arg) == Name(c) {
-						if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
+						if s, err := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid)); err == nil {
 							st = s.Sys().(*syscall.Stat_t)
 						}
 						return
@@ -236,8 +236,10 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 
 	// empty list of names = all names for that ct
 	if len(args) == 0 {
-		args = emptyArgs(ct)
+		args = allArgsForComponent(ct)
 	}
+
+	logDebug.Println("ct, args, params", ct, args, params)
 
 	// make sure names/args are unique but retain order
 	// check for reserved names here?
@@ -266,24 +268,68 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 
 	// repeat if args is now empty (all params)
 	if len(args) == 0 {
-		args = emptyArgs(ct)
+		args = allArgsForComponent(ct)
 	}
 
 	logDebug.Println("params:", params)
 	return
 }
 
-func emptyArgs(ct ComponentType) (args []string) {
+// for commands (like 'add') that don't want to know about existing matches
+func parseArgsNoWildcard(rawargs []string) (ct ComponentType, args []string, params []string) {
+	var newnames []string
+
+	if len(rawargs) == 0 {
+		return
+	}
+	if ct = parseComponentName(rawargs[0]); ct == Unknown {
+		return
+	}
+	args = rawargs[1:]
+
+	logDebug.Println("ct, args, params", ct, args, params)
+
+	m := make(map[string]bool, len(args))
+	for _, name := range args {
+		// filter name here
+		if reservedName(args[0]) {
+			logError.Fatalf("%q is reserved instance name", args[0])
+		}
+		if !validInstanceName(args[0]) {
+			logDebug.Printf("%q is not a valid instance name", args[0])
+			break
+		}
+		if m[name] {
+			continue
+		}
+		newnames = append(newnames, name)
+		args = args[1:]
+		m[name] = true
+	}
+	params = args
+	args = newnames
+
+	logDebug.Println("params:", params)
+	return
+}
+
+func allArgsForComponent(ct ComponentType) (args []string) {
 	var confs []Instance
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
 		confs = allInstances()
+	case Remote:
+		confs = append(confs, instances(LOCAL, ct)...)
 	default:
-		confs = instances(ct)
+		for _, remote := range allRemotes() {
+			logDebug.Println("checking remote:", Name(remote))
+			confs = append(confs, instances(Name(remote), ct)...)
+		}
 	}
 	for _, c := range confs {
-		args = append(args, Name(c))
+		// XXX
+		args = append(args, Name(c)+"@"+RemoteName(c))
 	}
 	return
 }
@@ -309,7 +355,7 @@ func reservedName(in string) (ok bool) {
 }
 
 // spaces are valid - dumb, but valid - for now
-var validStringRE = regexp.MustCompile(`^\w[\w -]*$`)
+var validStringRE = regexp.MustCompile(`^\w[@\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //
@@ -438,12 +484,12 @@ func removePathList(c Instance, paths string) (err error) {
 			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
-		m, err := filepath.Glob(filepath.Join(Home(c), p))
+		m, err := globPath(RemoteName(c), filepath.Join(Home(c), p))
 		if err != nil {
 			return err
 		}
 		for _, f := range m {
-			if err = os.RemoveAll(f); err != nil {
+			if err = removeAll(RemoteName(c), f); err != nil {
 				log.Println(err)
 				continue
 			}

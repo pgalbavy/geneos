@@ -67,14 +67,6 @@ func flagsList(command string, args []string) []string {
 }
 
 func commandLS(ct ComponentType, args []string, params []string) (err error) {
-	if ct == Remote {
-		// geneos ls remote [NAME]
-		if len(args) == 0 {
-			// list remotes
-
-		}
-	}
-
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -84,12 +76,12 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 		err = loopCommand(lsInstanceJSON, ct, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Disabled", "Home"})
+		csvWriter.Write([]string{"Type", "Name", "Disabled", "Remote", "Home"})
 		err = loopCommand(lsInstanceCSV, ct, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(lsTabWriter, "Type\tName\tHome\n")
+		fmt.Fprintf(lsTabWriter, "Type\tName\tRemote\tHome\n")
 		err = loopCommand(lsInstancePlain, ct, args, params)
 		lsTabWriter.Flush()
 	}
@@ -102,7 +94,7 @@ func lsInstancePlain(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\n", Type(c), Name(c)+suffix, Home(c))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", Type(c), Name(c)+suffix, RemoteName(c), Home(c))
 	return
 }
 
@@ -111,7 +103,7 @@ func lsInstanceCSV(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{Type(c).String(), Name(c), dis, Home(c)})
+	csvWriter.Write([]string{Type(c).String(), Name(c), dis, RemoteName(c), Home(c)})
 	return
 }
 
@@ -119,6 +111,7 @@ type lsType struct {
 	Type     string
 	Name     string
 	Disabled string
+	Remote   string
 	Home     string
 }
 
@@ -127,7 +120,7 @@ func lsInstanceJSON(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), dis, Home(c)})
+	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), dis, RemoteName(c), Home(c)})
 	return
 }
 

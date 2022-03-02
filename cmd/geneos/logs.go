@@ -121,7 +121,7 @@ func outHeader(logfile string) {
 func logTailInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, err := os.Open(logfile)
+	lines, err := openFile(RemoteName(c), logfile)
 	if err != nil {
 		return
 	}
@@ -138,7 +138,7 @@ func logTailInstance(c Instance, params []string) (err error) {
 	return nil
 }
 
-func tailLines(file *os.File, linecount int) (text string, err error) {
+func tailLines(f *os.File, linecount int) (text string, err error) {
 	// reasonable guess at bytes per line to use as a multiplier
 	const charsPerLine = 132
 	var chunk int64 = int64(linecount * charsPerLine)
@@ -148,18 +148,18 @@ func tailLines(file *os.File, linecount int) (text string, err error) {
 
 	if linecount == 0 {
 		// seek to end and return
-		_, err = file.Seek(0, os.SEEK_END)
+		_, err = f.Seek(0, os.SEEK_END)
 		return
 	}
 
-	st, err := file.Stat()
+	st, err := f.Stat()
 	if err != nil {
 		return
 	}
 	end := st.Size()
 
 	for i = 1 + end/chunk; i > 0; i-- {
-		n, err := file.ReadAt(buf, (i-1)*chunk)
+		n, err := f.ReadAt(buf, (i-1)*chunk)
 		if err != nil && !errors.Is(err, io.EOF) {
 			logError.Fatalln(err)
 		}
@@ -172,13 +172,13 @@ func tailLines(file *os.File, linecount int) (text string, err error) {
 		alllines = append(newlines, alllines[1:]...)
 		if len(alllines) > linecount {
 			text = strings.Join(alllines[len(alllines)-linecount:], "\n")
-			file.Seek(end, io.SeekStart)
+			f.Seek(end, io.SeekStart)
 			return text, err
 		}
 	}
 
 	text = strings.Join(alllines, "\n")
-	file.Seek(end, io.SeekStart)
+	f.Seek(end, io.SeekStart)
 	return
 }
 
@@ -222,7 +222,7 @@ func filterOutput(logfile string, reader io.Reader) {
 func logCatInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, err := os.Open(logfile)
+	lines, err := openFile(RemoteName(c), logfile)
 	if err != nil {
 		return
 	}
@@ -234,6 +234,9 @@ func logCatInstance(c Instance, params []string) (err error) {
 }
 
 func logFollowInstance(c Instance, params []string) (err error) {
+	if RemoteName(c) != LOCAL {
+		logError.Fatalln("rmeote!=local", ErrNotSupported)
+	}
 	logfile := getLogfilePath(c)
 
 	f, _ := os.Open(logfile)
