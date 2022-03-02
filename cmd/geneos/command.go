@@ -39,27 +39,28 @@ type Commands map[string]Command
 func allInstances() (confs []Instance) {
 	for _, ct := range realComponentTypes() {
 		for _, remote := range allRemotes() {
-			logDebug.Println("checking remote", Name(remote))
-			confs = append(confs, instances(Name(remote), ct)...)
+			confs = append(confs, instancesOfComponent(Name(remote), ct)...)
 		}
 	}
 	return
 }
 
-// return a slice of instance for a given ComponentType
-func instances(remote string, ct ComponentType) (confs []Instance) {
-	for _, name := range instanceDirs(remote, ct) {
+// return a slice of instancesOfComponent for a given ComponentType
+func instancesOfComponent(remote string, ct ComponentType) (confs []Instance) {
+	for _, name := range instanceDirsForComponent(remote, ct) {
 		confs = append(confs, newComponent(ct, name)...)
 	}
 	return
 }
 
+// return a slice of component types that exist for this name
 func findInstances(name string) (cts []ComponentType) {
-	name, remote := splitInstanceName(name)
+	local, remote := splitInstanceName(name)
 	for _, t := range realComponentTypes() {
-		for _, dir := range instanceDirs(remote, t) {
+		for _, dir := range instanceDirsForComponent(remote, t) {
 			// for case insensitive match change to EqualFold here
-			if filepath.Base(dir) == name {
+			ldir, _ := splitInstanceName(dir)
+			if filepath.Base(ldir) == local {
 				cts = append(cts, t)
 			}
 		}

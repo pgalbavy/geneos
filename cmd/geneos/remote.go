@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/sftp"
 )
 
 // remote support
@@ -156,7 +154,7 @@ func splitInstanceName(in string) (name, remote string) {
 // but we include a special LOCAL instance
 func allRemotes() (remotes []Instance) {
 	remotes = newComponent(Remote, LOCAL)
-	remotes = append(remotes, instances(LOCAL, Remote)...)
+	remotes = append(remotes, instancesOfComponent(LOCAL, Remote)...)
 	return
 }
 
@@ -258,7 +256,7 @@ func globPath(remote string, pattern string) ([]string, error) {
 }
 
 func readFile(remote string, name string) (b []byte, err error) {
-	logDebug.Println("readFile", remote, name)
+	// logDebug.Println("readFile", remote, name)
 
 	switch remote {
 	case LOCAL:
@@ -285,7 +283,7 @@ func readFile(remote string, name string) (b []byte, err error) {
 }
 
 func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
-	logDebug.Printf("readDir %q %q", remote, name)
+	// logDebug.Printf("readDir %q %q", remote, name)
 
 	switch remote {
 	case LOCAL:
@@ -304,11 +302,6 @@ func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
 		}
 	}
 	return
-}
-
-type geneosFile struct {
-	local  *os.File
-	remote *sftp.File
 }
 
 func openFile(remote string, name string) (*os.File, error) {

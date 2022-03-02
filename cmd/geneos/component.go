@@ -106,12 +106,12 @@ func parseComponentName(component string) ComponentType {
 	}
 }
 
-// Return a slice of all directories for a given ComponentType. No checking is done
+// Return a slice of all instances for a given ComponentType. No checking is done
 // to validate that the directory is a populated instance.
 //
 // No side-effects
-func instanceDirs(remote string, ct ComponentType) []string {
-	return sortedDirs(remote, componentDir(remote, ct))
+func instanceDirsForComponent(remote string, ct ComponentType) []string {
+	return sortedInstancesInDir(remote, componentDir(remote, ct))
 }
 
 // Return the base directory for a ComponentType
@@ -163,7 +163,7 @@ func sortDirEntries(files []fs.DirEntry) {
 }
 
 // Return a sorted list of sub-directories
-func sortedDirs(remote string, dir string) []string {
+func sortedInstancesInDir(remote string, dir string) []string {
 	files, _ := readDir(remote, dir)
 	sortDirEntries(files)
 	components := make([]string, 0, len(files))
@@ -172,7 +172,6 @@ func sortedDirs(remote string, dir string) []string {
 			components = append(components, file.Name()+"@"+remote)
 		}
 	}
-	logDebug.Println("components:", components)
 	return components
 }
 
@@ -184,8 +183,9 @@ func sortedDirs(remote string, dir string) []string {
 // When not called with a component type of None, the instance does not
 // have to exist on disk.
 func newComponent(ct ComponentType, name string) (c []Instance) {
-	logDebug.Println(ct, name)
 	if ct == None {
+		// for _, cts := realComponentTypes() {
+		// }
 		cs := findInstances(name)
 		for _, cm := range cs {
 			c = append(c, newComponent(cm, name)...)

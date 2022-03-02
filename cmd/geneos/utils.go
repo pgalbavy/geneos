@@ -320,11 +320,11 @@ func allArgsForComponent(ct ComponentType) (args []string) {
 		// wildcard again - sort oder matters, fix
 		confs = allInstances()
 	case Remote:
-		confs = append(confs, instances(LOCAL, ct)...)
+		confs = append(confs, instancesOfComponent(LOCAL, ct)...)
 	default:
 		for _, remote := range allRemotes() {
 			logDebug.Println("checking remote:", Name(remote))
-			confs = append(confs, instances(Name(remote), ct)...)
+			confs = append(confs, instancesOfComponent(Name(remote), ct)...)
 		}
 	}
 	for _, c := range confs {
@@ -362,9 +362,10 @@ var validStringRE = regexp.MustCompile(`^\w[@\w -]*$`)
 // used to consume instance names until parameters are then passed down
 //
 func validInstanceName(in string) (ok bool) {
-	logDebug.Printf("checking %q", in)
 	ok = validStringRE.MatchString(in)
-	logDebug.Println("rexexp match", ok)
+	if !ok {
+		logDebug.Println("no rexexp match:", in)
+	}
 	return
 }
 

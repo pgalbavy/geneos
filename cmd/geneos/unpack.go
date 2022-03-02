@@ -352,7 +352,7 @@ func latestDir(dir string) (latest string) {
 // given a component type and a key/value pair, return matching
 // instances
 func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
-	for _, i := range instances(LOCAL, ct) {
+	for _, i := range instancesOfComponent(LOCAL, ct) {
 		if v == getString(i, Prefix(i)+k) {
 			if err := loadConfig(&i, false); err != nil {
 				log.Println(Type(i), Name(i), "cannot load config")
