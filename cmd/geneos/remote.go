@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+
+	"github.com/pkg/sftp"
 )
 
 // remote support
@@ -225,19 +228,40 @@ func renameFile(remote string, oldpath, newpath string) error {
 	}
 }
 
-func statFile(remote string, name string) (st os.FileInfo, err error) {
+// massaged file stats
+type fileStat struct {
+	st    os.FileInfo
+	uid   uint32
+	gid   uint32
+	mtime int64
+}
+
+func statFile(remote string, name string) (s fileStat, err error) {
 	logDebug.Println("statFile", remote, name)
 
 	switch remote {
 	case LOCAL:
-		return os.Stat(name)
-	default:
-		s, err := sftpOpenSession(remote)
+		s.st, err = os.Stat(name)
 		if err != nil {
-			logError.Fatalln(err)
+			return
 		}
-		return s.Stat(name)
+		s.uid = s.st.Sys().(*syscall.Stat_t).Uid
+		s.gid = s.st.Sys().(*syscall.Stat_t).Gid
+		s.mtime = s.st.Sys().(*syscall.Stat_t).Mtim.Sec
+	default:
+		sf, err2 := sftpOpenSession(remote)
+		if err2 != nil {
+			logError.Fatalln(err2)
+		}
+		s.st, err = sf.Stat(name)
+		if err != nil {
+			return
+		}
+		s.uid = s.st.Sys().(*sftp.FileStat).UID
+		s.gid = s.st.Sys().(*sftp.FileStat).GID
+		s.mtime = int64(s.st.Sys().(*sftp.FileStat).Mtime)
 	}
+	return
 }
 
 func globPath(remote string, pattern string) ([]string, error) {
@@ -255,7 +279,7 @@ func globPath(remote string, pattern string) ([]string, error) {
 	}
 }
 
-func readFile(remote string, name string) (b []byte, err error) {
+func readFile(remote string, name string) ([]byte, error) {
 	// logDebug.Println("readFile", remote, name)
 
 	switch remote {
@@ -276,9 +300,12 @@ func readFile(remote string, name string) (b []byte, err error) {
 		if err != nil {
 			logError.Fatalln(err)
 		}
-		b = make([]byte, st.Size())
-		_, err = io.ReadFull(f, b)
-		return b, err
+		// force a block read as /proc doesn't give sizes
+		sz := st.Size()
+		if sz == 0 {
+			sz = 8192
+		}
+		return io.ReadAll(f)
 	}
 }
 

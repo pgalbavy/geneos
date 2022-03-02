@@ -163,27 +163,29 @@ func commandPS(ct ComponentType, args []string, params []string) (err error) {
 
 func psInstancePlain(c Instance, params []string) (err error) {
 	if isDisabled(c) {
+		logDebug.Println(Name(c), "disabled")
 		return nil
 	}
-	pid, st, err := findInstanceProc(c)
+	pid, uid, gid, mtime, err := findInstanceProc(c)
 	if err != nil {
+		logDebug.Println(Name(c), "not found")
 		return nil
 	}
 
 	var u *user.User
 	var g *user.Group
 
-	username := fmt.Sprint(st.Uid)
-	groupname := fmt.Sprint(st.Gid)
+	username := fmt.Sprint(uid)
+	groupname := fmt.Sprint(gid)
 
-	if u, err = user.LookupId(fmt.Sprint(st.Uid)); err == nil {
+	if u, err = user.LookupId(username); err == nil {
 		username = u.Username
 	}
-	if g, err = user.LookupGroupId(fmt.Sprint(st.Gid)); err == nil {
+	if g, err = user.LookupGroupId(groupname); err == nil {
 		groupname = g.Name
 	}
 
-	fmt.Fprintf(psTabWriter, "%s:%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), pid, username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c))
+	fmt.Fprintf(psTabWriter, "%s:%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c))
 
 	return
 }
@@ -192,7 +194,7 @@ func psInstanceCSV(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		return nil
 	}
-	pid, st, err := findInstanceProc(c)
+	pid, uid, gid, mtime, err := findInstanceProc(c)
 	if err != nil {
 		return nil
 	}
@@ -200,17 +202,17 @@ func psInstanceCSV(c Instance, params []string) (err error) {
 	var u *user.User
 	var g *user.Group
 
-	username := fmt.Sprint(st.Uid)
-	groupname := fmt.Sprint(st.Gid)
+	username := fmt.Sprint(uid)
+	groupname := fmt.Sprint(gid)
 
-	if u, err = user.LookupId(fmt.Sprint(st.Uid)); err == nil {
+	if u, err = user.LookupId(username); err == nil {
 		username = u.Username
 	}
-	if g, err = user.LookupGroupId(fmt.Sprint(st.Gid)); err == nil {
+	if g, err = user.LookupGroupId(groupname); err == nil {
 		groupname = g.Name
 	}
 
-	csvWriter.Write([]string{Type(c).String() + ":" + Name(c), fmt.Sprint(pid), username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c)})
+	csvWriter.Write([]string{Type(c).String() + ":" + Name(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }
@@ -219,7 +221,7 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		return nil
 	}
-	pid, st, err := findInstanceProc(c)
+	pid, uid, gid, mtime, err := findInstanceProc(c)
 	if err != nil {
 		return nil
 	}
@@ -227,17 +229,17 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 	var u *user.User
 	var g *user.Group
 
-	username := fmt.Sprint(st.Uid)
-	groupname := fmt.Sprint(st.Gid)
+	username := fmt.Sprint(uid)
+	groupname := fmt.Sprint(gid)
 
-	if u, err = user.LookupId(fmt.Sprint(st.Uid)); err == nil {
+	if u, err = user.LookupId(username); err == nil {
 		username = u.Username
 	}
-	if g, err = user.LookupGroupId(fmt.Sprint(st.Gid)); err == nil {
+	if g, err = user.LookupGroupId(groupname); err == nil {
 		groupname = g.Name
 	}
 
-	jsonEncoder.Encode(psType{Type(c).String(), Name(c), fmt.Sprint(pid), username, groupname, time.Unix(st.Ctim.Sec, st.Ctim.Nsec).Local().Format(time.RFC3339), Home(c)})
+	jsonEncoder.Encode(psType{Type(c).String(), Name(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }
@@ -247,13 +249,17 @@ func commandCommand(ct ComponentType, args []string, params []string) (err error
 }
 
 func commandInstance(c Instance, params []string) (err error) {
+	log.Printf("=== %s %s @ %s ===", Type(c), Name(c), RemoteName(c))
 	cmd, env := buildCmd(c)
 	if cmd != nil {
-		log.Printf("command: %q\n", cmd.String())
-		log.Println("env:")
+		log.Println("command line:")
+		log.Println("\t", cmd.String())
+		log.Println()
+		log.Println("environment:")
 		for _, e := range env {
-			log.Println(e)
+			log.Println("\t", e)
 		}
+		log.Println()
 	}
 	return
 }

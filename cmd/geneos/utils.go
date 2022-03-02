@@ -31,32 +31,36 @@ import (
 // the component name must be on the command line as an exact and
 // standalone args
 //
-func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
+func findInstanceProc(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
 	var pids []int
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
 	dirs, _ := globPath(RemoteName(c), "/proc/[0-9]*")
 
+	//logDebug.Println(dirs)
 	for _, dir := range dirs {
 		pid, _ := strconv.Atoi(filepath.Base(dir))
 		pids = append(pids, pid)
 	}
 
+	//logDebug.Println(pids)
 	sort.Ints(pids)
 
 	for _, pid = range pids {
 		var data []byte
 		data, err = readFile(RemoteName(c), fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
+			logDebug.Println(err)
 			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
-		bin := filepath.Base(string(args[0]))
+		execfile := filepath.Base(string(args[0]))
+		logDebug.Println("cmdline:", pid, len(data), execfile)
 		switch Type(c) {
 		case Webserver:
 			var wdOK, jarOK bool
-			if bin != "java" {
+			if execfile != "java" {
 				continue
 			}
 			for _, arg := range args[1:] {
@@ -67,26 +71,27 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 					jarOK = true
 				}
 				if wdOK && jarOK {
-					if s, err := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid)); err == nil {
-						st = s.Sys().(*syscall.Stat_t)
-					}
+					s, err2 := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid))
+					uid, gid, mtime = s.uid, s.uid, s.mtime
+					err = err2
 					return
 				}
 			}
 		default:
-			if strings.HasPrefix(bin, Type(c).String()) {
+			if strings.HasPrefix(execfile, Type(c).String()) {
 				for _, arg := range args[1:] {
+					logDebug.Println("compare", string(arg), Name(c))
 					if string(arg) == Name(c) {
-						if s, err := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid)); err == nil {
-							st = s.Sys().(*syscall.Stat_t)
-						}
+						s, err2 := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid))
+						uid, gid, mtime = s.uid, s.uid, s.mtime
+						err = err2
 						return
 					}
 				}
 			}
 		}
 	}
-	return 0, nil, ErrProcNotExist
+	return 0, 0, 0, 0, ErrProcNotExist
 }
 
 func getUser(username string) (uid, gid uint32, gids []uint32, err error) {

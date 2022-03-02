@@ -233,8 +233,8 @@ func uploadFile(c Instance, source string) (err error) {
 				logError.Fatalln("dest path must be relative to (and in) instance directory")
 			}
 			// if the destination exists is it a directory?
-			if st, err := statFile(RemoteName(c), filepath.Join(Home(c), destfile)); err == nil {
-				if st.IsDir() {
+			if s, err := statFile(RemoteName(c), filepath.Join(Home(c), destfile)); err == nil {
+				if s.st.IsDir() {
 					destdir = filepath.Join(Home(c), destfile)
 					destfile = ""
 				}
@@ -306,8 +306,8 @@ func uploadFile(c Instance, source string) (err error) {
 	}
 
 	// xxx - wrong way around. create tmp first, move over later
-	if st, err := statFile(RemoteName(c), destfile); err == nil {
-		if !st.Mode().IsRegular() {
+	if s, err := statFile(RemoteName(c), destfile); err == nil {
+		if !s.st.Mode().IsRegular() {
 			logError.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")

@@ -117,7 +117,7 @@ func startInstance(c Instance, params []string) (err error) {
 		logError.Fatalln("remote!=local", ErrNotSupported)
 	}
 
-	pid, _, err := findInstanceProc(c)
+	pid, _, _, _, err := findInstanceProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)
 		return nil
@@ -192,7 +192,7 @@ func commandStop(ct ComponentType, args []string, params []string) (err error) {
 }
 
 func stopInstance(c Instance, params []string) (err error) {
-	pid, st, err := findInstanceProc(c)
+	pid, uid, gid, _, err := findInstanceProc(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
 		return
@@ -202,7 +202,7 @@ func stopInstance(c Instance, params []string) (err error) {
 		return ErrPermission
 	}
 
-	logDebug.Println("process running as", st.Uid, st.Gid)
+	logDebug.Println("process running as", uid, gid)
 
 	proc, _ := os.FindProcess(pid)
 
@@ -310,7 +310,7 @@ func enableInstance(c Instance, params []string) (err error) {
 
 func isDisabled(c Instance) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	if f, err := statFile(RemoteName(c), d); err == nil && f.Mode().IsRegular() {
+	if f, err := statFile(RemoteName(c), d); err == nil && f.st.Mode().IsRegular() {
 		return true
 	}
 	return false

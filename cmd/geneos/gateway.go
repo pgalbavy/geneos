@@ -177,7 +177,7 @@ func gatewayReload(c Instance, params []string) (err error) {
 	if RemoteName(c) != LOCAL {
 		logError.Fatalln(ErrNotSupported)
 	}
-	pid, _, err := findInstanceProc(c)
+	pid, _, _, _, err := findInstanceProc(c)
 	if err != nil {
 		return
 	}

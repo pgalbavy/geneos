@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/user"
 	"strings"
-	"syscall"
 
 	"wonderland.org/geneos/pkg/logger"
 )
@@ -146,18 +145,17 @@ func main() {
 		if err != nil {
 			logError.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
 		}
-		if !s.IsDir() {
+		if !s.st.IsDir() {
 			logError.Fatalln(RunningConfig.ITRSHome, "is not a directory")
 		}
 
 		// we have a valid home directory, now set default user if
 		// not set elsewhere
 		if RunningConfig.DefaultUser == "" {
-			s2 := s.Sys().(*syscall.Stat_t)
-			if s2.Uid == 0 {
+			if s.uid == 0 {
 				logError.Fatalf("home directory %q: owned by root and no default user configured", RunningConfig.ITRSHome)
 			}
-			u, err := user.LookupId(fmt.Sprint(s2.Uid))
+			u, err := user.LookupId(fmt.Sprint(s.uid))
 			if err != nil {
 				logError.Fatalln(RunningConfig.ITRSHome, err)
 			}
