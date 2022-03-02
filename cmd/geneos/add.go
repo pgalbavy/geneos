@@ -316,25 +316,49 @@ func uploadFile(c Instance, source string) (err error) {
 			return err
 		}
 	}
-	out, err := createFile(RemoteName(c), destfile)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
 
-	if err = out.Chown(int(uid), int(gid)); err != nil {
-		removeFile(RemoteName(c), out.Name())
-		if backuppath != "" {
-			if err = renameFile(RemoteName(c), backuppath, destfile); err != nil {
+	var out io.Writer
+
+	switch RemoteName(c) {
+	case LOCAL:
+		cf, err := os.Create(destfile)
+		if err != nil {
+			return err
+		}
+		out = cf
+		defer cf.Close()
+
+		if err = cf.Chown(int(uid), int(gid)); err != nil {
+			removeFile(RemoteName(c), destfile)
+			if backuppath != "" {
+				if err = renameFile(RemoteName(c), backuppath, destfile); err != nil {
+					return err
+				}
 				return err
 			}
+		}
+	default:
+		cf, err := createRemoteFile(RemoteName(c), destfile)
+		if err != nil {
 			return err
+		}
+		out = cf
+		defer cf.Close()
+
+		if err = cf.Chown(int(uid), int(gid)); err != nil {
+			removeFile(RemoteName(c), destfile)
+			if backuppath != "" {
+				if err = renameFile(RemoteName(c), backuppath, destfile); err != nil {
+					return err
+				}
+				return err
+			}
 		}
 	}
 
 	if _, err = io.Copy(out, from); err != nil {
 		return err
 	}
-	log.Println("uploaded", source, "to", out.Name())
+	log.Println("uploaded", source, "to", destfile)
 	return nil
 }

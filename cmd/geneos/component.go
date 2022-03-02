@@ -52,7 +52,7 @@ type Common struct {
 	Name string `json:"Name"`
 	// The potential remote name (this is a remote component and not
 	// a server name)
-	Rem string `default:"local" json:"-"`
+	Rem string `default:"local" json:"Location"`
 	// The ComponentType of an instance
 	Type string `json:"-"`
 	// The root directory of the Geneos installation. Used in template

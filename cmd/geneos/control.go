@@ -283,14 +283,29 @@ func disableInstance(c Instance, params []string) (err error) {
 		return
 	}
 
-	f, err := createFile(RemoteName(c), filepath.Join(Home(c), Type(c).String()+disableExtension))
-	if err != nil {
-		return
-	}
-	defer f.Close()
+	disablePath := filepath.Join(Home(c), Type(c).String()+disableExtension)
 
-	if err = f.Chown(int(uid), int(gid)); err != nil {
-		removeFile(RemoteName(c), f.Name())
+	switch RemoteName(c) {
+	case LOCAL:
+		f, err := os.Create(disablePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if err = f.Chown(int(uid), int(gid)); err != nil {
+			removeFile(RemoteName(c), f.Name())
+		}
+	default:
+		f, err := createRemoteFile(RemoteName(c), disablePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if err = f.Chown(int(uid), int(gid)); err != nil {
+			removeFile(RemoteName(c), f.Name())
+		}
 	}
 	return
 }

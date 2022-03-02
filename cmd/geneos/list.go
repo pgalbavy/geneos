@@ -76,12 +76,12 @@ func commandLS(ct ComponentType, args []string, params []string) (err error) {
 		err = loopCommand(lsInstanceJSON, ct, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Disabled", "Remote", "Home"})
+		csvWriter.Write([]string{"Type", "Name", "Disabled", "Location", "Home"})
 		err = loopCommand(lsInstanceCSV, ct, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(lsTabWriter, "Type\tName\tRemote\tHome\n")
+		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tHome\n")
 		err = loopCommand(lsInstancePlain, ct, args, params)
 		lsTabWriter.Flush()
 	}
@@ -111,7 +111,7 @@ type lsType struct {
 	Type     string
 	Name     string
 	Disabled string
-	Remote   string
+	Location string
 	Home     string
 }
 
@@ -134,6 +134,7 @@ var psTabWriter *tabwriter.Writer
 type psType struct {
 	Type      string
 	Name      string
+	Remote    string
 	PID       string
 	User      string
 	Group     string
@@ -149,12 +150,12 @@ func commandPS(ct ComponentType, args []string, params []string) (err error) {
 		err = loopCommand(psInstanceJSON, ct, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type:Name", "PID", "User", "Group", "Starttime", "Home"})
+		csvWriter.Write([]string{"Type:Name@Location", "PID", "User", "Group", "Starttime", "Home"})
 		err = loopCommand(psInstanceCSV, ct, args, params)
 		csvWriter.Flush()
 	default:
 		psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(psTabWriter, "Type:Name\tPID\tUser\tGroup\tStarttime\tHome\n")
+		fmt.Fprintf(psTabWriter, "Type:Name@Location\tPID\tUser\tGroup\tStarttime\tHome\n")
 		err = loopCommand(psInstancePlain, ct, args, params)
 		psTabWriter.Flush()
 	}
@@ -163,12 +164,10 @@ func commandPS(ct ComponentType, args []string, params []string) (err error) {
 
 func psInstancePlain(c Instance, params []string) (err error) {
 	if isDisabled(c) {
-		logDebug.Println(Name(c), "disabled")
 		return nil
 	}
 	pid, uid, gid, mtime, err := findInstanceProc(c)
 	if err != nil {
-		logDebug.Println(Name(c), "not found")
 		return nil
 	}
 
@@ -185,7 +184,7 @@ func psInstancePlain(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	fmt.Fprintf(psTabWriter, "%s:%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c))
+	fmt.Fprintf(psTabWriter, "%s:%s@%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), RemoteName(c), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c))
 
 	return
 }
@@ -212,7 +211,7 @@ func psInstanceCSV(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	csvWriter.Write([]string{Type(c).String() + ":" + Name(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
+	csvWriter.Write([]string{Type(c).String() + ":" + Name(c) + "@" + RemoteName(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }
@@ -239,7 +238,7 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	jsonEncoder.Encode(psType{Type(c).String(), Name(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
+	jsonEncoder.Encode(psType{Type(c).String(), Name(c), RemoteName(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }

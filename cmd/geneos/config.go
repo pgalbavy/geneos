@@ -750,8 +750,7 @@ func writeConfigFile(remote string, file string, config interface{}) (err error)
 		uid, gid = int(ux), int(gx)
 	}
 
-	dir, name := filepath.Split(file)
-	dir = strings.TrimSuffix(dir, "/")
+	dir := filepath.Dir(file)
 	// try to ensure directory exists
 	if err = mkdirAll(remote, dir, 0775); err != nil {
 		return
@@ -759,26 +758,51 @@ func writeConfigFile(remote string, file string, config interface{}) (err error)
 	// change final directory ownership
 	_ = chown(remote, dir, uid, gid)
 
-	f, err := os.CreateTemp(dir, name)
-	if err != nil {
-		return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
-	}
-	defer removeFile(remote, f.Name())
-	// use Println to get a final newline
-	if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
-		return
-	}
+	switch remote {
+	case LOCAL:
+		f, err := os.CreateTemp(dir, filepath.Base(file))
+		if err != nil {
+			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
+		}
+		defer removeFile(remote, f.Name())
+		// use Println to get a final newline
+		if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
+			return err
+		}
 
-	// update file perms and owner before final rename to overwrite
-	// existing file
-	if err = f.Chmod(0664); err != nil {
-		return
-	}
-	if err = f.Chown(uid, gid); err != nil {
-		return
-	}
+		// update file perms and owner before final rename to overwrite
+		// existing file
+		if err = f.Chmod(0664); err != nil {
+			return err
+		}
+		if err = f.Chown(uid, gid); err != nil {
+			return err
+		}
 
-	return renameFile(remote, f.Name(), file)
+		return renameFile(remote, f.Name(), file)
+	default:
+
+		f, err := createRemoteTemp(remote, file)
+		if err != nil {
+			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
+		}
+		defer removeFile(remote, f.Name())
+		// use Println to get a final newline
+		if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
+			return err
+		}
+
+		// update file perms and owner before final rename to overwrite
+		// existing file
+		if err = f.Chmod(0664); err != nil {
+			return err
+		}
+		if err = f.Chown(uid, gid); err != nil {
+			return err
+		}
+
+		return renameFile(remote, f.Name(), file)
+	}
 }
 
 func commandRename(ct ComponentType, args []string, params []string) (err error) {

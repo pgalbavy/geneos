@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
+	"math/rand"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -169,7 +171,11 @@ func mkdirAll(remote string, path string, perm os.FileMode) error {
 	case LOCAL:
 		return os.MkdirAll(path, perm)
 	default:
-		return ErrNotSupported
+		s, err := sftpOpenSession(remote)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		return s.MkdirAll(path)
 	}
 }
 
@@ -180,18 +186,26 @@ func chown(remote string, name string, uid, gid int) error {
 	case LOCAL:
 		return os.Chown(name, uid, gid)
 	default:
-		return ErrNotSupported
+		s, err := sftpOpenSession(remote)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		return s.Chown(name, uid, gid)
 	}
 }
 
-func createFile(remote string, path string) (*os.File, error) {
-	logDebug.Println("createFile", remote, path)
+func createRemoteFile(remote string, path string) (*sftp.File, error) {
+	logDebug.Println(remote, path)
 
 	switch remote {
 	case LOCAL:
-		return os.Create(path)
-	default:
 		return nil, ErrNotSupported
+	default:
+		s, err := sftpOpenSession(remote)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		return s.Create(path)
 	}
 }
 
@@ -202,7 +216,11 @@ func removeFile(remote string, name string) error {
 	case LOCAL:
 		return os.Remove(name)
 	default:
-		return ErrNotSupported
+		s, err := sftpOpenSession(remote)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		return s.Remove(name)
 	}
 }
 
@@ -224,7 +242,11 @@ func renameFile(remote string, oldpath, newpath string) error {
 	case LOCAL:
 		return os.Rename(oldpath, newpath)
 	default:
-		return ErrNotSupported
+		s, err := sftpOpenSession(remote)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		return s.Rename(oldpath, newpath)
 	}
 }
 
@@ -339,5 +361,29 @@ func openFile(remote string, name string) (*os.File, error) {
 		return os.Open(name)
 	default:
 		return nil, ErrNotSupported
+	}
+}
+
+func nextRandom() string {
+	return fmt.Sprint(rand.Uint32())
+}
+
+// based on os.CreatTemp, but allows for remotes and much simplified
+// given a remote and a full path, create a file with a suffix
+// and return an io.File
+func createRemoteTemp(remote string, path string) (*sftp.File, error) {
+	logDebug.Printf("%q %q", remote, path)
+
+	try := 0
+	for {
+		name := path + nextRandom()
+		f, err := createRemoteFile(remote, name)
+		if os.IsExist(err) {
+			if try++; try < 100 {
+				continue
+			}
+			return nil, fs.ErrExist
+		}
+		return f, err
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -131,18 +132,38 @@ func gatewayAdd(name string, username string, params []string) (c Instance, err 
 	if err != nil {
 		logError.Fatalln(err)
 	}
-	cf, err := createFile(RemoteName(c), filepath.Join(Home(c), "gateway.setup.xml"))
-	if err != nil {
-		log.Println(err)
-		return
+
+	var out io.Writer
+
+	switch RemoteName(c) {
+	case LOCAL:
+		cf, err := os.Create(filepath.Join(Home(c), "gateway.setup.xml"))
+		out = cf
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		defer cf.Close()
+		if err = cf.Chmod(0664); err != nil {
+			logError.Fatalln(err)
+		}
+	default:
+		cf, err := createRemoteFile(RemoteName(c), filepath.Join(Home(c), "gateway.setup.xml"))
+		out = cf
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		defer cf.Close()
+		if err = cf.Chmod(0664); err != nil {
+			logError.Fatalln(err)
+		}
 	}
-	defer cf.Close()
-	if err = cf.Chmod(0664); err != nil {
+
+	if err = t.Execute(out, c); err != nil {
 		logError.Fatalln(err)
 	}
-	if err = t.Execute(cf, c); err != nil {
-		logError.Fatalln(err)
-	}
+
 	return
 }
 
