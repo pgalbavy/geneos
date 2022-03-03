@@ -21,27 +21,39 @@ import (
 func init() {
 	commands["extract"] = Command{
 		Function:    commandExtract,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  flagsExtract,
 		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos extract FILE [FILE...]",
+		CommandLine: "geneos extract [-r REMOTE] [TYPE] | FILE [FILE...]",
 		Summary:     `Extract files from downloaded Geneos packages. Intended for sites without Internet access.`,
 		Description: `Extracts files from FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
 
-The directory for the package is created using the VERSION from the archive filename.`}
+The directory for the package is created using the VERSION from the archive
+filename.
+
+If a TYPE is given then the latest version from the packages/archives
+directory for that TYPE is extracted, otherwise it is treated as a
+normal file path. This is primarily for extracting to remote locations.
+
+FLAGS:
+	-r REMOTE - extract from local archive to remote. default is local. all means all remotes and local.
+`}
+
+	extractFlags = flag.NewFlagSet("extract", flag.ExitOnError)
+	extractFlags.StringVar(&extractRemote, "r", LOCAL, "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["download"] = Command{
 		Function:    commandDownload,
 		ParseFlags:  flagsDownload,
 		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos download [-n] [TYPE] [latest|FILTER|URL...]",
+		CommandLine: "geneos download [-n] [-r REMOTE] [TYPE] [latest|FILTER|URL...]",
 		Summary:     `Download and extract Geneos software archive.`,
 		Description: `Download and extract the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
 	geneos-TYPE-VERSION*.tar.gz
-
+	
 The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
 for the package is created using the VERSION from the archive filename.
 
@@ -49,21 +61,24 @@ The downloaded file is saved in the packages/archives/ direcvtory for
 future re-use, especially for remote support.
 
 FLAGS:
-		-n - Do not save download archive
+	-n - Do not save download archive
+	-r REMOTE - download and extract from local archive to remote. default is local. all means all remotes and local.
+
 `}
 
 	downloadFlags = flag.NewFlagSet("download", flag.ExitOnError)
 	downloadFlags.BoolVar(&downloadNosave, "n", false, "Do not save download")
 	downloadFlags.BoolVar(&helpFlag, "h", false, helpUsage)
+	downloadFlags.StringVar(&downloadRemote, "r", LOCAL, "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["update"] = Command{
 		Function:    commandUpdate,
 		ParseFlags:  flagsUpdate,
 		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos update [TYPE] VERSION",
+		CommandLine: "geneos update [-r REMOTE] [TYPE] VERSION",
 		Summary:     `Update the active version of Geneos software.`,
 		Description: `Update the symlink for the default base name of the package used to VERSION. The base directory,
-for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
+		for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
 in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not
 supplied, all supported component types are updated to VERSION.
 
@@ -72,24 +87,40 @@ again, but only if the instance uses the 'active_prod' basename.
 
 The 'latest' version is based on directory names of the form:
 
-	[GA]X.Y.Z
+[GA]X.Y.Z
 
 Where X, Y, Z are each ordered in ascending numerical order. If a directory starts 'GA' it will be selected
 over a directory with the same numerical versions. All other directories name formats will result in unexpected
 behaviour.
 
-Future version may support selecting a base other than 'active_prod'.`}
+Future version may support selecting a base other than 'active_prod'.
+
+FLAGS:
+	-r REMOTE - update remote. default is local. all means all remotes and local.
+
+`}
 
 	updateFlags = flag.NewFlagSet("update", flag.ExitOnError)
 	updateFlags.StringVar(&updateBase, "b", "active_prod", "Override the base active_prod link name")
-	// need overwrite flags
+	updateFlags.StringVar(&updateRemote, "r", LOCAL, "Perform on a remote. \"all\" means all remotes and locally")
 }
+
+var extractFlags *flag.FlagSet
+var extractRemote string
 
 var downloadFlags *flag.FlagSet
 var downloadNosave bool
+var downloadRemote string
 
 var updateFlags *flag.FlagSet
 var updateBase string
+var updateRemote string
+
+func flagsExtract(command string, args []string) []string {
+	extractFlags.Parse(args)
+	checkHelpFlag(command)
+	return extractFlags.Args()
+}
 
 func flagsDownload(command string, args []string) []string {
 	downloadFlags.Parse(args)
@@ -109,22 +140,52 @@ func flagsUpdate(command string, args []string) []string {
 //
 func commandExtract(ct ComponentType, files []string, params []string) (err error) {
 	if ct != None {
-		logError.Fatalln("Must not specify a component type, only archive files")
+		logDebug.Println(ct.String())
+		archiveDir := filepath.Join(remoteRoot(LOCAL), "packages", "archives")
+		archiveFile := latestMatch(archiveDir, func(v os.DirEntry) bool {
+			switch ct {
+			default:
+				logDebug.Println(v.Name(), ct.String())
+				return !strings.Contains(v.Name(), ct.String())
+			case Webserver:
+				return !strings.Contains(v.Name(), "web-server")
+			}
+		})
+		gz, err := openFile(LOCAL, filepath.Join(archiveDir, archiveFile))
+		if err != nil {
+			return err
+		}
+		defer gz.Close()
+		if _, err = unarchive(extractRemote, ct, archiveFile, gz); err != nil {
+			log.Println("location:", extractRemote, err)
+			return err
+		}
+		return nil
 	}
 
-	for _, archive := range files {
-		filename := filepath.Base(archive)
-		gz, err := openFile(LOCAL, archive)
+	for _, file := range files {
+		filename := filepath.Base(file)
+		gz, err := openFile(LOCAL, file)
 		if err != nil {
 			return err
 		}
 		defer gz.Close()
 
-		if _, err = unarchive(ct, filename, gz); err != nil {
-			log.Println(err)
-			return err
+		if extractRemote == ALL {
+			for _, remote := range allRemotes() {
+				if _, err = unarchive(Name(remote), ct, filename, gz); err != nil {
+					log.Println("location:", Name(remote), err)
+					continue
+				}
+			}
+		} else {
+			if _, err = unarchive(extractRemote, ct, filename, gz); err != nil {
+				log.Println("location:", LOCAL, err)
+				return err
+			}
 		}
 	}
+
 	// create a symlink only if one doesn't exist
 	return updateToVersion(ct, "latest", false)
 }
@@ -134,21 +195,35 @@ func commandDownload(ct ComponentType, files []string, params []string) (err err
 	if len(files) > 0 {
 		version = files[0]
 	}
-	return downloadComponent(ct, version)
+
+	if downloadRemote == ALL {
+		for _, remote := range allRemotes() {
+			if err = downloadComponent(Name(remote), ct, version); err != nil {
+				logError.Println("location:", Name(remote), err)
+				continue
+			}
+		}
+	} else {
+		if err = downloadComponent(downloadRemote, ct, version); err != nil {
+			logError.Println("location:", downloadRemote, err)
+			return err
+		}
+	}
+	return
 }
 
-func downloadComponent(ct ComponentType, version string) (err error) {
+func downloadComponent(remote string, ct ComponentType, version string) (err error) {
 	switch ct {
 	case Remote:
 		// do nothing
 		return nil
 	case None:
 		for _, t := range realComponentTypes() {
-			if err = downloadComponent(t, version); err != nil {
+			if err = downloadComponent(remote, t, version); err != nil {
 				if errors.Is(err, fs.ErrExist) {
-					log.Println(err)
 					continue
 				}
+				logError.Println(err)
 				return
 			}
 		}
@@ -160,10 +235,13 @@ func downloadComponent(ct ComponentType, version string) (err error) {
 		}
 		defer gz.Close()
 
-		log.Println("downloaded", ct.String(), filename)
+		logDebug.Println("downloaded", ct.String(), filename)
 
 		var finalVersion string
-		if finalVersion, err = unarchive(ct, filename, gz); err != nil {
+		if finalVersion, err = unarchive(remote, ct, filename, gz); err != nil {
+			if errors.Is(err, fs.ErrExist) {
+				return nil
+			}
 			return err
 		}
 		if version == "latest" {
@@ -173,9 +251,10 @@ func downloadComponent(ct ComponentType, version string) (err error) {
 	}
 }
 
+// how to split an archive name into type and version
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion string, err error) {
+func unarchive(remote string, ct ComponentType, filename string, gz io.Reader) (finalVersion string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
 		logError.Fatalf("invalid archive name format: %q", filename)
@@ -191,11 +270,12 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion st
 		// mismatch
 		logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
 	}
-	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String(), version)
-	if _, err = statFile(LOCAL, basedir); err == nil {
-		return "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
+
+	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String(), version)
+	if _, err = statFile(remote, basedir); err == nil {
+		return // "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
 	}
-	if err = mkdirAll(LOCAL, basedir, 0775); err != nil {
+	if err = mkdirAll(remote, basedir, 0775); err != nil {
 		return
 	}
 
@@ -238,33 +318,54 @@ func unarchive(ct ComponentType, filename string, gz io.Reader) (finalVersion st
 		case tar.TypeReg:
 			// check (and created) containing directories - account for munged tar files
 			dir := filepath.Dir(fullpath)
-			if err = mkdirAll(LOCAL, dir, 0777); err != nil {
+			if err = mkdirAll(remote, dir, 0777); err != nil {
 				return
 			}
 
-			out, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
-			if err != nil {
-				return "", err
-			}
-			n, err := io.Copy(out, tr)
-			if err != nil {
+			switch remote {
+			case LOCAL:
+				// XXX
+				out, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
+				if err != nil {
+					return "", err
+				}
+				n, err := io.Copy(out, tr)
+				if err != nil {
+					out.Close()
+					return "", err
+				}
+				if n != hdr.Size {
+					log.Println("lengths different:", hdr.Size, n)
+				}
 				out.Close()
-				return "", err
+			default:
+				// XXX
+				out, err := createRemoteFile(remote, fullpath) // , os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
+				if err != nil {
+					return "", err
+				}
+				out.Chmod(hdr.FileInfo().Mode())
+				n, err := io.Copy(out, tr)
+				if err != nil {
+					out.Close()
+					return "", err
+				}
+				if n != hdr.Size {
+					log.Println("lengths different:", hdr.Size, n)
+				}
+				out.Close()
 			}
-			if n != hdr.Size {
-				log.Println("lengths different:", hdr.Size, n)
-			}
-			out.Close()
+
 		case tar.TypeDir:
-			if err = mkdirAll(LOCAL, fullpath, hdr.FileInfo().Mode()); err != nil {
+			if err = mkdirAll(remote, fullpath, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
 		case tar.TypeSymlink, tar.TypeGNULongLink:
 			if filepath.IsAbs(hdr.Linkname) {
 				logError.Fatalln("archive contains absolute symlink target")
 			}
-			if _, err = statFile(LOCAL, fullpath); err != nil {
-				if err = os.Symlink(hdr.Linkname, fullpath); err != nil {
+			if _, err = statFile(remote, fullpath); err != nil {
+				if err = symlink(remote, hdr.Linkname, fullpath); err != nil {
 					logError.Fatalln(err)
 				}
 			}
@@ -301,7 +402,9 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 		}
 	case Gateway, Netprobe, Licd, Webserver:
 		if version == "" || version == "latest" {
-			version = latestDir(basedir)
+			version = latestMatch(basedir, func(d os.DirEntry) bool {
+				return !d.IsDir()
+			})
 		}
 		// does the version directory exist?
 		if _, err = statFile(LOCAL, filepath.Join(basedir, version)); err != nil {
@@ -339,27 +442,28 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 	return nil
 }
 
-var versRE = regexp.MustCompile(`^\d+(\.\d+){0,2}`)
+var versRE = regexp.MustCompile(`(\d+(\.\d+){0,2})`)
 
 // given a directory find the "latest" version of the form
 // [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
-func latestDir(dir string) (latest string) {
+func latestMatch(dir string, fn func(os.DirEntry) bool) (latest string) {
 	dirs, err := os.ReadDir(dir)
 	if err != nil {
 		logError.Fatalln(err)
 	}
 	max := make([]int, 3)
 	for _, v := range dirs {
-		if !v.IsDir() {
+		if fn(v) {
 			continue
 		}
 		// strip 'GA' prefix and get name
 		d := strings.TrimPrefix(v.Name(), "GA")
-		if !versRE.MatchString(d) {
+		x := versRE.FindString(d)
+		if x == "" {
 			logDebug.Println(d, "does not match a valid directory pattern")
 			continue
 		}
-		s := strings.SplitN(d, ".", 3)
+		s := strings.SplitN(x, ".", 3)
 		next := slicetoi(s)
 
 	OUTER:
@@ -475,12 +579,27 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 		err = fmt.Errorf("cannot download %s package version %s: %s", ct, version, resp.Status)
 		resp.Body.Close()
 		return
-		// logError.Fatalln(resp.Status)
 	}
 
 	filename, err = filenameFromHTTPResp(resp, downloadURL)
 	if err != nil {
 		logError.Fatalln(err)
+	}
+
+	// check size against downloaded archive and serve local instead, regardless
+	// of -n flag
+	archiveDir := filepath.Join(RunningConfig.ITRSHome, "packages", "archives")
+	mkdirAll(LOCAL, archiveDir, 0775)
+	archivePath := filepath.Join(archiveDir, filename)
+	s, err := statFile(LOCAL, archivePath)
+	if err == nil && s.st.Size() == resp.ContentLength {
+		logDebug.Println("file with same size already exists, skipping save")
+		f, err := openFile(LOCAL, archivePath)
+		if err != nil {
+			return filename, body, nil
+		}
+		resp.Body.Close()
+		return filename, f, nil
 	}
 
 	// transient download
@@ -490,9 +609,6 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 	}
 
 	// save the file archive and rewind, return
-	archiveDir := filepath.Join(RunningConfig.ITRSHome, "packages", "archives")
-	mkdirAll(LOCAL, archiveDir, 0775)
-	archivePath := filepath.Join(archiveDir, filename)
 	f, err := os.Create(archivePath)
 	if err != nil {
 		log.Fatalln(err)

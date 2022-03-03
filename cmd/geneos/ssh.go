@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-var userSSHdir = ".ssh"
+const userSSHdir = ".ssh"
 
 var privateKeyFiles = []string{
 	"id_rsa",
@@ -34,7 +34,7 @@ var remoteSFTPClients = make(map[string]*sftp.Client)
 // load all the known private keys with no passphrase
 func readSSHkeys(homedir string) (signers []ssh.Signer) {
 	for _, keyfile := range privateKeyFiles {
-		path := filepath.Join(homedir, ".ssh", keyfile)
+		path := filepath.Join(homedir, userSSHdir, keyfile)
 		key, err := os.ReadFile(path)
 		if err != nil {
 			logDebug.Println(err)
@@ -60,7 +60,7 @@ func sshInit() (err error) {
 		logError.Fatalln(err)
 	}
 	if khCallback == nil {
-		k := filepath.Join(homedir, ".ssh", "known_hosts")
+		k := filepath.Join(homedir, userSSHdir, "known_hosts")
 		khCallback, err = knownhosts.New(k)
 		if err != nil {
 			logDebug.Println("cannot load ssh known_hosts file, ssh will not be available.")
@@ -128,7 +128,8 @@ func sshCloseRemote(remote string) {
 	}
 }
 
-func sftpOpenSession(remote string) (s *sftp.Client, err error) {
+// succeed or fatal
+func sftpOpenSession(remote string) (s *sftp.Client) {
 	s, ok := remoteSFTPClients[remote]
 	if !ok {
 		c, err := sshOpenRemote(remote)
@@ -152,47 +153,3 @@ func sftpCloseSession(remote string) {
 		delete(remoteSFTPClients, remote)
 	}
 }
-
-// func sshTest(username string, host string) {
-// 	config := &ssh.ClientConfig{
-// 		User: username,
-// 		Auth: []ssh.AuthMethod{
-// 			ssh.PublicKeysCallback(agentClient.Signers),
-// 			ssh.PublicKeys(signers...),
-// 		},
-// 		HostKeyCallback: khCallback,
-// 	}
-// 	conn, err := ssh.Dial("tcp", host, config)
-// 	if err != nil {
-// 		log.Fatal("unable to connect: ", err)
-// 	}
-// 	defer conn.Close()
-
-// 	session, err := conn.NewSession()
-// 	if err != nil {
-// 		logError.Fatalln(err)
-// 	}
-// 	defer session.Close()
-
-// 	var b bytes.Buffer
-// 	session.Stdout = &b
-// 	if err := session.Run("ls -l"); err != nil {
-// 		log.Fatal("Failed to run: " + err.Error())
-// 	}
-// 	fmt.Println(b.String())
-
-// 	client, err := sftp.NewClient(conn)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer client.Close()
-
-// 	// walk a directory
-// 	w := client.Walk("/home/pi")
-// 	for w.Step() {
-// 		if w.Err() != nil {
-// 			continue
-// 		}
-// 		log.Println(w.Path())
-// 	}
-// }

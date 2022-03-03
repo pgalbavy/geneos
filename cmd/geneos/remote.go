@@ -94,10 +94,9 @@ func remoteRoot(remote string) string {
 	default:
 		i := remoteInstance(remote).(Instance)
 		if err := loadConfig(i, false); err != nil {
-			logError.Fatalln(err)
+			logError.Fatalf("cannot open remote %q configuration file", remote)
 		}
 		return getString(i, "ITRSHome")
-
 	}
 }
 
@@ -142,6 +141,7 @@ func remoteAdd(name string, username string, params []string) (c Instance, err e
 // global to indicate current remote target. default to "local" which is a special case
 // var remoteTarget = "local"
 const LOCAL = "local"
+const ALL = "all"
 
 // given an instance name, split on an '@' and return left and right parts, using
 // "local" as a default
@@ -165,16 +165,23 @@ func allRemotes() (remotes []Instance) {
 
 // shim methods that test remote and direct to ssh / sftp / os
 
+func symlink(remote string, oldname, newname string) error {
+	logDebug.Println(remote, oldname, newname)
+	switch remote {
+	case LOCAL:
+		return os.Symlink(oldname, newname)
+	default:
+		s := sftpOpenSession(remote)
+		return s.Symlink(oldname, newname)
+	}
+}
 func mkdirAll(remote string, path string, perm os.FileMode) error {
 	logDebug.Println("mkdirAll", remote, path, perm)
 	switch remote {
 	case LOCAL:
 		return os.MkdirAll(path, perm)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		return s.MkdirAll(path)
 	}
 }
@@ -186,10 +193,7 @@ func chown(remote string, name string, uid, gid int) error {
 	case LOCAL:
 		return os.Chown(name, uid, gid)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		return s.Chown(name, uid, gid)
 	}
 }
@@ -201,10 +205,7 @@ func createRemoteFile(remote string, path string) (*sftp.File, error) {
 	case LOCAL:
 		return nil, ErrNotSupported
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		return s.Create(path)
 	}
 }
@@ -216,10 +217,7 @@ func removeFile(remote string, name string) error {
 	case LOCAL:
 		return os.Remove(name)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		return s.Remove(name)
 	}
 }
@@ -242,10 +240,7 @@ func renameFile(remote string, oldpath, newpath string) error {
 	case LOCAL:
 		return os.Rename(oldpath, newpath)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		return s.Rename(oldpath, newpath)
 	}
 }
@@ -258,8 +253,9 @@ type fileStat struct {
 	mtime int64
 }
 
+// stat() a local or remote file and normalise common values
 func statFile(remote string, name string) (s fileStat, err error) {
-	logDebug.Println("statFile", remote, name)
+	logDebug.Println(remote, name)
 
 	switch remote {
 	case LOCAL:
@@ -271,10 +267,7 @@ func statFile(remote string, name string) (s fileStat, err error) {
 		s.gid = s.st.Sys().(*syscall.Stat_t).Gid
 		s.mtime = s.st.Sys().(*syscall.Stat_t).Mtim.Sec
 	default:
-		sf, err2 := sftpOpenSession(remote)
-		if err2 != nil {
-			logError.Fatalln(err2)
-		}
+		sf := sftpOpenSession(remote)
 		s.st, err = sf.Stat(name)
 		if err != nil {
 			return
@@ -293,10 +286,7 @@ func globPath(remote string, pattern string) ([]string, error) {
 	case LOCAL:
 		return filepath.Glob(pattern)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		return s.Glob(pattern)
 	}
 }
@@ -308,10 +298,7 @@ func readFile(remote string, name string) ([]byte, error) {
 	case LOCAL:
 		return os.ReadFile(name)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		f, err := s.Open(name)
 		if err != nil {
 			logError.Fatalln(err)
@@ -338,10 +325,7 @@ func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
 	case LOCAL:
 		return os.ReadDir(name)
 	default:
-		s, err := sftpOpenSession(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
+		s := sftpOpenSession(remote)
 		f, err := s.ReadDir(name)
 		if err != nil {
 			return nil, err
