@@ -86,13 +86,21 @@ func remoteInstance(name string) interface{} {
 	return c
 }
 
+func loadRemoteConfig(remote string) (c Instance) {
+	c = remoteInstance(remote).(Instance)
+	if err := loadConfig(c, false); err != nil {
+		logError.Fatalf("cannot open remote %q configuration file", remote)
+	}
+	return
+}
+
 // Return the base directory for a ComponentType
 func remoteRoot(remote string) string {
 	switch remote {
 	case LOCAL:
 		return RunningConfig.ITRSHome
 	default:
-		i := remoteInstance(remote).(Instance)
+		i := loadRemoteConfig(remote)
 		if err := loadConfig(i, false); err != nil {
 			logError.Fatalf("cannot open remote %q configuration file", remote)
 		}
@@ -292,7 +300,7 @@ func globPath(remote string, pattern string) ([]string, error) {
 }
 
 func readFile(remote string, name string) ([]byte, error) {
-	// logDebug.Println("readFile", remote, name)
+	logDebug.Println("readFile", remote, name)
 
 	switch remote {
 	case LOCAL:
@@ -301,13 +309,15 @@ func readFile(remote string, name string) ([]byte, error) {
 		s := sftpOpenSession(remote)
 		f, err := s.Open(name)
 		if err != nil {
-			logError.Fatalln(err)
+			// logError.Fatalln(err)
+			return nil, err
 		}
 		defer f.Close()
 
 		st, err := f.Stat()
 		if err != nil {
-			logError.Fatalln(err)
+			// logError.Fatalln(err)
+			return nil, err
 		}
 		// force a block read as /proc doesn't give sizes
 		sz := st.Size()

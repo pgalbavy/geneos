@@ -113,10 +113,6 @@ func commandStart(ct ComponentType, args []string, params []string) (err error) 
 
 // XXX remote support required
 func startInstance(c Instance, params []string) (err error) {
-	if RemoteName(c) != LOCAL {
-		logError.Fatalln("remote!=local", ErrNotSupported)
-	}
-
 	pid, _, _, _, err := findInstanceProc(c)
 	if err == nil {
 		log.Println(Type(c), Name(c), "already running with PID", pid)
@@ -144,14 +140,61 @@ func startInstance(c Instance, params []string) (err error) {
 
 	// set underlying user for child proc
 	username := getString(c, Prefix(c)+"User")
+	errfile := filepath.Join(Home(c), Type(c).String()+".txt")
+
+	if RemoteName(c) != LOCAL {
+		r := loadRemoteConfig(RemoteName(c))
+		rUsername := getString(r, "Username")
+		if rUsername != username {
+			log.Fatalf("cannot run remote process as a different user (%q != %q)", rUsername, username)
+		}
+		rem, err := sshOpenRemote(RemoteName(c))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sess, err := rem.NewSession()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		// we have to convert cmd to a string ourselves as we have to quote any args
+		// with spaces (like "Demo Gateway")
+		//
+		// given this is sent to a shell, we can quote everything blindly ?
+		var cmdstr = ""
+		for _, a := range cmd.Args {
+			cmdstr = fmt.Sprintf("%s %q", cmdstr, a)
+		}
+		pipe, err := sess.StdinPipe()
+		if err != nil {
+			log.Fatalln()
+		}
+
+		if err = sess.Shell(); err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Fprintln(pipe, "cd", Home(c))
+		for _, e := range env {
+			fmt.Fprintln(pipe, "export", e)
+		}
+		fmt.Fprintf(pipe, "%s > %q 2>&1 &", cmdstr, errfile)
+		fmt.Fprintln(pipe, "exit")
+		sess.Close()
+
+		pid, _, _, _, err := findInstanceProc(c)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Println(Type(c), Name(c), "remote started with PID", pid)
+		return nil
+	}
+
 	// pass possibly empty string down to setuser - it handles defaults
 	if err = setUser(cmd, username); err != nil {
 		return
 	}
 
 	cmd.Env = append(os.Environ(), env...)
-
-	errfile := filepath.Join(Home(c), Type(c).String()+".txt")
 
 	out, err := os.OpenFile(errfile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
