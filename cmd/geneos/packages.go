@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -32,9 +33,9 @@ The directory for the package is created using the VERSION from the archive file
 
 	commands["download"] = Command{
 		Function:    commandDownload,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  flagsDownload,
 		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos download [TYPE] [latest|FILTER|URL...]",
+		CommandLine: "geneos download [-n] [TYPE] [latest|FILTER|URL...]",
 		Summary:     `Download and extract Geneos software archive.`,
 		Description: `Download and extract the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
@@ -42,11 +43,22 @@ the official download site. The filename must of of the format:
 	geneos-TYPE-VERSION*.tar.gz
 
 The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
-for the package is created using the VERSION from the archive filename.`}
+for the package is created using the VERSION from the archive filename.
+
+The downloaded file is saved in the packages/archives/ direcvtory for
+future re-use, especially for remote support.
+
+FLAGS:
+		-n - Do not save download archive
+`}
+
+	downloadFlags = flag.NewFlagSet("download", flag.ExitOnError)
+	downloadFlags.BoolVar(&downloadNosave, "n", false, "Do not save download")
+	downloadFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["update"] = Command{
 		Function:    commandUpdate,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  flagsUpdate,
 		ParseArgs:   checkComponentArg,
 		CommandLine: "geneos update [TYPE] VERSION",
 		Summary:     `Update the active version of Geneos software.`,
@@ -68,7 +80,27 @@ behaviour.
 
 Future version may support selecting a base other than 'active_prod'.`}
 
+	updateFlags = flag.NewFlagSet("update", flag.ExitOnError)
+	updateFlags.StringVar(&updateBase, "b", "active_prod", "Override the base active_prod link name")
 	// need overwrite flags
+}
+
+var downloadFlags *flag.FlagSet
+var downloadNosave bool
+
+var updateFlags *flag.FlagSet
+var updateBase string
+
+func flagsDownload(command string, args []string) []string {
+	downloadFlags.Parse(args)
+	checkHelpFlag(command)
+	return downloadFlags.Args()
+}
+
+func flagsUpdate(command string, args []string) []string {
+	updateFlags.Parse(args)
+	checkHelpFlag(command)
+	return updateFlags.Args()
 }
 
 //
@@ -107,6 +139,9 @@ func commandDownload(ct ComponentType, files []string, params []string) (err err
 
 func downloadComponent(ct ComponentType, version string) (err error) {
 	switch ct {
+	case Remote:
+		// do nothing
+		return nil
 	case None:
 		for _, t := range realComponentTypes() {
 			if err = downloadComponent(t, version); err != nil {
@@ -252,11 +287,10 @@ func commandUpdate(ct ComponentType, args []string, params []string) (err error)
 
 // check selected version exists first
 func updateToVersion(ct ComponentType, version string, overwrite bool) (err error) {
-	base := "active_prod"
 	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String())
-	basepath := filepath.Join(basedir, base)
+	basepath := filepath.Join(basedir, updateBase)
 
-	logDebug.Printf("checking and updating %q to %q", base, version)
+	logDebug.Printf("checking and updating %q to %q", updateBase, version)
 
 	switch ct {
 	case None:
@@ -283,10 +317,10 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 		}
 		// empty current is fine
 		if current == version {
-			logDebug.Println(ct, base, "is already linked to", version)
+			logDebug.Println(ct, updateBase, "is already linked to", version)
 			return nil
 		}
-		insts := matchComponents(ct, "Base", base)
+		insts := matchComponents(ct, "Base", updateBase)
 		// stop matching instances
 		for _, i := range insts {
 			stopInstance(i, nil)
@@ -298,7 +332,7 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 		if err = os.Symlink(version, basepath); err != nil {
 			return err
 		}
-		log.Println(ct, base, "updated to", version)
+		log.Println(ct, updateBase, "updated to", version)
 	default:
 		return ErrNotSupported
 	}
@@ -448,6 +482,28 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 	if err != nil {
 		logError.Fatalln(err)
 	}
-	body = resp.Body
+
+	// transient download
+	if downloadNosave {
+		body = resp.Body
+		return
+	}
+
+	// save the file archive and rewind, return
+	archiveDir := filepath.Join(RunningConfig.ITRSHome, "packages", "archives")
+	mkdirAll(LOCAL, archiveDir, 0775)
+	archivePath := filepath.Join(archiveDir, filename)
+	f, err := os.Create(archivePath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if _, err = io.Copy(f, resp.Body); err != nil {
+		log.Fatalln(err)
+	}
+	resp.Body.Close()
+	if _, err = f.Seek(0, 0); err != nil {
+		log.Fatalln(err)
+	}
+	body = f
 	return
 }
