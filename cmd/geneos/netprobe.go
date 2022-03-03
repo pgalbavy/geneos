@@ -41,7 +41,7 @@ func netprobeInstance(name string) interface{} {
 	c.Root = remoteRoot(remote)
 	c.Type = Netprobe.String()
 	c.Name = local
-	c.Rem = remote
+	c.Location = remote
 	setDefaults(&c)
 	return c
 }

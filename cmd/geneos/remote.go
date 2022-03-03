@@ -81,7 +81,7 @@ func remoteInstance(name string) interface{} {
 	c.Root = RunningConfig.ITRSHome
 	c.Type = Remote.String()
 	c.Name = local
-	c.Rem = remote
+	c.Location = remote
 	setDefaults(&c)
 	return c
 }
