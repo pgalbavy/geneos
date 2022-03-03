@@ -11,8 +11,8 @@ RUN go build
 
 FROM debian
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build /app/cmd/geneos/geneos /bin
 RUN apt update && apt install -y fontconfig
+COPY --from=build /app/cmd/geneos/geneos /bin
 RUN useradd -ms /bin/bash geneos
 USER geneos
 WORKDIR /home/geneos
