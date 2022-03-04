@@ -65,7 +65,6 @@ FLAGS:
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
 	restartFlags.BoolVar(&restartAll, "a", false, "Start all instances, not just those already running")
 	restartFlags.BoolVar(&restartLogs, "l", false, "Watch logs after start-up")
-
 	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["disable"] = Command{
@@ -78,18 +77,23 @@ FLAGS:
 
 	commands["enable"] = Command{
 		Function:    commandEneable,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  enableFlag,
 		ParseArgs:   parseArgs,
 		CommandLine: "geneos enable [TYPE] [NAME...]",
 		Summary:     `Enable one or more instances. Only previously disabled instances are started.`,
 		Description: `Mark any matcing instances as enabled and if this changes status then start the instance.`}
+
+	enableFlags = flag.NewFlagSet("enable", flag.ExitOnError)
+	enableFlags.BoolVar(&enableNoStart, "n", false, "Do not auto-start enabled instances")
+	enableFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
-var stopFlags, startFlags *flag.FlagSet
+var stopFlags, startFlags, enableFlags *flag.FlagSet
 var stopKill bool
 var startLogs bool
 var restartFlags *flag.FlagSet
 var restartAll, restartLogs bool
+var enableNoStart bool
 
 func startFlag(command string, args []string) []string {
 	startFlags.Parse(args)
@@ -403,6 +407,12 @@ func disableInstance(c Instance, params []string) (err error) {
 	return
 }
 
+func enableFlag(command string, args []string) []string {
+	enableFlags.Parse(args)
+	checkHelpFlag(command)
+	return enableFlags.Args()
+}
+
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
 func commandEneable(ct ComponentType, args []string, params []string) (err error) {
@@ -410,10 +420,11 @@ func commandEneable(ct ComponentType, args []string, params []string) (err error
 }
 
 func enableInstance(c Instance, params []string) (err error) {
-	if err = removeFile(Location(c), filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
+	err = removeFile(Location(c), filepath.Join(Home(c), Type(c).String()+disableExtension))
+	if (err == nil || errors.Is(err, os.ErrNotExist)) && !enableNoStart {
 		err = startInstance(c, params)
 	}
-	return
+	return nil
 }
 
 func isDisabled(c Instance) bool {
