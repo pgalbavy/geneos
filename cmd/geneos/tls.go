@@ -314,6 +314,9 @@ func TLSSync() (err error) {
 	}
 
 	for _, remote := range allRemotes() {
+		if Name(remote) == LOCAL {
+			continue
+		}
 		tlsPath := filepath.Join(remoteRoot(Name(remote)), "tls")
 		if err = mkdirAll(Name(remote), tlsPath, 0775); err != nil {
 			logError.Fatalln(err)
