@@ -418,11 +418,10 @@ func updateToVersion(remote string, ct ComponentType, version string, overwrite 
 		// does the version directory exist?
 		current, err := readlink(remote, basepath)
 		if err != nil {
-			log.Println("cannot read link for existing version", basepath)
-			return nil
+			logDebug.Println("cannot read link for existing version", basepath)
 		}
 		if _, err = statFile(remote, filepath.Join(basedir, version)); err != nil {
-			err = fmt.Errorf("update %s@%s to version %s failed, left on %s", ct, remote, version, current)
+			err = fmt.Errorf("update %s@%s to version %s failed", ct, remote, version)
 			return err
 		}
 		if current != "" && !overwrite {
