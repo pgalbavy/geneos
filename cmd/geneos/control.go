@@ -111,10 +111,12 @@ func commandStart(ct ComponentType, args []string, params []string) (err error) 
 	return
 }
 
+// XXX remote support required
 func startInstance(c Instance, params []string) (err error) {
-	pid, _, err := findInstanceProc(c)
+	pid, err := findInstancePID(c)
 	if err == nil {
-		log.Println(Type(c), Name(c), "already running with PID", pid)
+		log.Printf("%s %s@%s already running with PID %d", Type(c), Name(c), Location(c), pid)
+
 		return nil
 	}
 
@@ -123,7 +125,7 @@ func startInstance(c Instance, params []string) (err error) {
 	}
 
 	binary := getString(c, Prefix(c)+"Exec")
-	if _, err = os.Stat(binary); err != nil {
+	if _, err = statFile(Location(c), binary); err != nil {
 		return
 	}
 
@@ -139,14 +141,63 @@ func startInstance(c Instance, params []string) (err error) {
 
 	// set underlying user for child proc
 	username := getString(c, Prefix(c)+"User")
+	errfile := filepath.Join(Home(c), Type(c).String()+".txt")
+
+	if Location(c) != LOCAL {
+		r := loadRemoteConfig(Location(c))
+		rUsername := getString(r, "Username")
+		if rUsername != username {
+			log.Fatalf("cannot run remote process as a different user (%q != %q)", rUsername, username)
+		}
+		rem, err := sshOpenRemote(Location(c))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sess, err := rem.NewSession()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		// we have to convert cmd to a string ourselves as we have to quote any args
+		// with spaces (like "Demo Gateway")
+		//
+		// given this is sent to a shell, we can quote everything blindly ?
+		var cmdstr = ""
+		for _, a := range cmd.Args {
+			cmdstr = fmt.Sprintf("%s %q", cmdstr, a)
+		}
+		pipe, err := sess.StdinPipe()
+		if err != nil {
+			log.Fatalln()
+		}
+
+		if err = sess.Shell(); err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Fprintln(pipe, "cd", Home(c))
+		for _, e := range env {
+			fmt.Fprintln(pipe, "export", e)
+		}
+		fmt.Fprintf(pipe, "%s > %q 2>&1 &", cmdstr, errfile)
+		fmt.Fprintln(pipe, "exit")
+		sess.Close()
+		// wait a short while for remote to catch-up
+		time.Sleep(250 * time.Millisecond)
+
+		pid, err := findInstancePID(c)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Printf("%s %s@%s started with PID %d", Type(c), Name(c), Location(c), pid)
+		return nil
+	}
+
 	// pass possibly empty string down to setuser - it handles defaults
 	if err = setUser(cmd, username); err != nil {
 		return
 	}
 
 	cmd.Env = append(os.Environ(), env...)
-
-	errfile := filepath.Join(Home(c), Type(c).String()+".txt")
 
 	out, err := os.OpenFile(errfile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -166,8 +217,7 @@ func startInstance(c Instance, params []string) (err error) {
 	if err = cmd.Start(); err != nil {
 		return
 	}
-	log.Println(Type(c), Name(c), "started with PID", cmd.Process.Pid)
-
+	log.Printf("%s %s@%s started with PID %d", Type(c), Name(c), Location(c), cmd.Process.Pid)
 	if cmd.Process != nil {
 		// detach from control
 		cmd.Process.Release()
@@ -187,25 +237,72 @@ func commandStop(ct ComponentType, args []string, params []string) (err error) {
 }
 
 func stopInstance(c Instance, params []string) (err error) {
-	pid, st, err := findInstanceProc(c)
+	pid, err := findInstancePID(c)
 	if err != nil && errors.Is(err, ErrProcNotExist) {
 		// not found is fine
 		return
+	}
+
+	if Location(c) != LOCAL {
+		rem, err := sshOpenRemote(Location(c))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sess, err := rem.NewSession()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		pipe, err := sess.StdinPipe()
+		if err != nil {
+			log.Fatalln()
+		}
+
+		if err = sess.Shell(); err != nil {
+			log.Fatalln(err)
+		}
+
+		if !stopKill {
+			fmt.Fprintln(pipe, "kill", pid)
+			for i := 0; i < 10; i++ {
+				time.Sleep(250 * time.Millisecond)
+				_, err = findInstancePID(c)
+				if err == ErrProcNotExist {
+					break
+				}
+				fmt.Fprintln(pipe, "kill", pid)
+			}
+			_, err = findInstancePID(c)
+			if err != ErrProcNotExist {
+				log.Printf("%s %s@%s stopped", Type(c), Name(c), Location(c))
+				fmt.Fprintln(pipe, "exit")
+				sess.Close()
+				return nil
+			}
+		}
+
+		fmt.Fprintln(pipe, "kill -KILL", pid)
+		fmt.Fprintln(pipe, "exit")
+		sess.Close()
+
+		_, err = findInstancePID(c)
+		if err == ErrProcNotExist {
+			log.Printf("%s %s@%s killed", Type(c), Name(c), Location(c))
+			return nil
+		}
+
+		logDebug.Println("process still running as", pid)
+		return ErrProcExists
 	}
 
 	if !canControl(c) {
 		return ErrPermission
 	}
 
-	logDebug.Println("process running as", st.Uid, st.Gid)
-
 	proc, _ := os.FindProcess(pid)
 
 	if !stopKill {
-		log.Println("stopping", Type(c), Name(c), "with PID", pid)
-
 		if err = proc.Signal(syscall.SIGTERM); err != nil {
-			log.Println("sending SIGTERM failed:", err)
+			logError.Println("sending SIGTERM failed:", err)
 			return
 		}
 
@@ -213,7 +310,7 @@ func stopInstance(c Instance, params []string) (err error) {
 		for i := 0; i < 10; i++ {
 			time.Sleep(250 * time.Millisecond)
 			if err = proc.Signal(syscall.Signal(0)); err != nil {
-				logDebug.Println(Type(c), "terminated")
+				log.Printf("%s %s@%s stopped", Type(c), Name(c), Location(c))
 				return nil
 			}
 		}
@@ -223,7 +320,8 @@ func stopInstance(c Instance, params []string) (err error) {
 	if err = proc.Signal(syscall.SIGKILL); err != nil {
 		log.Println("sending SIGKILL failed:", err)
 	}
-	log.Println("killed", Type(c), Name(c), "with PID", pid)
+
+	log.Printf("%s %s@%s killed", Type(c), Name(c), Location(c))
 	return
 
 }
@@ -278,14 +376,29 @@ func disableInstance(c Instance, params []string) (err error) {
 		return
 	}
 
-	f, err := os.Create(filepath.Join(Home(c), Type(c).String()+disableExtension))
-	if err != nil {
-		return
-	}
-	defer f.Close()
+	disablePath := filepath.Join(Home(c), Type(c).String()+disableExtension)
 
-	if err = f.Chown(int(uid), int(gid)); err != nil {
-		os.Remove(f.Name())
+	switch Location(c) {
+	case LOCAL:
+		f, err := os.Create(disablePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if err = f.Chown(int(uid), int(gid)); err != nil {
+			removeFile(Location(c), f.Name())
+		}
+	default:
+		f, err := createRemoteFile(Location(c), disablePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if err = f.Chown(int(uid), int(gid)); err != nil {
+			removeFile(Location(c), f.Name())
+		}
 	}
 	return
 }
@@ -297,7 +410,7 @@ func commandEneable(ct ComponentType, args []string, params []string) (err error
 }
 
 func enableInstance(c Instance, params []string) (err error) {
-	if err = os.Remove(filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
+	if err = removeFile(Location(c), filepath.Join(Home(c), Type(c).String()+disableExtension)); err == nil || errors.Is(err, os.ErrNotExist) {
 		err = startInstance(c, params)
 	}
 	return
@@ -305,7 +418,7 @@ func enableInstance(c Instance, params []string) (err error) {
 
 func isDisabled(c Instance) bool {
 	d := filepath.Join(Home(c), Type(c).String()+disableExtension)
-	if f, err := os.Stat(d); err == nil && f.Mode().IsRegular() {
+	if f, err := statFile(Location(c), d); err == nil && f.st.Mode().IsRegular() {
 		return true
 	}
 	return false

@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/user"
 	"strings"
-	"syscall"
 
 	"wonderland.org/geneos/pkg/logger"
 )
@@ -80,15 +79,14 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	} else if debug {
 		logger.EnableDebugLog()
-	} else if verbose {
-		log.Println("look at ME!")
+	}
+
+	if len(leftargs) == 0 {
+		commandHelp(None, nil, nil)
+		os.Exit(0)
 	}
 
 	loadSysConfig()
-
-	if len(leftargs) == 0 {
-		logError.Fatalln("[usage here]: not enough args")
-	}
 
 	var command = strings.ToLower(leftargs[0])
 	var ct ComponentType = None
@@ -140,24 +138,42 @@ func main() {
 	default:
 		// test home dir, stop if invalid
 		if RunningConfig.ITRSHome == "" {
-			logError.Fatalln("home directory is not set")
+			log.Fatalln(`
+Installation directory is not set.
+
+You can fix this by doing one of the following:
+
+1. Create a new Geneos environment:
+
+	$ geneos init /path/to/geneos
+
+2. Set the ITRS_HOME environment:
+
+	$ export ITRS_HOME=/path/to/geneos
+
+3. Set the ITRSHome user parameter:
+
+	$ geneos set user ITRSHome=/path/to/geneos
+
+3. Set the ITRSHome parameter in the global configuration file:
+
+	$ echo '{ "ITRSHome": "/path/to/geneos" }' >` + globalConfig)
 		}
-		s, err := os.Stat(RunningConfig.ITRSHome)
+		s, err := statFile(LOCAL, RunningConfig.ITRSHome)
 		if err != nil {
 			logError.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
 		}
-		if !s.IsDir() {
+		if !s.st.IsDir() {
 			logError.Fatalln(RunningConfig.ITRSHome, "is not a directory")
 		}
 
 		// we have a valid home directory, now set default user if
 		// not set elsewhere
 		if RunningConfig.DefaultUser == "" {
-			s2 := s.Sys().(*syscall.Stat_t)
-			if s2.Uid == 0 {
+			if s.uid == 0 {
 				logError.Fatalf("home directory %q: owned by root and no default user configured", RunningConfig.ITRSHome)
 			}
-			u, err := user.LookupId(fmt.Sprint(s2.Uid))
+			u, err := user.LookupId(fmt.Sprint(s.uid))
 			if err != nil {
 				logError.Fatalln(RunningConfig.ITRSHome, err)
 			}

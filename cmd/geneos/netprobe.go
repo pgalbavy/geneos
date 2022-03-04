@@ -36,11 +36,12 @@ func init() {
 }
 
 func netprobeInstance(name string) interface{} {
-	// Bootstrap
+	local, remote := splitInstanceName(name)
 	c := &Netprobes{}
-	c.Root = RunningConfig.ITRSHome
+	c.Root = remoteRoot(remote)
 	c.Type = Netprobe.String()
-	c.Name = name
+	c.Name = local
+	c.Location = remote
 	setDefaults(&c)
 	return c
 }

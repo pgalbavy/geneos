@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/sftp"
 )
 
 func init() {
@@ -223,12 +225,12 @@ var initDirs = []string{
 // load system config from global and user JSON files and process any
 // environment variables we choose
 func loadSysConfig() {
-	readConfigFile(globalConfig, &RunningConfig)
+	readConfigFile(LOCAL, globalConfig, &RunningConfig)
 
 	// root should not have a per-user config, but if sun by sudo the
 	// HOME dir is conserved, so allow for now
 	userConfDir, _ := os.UserConfigDir()
-	err := readConfigFile(filepath.Join(userConfDir, "geneos.json"), &RunningConfig)
+	err := readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &RunningConfig)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Println(err)
 	}
@@ -366,9 +368,9 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	}
 
 	// dir must first not exist (or be empty) and then be createable
-	if _, err := os.Stat(dir); err == nil {
+	if _, err := statFile(LOCAL, dir); err == nil {
 		// check empty
-		dirs, err := os.ReadDir(dir)
+		dirs, err := readDir(LOCAL, dir)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -377,32 +379,31 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = os.MkdirAll(dir, 0775); err != nil {
+		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
-	if err = os.Chown(dir, int(uid), int(gid)); err != nil {
+	if err = chown(LOCAL, dir, int(uid), int(gid)); err != nil {
 		logError.Fatalln(err)
 	}
 	c.ITRSHome = dir
 	c.DefaultUser = username
-	if err = writeConfigFile(globalConfig, c); err != nil {
+	if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
 		logError.Fatalln("cannot write global config", err)
 	}
 	// if everything else worked, remove any existing user config
-	_ = os.Remove(filepath.Join(u.HomeDir, ".config", "geneos.json"))
+	_ = removeFile(LOCAL, filepath.Join(u.HomeDir, ".config", "geneos.json"))
 
 	// create directories
 	for _, d := range initDirs {
 		dir := filepath.Join(c.ITRSHome, d)
-		if err = os.MkdirAll(dir, 0775); err != nil {
+		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
 	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
 		if err == nil {
-			logDebug.Println("chown", path, uid, gid)
-			err = os.Chown(path, int(uid), int(gid))
+			err = chown(LOCAL, path, int(uid), int(gid))
 		}
 		return err
 	})
@@ -426,9 +427,9 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	}
 
 	// dir must first not exist (or be empty) and then be createable
-	if _, err = os.Stat(dir); err == nil {
+	if _, err = statFile(LOCAL, dir); err == nil {
 		// check empty
-		dirs, err := os.ReadDir(dir)
+		dirs, err := readDir(LOCAL, dir)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -440,7 +441,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = os.MkdirAll(dir, 0775); err != nil {
+		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -452,13 +453,13 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	userConfFile := filepath.Join(userConfDir, "geneos.json")
 	c.ITRSHome = dir
 	c.DefaultUser = u.Username
-	if err = writeConfigFile(userConfFile, c); err != nil {
+	if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
 		return
 	}
 	// create directories
 	for _, d := range initDirs {
 		dir := filepath.Join(c.ITRSHome, d)
-		if err = os.MkdirAll(dir, 0775); err != nil {
+		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -484,19 +485,19 @@ func revertInstance(c Instance, params []string) (err error) {
 	baseconf := filepath.Join(Home(c), Type(c).String())
 
 	// if *.rc file exists, remove rc.orig+JSON, continue
-	if _, err := os.Stat(baseconf + ".rc"); err == nil {
+	if _, err := statFile(Location(c), baseconf+".rc"); err == nil {
 		// ignore errors
-		if os.Remove(baseconf+".rc.orig") == nil || os.Remove(baseconf+".json") == nil {
+		if removeFile(Location(c), baseconf+".rc.orig") == nil || removeFile(Location(c), baseconf+".json") == nil {
 			logDebug.Println(Type(c), Name(c), "removed extra config file(s)")
 		}
 		return err
 	}
 
-	if err = os.Rename(baseconf+".rc.orig", baseconf+".rc"); err != nil {
+	if err = renameFile(Location(c), baseconf+".rc.orig", baseconf+".rc"); err != nil {
 		return
 	}
 
-	if err = os.Remove(baseconf + ".json"); err != nil {
+	if err = removeFile(Location(c), baseconf+".json"); err != nil {
 		return
 	}
 
@@ -518,13 +519,13 @@ func commandShow(ct ComponentType, names []string, params []string) (err error) 
 	switch names[0] {
 	case "global":
 		var c ConfigType
-		readConfigFile(globalConfig, &c)
+		readConfigFile(LOCAL, globalConfig, &c)
 		printConfigStructJSON(c)
 		return
 	case "user":
 		var c ConfigType
 		userConfDir, _ := os.UserConfigDir()
-		readConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
+		readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &c)
 		printConfigStructJSON(c)
 		return
 	}
@@ -688,7 +689,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 	// now loop through the collected results anbd write out
 	for _, c := range instances {
 		conffile := filepath.Join(Home(c), Type(c).String()+".json")
-		if err = writeConfigFile(conffile, c); err != nil {
+		if err = writeConfigFile(Location(c), conffile, c); err != nil {
 			log.Println(err)
 		}
 	}
@@ -699,7 +700,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 func writeConfigParams(filename string, params []string) (err error) {
 	var c ConfigType
 	// ignore err - config may not exist, but that's OK
-	_ = readConfigFile(filename, &c)
+	_ = readConfigFile(LOCAL, filename, &c)
 	// change here
 	for _, set := range params {
 		// skip all non '=' args
@@ -712,27 +713,27 @@ func writeConfigParams(filename string, params []string) (err error) {
 			return
 		}
 	}
-	return writeConfigFile(filename, c)
+	return writeConfigFile(LOCAL, filename, c)
 }
 
 func writeInstanceConfig(c Instance) (err error) {
-	err = writeConfigFile(filepath.Join(Home(c), Type(c).String()+".json"), c)
+	err = writeConfigFile(Location(c), filepath.Join(Home(c), Type(c).String()+".json"), c)
 	return
 }
 
-func readConfigFile(file string, config interface{}) (err error) {
-	jsonFile, err := os.Open(file)
+func readConfigFile(remote, file string, config interface{}) (err error) {
+	jsonFile, err := readFile(remote, file)
 	if err != nil {
 		return
 	}
-	dec := json.NewDecoder(jsonFile)
-	return dec.Decode(&config)
+	// dec := json.NewDecoder(jsonFile)
+	return json.Unmarshal(jsonFile, &config)
 }
 
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func writeConfigFile(file string, config interface{}) (err error) {
+func writeConfigFile(remote, file string, config interface{}) (err error) {
 	buffer, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
@@ -751,35 +752,59 @@ func writeConfigFile(file string, config interface{}) (err error) {
 		uid, gid = int(ux), int(gx)
 	}
 
-	dir, name := filepath.Split(file)
-	dir = strings.TrimSuffix(dir, "/")
+	dir := filepath.Dir(file)
 	// try to ensure directory exists
-	if err = os.MkdirAll(dir, 0775); err != nil {
+	if err = mkdirAll(remote, dir, 0775); err != nil {
 		return
 	}
 	// change final directory ownership
-	_ = os.Chown(dir, uid, gid)
+	_ = chown(remote, dir, uid, gid)
 
-	f, err := os.CreateTemp(dir, name)
-	if err != nil {
-		return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
-	}
-	defer os.Remove(f.Name())
-	// use Println to get a final newline
-	if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
-		return
-	}
+	switch remote {
+	case LOCAL:
+		f, err := os.CreateTemp(dir, filepath.Base(file))
+		if err != nil {
+			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
+		}
+		defer removeFile(remote, f.Name())
+		// use Println to get a final newline
+		if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
+			return err
+		}
 
-	// update file perms and owner before final rename to overwrite
-	// existing file
-	if err = f.Chmod(0664); err != nil {
-		return
-	}
-	if err = f.Chown(uid, gid); err != nil {
-		return
-	}
+		// update file perms and owner before final rename to overwrite
+		// existing file
+		if err = f.Chmod(0664); err != nil {
+			return err
+		}
+		if err = f.Chown(uid, gid); err != nil {
+			return err
+		}
 
-	return os.Rename(f.Name(), file)
+		return renameFile(remote, f.Name(), file)
+	default:
+		var f *sftp.File
+		f, err = createRemoteTemp(remote, file)
+		if err != nil {
+			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
+		}
+		defer removeFile(remote, f.Name())
+		// use Println to get a final newline
+		if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
+			return err
+		}
+
+		// update file perms and owner before final rename to overwrite
+		// existing file
+		if err = f.Chmod(0664); err != nil {
+			return err
+		}
+		if err = f.Chown(uid, gid); err != nil {
+			return err
+		}
+
+		return renameFile(remote, f.Name(), file)
+	}
 }
 
 func commandRename(ct ComponentType, args []string, params []string) (err error) {
@@ -810,26 +835,26 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	oldhome := Home(oldconf)
 	newhome := Home(newconf)
 
-	if err = os.Rename(oldhome, newhome); err != nil {
+	if err = renameFile(Location(oldhome), oldhome, newhome); err != nil {
 		logDebug.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
 
 	if err = setField(oldconf, "Name", newname); err != nil {
 		// try to recover
-		_ = os.Rename(newhome, oldhome)
+		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(componentDir(ct), newname)); err != nil {
+	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(componentDir(Location(newhome), ct), newname)); err != nil {
 		// try to recover
-		_ = os.Rename(newhome, oldhome)
+		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 		//
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeConfigFile(filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
-		_ = os.Rename(newhome, oldhome)
+	if err = writeConfigFile(Location(newconf), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
+		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
@@ -842,7 +867,7 @@ func commandDelete(ct ComponentType, args []string, params []string) (err error)
 
 func deleteInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
-		if err = os.RemoveAll(Home(c)); err != nil {
+		if err = removeAll(Location(c), Home(c)); err != nil {
 			logError.Fatalln(err)
 		}
 		return nil

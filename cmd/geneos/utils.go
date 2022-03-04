@@ -25,38 +25,36 @@ import (
 	"text/template"
 )
 
-// locate a process by compoent type and name
-//
-// the component type must be part of the basename of the executable and
-// the component name must be on the command line as an exact and
-// standalone args
-//
-func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
+// walk the /proc directory (local or remote) and find the matching pid
+// this is subject to races, but...
+func findInstancePID(c Instance) (pid int, err error) {
 	var pids []int
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
-	dirs, _ := filepath.Glob("/proc/[0-9]*")
+	dirs, _ := globPath(Location(c), "/proc/[0-9]*")
 
 	for _, dir := range dirs {
-		pid, _ := strconv.Atoi(filepath.Base(dir))
-		pids = append(pids, pid)
+		p, _ := strconv.Atoi(filepath.Base(dir))
+		pids = append(pids, p)
 	}
 
 	sort.Ints(pids)
 
 	for _, pid = range pids {
 		var data []byte
-		data, err = os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+		data, err = readFile(Location(c), fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
+			// process may disappear by this point, ignore error
+			logDebug.Println(err)
 			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
-		bin := filepath.Base(string(args[0]))
+		execfile := filepath.Base(string(args[0]))
 		switch Type(c) {
 		case Webserver:
 			var wdOK, jarOK bool
-			if bin != "java" {
+			if execfile != "java" {
 				continue
 			}
 			for _, arg := range args[1:] {
@@ -67,26 +65,38 @@ func findInstanceProc(c Instance) (pid int, st *syscall.Stat_t, err error) {
 					jarOK = true
 				}
 				if wdOK && jarOK {
-					if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
-						st = s.Sys().(*syscall.Stat_t)
-					}
 					return
 				}
 			}
 		default:
-			if strings.HasPrefix(bin, Type(c).String()) {
+			if strings.HasPrefix(execfile, Type(c).String()) {
 				for _, arg := range args[1:] {
+					// very simplistic - we look for a bare arg that matches the instance name
 					if string(arg) == Name(c) {
-						if s, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err == nil {
-							st = s.Sys().(*syscall.Stat_t)
-						}
+						// found
 						return
 					}
 				}
 			}
 		}
 	}
-	return 0, nil, ErrProcNotExist
+	return 0, ErrProcNotExist
+}
+
+// locate a process by compoent type and name
+//
+// the component type must be part of the basename of the executable and
+// the component name must be on the command line as an exact and
+// standalone args
+//
+func findInstanceProc(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+	pid, err = findInstancePID(c)
+	if err == nil {
+		var s fileStat
+		s, err = statFile(Location(c), fmt.Sprintf("/proc/%d", pid))
+		return pid, s.uid, s.uid, s.mtime, err
+	}
+	return 0, 0, 0, 0, ErrProcNotExist
 }
 
 func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
@@ -236,8 +246,10 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 
 	// empty list of names = all names for that ct
 	if len(args) == 0 {
-		args = emptyArgs(ct)
+		args = allArgsForComponent(ct)
 	}
+
+	logDebug.Println("ct, args, params", ct, args, params)
 
 	// make sure names/args are unique but retain order
 	// check for reserved names here?
@@ -266,24 +278,68 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 
 	// repeat if args is now empty (all params)
 	if len(args) == 0 {
-		args = emptyArgs(ct)
+		args = allArgsForComponent(ct)
 	}
 
 	logDebug.Println("params:", params)
 	return
 }
 
-func emptyArgs(ct ComponentType) (args []string) {
+// for commands (like 'add') that don't want to know about existing matches
+func parseArgsNoWildcard(rawargs []string) (ct ComponentType, args []string, params []string) {
+	var newnames []string
+
+	if len(rawargs) == 0 {
+		return
+	}
+	if ct = parseComponentName(rawargs[0]); ct == Unknown {
+		return
+	}
+	args = rawargs[1:]
+
+	logDebug.Println("ct, args, params", ct, args, params)
+
+	m := make(map[string]bool, len(args))
+	for _, name := range args {
+		// filter name here
+		if reservedName(args[0]) {
+			logError.Fatalf("%q is reserved instance name", args[0])
+		}
+		if !validInstanceName(args[0]) {
+			logDebug.Printf("%q is not a valid instance name", args[0])
+			break
+		}
+		if m[name] {
+			continue
+		}
+		newnames = append(newnames, name)
+		args = args[1:]
+		m[name] = true
+	}
+	params = args
+	args = newnames
+
+	logDebug.Println("params:", params)
+	return
+}
+
+func allArgsForComponent(ct ComponentType) (args []string) {
 	var confs []Instance
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
 		confs = allInstances()
+	case Remote:
+		confs = append(confs, instancesOfComponent(LOCAL, ct)...)
 	default:
-		confs = instances(ct)
+		for _, remote := range allRemotes() {
+			logDebug.Println("checking remote:", Name(remote))
+			confs = append(confs, instancesOfComponent(Name(remote), ct)...)
+		}
 	}
 	for _, c := range confs {
-		args = append(args, Name(c))
+		// XXX
+		args = append(args, Name(c)+"@"+Location(c))
 	}
 	return
 }
@@ -309,16 +365,17 @@ func reservedName(in string) (ok bool) {
 }
 
 // spaces are valid - dumb, but valid - for now
-var validStringRE = regexp.MustCompile(`^\w[\w -]*$`)
+var validStringRE = regexp.MustCompile(`^\w[@\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //
 // used to consume instance names until parameters are then passed down
 //
 func validInstanceName(in string) (ok bool) {
-	logDebug.Printf("checking %q", in)
 	ok = validStringRE.MatchString(in)
-	logDebug.Println("rexexp match", ok)
+	if !ok {
+		logDebug.Println("no rexexp match:", in)
+	}
 	return
 }
 
@@ -438,13 +495,13 @@ func removePathList(c Instance, paths string) (err error) {
 			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
-		m, err := filepath.Glob(filepath.Join(Home(c), p))
+		m, err := globPath(Location(c), filepath.Join(Home(c), p))
 		if err != nil {
 			return err
 		}
 		for _, f := range m {
-			if err = os.RemoveAll(f); err != nil {
-				log.Println(err)
+			if err = removeAll(Location(c), f); err != nil {
+				logError.Println(err)
 				continue
 			}
 		}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -24,6 +23,8 @@ const (
 	Remote
 )
 
+// XXX this should become an interface
+// but that involves lots of rebuilding.
 type ComponentFuncs struct {
 	Instance func(string) interface{}
 	Command  func(Instance) ([]string, []string)
@@ -49,6 +50,9 @@ type Common struct {
 	// The Name of an instance. This may be different to the instance
 	// directory name during certain operations, e.g. rename
 	Name string `json:"Name"`
+	// The potential remote name (this is a remote component and not
+	// a server name)
+	Location string `default:"local" json:"Location"`
 	// The ComponentType of an instance
 	Type string `json:"-"`
 	// The root directory of the Geneos installation. Used in template
@@ -60,8 +64,8 @@ type Common struct {
 
 // currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
-// not including Remote for now
-func componentTypes() []ComponentType {
+// not including Remote - this is special
+func realComponentTypes() []ComponentType {
 	return []ComponentType{Gateway, Netprobe, Licd, Webserver}
 }
 
@@ -102,21 +106,21 @@ func parseComponentName(component string) ComponentType {
 	}
 }
 
-// Return a slice of all directories for a given ComponentType. No checking is done
+// Return a slice of all instances for a given ComponentType. No checking is done
 // to validate that the directory is a populated instance.
 //
 // No side-effects
-func instanceDirs(ct ComponentType) []string {
-	return sortedDirs(componentDir(ct))
+func instanceDirsForComponent(remote string, ct ComponentType) []string {
+	return sortedInstancesInDir(remote, componentDir(remote, ct))
 }
 
 // Return the base directory for a ComponentType
-func componentDir(ct ComponentType) string {
+func componentDir(remote string, ct ComponentType) string {
 	switch ct {
 	case Remote:
 		return filepath.Join(RunningConfig.ITRSHome, ct.String()+"s")
 	default:
-		return filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s")
+		return filepath.Join(remoteRoot(remote), ct.String(), ct.String()+"s")
 	}
 }
 
@@ -129,6 +133,10 @@ func Type(c Instance) ComponentType {
 
 func Name(c Instance) string {
 	return getString(c, "Name")
+}
+
+func Location(c Instance) string {
+	return getString(c, "Location")
 }
 
 func Home(c Instance) string {
@@ -155,13 +163,13 @@ func sortDirEntries(files []fs.DirEntry) {
 }
 
 // Return a sorted list of sub-directories
-func sortedDirs(dir string) []string {
-	files, _ := os.ReadDir(dir)
+func sortedInstancesInDir(remote string, dir string) []string {
+	files, _ := readDir(remote, dir)
 	sortDirEntries(files)
 	components := make([]string, 0, len(files))
 	for _, file := range files {
 		if file.IsDir() {
-			components = append(components, file.Name())
+			components = append(components, file.Name()+"@"+remote)
 		}
 	}
 	return components
@@ -176,6 +184,8 @@ func sortedDirs(dir string) []string {
 // have to exist on disk.
 func newComponent(ct ComponentType, name string) (c []Instance) {
 	if ct == None {
+		// for _, cts := realComponentTypes() {
+		// }
 		cs := findInstances(name)
 		for _, cm := range cs {
 			c = append(c, newComponent(cm, name)...)

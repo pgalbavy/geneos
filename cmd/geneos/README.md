@@ -3,9 +3,10 @@
 The `geneos` program will help you manage your Geneos environment, one server at a time. Some of it's features, existing and planned, include:
 
 * Set-up a new environment with a series of simple commands
+* Remote systems support (very much early testing)
 * Add new instances of common componments with sensible defaults
 * Check the status of components
-* Stop, start, restart components (without unnecessary delays)
+* Stop, start, restart components (without minimal delays)
 * Support fo existing gatewayctl/netprobectl/licdctl scripts and their file and configuration layout
 * Convert existing set-ups to JSON based configs with more options
 * Edit individual settings of instances
@@ -63,6 +64,49 @@ You still have to configure the Gateway to connect to the Netprobe, but all thre
 ## Security and Running as Root
 
 This program has been written in such a way that is *should* be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
+
+## Remote Management (NEW!)
+
+The `geneos` command can now transparently manage instances across multiple systems using SSH. Some things works well, some work with minor issues and some features do not work at all.
+
+This feature is still very much under development there will be changes coming.
+
+### What does this mean?
+
+See if these commands give you a hint:
+
+```bash
+$ geneos add remote server2 ssh://geneos@myotherserver.example.com/opt/geneos
+$ geneos add gateway newgateway@server2
+$ geneos start
+```
+
+Command like `ls` and `ps` will works transparently and merge all instances together, showing you where they are runnng (or not).
+
+A remote is a psuedo-instance and you add and manage it with the normal commands. At the moment the only supported transport is SSH and the URL is a slightly extended version of the RFC standard to include the Geneos home directory. The format, for the `add` command is:
+
+`ssh://[USER@]HOST[:PORT][/PATH]`
+
+If not set, USER defaults to the current username. Similarly PORT defaults to 22. PATH defaults to the local ITRSHome path. The most basic SSH URL of the form `ssh://hostname` results in a remote accessed as the current user on the default SSH port and rooted in the same directory as the local set-up. Is the remote directory is empty (dot files are ignored) then the standard file layout is created.
+
+### How does it work?
+
+There are a number of prerequisites for remote support:
+
+1. Linux on amd64 for all servers
+2. Passwordless SSH access, either via an `ssh-agent` or unprotected private keys
+3. At this time the only private keys supported are those in your `.ssh` directory beginning `id_` - later updates will allow you to set the name of the key to load, but using an agent is recommended.
+4. The remote user must be confiugured to use a `bash` shell or similar. See limitations below.
+
+If you can log in to a remote Linux server using `ssh user@server` and no be prompted for a password or passphrase then you are set to go. It's beyond the scope of this README to explain how to set-up `ssh-agent` or how to create an unprotected private key file, so please search online.
+
+### Limitations
+
+The remote connections over SSH mean there are limitations to the features available on remote servers:
+
+1. No following logs (i.e. the `-f` option). The program is written to use `fsnotify` and that only works on local filesystems and not over sftp. This may be added using a more primitive polling mecahnism later.
+2. Control over instance processes is done via shell commands and little error checking is done, so it is possible to cause damage and/or processes not to to start or stop as expected. Contributions of fixes are welcomed.
+3. All actions are taken as the user given in the SSH URL (which should NEVER be `root`!) and so instances that are meant to run as other users cannot be controlled. Files and directories may not be available if the user does not have suitable permissions.
 
 ## Usage
 
@@ -215,7 +259,7 @@ The `geneos tls` command provides a number of subcommands to create and manage c
 Once enabled then all new instances will also have certificates created and configuration set to use secure (encrypted) connections where possible.
 
 * `geneos tls init`
-  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populkating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command.
+  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populkating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command. Also does a `sync` if remotes are configured.
 
   Any existing instances have certificates created and their configurations updated to reference them. This means that any legacy `.rc` configurations will be migrated to `.json` files.
 
@@ -230,6 +274,9 @@ Once enabled then all new instances will also have certificates created and conf
 
 * `geneos tls ls [-c | -j | -i | -l] [TYPE] [NAME...]`
   List instance certificate information. Options are the same as for the main `ls` command but the data shown is specific to certificates.
+
+* `geneos tls sync`
+  Copies chain.pem to all remotes
 
 ## Configuration Files
 

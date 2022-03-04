@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -38,26 +37,30 @@ type Commands map[string]Command
 // return a single slice of all instances, ordered and grouped
 // configuration are not loaded, just the defaults ready for overlay
 func allInstances() (confs []Instance) {
-	for _, ct := range componentTypes() {
-		confs = append(confs, instances(ct)...)
+	for _, ct := range realComponentTypes() {
+		for _, remote := range allRemotes() {
+			confs = append(confs, instancesOfComponent(Name(remote), ct)...)
+		}
 	}
 	return
 }
 
-// return a slice of instance for a given ComponentType
-func instances(ct ComponentType) (confs []Instance) {
-	for _, name := range instanceDirs(ct) {
+// return a slice of instancesOfComponent for a given ComponentType
+func instancesOfComponent(remote string, ct ComponentType) (confs []Instance) {
+	for _, name := range instanceDirsForComponent(remote, ct) {
 		confs = append(confs, newComponent(ct, name)...)
 	}
 	return
 }
 
+// return a slice of component types that exist for this name
 func findInstances(name string) (cts []ComponentType) {
-	for _, t := range componentTypes() {
-		compdirs := instanceDirs(t)
-		for _, dir := range compdirs {
+	local, remote := splitInstanceName(name)
+	for _, t := range realComponentTypes() {
+		for _, dir := range instanceDirsForComponent(remote, t) {
 			// for case insensitive match change to EqualFold here
-			if filepath.Base(dir) == name {
+			ldir, _ := splitInstanceName(dir)
+			if filepath.Base(ldir) == local {
 				cts = append(cts, t)
 			}
 		}
@@ -72,7 +75,7 @@ func loadConfig(c Instance, update bool) (err error) {
 	baseconf := filepath.Join(Home(c), Type(c).String())
 	j := baseconf + ".json"
 
-	if err = readConfigFile(j, &c); err == nil {
+	if err = readConfigFile(Location(c), j, &c); err == nil {
 		// return if NO error, else drop through
 		return
 	}
@@ -84,7 +87,7 @@ func loadConfig(c Instance, update bool) (err error) {
 			logError.Println("failed to wrtite config file:", err)
 			return
 		}
-		if err = os.Rename(baseconf+".rc", baseconf+".rc.orig"); err != nil {
+		if err = renameFile(Location(c), baseconf+".rc", baseconf+".rc.orig"); err != nil {
 			logError.Println("failed to rename old config:", err)
 		}
 		logDebug.Println(Type(c), Name(c), "migrated to JSON config")
@@ -121,7 +124,7 @@ func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 // save off extra env too
 // XXX - scan file line by line, protect memory
 func readRCConfig(c Instance) (err error) {
-	rcdata, err := os.ReadFile(filepath.Join(Home(c), Type(c).String()+".rc"))
+	rcdata, err := readFile(Location(c), filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
 		return
 	}
