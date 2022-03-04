@@ -102,7 +102,7 @@ FLAGS:
 
 	updateFlags = flag.NewFlagSet("update", flag.ExitOnError)
 	updateFlags.StringVar(&updateBase, "b", "active_prod", "Override the base active_prod link name")
-	updateFlags.StringVar(&updateRemote, "r", LOCAL, "Perform on a remote. \"all\" means all remotes and locally")
+	updateFlags.StringVar(&updateRemote, "r", ALL, "Perform on a remote. \"all\" means all remotes and locally")
 }
 
 var extractFlags *flag.FlagSet
@@ -141,8 +141,9 @@ func flagsUpdate(command string, args []string) []string {
 func commandExtract(ct ComponentType, files []string, params []string) (err error) {
 	if ct != None {
 		logDebug.Println(ct.String())
+		// archive directory is local?
 		archiveDir := filepath.Join(remoteRoot(LOCAL), "packages", "archives")
-		archiveFile := latestMatch(archiveDir, func(v os.DirEntry) bool {
+		archiveFile := latestMatch(LOCAL, archiveDir, func(v os.DirEntry) bool {
 			switch ct {
 			default:
 				logDebug.Println(v.Name(), ct.String())
@@ -187,7 +188,7 @@ func commandExtract(ct ComponentType, files []string, params []string) (err erro
 	}
 
 	// create a symlink only if one doesn't exist
-	return updateToVersion(ct, "latest", false)
+	return updateToVersion(extractRemote, ct, "latest", false)
 }
 
 func commandDownload(ct ComponentType, files []string, params []string) (err error) {
@@ -245,9 +246,9 @@ func downloadComponent(remote string, ct ComponentType, version string) (err err
 			return err
 		}
 		if version == "latest" {
-			return updateToVersion(ct, finalVersion, true)
+			return updateToVersion(remote, ct, finalVersion, true)
 		}
-		return updateToVersion(ct, finalVersion, false)
+		return updateToVersion(remote, ct, finalVersion, false)
 	}
 }
 
@@ -383,37 +384,46 @@ func commandUpdate(ct ComponentType, args []string, params []string) (err error)
 	if len(args) > 0 {
 		version = args[0]
 	}
-	return updateToVersion(ct, version, true)
+	if updateRemote == ALL {
+		for _, remote := range allRemotes() {
+			if err = updateToVersion(Name(remote), ct, version, true); err != nil {
+				log.Println("could not update", Name(remote), err)
+			}
+		}
+		return nil
+	}
+	return updateToVersion(updateRemote, ct, version, true)
 }
 
 // check selected version exists first
-func updateToVersion(ct ComponentType, version string, overwrite bool) (err error) {
-	basedir := filepath.Join(RunningConfig.ITRSHome, "packages", ct.String())
+func updateToVersion(remote string, ct ComponentType, version string, overwrite bool) (err error) {
+	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String())
 	basepath := filepath.Join(basedir, updateBase)
 
-	logDebug.Printf("checking and updating %q to %q", updateBase, version)
+	logDebug.Printf("checking and updating %s %q to %q", remote, updateBase, version)
 
 	switch ct {
 	case None:
 		for _, t := range realComponentTypes() {
-			if err = updateToVersion(t, version, overwrite); err != nil {
+			if err = updateToVersion(remote, t, version, overwrite); err != nil {
 				log.Println(err)
 			}
 		}
 	case Gateway, Netprobe, Licd, Webserver:
 		if version == "" || version == "latest" {
-			version = latestMatch(basedir, func(d os.DirEntry) bool {
+			version = latestMatch(remote, basedir, func(d os.DirEntry) bool {
 				return !d.IsDir()
 			})
 		}
 		// does the version directory exist?
-		if _, err = statFile(LOCAL, filepath.Join(basedir, version)); err != nil {
-			err = fmt.Errorf("update %s to version %s failed: %w", ct, version, err)
-			return err
+		current, err := readlink(remote, basepath)
+		if err != nil {
+			log.Println("cannot read link for existing version", basepath)
+			return nil
 		}
-		current, err := os.Readlink(basepath)
-		if err != nil && errors.Is(err, &fs.PathError{}) {
-			log.Println("cannot read link", basepath)
+		if _, err = statFile(remote, filepath.Join(basedir, version)); err != nil {
+			err = fmt.Errorf("update %s@%s to version %s failed, left on %s", ct, remote, version, current)
+			return err
 		}
 		if current != "" && !overwrite {
 			return nil
@@ -423,19 +433,20 @@ func updateToVersion(ct ComponentType, version string, overwrite bool) (err erro
 			logDebug.Println(ct, updateBase, "is already linked to", version)
 			return nil
 		}
-		insts := matchComponents(ct, "Base", updateBase)
+		// check remote only
+		insts := matchComponents(remote, ct, "Base", updateBase)
 		// stop matching instances
 		for _, i := range insts {
 			stopInstance(i, nil)
 			defer startInstance(i, nil)
 		}
-		if err = removeFile(LOCAL, basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		if err = removeFile(remote, basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		if err = os.Symlink(version, basepath); err != nil {
+		if err = symlink(remote, version, basepath); err != nil {
 			return err
 		}
-		log.Println(ct, updateBase, "updated to", version)
+		log.Println(ct, "on", remote, updateBase, "updated to", version)
 	default:
 		return ErrNotSupported
 	}
@@ -446,8 +457,8 @@ var versRE = regexp.MustCompile(`(\d+(\.\d+){0,2})`)
 
 // given a directory find the "latest" version of the form
 // [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
-func latestMatch(dir string, fn func(os.DirEntry) bool) (latest string) {
-	dirs, err := os.ReadDir(dir)
+func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) {
+	dirs, err := readDir(remote, dir)
 	if err != nil {
 		logError.Fatalln(err)
 	}
@@ -489,8 +500,8 @@ func latestMatch(dir string, fn func(os.DirEntry) bool) (latest string) {
 
 // given a component type and a key/value pair, return matching
 // instances
-func matchComponents(ct ComponentType, k, v string) (insts []Instance) {
-	for _, i := range instancesOfComponent(LOCAL, ct) {
+func matchComponents(remote string, ct ComponentType, k, v string) (insts []Instance) {
+	for _, i := range instancesOfComponent(remote, ct) {
 		if v == getString(i, Prefix(i)+k) {
 			if err := loadConfig(&i, false); err != nil {
 				log.Println(Type(i), Name(i), "cannot load config")

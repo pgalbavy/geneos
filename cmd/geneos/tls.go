@@ -116,13 +116,7 @@ type lsCertType struct {
 
 func listCertsCommand(ct ComponentType, args []string, params []string) (err error) {
 	rootCert, err := readRootCert()
-	if err != nil {
-		return
-	}
 	geneosCert, err := readSigningCert()
-	if err != nil {
-		return
-	}
 
 	switch {
 	case TLSlistJSON:
@@ -130,28 +124,32 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 		if TLSlistJSONIndent {
 			jsonEncoder.SetIndent("", "    ")
 		}
-		jsonEncoder.Encode(lsCertType{
-			"global",
-			rootCAFile,
-			LOCAL,
-			time.Duration(time.Until(rootCert.NotAfter).Seconds()),
-			rootCert.NotAfter,
-			rootCert.Subject.CommonName,
-			rootCert.Issuer.CommonName,
-			nil,
-			nil,
-		})
-		jsonEncoder.Encode(lsCertType{
-			"global",
-			signingCertFile,
-			LOCAL,
-			time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
-			geneosCert.NotAfter,
-			geneosCert.Subject.CommonName,
-			geneosCert.Issuer.CommonName,
-			nil,
-			nil,
-		})
+		if rootCert != nil {
+			jsonEncoder.Encode(lsCertType{
+				"global",
+				rootCAFile,
+				LOCAL,
+				time.Duration(time.Until(rootCert.NotAfter).Seconds()),
+				rootCert.NotAfter,
+				rootCert.Subject.CommonName,
+				rootCert.Issuer.CommonName,
+				nil,
+				nil,
+			})
+		}
+		if geneosCert != nil {
+			jsonEncoder.Encode(lsCertType{
+				"global",
+				signingCertFile,
+				LOCAL,
+				time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
+				geneosCert.NotAfter,
+				geneosCert.Subject.CommonName,
+				geneosCert.Issuer.CommonName,
+				nil,
+				nil,
+			})
+		}
 		err = loopCommand(lsInstanceCertJSON, ct, args, params)
 	case TLSlistCSV:
 		csvWriter = csv.NewWriter(log.Writer())
@@ -166,39 +164,47 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 			"SubjAltNames",
 			"IPs",
 		})
-		csvWriter.Write([]string{
-			"global",
-			rootCAFile,
-			LOCAL,
-			fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
-			rootCert.NotAfter.String(),
-			rootCert.Subject.CommonName,
-			rootCert.Issuer.CommonName,
-			"[]",
-			"[]",
-		})
-		csvWriter.Write([]string{
-			"global",
-			signingCertFile,
-			LOCAL,
-			fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
-			geneosCert.NotAfter.String(),
-			geneosCert.Subject.CommonName,
-			geneosCert.Issuer.CommonName,
-			"[]",
-			"[]",
-		})
+		if rootCert != nil {
+			csvWriter.Write([]string{
+				"global",
+				rootCAFile,
+				LOCAL,
+				fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
+				rootCert.NotAfter.String(),
+				rootCert.Subject.CommonName,
+				rootCert.Issuer.CommonName,
+				"[]",
+				"[]",
+			})
+		}
+		if geneosCert != nil {
+			csvWriter.Write([]string{
+				"global",
+				signingCertFile,
+				LOCAL,
+				fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
+				geneosCert.NotAfter.String(),
+				geneosCert.Subject.CommonName,
+				geneosCert.Issuer.CommonName,
+				"[]",
+				"[]",
+			})
+		}
 		err = loopCommand(lsInstanceCertCSV, ct, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tRemaining\tExpires\tCommonName\tIssuer\tSubjAltNames\tIPs\n")
-		fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", rootCAFile, LOCAL,
-			time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
-			rootCert.Subject.CommonName, rootCert.Issuer.CommonName)
-		fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", signingCertFile, LOCAL,
-			time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
-			geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName)
+		if rootCert != nil {
+			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", rootCAFile, LOCAL,
+				time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
+				rootCert.Subject.CommonName, rootCert.Issuer.CommonName)
+		}
+		if geneosCert != nil {
+			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", signingCertFile, LOCAL,
+				time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
+				geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName)
+		}
 		err = loopCommand(lsInstanceCert, ct, args, params)
 		lsTabWriter.Flush()
 	}

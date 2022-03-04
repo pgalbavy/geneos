@@ -80,7 +80,7 @@ func main() {
 	} else if debug {
 		logger.EnableDebugLog()
 	} else if verbose {
-		log.Println("look at ME!")
+		// log.Println("look at ME!")
 	}
 
 	loadSysConfig()
@@ -139,7 +139,26 @@ func main() {
 	default:
 		// test home dir, stop if invalid
 		if RunningConfig.ITRSHome == "" {
-			logError.Fatalln("home directory is not set")
+			log.Fatalln(`
+Installation directory is not set.
+
+You can fix this by doing one of the following:
+
+1. Create a new Geneos environment:
+
+	$ geneos init /path/to/geneos
+
+2. Set the ITRS_HOME environment:
+
+	$ export ITRS_HOME=/path/to/geneos
+
+3. Set the ITRSHome user parameter:
+
+	$ geneos set user ITRSHome=/path/to/geneos
+
+3. Set the ITRSHome parameter in the global configuration file:
+
+	$ echo '{ "ITRSHome": "/path/to/geneos" }' >` + globalConfig)
 		}
 		s, err := statFile(LOCAL, RunningConfig.ITRSHome)
 		if err != nil {
