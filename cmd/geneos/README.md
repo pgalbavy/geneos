@@ -259,7 +259,7 @@ The `geneos tls` command provides a number of subcommands to create and manage c
 Once enabled then all new instances will also have certificates created and configuration set to use secure (encrypted) connections where possible.
 
 * `geneos tls init`
-  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populkating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command.
+  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populkating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command. Also does a `sync` if remotes are configured.
 
   Any existing instances have certificates created and their configurations updated to reference them. This means that any legacy `.rc` configurations will be migrated to `.json` files.
 
@@ -274,6 +274,9 @@ Once enabled then all new instances will also have certificates created and conf
 
 * `geneos tls ls [-c | -j | -i | -l] [TYPE] [NAME...]`
   List instance certificate information. Options are the same as for the main `ls` command but the data shown is specific to certificates.
+
+* `geneos tls sync`
+  Copies chain.pem to all remotes
 
 ## Configuration Files
 
