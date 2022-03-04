@@ -79,15 +79,14 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	} else if debug {
 		logger.EnableDebugLog()
-	} else if verbose {
-		// log.Println("look at ME!")
+	}
+
+	if len(leftargs) == 0 {
+		commandHelp(None, nil, nil)
+		os.Exit(0)
 	}
 
 	loadSysConfig()
-
-	if len(leftargs) == 0 {
-		logError.Fatalln("[usage here]: not enough args")
-	}
 
 	var command = strings.ToLower(leftargs[0])
 	var ct ComponentType = None
