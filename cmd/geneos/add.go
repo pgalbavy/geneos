@@ -233,7 +233,7 @@ func uploadFile(c Instance, source string) (err error) {
 				logError.Fatalln("dest path must be relative to (and in) instance directory")
 			}
 			// if the destination exists is it a directory?
-			if s, err := statFile(RemoteName(c), filepath.Join(Home(c), destfile)); err == nil {
+			if s, err := statFile(Location(c), filepath.Join(Home(c), destfile)); err == nil {
 				if s.st.IsDir() {
 					destdir = filepath.Join(Home(c), destfile)
 					destfile = ""
@@ -292,34 +292,34 @@ func uploadFile(c Instance, source string) (err error) {
 
 	destfile = filepath.Join(destdir, destfile)
 
-	if _, err := statFile(RemoteName(c), filepath.Dir(destfile)); err != nil {
-		err = mkdirAll(RemoteName(c), filepath.Dir(destfile), 0775)
+	if _, err := statFile(Location(c), filepath.Dir(destfile)); err != nil {
+		err = mkdirAll(Location(c), filepath.Dir(destfile), 0775)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			logError.Fatalln(err)
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = chown(RemoteName(c), filepath.Dir(destfile), int(uid), int(gid)); err != nil {
+			if err = chown(Location(c), filepath.Dir(destfile), int(uid), int(gid)); err != nil {
 				return err
 			}
 		}
 	}
 
 	// xxx - wrong way around. create tmp first, move over later
-	if s, err := statFile(RemoteName(c), destfile); err == nil {
+	if s, err := statFile(Location(c), destfile); err == nil {
 		if !s.st.Mode().IsRegular() {
 			logError.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")
 		backuppath = destfile + "." + datetime + ".old"
-		if err = renameFile(RemoteName(c), destfile, backuppath); err != nil {
+		if err = renameFile(Location(c), destfile, backuppath); err != nil {
 			return err
 		}
 	}
 
 	var out io.Writer
 
-	switch RemoteName(c) {
+	switch Location(c) {
 	case LOCAL:
 		cf, err := os.Create(destfile)
 		if err != nil {
@@ -329,16 +329,16 @@ func uploadFile(c Instance, source string) (err error) {
 		defer cf.Close()
 
 		if err = cf.Chown(int(uid), int(gid)); err != nil {
-			removeFile(RemoteName(c), destfile)
+			removeFile(Location(c), destfile)
 			if backuppath != "" {
-				if err = renameFile(RemoteName(c), backuppath, destfile); err != nil {
+				if err = renameFile(Location(c), backuppath, destfile); err != nil {
 					return err
 				}
 				return err
 			}
 		}
 	default:
-		cf, err := createRemoteFile(RemoteName(c), destfile)
+		cf, err := createRemoteFile(Location(c), destfile)
 		if err != nil {
 			return err
 		}
@@ -346,9 +346,9 @@ func uploadFile(c Instance, source string) (err error) {
 		defer cf.Close()
 
 		if err = cf.Chown(int(uid), int(gid)); err != nil {
-			removeFile(RemoteName(c), destfile)
+			removeFile(Location(c), destfile)
 			if backuppath != "" {
-				if err = renameFile(RemoteName(c), backuppath, destfile); err != nil {
+				if err = renameFile(Location(c), backuppath, destfile); err != nil {
 					return err
 				}
 				return err

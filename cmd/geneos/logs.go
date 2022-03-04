@@ -121,7 +121,7 @@ func outHeader(logfile string) {
 func logTailInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, err := openFile(RemoteName(c), logfile)
+	lines, err := openFile(Location(c), logfile)
 	if err != nil {
 		return
 	}
@@ -222,7 +222,7 @@ func filterOutput(logfile string, reader io.Reader) {
 func logCatInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, err := openFile(RemoteName(c), logfile)
+	lines, err := openFile(Location(c), logfile)
 	if err != nil {
 		return
 	}
@@ -234,7 +234,7 @@ func logCatInstance(c Instance, params []string) (err error) {
 }
 
 func logFollowInstance(c Instance, params []string) (err error) {
-	if RemoteName(c) != LOCAL {
+	if Location(c) != LOCAL {
 		logError.Fatalln("rmeote!=local", ErrNotSupported)
 	}
 	logfile := getLogfilePath(c)

@@ -135,7 +135,7 @@ func Name(c Instance) string {
 	return getString(c, "Name")
 }
 
-func RemoteName(c Instance) string {
+func Location(c Instance) string {
 	return getString(c, "Location")
 }
 

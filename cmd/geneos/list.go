@@ -94,7 +94,7 @@ func lsInstancePlain(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", Type(c), Name(c)+suffix, RemoteName(c), Home(c))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", Type(c), Name(c)+suffix, Location(c), Home(c))
 	return
 }
 
@@ -103,7 +103,7 @@ func lsInstanceCSV(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{Type(c).String(), Name(c), dis, RemoteName(c), Home(c)})
+	csvWriter.Write([]string{Type(c).String(), Name(c), dis, Location(c), Home(c)})
 	return
 }
 
@@ -120,7 +120,7 @@ func lsInstanceJSON(c Instance, params []string) (err error) {
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), dis, RemoteName(c), Home(c)})
+	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), dis, Location(c), Home(c)})
 	return
 }
 
@@ -184,7 +184,7 @@ func psInstancePlain(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	fmt.Fprintf(psTabWriter, "%s:%s@%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), RemoteName(c), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c))
+	fmt.Fprintf(psTabWriter, "%s:%s@%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), Location(c), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c))
 
 	return
 }
@@ -211,7 +211,7 @@ func psInstanceCSV(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	csvWriter.Write([]string{Type(c).String() + ":" + Name(c) + "@" + RemoteName(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
+	csvWriter.Write([]string{Type(c).String() + ":" + Name(c) + "@" + Location(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }
@@ -238,7 +238,7 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	jsonEncoder.Encode(psType{Type(c).String(), Name(c), RemoteName(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
+	jsonEncoder.Encode(psType{Type(c).String(), Name(c), Location(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
 
 	return
 }
@@ -248,7 +248,7 @@ func commandCommand(ct ComponentType, args []string, params []string) (err error
 }
 
 func commandInstance(c Instance, params []string) (err error) {
-	log.Printf("=== %s %s @ %s ===", Type(c), Name(c), RemoteName(c))
+	log.Printf("=== %s %s @ %s ===", Type(c), Name(c), Location(c))
 	cmd, env := buildCmd(c)
 	if cmd != nil {
 		log.Println("command line:")

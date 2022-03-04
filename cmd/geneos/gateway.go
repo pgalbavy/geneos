@@ -135,7 +135,7 @@ func gatewayAdd(name string, username string, params []string) (c Instance, err 
 
 	var out io.Writer
 
-	switch RemoteName(c) {
+	switch Location(c) {
 	case LOCAL:
 		cf, err := os.Create(filepath.Join(Home(c), "gateway.setup.xml"))
 		out = cf
@@ -148,7 +148,7 @@ func gatewayAdd(name string, username string, params []string) (c Instance, err 
 			logError.Fatalln(err)
 		}
 	default:
-		cf, err := createRemoteFile(RemoteName(c), filepath.Join(Home(c), "gateway.setup.xml"))
+		cf, err := createRemoteFile(Location(c), filepath.Join(Home(c), "gateway.setup.xml"))
 		out = cf
 		if err != nil {
 			log.Println(err)
@@ -195,10 +195,10 @@ func gatewayClean(c Instance, purge bool, params []string) (err error) {
 }
 
 func gatewayReload(c Instance, params []string) (err error) {
-	if RemoteName(c) != LOCAL {
+	if Location(c) != LOCAL {
 		logError.Fatalln(ErrNotSupported)
 	}
-	pid, _, _, _, err := findInstanceProc(c)
+	pid, err := findInstancePID(c)
 	if err != nil {
 		return
 	}

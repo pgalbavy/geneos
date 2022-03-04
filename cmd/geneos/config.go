@@ -483,19 +483,19 @@ func revertInstance(c Instance, params []string) (err error) {
 	baseconf := filepath.Join(Home(c), Type(c).String())
 
 	// if *.rc file exists, remove rc.orig+JSON, continue
-	if _, err := statFile(RemoteName(c), baseconf+".rc"); err == nil {
+	if _, err := statFile(Location(c), baseconf+".rc"); err == nil {
 		// ignore errors
-		if removeFile(RemoteName(c), baseconf+".rc.orig") == nil || removeFile(RemoteName(c), baseconf+".json") == nil {
+		if removeFile(Location(c), baseconf+".rc.orig") == nil || removeFile(Location(c), baseconf+".json") == nil {
 			logDebug.Println(Type(c), Name(c), "removed extra config file(s)")
 		}
 		return err
 	}
 
-	if err = renameFile(RemoteName(c), baseconf+".rc.orig", baseconf+".rc"); err != nil {
+	if err = renameFile(Location(c), baseconf+".rc.orig", baseconf+".rc"); err != nil {
 		return
 	}
 
-	if err = removeFile(RemoteName(c), baseconf+".json"); err != nil {
+	if err = removeFile(Location(c), baseconf+".json"); err != nil {
 		return
 	}
 
@@ -687,7 +687,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 	// now loop through the collected results anbd write out
 	for _, c := range instances {
 		conffile := filepath.Join(Home(c), Type(c).String()+".json")
-		if err = writeConfigFile(RemoteName(c), conffile, c); err != nil {
+		if err = writeConfigFile(Location(c), conffile, c); err != nil {
 			log.Println(err)
 		}
 	}
@@ -715,7 +715,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 }
 
 func writeInstanceConfig(c Instance) (err error) {
-	err = writeConfigFile(RemoteName(c), filepath.Join(Home(c), Type(c).String()+".json"), c)
+	err = writeConfigFile(Location(c), filepath.Join(Home(c), Type(c).String()+".json"), c)
 	return
 }
 
@@ -833,26 +833,26 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	oldhome := Home(oldconf)
 	newhome := Home(newconf)
 
-	if err = renameFile(RemoteName(oldhome), oldhome, newhome); err != nil {
+	if err = renameFile(Location(oldhome), oldhome, newhome); err != nil {
 		logDebug.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
 
 	if err = setField(oldconf, "Name", newname); err != nil {
 		// try to recover
-		_ = renameFile(RemoteName(newhome), newhome, oldhome)
+		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(componentDir(RemoteName(newhome), ct), newname)); err != nil {
+	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(componentDir(Location(newhome), ct), newname)); err != nil {
 		// try to recover
-		_ = renameFile(RemoteName(newhome), newhome, oldhome)
+		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 		//
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeConfigFile(RemoteName(newconf), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
-		_ = renameFile(RemoteName(newhome), newhome, oldhome)
+	if err = writeConfigFile(Location(newconf), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
+		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
@@ -865,7 +865,7 @@ func commandDelete(ct ComponentType, args []string, params []string) (err error)
 
 func deleteInstance(c Instance, params []string) (err error) {
 	if isDisabled(c) {
-		if err = removeAll(RemoteName(c), Home(c)); err != nil {
+		if err = removeAll(Location(c), Home(c)); err != nil {
 			logError.Fatalln(err)
 		}
 		return nil

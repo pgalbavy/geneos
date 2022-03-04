@@ -75,7 +75,7 @@ func loadConfig(c Instance, update bool) (err error) {
 	baseconf := filepath.Join(Home(c), Type(c).String())
 	j := baseconf + ".json"
 
-	if err = readConfigFile(RemoteName(c), j, &c); err == nil {
+	if err = readConfigFile(Location(c), j, &c); err == nil {
 		// return if NO error, else drop through
 		return
 	}
@@ -87,7 +87,7 @@ func loadConfig(c Instance, update bool) (err error) {
 			logError.Println("failed to wrtite config file:", err)
 			return
 		}
-		if err = renameFile(RemoteName(c), baseconf+".rc", baseconf+".rc.orig"); err != nil {
+		if err = renameFile(Location(c), baseconf+".rc", baseconf+".rc.orig"); err != nil {
 			logError.Println("failed to rename old config:", err)
 		}
 		logDebug.Println(Type(c), Name(c), "migrated to JSON config")
@@ -124,7 +124,7 @@ func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 // save off extra env too
 // XXX - scan file line by line, protect memory
 func readRCConfig(c Instance) (err error) {
-	rcdata, err := readFile(RemoteName(c), filepath.Join(Home(c), Type(c).String()+".rc"))
+	rcdata, err := readFile(Location(c), filepath.Join(Home(c), Type(c).String()+".rc"))
 	if err != nil {
 		return
 	}

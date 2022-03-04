@@ -130,7 +130,7 @@ func webserverAdd(name string, username string, params []string) (c Instance, er
 		return
 	}
 
-	if err = mkdirAll(RemoteName(c), filepath.Join(Home(c), "webapps"), 0777); err != nil {
+	if err = mkdirAll(Location(c), filepath.Join(Home(c), "webapps"), 0777); err != nil {
 		return
 	}
 

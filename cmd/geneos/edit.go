@@ -67,7 +67,7 @@ func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 	var cs []string
 	for _, name := range args {
 		for _, c := range newComponent(ct, name) {
-			if RemoteName(c) != LOCAL {
+			if Location(c) != LOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}
 			// try to migrate the config, which will not work if empty

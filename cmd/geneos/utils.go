@@ -25,38 +25,32 @@ import (
 	"text/template"
 )
 
-// locate a process by compoent type and name
-//
-// the component type must be part of the basename of the executable and
-// the component name must be on the command line as an exact and
-// standalone args
-//
-func findInstanceProc(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+// walk the /proc directory (local or remote) and find the matching pid
+// this is subject to races, but...
+func findInstancePID(c Instance) (pid int, err error) {
 	var pids []int
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
-	dirs, _ := globPath(RemoteName(c), "/proc/[0-9]*")
+	dirs, _ := globPath(Location(c), "/proc/[0-9]*")
 
-	//logDebug.Println(dirs)
 	for _, dir := range dirs {
-		pid, _ := strconv.Atoi(filepath.Base(dir))
-		pids = append(pids, pid)
+		p, _ := strconv.Atoi(filepath.Base(dir))
+		pids = append(pids, p)
 	}
 
-	//logDebug.Println(pids)
 	sort.Ints(pids)
 
 	for _, pid = range pids {
 		var data []byte
-		data, err = readFile(RemoteName(c), fmt.Sprintf("/proc/%d/cmdline", pid))
+		data, err = readFile(Location(c), fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
+			// process may disappear by this point, ignore error
 			logDebug.Println(err)
 			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
 		execfile := filepath.Base(string(args[0]))
-		logDebug.Println("cmdline:", pid, len(data), execfile)
 		switch Type(c) {
 		case Webserver:
 			var wdOK, jarOK bool
@@ -71,25 +65,36 @@ func findInstanceProc(c Instance) (pid int, uid uint32, gid uint32, mtime int64,
 					jarOK = true
 				}
 				if wdOK && jarOK {
-					s, err2 := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid))
-					uid, gid, mtime = s.uid, s.uid, s.mtime
-					err = err2
 					return
 				}
 			}
 		default:
 			if strings.HasPrefix(execfile, Type(c).String()) {
 				for _, arg := range args[1:] {
-					logDebug.Println("compare", string(arg), Name(c))
+					// very simplistic - we look for a bare arg that matches the instance name
 					if string(arg) == Name(c) {
-						s, err2 := statFile(RemoteName(c), fmt.Sprintf("/proc/%d", pid))
-						uid, gid, mtime = s.uid, s.uid, s.mtime
-						err = err2
+						// found
 						return
 					}
 				}
 			}
 		}
+	}
+	return 0, ErrProcNotExist
+}
+
+// locate a process by compoent type and name
+//
+// the component type must be part of the basename of the executable and
+// the component name must be on the command line as an exact and
+// standalone args
+//
+func findInstanceProc(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+	pid, err = findInstancePID(c)
+	if err == nil {
+		var s fileStat
+		s, err = statFile(Location(c), fmt.Sprintf("/proc/%d", pid))
+		return pid, s.uid, s.uid, s.mtime, err
 	}
 	return 0, 0, 0, 0, ErrProcNotExist
 }
@@ -334,7 +339,7 @@ func allArgsForComponent(ct ComponentType) (args []string) {
 	}
 	for _, c := range confs {
 		// XXX
-		args = append(args, Name(c)+"@"+RemoteName(c))
+		args = append(args, Name(c)+"@"+Location(c))
 	}
 	return
 }
@@ -490,12 +495,12 @@ func removePathList(c Instance, paths string) (err error) {
 			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
-		m, err := globPath(RemoteName(c), filepath.Join(Home(c), p))
+		m, err := globPath(Location(c), filepath.Join(Home(c), p))
 		if err != nil {
 			return err
 		}
 		for _, f := range m {
-			if err = removeAll(RemoteName(c), f); err != nil {
+			if err = removeAll(Location(c), f); err != nil {
 				log.Println(err)
 				continue
 			}
