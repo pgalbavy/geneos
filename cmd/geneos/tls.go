@@ -42,6 +42,10 @@ func init() {
 	geneos tls ls [TYPE] [NAME]
 		list certificates for matcing instances, including the root and intermediate CA certs.
 		same options as for the main 'ls' command
+
+	geneos tls sync
+		copy the current chain.pem to all known remotes
+		this is also done by 'init' if remotes are configured at that point
 `}
 
 	TLSFlags = flag.NewFlagSet("tls", flag.ExitOnError)
@@ -97,6 +101,8 @@ func commandTLS(ct ComponentType, args []string, params []string) (err error) {
 		return TLSImport(args)
 	case "ls":
 		return listCertsCommand(ct, args, params)
+	case "sync":
+		return TLSSync()
 	}
 
 	return loopSubcommand(TLSInstance, subcommand, ct, args, params)
@@ -115,8 +121,8 @@ type lsCertType struct {
 }
 
 func listCertsCommand(ct ComponentType, args []string, params []string) (err error) {
-	rootCert, err := readRootCert()
-	geneosCert, err := readSigningCert()
+	rootCert, _ := readRootCert()
+	geneosCert, _ := readSigningCert()
 
 	switch {
 	case TLSlistJSON:
@@ -294,6 +300,29 @@ func TLSInit() (err error) {
 	}
 	log.Println("created chain.pem")
 
+	return TLSSync()
+}
+
+// if there is a local tls/chain.pem file then copy it to all remotes
+// overwriting any existing versions
+func TLSSync() (err error) {
+	rootCert, _ := readRootCert()
+	geneosCert, _ := readSigningCert()
+
+	if rootCert == nil && geneosCert == nil {
+		return
+	}
+
+	for _, remote := range allRemotes() {
+		tlsPath := filepath.Join(remoteRoot(Name(remote)), "tls")
+		if err = mkdirAll(Name(remote), tlsPath, 0775); err != nil {
+			logError.Fatalln(err)
+		}
+		if err = writeCerts(Name(remote), filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
+			logError.Fatalln(err)
+		}
+		log.Println("Updated chain.pem on", Name(remote))
+	}
 	return
 }
 
