@@ -254,7 +254,8 @@ func renameFile(remote string, oldpath, newpath string) error {
 		return os.Rename(oldpath, newpath)
 	default:
 		s := sftpOpenSession(remote)
-		return s.Rename(oldpath, newpath)
+		// use PosixRename to overwrite oldpath
+		return s.PosixRename(oldpath, newpath)
 	}
 }
 
@@ -297,6 +298,24 @@ func globPath(remote string, pattern string) ([]string, error) {
 	default:
 		s := sftpOpenSession(remote)
 		return s.Glob(pattern)
+	}
+}
+
+func writeFile(remote string, name string, b []byte, perm os.FileMode) (err error) {
+	switch remote {
+	case LOCAL:
+		return os.WriteFile(name, b, perm)
+	default:
+		s := sftpOpenSession(remote)
+		var f *sftp.File
+		f, err = s.Create(name)
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		f.Chmod(perm)
+		_, err = f.Write(b)
+		return
 	}
 }
 

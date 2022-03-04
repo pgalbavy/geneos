@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/sftp"
 )
 
 func init() {
@@ -719,7 +721,7 @@ func writeInstanceConfig(c Instance) (err error) {
 	return
 }
 
-func readConfigFile(remote string, file string, config interface{}) (err error) {
+func readConfigFile(remote, file string, config interface{}) (err error) {
 	jsonFile, err := readFile(remote, file)
 	if err != nil {
 		return
@@ -731,7 +733,7 @@ func readConfigFile(remote string, file string, config interface{}) (err error) 
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func writeConfigFile(remote string, file string, config interface{}) (err error) {
+func writeConfigFile(remote, file string, config interface{}) (err error) {
 	buffer, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
@@ -781,8 +783,8 @@ func writeConfigFile(remote string, file string, config interface{}) (err error)
 
 		return renameFile(remote, f.Name(), file)
 	default:
-
-		f, err := createRemoteTemp(remote, file)
+		var f *sftp.File
+		f, err = createRemoteTemp(remote, file)
 		if err != nil {
 			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
 		}

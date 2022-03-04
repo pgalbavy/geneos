@@ -198,6 +198,7 @@ func gatewayReload(c Instance, params []string) (err error) {
 	if Location(c) != LOCAL {
 		logError.Fatalln(ErrNotSupported)
 	}
+
 	pid, err := findInstancePID(c)
 	if err != nil {
 		return
