@@ -41,7 +41,7 @@ FLAGS:
 `}
 
 	extractFlags = flag.NewFlagSet("extract", flag.ExitOnError)
-	extractFlags.StringVar(&extractRemote, "r", LOCAL, "Perform on a remote. \"all\" means all remotes and locally")
+	extractFlags.StringVar(&extractRemote, "r", ALL, "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["download"] = Command{
 		Function:    commandDownload,
@@ -69,7 +69,7 @@ FLAGS:
 	downloadFlags = flag.NewFlagSet("download", flag.ExitOnError)
 	downloadFlags.BoolVar(&downloadNosave, "n", false, "Do not save download")
 	downloadFlags.BoolVar(&helpFlag, "h", false, helpUsage)
-	downloadFlags.StringVar(&downloadRemote, "r", LOCAL, "Perform on a remote. \"all\" means all remotes and locally")
+	downloadFlags.StringVar(&downloadRemote, "r", ALL, "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["update"] = Command{
 		Function:    commandUpdate,
