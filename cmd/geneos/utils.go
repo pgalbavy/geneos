@@ -501,7 +501,7 @@ func removePathList(c Instance, paths string) (err error) {
 		}
 		for _, f := range m {
 			if err = removeAll(Location(c), f); err != nil {
-				log.Println(err)
+				logError.Println(err)
 				continue
 			}
 		}

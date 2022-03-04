@@ -115,7 +115,8 @@ func commandStart(ct ComponentType, args []string, params []string) (err error) 
 func startInstance(c Instance, params []string) (err error) {
 	pid, err := findInstancePID(c)
 	if err == nil {
-		log.Println(Type(c), Name(c), "already running with PID", pid)
+		log.Printf("%s %s@%s already running with PID %d", Type(c), Name(c), Location(c), pid)
+
 		return nil
 	}
 
@@ -187,7 +188,7 @@ func startInstance(c Instance, params []string) (err error) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Println(Type(c), Name(c), "remote started with PID", pid)
+		log.Printf("%s %s@%s started with PID %d", Type(c), Name(c), Location(c), pid)
 		return nil
 	}
 
@@ -216,8 +217,7 @@ func startInstance(c Instance, params []string) (err error) {
 	if err = cmd.Start(); err != nil {
 		return
 	}
-	log.Println(Type(c), Name(c), "started with PID", cmd.Process.Pid)
-
+	log.Printf("%s %s@%s started with PID %d", Type(c), Name(c), Location(c), cmd.Process.Pid)
 	if cmd.Process != nil {
 		// detach from control
 		cmd.Process.Release()
@@ -260,29 +260,37 @@ func stopInstance(c Instance, params []string) (err error) {
 		if err = sess.Shell(); err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Fprintln(pipe, "kill", pid)
-		for i := 0; i < 10; i++ {
-			time.Sleep(250 * time.Millisecond)
-			_, err = findInstancePID(c)
-			if err == ErrProcNotExist {
-				break
-			}
-			fmt.Fprintln(pipe, "kill", pid)
-		}
-		_, err = findInstancePID(c)
-		if err != ErrProcNotExist {
-			fmt.Fprintln(pipe, "kill -KILL", pid)
 
+		if !stopKill {
+			fmt.Fprintln(pipe, "kill", pid)
+			for i := 0; i < 10; i++ {
+				time.Sleep(250 * time.Millisecond)
+				_, err = findInstancePID(c)
+				if err == ErrProcNotExist {
+					break
+				}
+				fmt.Fprintln(pipe, "kill", pid)
+			}
+			_, err = findInstancePID(c)
+			if err != ErrProcNotExist {
+				log.Printf("%s %s@%s stopped", Type(c), Name(c), Location(c))
+				fmt.Fprintln(pipe, "exit")
+				sess.Close()
+				return nil
+			}
 		}
+
+		fmt.Fprintln(pipe, "kill -KILL", pid)
 		fmt.Fprintln(pipe, "exit")
 		sess.Close()
 
 		_, err = findInstancePID(c)
 		if err == ErrProcNotExist {
-			log.Printf("killed %s %s@%s with PID %d", Type(c), Name(c), Location(c), pid)
+			log.Printf("%s %s@%s killed", Type(c), Name(c), Location(c))
 			return nil
 		}
-		log.Println("process running as", pid)
+
+		logDebug.Println("process still running as", pid)
 		return ErrProcExists
 	}
 
@@ -293,10 +301,8 @@ func stopInstance(c Instance, params []string) (err error) {
 	proc, _ := os.FindProcess(pid)
 
 	if !stopKill {
-		log.Println("stopping", Type(c), Name(c), "with PID", pid)
-
 		if err = proc.Signal(syscall.SIGTERM); err != nil {
-			log.Println("sending SIGTERM failed:", err)
+			logError.Println("sending SIGTERM failed:", err)
 			return
 		}
 
@@ -304,7 +310,7 @@ func stopInstance(c Instance, params []string) (err error) {
 		for i := 0; i < 10; i++ {
 			time.Sleep(250 * time.Millisecond)
 			if err = proc.Signal(syscall.Signal(0)); err != nil {
-				logDebug.Println(Type(c), "terminated")
+				log.Printf("%s %s@%s stopped", Type(c), Name(c), Location(c))
 				return nil
 			}
 		}
@@ -315,7 +321,7 @@ func stopInstance(c Instance, params []string) (err error) {
 		log.Println("sending SIGKILL failed:", err)
 	}
 
-	log.Println("killed", Type(c), Name(c), "with PID", pid)
+	log.Printf("%s %s@%s killed", Type(c), Name(c), Location(c))
 	return
 
 }
