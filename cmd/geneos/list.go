@@ -248,7 +248,7 @@ func commandCommand(ct ComponentType, args []string, params []string) (err error
 }
 
 func commandInstance(c Instance, params []string) (err error) {
-	log.Printf("=== %s %s @ %s ===", Type(c), Name(c), Location(c))
+	log.Printf("=== %s %s@%s ===", Type(c), Name(c), Location(c))
 	cmd, env := buildCmd(c)
 	if cmd != nil {
 		log.Println("command line:")

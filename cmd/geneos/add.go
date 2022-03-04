@@ -280,7 +280,7 @@ func uploadFile(c Instance, source string) (err error) {
 
 	default:
 		// support globbing later
-		from, err = openFile(LOCAL, source)
+		from, _, err = openStatFile(LOCAL, source)
 		if err != nil {
 			return err
 		}

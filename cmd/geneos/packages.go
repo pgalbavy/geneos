@@ -151,7 +151,7 @@ func commandExtract(ct ComponentType, files []string, params []string) (err erro
 				return !strings.Contains(v.Name(), "web-server")
 			}
 		})
-		gz, err := openFile(LOCAL, filepath.Join(archiveDir, archiveFile))
+		gz, _, err := openStatFile(LOCAL, filepath.Join(archiveDir, archiveFile))
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func commandExtract(ct ComponentType, files []string, params []string) (err erro
 
 	for _, file := range files {
 		filename := filepath.Base(file)
-		gz, err := openFile(LOCAL, file)
+		gz, _, err := openStatFile(LOCAL, file)
 		if err != nil {
 			return err
 		}
@@ -594,7 +594,7 @@ func downloadArchive(ct ComponentType, version string) (filename string, body io
 	s, err := statFile(LOCAL, archivePath)
 	if err == nil && s.st.Size() == resp.ContentLength {
 		logDebug.Println("file with same size already exists, skipping save")
-		f, err := openFile(LOCAL, archivePath)
+		f, _, err := openStatFile(LOCAL, archivePath)
 		if err != nil {
 			return filename, body, nil
 		}

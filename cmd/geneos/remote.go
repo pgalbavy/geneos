@@ -344,13 +344,19 @@ func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
 	return
 }
 
-func openFile(remote string, name string) (*os.File, error) {
+func openStatFile(remote string, name string) (f io.ReadSeekCloser, st fileStat, err error) {
+	st, err = statFile(remote, name)
+	if err != nil {
+		return
+	}
 	switch remote {
 	case LOCAL:
-		return os.Open(name)
+		f, err = os.Open(name)
 	default:
-		return nil, ErrNotSupported
+		s := sftpOpenSession(remote)
+		f, err = s.Open(name)
 	}
+	return
 }
 
 func nextRandom() string {

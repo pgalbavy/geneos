@@ -57,9 +57,9 @@ var watcher *fsnotify.Watcher
 
 // struct to hold logfile details
 type tail struct {
-	f *os.File
-	t ComponentType
-	n string
+	f    io.ReadSeekCloser
+	ct   ComponentType
+	name string
 }
 
 // map of log file path to File set to the last position read
@@ -114,21 +114,21 @@ func outHeader(logfile string) {
 	if lastout != "" {
 		log.Println()
 	}
-	log.Printf("==> %s:%s %s <==\n", tails[logfile].t, tails[logfile].n, logfile)
+	log.Printf("==> %s:%s %s <==\n", tails[logfile].ct, tails[logfile].name, logfile)
 	lastout = logfile
 }
 
 func logTailInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, err := openFile(Location(c), logfile)
+	lines, st, err := openStatFile(Location(c), logfile)
 	if err != nil {
 		return
 	}
 	defer lines.Close()
-	tails[logfile] = &tail{lines, Type(c), Name(c)}
+	tails[logfile] = &tail{lines, Type(c), Name(c) + "@" + Location(c)}
 
-	text, err := tailLines(lines, logsLines)
+	text, err := tailLines(lines, st, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
 		log.Println(err)
 	}
@@ -138,7 +138,7 @@ func logTailInstance(c Instance, params []string) (err error) {
 	return nil
 }
 
-func tailLines(f *os.File, linecount int) (text string, err error) {
+func tailLines(f io.ReadSeekCloser, st fileStat, linecount int) (text string, err error) {
 	// reasonable guess at bytes per line to use as a multiplier
 	const charsPerLine = 132
 	var chunk int64 = int64(linecount * charsPerLine)
@@ -152,14 +152,15 @@ func tailLines(f *os.File, linecount int) (text string, err error) {
 		return
 	}
 
-	st, err := f.Stat()
+	// st, err := f.Stat()
 	if err != nil {
 		return
 	}
-	end := st.Size()
+	end := st.st.Size()
 
 	for i = 1 + end/chunk; i > 0; i-- {
-		n, err := f.ReadAt(buf, (i-1)*chunk)
+		f.Seek((i-1)*chunk, 0)
+		n, err := f.Read(buf)
 		if err != nil && !errors.Is(err, io.EOF) {
 			logError.Fatalln(err)
 		}
@@ -222,11 +223,11 @@ func filterOutput(logfile string, reader io.Reader) {
 func logCatInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, err := openFile(Location(c), logfile)
+	lines, _, err := openStatFile(Location(c), logfile)
 	if err != nil {
 		return
 	}
-	tails[logfile] = &tail{lines, Type(c), Name(c)}
+	tails[logfile] = &tail{lines, Type(c), Name(c) + "@" + Location(c)}
 	defer lines.Close()
 	filterOutput(logfile, lines)
 
@@ -235,16 +236,17 @@ func logCatInstance(c Instance, params []string) (err error) {
 
 func logFollowInstance(c Instance, params []string) (err error) {
 	if Location(c) != LOCAL {
-		logError.Fatalln("rmeote!=local", ErrNotSupported)
+		logError.Fatalln("remote!=local", ErrNotSupported)
 	}
 	logfile := getLogfilePath(c)
 
 	f, _ := os.Open(logfile)
+	st, _ := statFile(LOCAL, logfile)
 	// perfectly valid to not have a file to watch at start
-	tails[logfile] = &tail{f, Type(c), Name(c)}
+	tails[logfile] = &tail{f, Type(c), Name(c) + "@" + Location(c)}
 
 	// output up to this point
-	text, _ := tailLines(tails[logfile].f, logsLines)
+	text, _ := tailLines(tails[logfile].f, st, logsLines)
 
 	if len(text) != 0 {
 		filterOutput(logfile, strings.NewReader(text+"\n"))
