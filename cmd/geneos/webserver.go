@@ -15,7 +15,7 @@ type Webservers struct {
 	WebsBase string `default:"active_prod"`
 	WebsExec string `default:"{{join .WebsBins .WebsBase \"JRE/bin/java\"}}"`
 	WebsLogD string `default:"logs"`
-	WebsLogF string `default:"webserver.log"`
+	WebsLogF string `default:"WebDashboard.log"`
 	WebsMode string `default:"background"`
 	WebsPort int    `default:"8080"`
 	WebsOpts string `json:",omitempty"`
