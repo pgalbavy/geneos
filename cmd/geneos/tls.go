@@ -75,7 +75,7 @@ func flagsTLS(command string, args []string) (ret []string) {
 }
 
 // pop subcommand, parse args, put subcommand back onto params?
-func TLSArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
+func TLSArgs(rawargs []string) (ct Component, args []string, params []string) {
 	if len(rawargs) == 0 {
 		logError.Fatalln("command requires more arguments - help text here")
 	}
@@ -85,7 +85,7 @@ func TLSArgs(rawargs []string) (ct ComponentType, args []string, params []string
 	return
 }
 
-func commandTLS(ct ComponentType, args []string, params []string) (err error) {
+func commandTLS(ct Component, args []string, params []string) (err error) {
 	logDebug.Println(ct, args, params)
 
 	subcommand := args[0]
@@ -120,7 +120,7 @@ type lsCertType struct {
 	IPs         []net.IP
 }
 
-func listCertsCommand(ct ComponentType, args []string, params []string) (err error) {
+func listCertsCommand(ct Component, args []string, params []string) (err error) {
 	rootCert, _ := readRootCert()
 	geneosCert, _ := readSigningCert()
 
@@ -218,7 +218,6 @@ func listCertsCommand(ct ComponentType, args []string, params []string) (err err
 }
 
 func TLSInstance(c Instance, subcommand string, params []string) (err error) {
-	logDebug.Println("TLSInstance:", Type(c), Name(c), Location(c), subcommand, params)
 	switch subcommand {
 	case "new":
 		// create a cert, DO NOT overwrite any existing unless renewing

@@ -58,7 +58,7 @@ func loadRemoteConfig(remote string) (c Instance) {
 	return
 }
 
-// Return the base directory for a ComponentType
+// Return the base directory for a Component
 func remoteRoot(remote string) string {
 	switch remote {
 	case LOCAL:
@@ -170,8 +170,8 @@ func splitInstanceName(in string) (name, remote string) {
 // this is not recursive,
 // but we include a special LOCAL instance
 func allRemotes() (remotes []Instance) {
-	remotes = newComponent(Remote, LOCAL)
-	remotes = append(remotes, instancesOfComponent(LOCAL, Remote)...)
+	remotes = Remote.newComponent(LOCAL)
+	remotes = append(remotes, Remote.instancesOfComponent(LOCAL)...)
 	return
 }
 

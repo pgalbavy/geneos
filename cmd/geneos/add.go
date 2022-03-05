@@ -54,7 +54,7 @@ time.`}
 //
 // remote support would be of the form name@remotename
 //
-func commandAdd(ct ComponentType, args []string, params []string) (err error) {
+func commandAdd(ct Component, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		logError.Fatalln("not enough args")
 	}
@@ -88,8 +88,8 @@ func commandAdd(ct ComponentType, args []string, params []string) (err error) {
 // files, such as gateway setup or netprobe collection agent
 //
 // returns a map
-func getPorts() (ports map[int]ComponentType) {
-	ports = make(map[int]ComponentType)
+func getPorts() (ports map[int]Component) {
+	ports = make(map[int]Component)
 	for _, c := range allInstances() {
 		if err := loadConfig(&c, false); err != nil {
 			log.Println(Type(c), Name(c), "- cannot load configuration")
@@ -176,8 +176,8 @@ func nextPort(from string) int {
 // backup / history track older files (date/time?)
 // no restart or reload of compnents?
 
-func commandUpload(ct ComponentType, args []string, params []string) (err error) {
-	return singleCommand(uploadInstance, ct, args, params)
+func commandUpload(ct Component, args []string, params []string) (err error) {
+	return ct.singleCommand(uploadInstance, args, params)
 }
 
 // args are instance [file...]

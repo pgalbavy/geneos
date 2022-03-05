@@ -66,7 +66,7 @@ func flagsList(command string, args []string) []string {
 	return listFlags.Args()
 }
 
-func commandLS(ct ComponentType, args []string, params []string) (err error) {
+func commandLS(ct Component, args []string, params []string) (err error) {
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -142,7 +142,7 @@ type psType struct {
 	Home      string
 }
 
-func commandPS(ct ComponentType, args []string, params []string) (err error) {
+func commandPS(ct Component, args []string, params []string) (err error) {
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -243,7 +243,7 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 	return
 }
 
-func commandCommand(ct ComponentType, args []string, params []string) (err error) {
+func commandCommand(ct Component, args []string, params []string) (err error) {
 	return loopCommand(commandInstance, ct, args, params)
 }
 

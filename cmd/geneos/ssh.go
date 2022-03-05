@@ -23,17 +23,13 @@ var privateKeyFiles = []string{
 	"id_dsa",
 }
 
-var signers []ssh.Signer
-var khCallback ssh.HostKeyCallback
-var agentClient agent.ExtendedAgent
-
 // cache SSH connections
 var remoteSSHClients = make(map[string]*ssh.Client)
 var remoteSFTPClients = make(map[string]*sftp.Client)
 
 // load all the known private keys with no passphrase
 func readSSHkeys(homedir string) (signers []ssh.Signer) {
-	for _, keyfile := range privateKeyFiles {
+	for _, keyfile := range RunningConfig.PrivateKeys {
 		path := filepath.Join(homedir, userSSHdir, keyfile)
 		key, err := os.ReadFile(path)
 		if err != nil {
@@ -51,14 +47,18 @@ func readSSHkeys(homedir string) (signers []ssh.Signer) {
 	return
 }
 
-// this is not an init() func as we do late initialisation in case we
-// don't need ssh
-func sshInit() (err error) {
+func sshConnect(dest, user string) (client *ssh.Client, err error) {
+	var khCallback ssh.HostKeyCallback
+	var authmethods []ssh.AuthMethod
+	var signers []ssh.Signer
+	var agentClient agent.ExtendedAgent
 	var homedir string
+
 	homedir, err = os.UserHomeDir()
 	if err != nil {
 		logError.Fatalln(err)
 	}
+
 	if khCallback == nil {
 		k := filepath.Join(homedir, userSSHdir, "known_hosts")
 		khCallback, err = knownhosts.New(k)
@@ -67,29 +67,33 @@ func sshInit() (err error) {
 			return
 		}
 	}
+
+	if agentClient == nil {
+		socket := os.Getenv("SSH_AUTH_SOCK")
+		if socket != "" {
+			sshAgent, err := net.Dial("unix", socket)
+			if err != nil {
+				log.Printf("Failed to open SSH_AUTH_SOCK: %v", err)
+			} else {
+				agentClient = agent.NewClient(sshAgent)
+			}
+		}
+	}
+
 	if signers == nil {
 		signers = readSSHkeys(homedir)
 	}
-	if agentClient == nil {
-		socket := os.Getenv("SSH_AUTH_SOCK")
-		sshAgent, err := net.Dial("unix", socket)
-		if err != nil {
-			log.Printf("Failed to open SSH_AUTH_SOCK: %v", err)
-		} else {
-			agentClient = agent.NewClient(sshAgent)
-		}
-	}
-	return
-}
 
-func sshConnect(dest, user string) (client *ssh.Client, err error) {
-	sshInit()
+	if agentClient != nil {
+		authmethods = append(authmethods, ssh.PublicKeysCallback(agentClient.Signers))
+	}
+	if signers == nil {
+		authmethods = append(authmethods, ssh.PublicKeys(signers...))
+	}
+
 	config := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeysCallback(agentClient.Signers),
-			ssh.PublicKeys(signers...),
-		},
+		User:            user,
+		Auth:            authmethods,
 		HostKeyCallback: khCallback,
 		Timeout:         5 * time.Second,
 	}

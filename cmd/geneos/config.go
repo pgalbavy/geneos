@@ -204,6 +204,8 @@ type ConfigType struct {
 	LicdPurgeList      string `json:",omitempty"`
 	WebserverCleanList string `json:",omitempty"`
 	WebserverPurgeList string `json:",omitempty"`
+
+	PrivateKeys []string `json:",omitempty"`
 }
 
 var RunningConfig ConfigType
@@ -254,10 +256,17 @@ func loadSysConfig() {
 	checkDefault(&RunningConfig.LicdPurgeList, defaultLicdPurgeList)
 	checkDefault(&RunningConfig.WebserverCleanList, defaultWebserverCleanList)
 	checkDefault(&RunningConfig.WebserverPurgeList, defaultWebserverPurgeList)
+	checkDefaultSlice(&RunningConfig.PrivateKeys, privateKeyFiles)
 }
 
 func checkDefault(v *string, d string) {
 	if *v == "" {
+		*v = d
+	}
+}
+
+func checkDefaultSlice(v *[]string, d []string) {
+	if *v == nil {
 		*v = d
 	}
 }
@@ -269,7 +278,7 @@ func checkDefault(v *string, d string) {
 // home direcvtory is NOT "geneos" then create a directory "geneos", else
 //
 //
-func commandInit(ct ComponentType, args []string, params []string) (err error) {
+func commandInit(ct Component, args []string, params []string) (err error) {
 	var c ConfigType
 
 	// none of the arguments can be a reserved type
@@ -466,7 +475,7 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 	return
 }
 
-func commandMigrate(ct ComponentType, names []string, params []string) (err error) {
+func commandMigrate(ct Component, names []string, params []string) (err error) {
 	return loopCommand(migrateInstance, ct, names, params)
 }
 
@@ -477,7 +486,7 @@ func migrateInstance(c Instance, params []string) (err error) {
 	return
 }
 
-func commandRevert(ct ComponentType, names []string, params []string) (err error) {
+func commandRevert(ct Component, names []string, params []string) (err error) {
 	return loopCommand(revertInstance, ct, names, params)
 }
 
@@ -505,7 +514,7 @@ func revertInstance(c Instance, params []string) (err error) {
 	return nil
 }
 
-func commandShow(ct ComponentType, names []string, params []string) (err error) {
+func commandShow(ct Component, names []string, params []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
 	if len(names) == 0 {
@@ -534,7 +543,7 @@ func commandShow(ct ComponentType, names []string, params []string) (err error) 
 	// but allow for RC files again
 	var cs []Instance
 	for _, name := range names {
-		for _, c := range newComponent(ct, name) {
+		for _, c := range ct.newComponent(name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				continue
@@ -589,7 +598,7 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 	return
 }
 
-func commandSet(ct ComponentType, args []string, params []string) (err error) {
+func commandSet(ct Component, args []string, params []string) (err error) {
 	logDebug.Println("args", args, "params", params)
 	if len(args) == 0 && len(params) == 0 {
 		return os.ErrInvalid
@@ -619,7 +628,7 @@ func commandSet(ct ComponentType, args []string, params []string) (err error) {
 
 	// loop through named instances
 	for _, arg := range args {
-		for _, c := range newComponent(ct, arg) {
+		for _, c := range ct.newComponent(arg) {
 			// migration required to set values
 			if err = loadConfig(c, true); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
@@ -807,7 +816,7 @@ func writeConfigFile(remote, file string, config interface{}) (err error) {
 	}
 }
 
-func commandRename(ct ComponentType, args []string, params []string) (err error) {
+func commandRename(ct Component, args []string, params []string) (err error) {
 	if ct == None || len(args) != 2 {
 		return ErrInvalidArgs
 	}
@@ -816,11 +825,11 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	newname := args[1]
 
 	logDebug.Println("rename", ct, oldname, newname)
-	oldconf := newComponent(ct, oldname)[0]
+	oldconf := ct.newComponent(oldname)[0]
 	if err = loadConfig(oldconf, true); err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
-	tos := newComponent(ct, newname)
+	tos := ct.newComponent(newname)
 	newconf := tos[0]
 	if len(tos) == 0 {
 		return fmt.Errorf("%s %s: %w", ct, newname, ErrInvalidArgs)
@@ -845,7 +854,7 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(componentDir(Location(newhome), ct), newname)); err != nil {
+	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(ct.componentBaseDir(Location(newhome)), newname)); err != nil {
 		// try to recover
 		_ = renameFile(Location(newhome), newhome, oldhome)
 		return
@@ -861,7 +870,7 @@ func commandRename(ct ComponentType, args []string, params []string) (err error)
 	return startInstance(oldconf, nil)
 }
 
-func commandDelete(ct ComponentType, args []string, params []string) (err error) {
+func commandDelete(ct Component, args []string, params []string) (err error) {
 	return loopCommand(deleteInstance, ct, args, params)
 }
 

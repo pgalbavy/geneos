@@ -89,7 +89,7 @@ func main() {
 	loadSysConfig()
 
 	var command = strings.ToLower(leftargs[0])
-	var ct ComponentType = None
+	var ct Component = None
 	var args []string = leftargs[1:]
 	var params []string
 

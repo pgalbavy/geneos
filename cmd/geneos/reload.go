@@ -12,7 +12,7 @@ func init() {
 Not implemented except for Gateways.`}
 }
 
-func commandReload(ct ComponentType, args []string, params []string) error {
+func commandReload(ct Component, args []string, params []string) error {
 	return loopCommand(reloadInstance, ct, args, params)
 }
 

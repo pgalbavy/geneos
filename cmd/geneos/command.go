@@ -12,17 +12,17 @@ import (
 // The Command type contains the standard functions and help text for each command. Each command adds it's
 // own in an init() function to the global commands map
 type Command struct {
-	// The main work function of the command. It accepts a ComponentType (which can be None), a slice of arguments
+	// The main work function of the command. It accepts a Component (which can be None), a slice of arguments
 	// and a separate clice of "parameters". See ParseArgs() and ParseFlags() to see why these are separate.
-	Function func(ComponentType, []string, []string) error
+	Function func(Component, []string, []string) error
 	// Optional function to parse any command flags after the command name. Given a slice of arguments process any
 	// flags and return the unprocessed args. This allows each command to have it's own command line options after
 	// the command name but before all the other arguments and parameters, e.g. "geneos logs -f example"
 	ParseFlags func(string, []string) []string
 	// Optional function to parse arguments. Given the remaining args after ParseFlags is done evaluate if there
-	// is a ComponentType and then separate command args from optional parameters. Any args that do not match
+	// is a Component and then separate command args from optional parameters. Any args that do not match
 	// instance names are left on the params slice. It is up to the command
-	ParseArgs func([]string) (ComponentType, []string, []string)
+	ParseArgs func([]string) (Component, []string, []string)
 	// Command Syntax
 	CommandLine string
 	// Short description
@@ -39,25 +39,25 @@ type Commands map[string]Command
 func allInstances() (confs []Instance) {
 	for _, ct := range realComponentTypes() {
 		for _, remote := range allRemotes() {
-			confs = append(confs, instancesOfComponent(Name(remote), ct)...)
+			confs = append(confs, ct.instancesOfComponent(Name(remote))...)
 		}
 	}
 	return
 }
 
-// return a slice of instancesOfComponent for a given ComponentType
-func instancesOfComponent(remote string, ct ComponentType) (confs []Instance) {
-	for _, name := range instanceDirsForComponent(remote, ct) {
-		confs = append(confs, newComponent(ct, name)...)
+// return a slice of instancesOfComponent for a given Component
+func (ct Component) instancesOfComponent(remote string) (confs []Instance) {
+	for _, name := range ct.instanceDirsForComponent(remote) {
+		confs = append(confs, ct.newComponent(name)...)
 	}
 	return
 }
 
 // return a slice of component types that exist for this name
-func findInstances(name string) (cts []ComponentType) {
+func findInstances(name string) (cts []Component) {
 	local, remote := splitInstanceName(name)
 	for _, t := range realComponentTypes() {
-		for _, dir := range instanceDirsForComponent(remote, t) {
+		for _, dir := range t.instanceDirsForComponent(remote) {
 			// for case insensitive match change to EqualFold here
 			ldir, _ := splitInstanceName(dir)
 			if filepath.Base(ldir) == local {

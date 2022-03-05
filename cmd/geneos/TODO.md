@@ -4,6 +4,8 @@
 
 * Positive confirmations of all commands unless quiet mode - PARTIAL
   * Should be an 'action taken' return from commands for output
+  * create a seperate "verbose" logger and work through output to choose
+  * or more if verbose ... logic
 * Warnings when a name cannot be processed (but continue)
   * Help highlight typos rather than skip them
 * Command line verbosity control - PARTIAL
@@ -25,6 +27,10 @@
 * modularise component types, make future addins easier - PARTIAL
 * remote management support
   * transparency - all except `logs -f` should work with ssh and sftp
+  * add support for rwildcard remote instances, e.g. '@remote'
 * Examine integrating `upload` into `add`
+* Look at how to use go interfaces for components, make it easier to add
+  new types
+
 
 

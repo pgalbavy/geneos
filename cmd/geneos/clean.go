@@ -32,7 +32,7 @@ func cleanFlag(command string, args []string) []string {
 	return cleanFlags.Args()
 }
 
-func commandClean(ct ComponentType, args []string, params []string) error {
+func commandClean(ct Component, args []string, params []string) error {
 	return loopCommand(cleanInstance, ct, args, params)
 }
 

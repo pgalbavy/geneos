@@ -101,7 +101,7 @@ func startFlag(command string, args []string) []string {
 	return startFlags.Args()
 }
 
-func commandStart(ct ComponentType, args []string, params []string) (err error) {
+func commandStart(ct Component, args []string, params []string) (err error) {
 	if err = loopCommand(startInstance, ct, args, params); err != nil {
 		return
 	}
@@ -236,7 +236,7 @@ func stopFlag(command string, args []string) []string {
 	return stopFlags.Args()
 }
 
-func commandStop(ct ComponentType, args []string, params []string) (err error) {
+func commandStop(ct Component, args []string, params []string) (err error) {
 	return loopCommand(stopInstance, ct, args, params)
 }
 
@@ -336,7 +336,7 @@ func restartFlag(command string, args []string) []string {
 	return restartFlags.Args()
 }
 
-func commandRestart(ct ComponentType, args []string, params []string) (err error) {
+func commandRestart(ct Component, args []string, params []string) (err error) {
 	if err = loopCommand(restartInstance, ct, args, params); err != nil {
 		logDebug.Println(err)
 		return
@@ -362,7 +362,7 @@ func restartInstance(c Instance, params []string) (err error) {
 
 const disableExtension = ".disabled"
 
-func commandDisable(ct ComponentType, args []string, params []string) (err error) {
+func commandDisable(ct Component, args []string, params []string) (err error) {
 	return loopCommand(disableInstance, ct, args, params)
 }
 
@@ -415,14 +415,14 @@ func enableFlag(command string, args []string) []string {
 
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
-func commandEneable(ct ComponentType, args []string, params []string) (err error) {
+func commandEneable(ct Component, args []string, params []string) (err error) {
 	return loopCommand(enableInstance, ct, args, params)
 }
 
 func enableInstance(c Instance, params []string) (err error) {
 	err = removeFile(Location(c), filepath.Join(Home(c), Type(c).String()+disableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && !enableNoStart {
-		err = startInstance(c, params)
+		startInstance(c, params)
 	}
 	return nil
 }

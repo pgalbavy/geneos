@@ -1,19 +1,17 @@
 package main
 
 import (
-	"io/fs"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
 // definitions and access methods for the generic component types
 
-type ComponentType int
+type Component int
 
 const (
 	// None - no component supplied or required
-	None ComponentType = iota
+	None Component = iota
 	// Unknown - doesn't match component type
 	Unknown
 	Gateway
@@ -33,8 +31,19 @@ type ComponentFuncs struct {
 	Reload   func(Instance, []string) error
 }
 
-type Components map[ComponentType]ComponentFuncs
+// ???
+type ComponentInterface interface {
+	Instance(string) interface{}
+	Command(Instance) ([]string, []string)
+	Add(string, string, []string) (Instance, error)
+	Clean(Instance, bool, []string) error
+	Reload(Instance, []string) error
+}
 
+type Components map[Component]ComponentFuncs
+
+// slice of registered component types for indirect calls
+// this should actually become an Interface
 var components Components = make(Components)
 
 // The Instance type is a placeholder interface that can be passed to
@@ -53,7 +62,7 @@ type Common struct {
 	// The potential remote name (this is a remote component and not
 	// a server name)
 	Location string `default:"local" json:"Location"`
-	// The ComponentType of an instance
+	// The Component of an instance
 	Type string `json:"-"`
 	// The root directory of the Geneos installation. Used in template
 	// default settings for component types
@@ -65,11 +74,11 @@ type Common struct {
 // currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 // not including Remote - this is special
-func realComponentTypes() []ComponentType {
-	return []ComponentType{Gateway, Netprobe, Licd, Webserver}
+func realComponentTypes() []Component {
+	return []Component{Gateway, Netprobe, Licd, Webserver}
 }
 
-func (ct ComponentType) String() string {
+func (ct Component) String() string {
 	switch ct {
 	case None:
 		return "none"
@@ -87,7 +96,7 @@ func (ct ComponentType) String() string {
 	return "unknown"
 }
 
-func parseComponentName(component string) ComponentType {
+func parseComponentName(component string) Component {
 	switch strings.ToLower(component) {
 	case "", "any":
 		return None
@@ -106,16 +115,16 @@ func parseComponentName(component string) ComponentType {
 	}
 }
 
-// Return a slice of all instances for a given ComponentType. No checking is done
+// Return a slice of all instances for a given Component. No checking is done
 // to validate that the directory is a populated instance.
 //
 // No side-effects
-func instanceDirsForComponent(remote string, ct ComponentType) []string {
-	return sortedInstancesInDir(remote, componentDir(remote, ct))
+func (ct Component) instanceDirsForComponent(remote string) []string {
+	return sortedInstancesInDir(remote, ct.componentBaseDir(remote))
 }
 
-// Return the base directory for a ComponentType
-func componentDir(remote string, ct ComponentType) string {
+// Return the base directory for a Component
+func (ct Component) componentBaseDir(remote string) string {
 	switch ct {
 	case Remote:
 		return filepath.Join(RunningConfig.ITRSHome, ct.String()+"s")
@@ -126,8 +135,8 @@ func componentDir(remote string, ct ComponentType) string {
 
 // Accessor functions
 
-// Return the ComponentType for an Instance
-func Type(c Instance) ComponentType {
+// Return the Component for an Instance
+func Type(c Instance) Component {
 	return parseComponentName(getString(c, "Type"))
 }
 
@@ -155,40 +164,13 @@ func Prefix(c Instance) string {
 	return strings.Title(Type(c).String()[0:4])
 }
 
-// Given a slice of directory entries, sort in place
-func sortDirEntries(files []fs.DirEntry) {
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].Name() < files[j].Name()
-	})
-}
-
-// Return a sorted list of sub-directories
-func sortedInstancesInDir(remote string, dir string) []string {
-	files, _ := readDir(remote, dir)
-	sortDirEntries(files)
-	components := make([]string, 0, len(files))
-	for _, file := range files {
-		if file.IsDir() {
-			components = append(components, file.Name()+"@"+remote)
-		}
-	}
-	return components
-}
-
-// Return a new Instance with the given name, as a slice, initialised
-// with whatever defaults the component type requires. If ComponentType
-// is None then as a special case we return a slice of all instances that
-// match the given name per component type.
-//
-// When not called with a component type of None, the instance does not
-// have to exist on disk.
-func newComponent(ct ComponentType, name string) (c []Instance) {
+func (ct Component) newComponent(name string) (c []Instance) {
 	if ct == None {
 		// for _, cts := realComponentTypes() {
 		// }
 		cs := findInstances(name)
 		for _, cm := range cs {
-			c = append(c, newComponent(cm, name)...)
+			c = append(c, cm.newComponent(name)...)
 		}
 		return
 	}

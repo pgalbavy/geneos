@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"mime"
 	"net/http"
@@ -217,7 +218,7 @@ func canControl(c Instance) bool {
 // support glob style wildcards for instance names - allow through, let loopCommand*
 // deal with them
 //
-func checkComponentArg(rawargs []string) (ct ComponentType, args []string, params []string) {
+func checkComponentArg(rawargs []string) (ct Component, args []string, params []string) {
 	if len(rawargs) == 0 {
 		// wildcard everything
 		ct = None
@@ -232,7 +233,7 @@ func checkComponentArg(rawargs []string) (ct ComponentType, args []string, param
 	return
 }
 
-func parseArgs(rawargs []string) (ct ComponentType, args []string, params []string) {
+func parseArgs(rawargs []string) (ct Component, args []string, params []string) {
 	if len(rawargs) == 0 {
 		// no more arguments? wildcard everything
 		ct = None
@@ -246,7 +247,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 
 	// empty list of names = all names for that ct
 	if len(args) == 0 {
-		args = allArgsForComponent(ct)
+		args = ct.allArgsForComponent()
 	}
 
 	logDebug.Println("ct, args, params", ct, args, params)
@@ -278,7 +279,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 
 	// repeat if args is now empty (all params)
 	if len(args) == 0 {
-		args = allArgsForComponent(ct)
+		args = ct.allArgsForComponent()
 	}
 
 	logDebug.Println("params:", params)
@@ -286,7 +287,7 @@ func parseArgs(rawargs []string) (ct ComponentType, args []string, params []stri
 }
 
 // for commands (like 'add') that don't want to know about existing matches
-func parseArgsNoWildcard(rawargs []string) (ct ComponentType, args []string, params []string) {
+func parseArgsNoWildcard(rawargs []string) (ct Component, args []string, params []string) {
 	var newnames []string
 
 	if len(rawargs) == 0 {
@@ -323,18 +324,18 @@ func parseArgsNoWildcard(rawargs []string) (ct ComponentType, args []string, par
 	return
 }
 
-func allArgsForComponent(ct ComponentType) (args []string) {
+func (ct Component) allArgsForComponent() (args []string) {
 	var confs []Instance
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
 		confs = allInstances()
 	case Remote:
-		confs = append(confs, instancesOfComponent(LOCAL, ct)...)
+		confs = append(confs, ct.instancesOfComponent(LOCAL)...)
 	default:
 		for _, remote := range allRemotes() {
 			logDebug.Println("checking remote:", Name(remote))
-			confs = append(confs, instancesOfComponent(Name(remote), ct)...)
+			confs = append(confs, ct.instancesOfComponent(Name(remote))...)
 		}
 	}
 	for _, c := range confs {
@@ -386,9 +387,9 @@ func validInstanceName(in string) (ok bool) {
 // called 'thisserver')
 //
 // try to use go routines here - mutexes required
-func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []string, params []string) (err error) {
+func loopCommand(fn func(Instance, []string) error, ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
-		for _, c := range newComponent(ct, name) {
+		for _, c := range ct.newComponent(name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
@@ -402,9 +403,9 @@ func loopCommand(fn func(Instance, []string) error, ct ComponentType, args []str
 }
 
 // call a function but with an extra subcommand parameter to allow some indirection
-func loopSubcommand(fn func(Instance, string, []string) error, subcommand string, ct ComponentType, args []string, params []string) (err error) {
+func loopSubcommand(fn func(Instance, string, []string) error, subcommand string, ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
-		for _, c := range newComponent(ct, name) {
+		for _, c := range ct.newComponent(name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(Type(c), Name(c), "cannot load configuration")
 				return
@@ -421,13 +422,13 @@ func loopSubcommand(fn func(Instance, string, []string) error, subcommand string
 // that accept only zero or one named instance and the rest of the args are parameters
 // pass the remaining args the to function
 //
-func singleCommand(fn func(Instance, []string, []string) error, ct ComponentType, args []string, params []string) (err error) {
+func (ct Component) singleCommand(fn func(Instance, []string, []string) error, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		// do nothing
 		return
 	}
 	name := args[0]
-	for _, c := range newComponent(ct, name) {
+	for _, c := range ct.newComponent(name) {
 		if err = loadConfig(c, false); err != nil {
 			log.Println(Type(c), Name(c), "cannot load configuration")
 			return
@@ -694,4 +695,24 @@ func setDefaults(c interface{}) (err error) {
 		}
 	}
 	return
+}
+
+// Given a slice of directory entries, sort in place
+func sortDirEntries(files []fs.DirEntry) {
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+}
+
+// Return a sorted list of sub-directories
+func sortedInstancesInDir(remote string, dir string) []string {
+	files, _ := readDir(remote, dir)
+	sortDirEntries(files)
+	components := make([]string, 0, len(files))
+	for _, file := range files {
+		if file.IsDir() {
+			components = append(components, file.Name()+"@"+remote)
+		}
+	}
+	return components
 }

@@ -58,7 +58,7 @@ var watcher *fsnotify.Watcher
 // struct to hold logfile details
 type tail struct {
 	f    io.ReadSeekCloser
-	ct   ComponentType
+	ct   Component
 	name string
 }
 
@@ -74,7 +74,7 @@ func logsFlag(command string, args []string) []string {
 	return logsFlags.Args()
 }
 
-func commandLogs(ct ComponentType, args []string, params []string) (err error) {
+func commandLogs(ct Component, args []string, params []string) (err error) {
 	// validate options
 	if logsInclude != "" && logsExclude != "" {
 		logError.Fatalln("Only one of -g or -v can be given")

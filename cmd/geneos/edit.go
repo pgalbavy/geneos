@@ -30,7 +30,7 @@ See also 'geneos set' and 'geneos show'.`}
 //
 // run the configured editor against the instance chosen
 //
-func commandEdit(ct ComponentType, args []string, params []string) (err error) {
+func commandEdit(ct Component, args []string, params []string) (err error) {
 	// default for no args is to edit user config
 	if len(args) == 0 {
 		args = []string{"user"}
@@ -66,7 +66,7 @@ func commandEdit(ct ComponentType, args []string, params []string) (err error) {
 	// but allow for RC files again
 	var cs []string
 	for _, name := range args {
-		for _, c := range newComponent(ct, name) {
+		for _, c := range ct.newComponent(name) {
 			if Location(c) != LOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}

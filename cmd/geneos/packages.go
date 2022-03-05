@@ -138,7 +138,7 @@ func flagsUpdate(command string, args []string) []string {
 // if there is no 'active_prod' link then attach it to the latest version
 // installed
 //
-func commandExtract(ct ComponentType, files []string, params []string) (err error) {
+func commandExtract(ct Component, files []string, params []string) (err error) {
 	if ct != None {
 		logDebug.Println(ct.String())
 		// archive directory is local?
@@ -191,7 +191,7 @@ func commandExtract(ct ComponentType, files []string, params []string) (err erro
 	return updateToVersion(extractRemote, ct, "latest", false)
 }
 
-func commandDownload(ct ComponentType, files []string, params []string) (err error) {
+func commandDownload(ct Component, files []string, params []string) (err error) {
 	version := "latest"
 	if len(files) > 0 {
 		version = files[0]
@@ -213,7 +213,7 @@ func commandDownload(ct ComponentType, files []string, params []string) (err err
 	return
 }
 
-func downloadComponent(remote string, ct ComponentType, version string) (err error) {
+func downloadComponent(remote string, ct Component, version string) (err error) {
 	switch ct {
 	case Remote:
 		// do nothing
@@ -255,7 +255,7 @@ func downloadComponent(remote string, ct ComponentType, version string) (err err
 // how to split an archive name into type and version
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func unarchive(remote string, ct ComponentType, filename string, gz io.Reader) (finalVersion string, err error) {
+func unarchive(remote string, ct Component, filename string, gz io.Reader) (finalVersion string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
 		logError.Fatalf("invalid archive name format: %q", filename)
@@ -379,7 +379,7 @@ func unarchive(remote string, ct ComponentType, filename string, gz io.Reader) (
 	return
 }
 
-func commandUpdate(ct ComponentType, args []string, params []string) (err error) {
+func commandUpdate(ct Component, args []string, params []string) (err error) {
 	version := "latest"
 	if len(args) > 0 {
 		version = args[0]
@@ -396,7 +396,7 @@ func commandUpdate(ct ComponentType, args []string, params []string) (err error)
 }
 
 // check selected version exists first
-func updateToVersion(remote string, ct ComponentType, version string, overwrite bool) (err error) {
+func updateToVersion(remote string, ct Component, version string, overwrite bool) (err error) {
 	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String())
 	basepath := filepath.Join(basedir, updateBase)
 
@@ -499,8 +499,8 @@ func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) 
 
 // given a component type and a key/value pair, return matching
 // instances
-func matchComponents(remote string, ct ComponentType, k, v string) (insts []Instance) {
-	for _, i := range instancesOfComponent(remote, ct) {
+func matchComponents(remote string, ct Component, k, v string) (insts []Instance) {
+	for _, i := range ct.instancesOfComponent(remote) {
 		if v == getString(i, Prefix(i)+k) {
 			if err := loadConfig(&i, false); err != nil {
 				log.Println(Type(i), Name(i), "cannot load config")
@@ -538,7 +538,7 @@ type DownloadAuth struct {
 	Password string `json:"password"`
 }
 
-var downloadMap = map[ComponentType]string{
+var downloadMap = map[Component]string{
 	Gateway:   "Gateway+2",
 	Netprobe:  "Netprobe",
 	Licd:      "Licence+Daemon",
@@ -546,7 +546,7 @@ var downloadMap = map[ComponentType]string{
 }
 
 // XXX use HEAD to check match and compare to on disk versions
-func downloadArchive(ct ComponentType, version string) (filename string, body io.ReadCloser, err error) {
+func downloadArchive(ct Component, version string) (filename string, body io.ReadCloser, err error) {
 	baseurl := RunningConfig.DownloadURL
 	if baseurl == "" {
 		baseurl = defaultURL

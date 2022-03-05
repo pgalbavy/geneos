@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 )
 
 type Gateways struct {
+	ComponentInterface
 	Common
 	BinSuffix string `default:"gateway2.linux_64"`
 	GateHome  string `default:"{{join .Root \"gateway\" \"gateways\" .Name}}"`
@@ -98,6 +100,8 @@ func gatewayCommand(c Instance) (args, env []string) {
 
 	if certfile != "" {
 		args = append(args, "-ssl-certificate", certfile)
+		chainfile := filepath.Join(remoteRoot(Location(c)), "tls", "chain.pem")
+		args = append(args, "-ssl-certificate-chain", chainfile)
 	}
 
 	if keyfile != "" {
@@ -189,19 +193,46 @@ func gatewayClean(c Instance, purge bool, params []string) (err error) {
 		if stopped {
 			err = startInstance(c, params)
 		}
+		log.Printf("%s %s@%s cleaned fully", Type(c), Name(c), Location(c))
 		return
 	}
-	return removePathList(c, RunningConfig.GatewayCleanList)
+	err = removePathList(c, RunningConfig.GatewayCleanList)
+	if err == nil {
+		log.Printf("%s %s@%s cleaned", Type(c), Name(c), Location(c))
+	}
+	return
 }
 
 func gatewayReload(c Instance, params []string) (err error) {
-	if Location(c) != LOCAL {
-		logError.Fatalln(ErrNotSupported)
-	}
-
 	pid, err := findInstancePID(c)
 	if err != nil {
 		return
+	}
+
+	if Location(c) != LOCAL {
+		rem, err := sshOpenRemote(Location(c))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sess, err := rem.NewSession()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		pipe, err := sess.StdinPipe()
+		if err != nil {
+			log.Fatalln()
+		}
+
+		if err = sess.Shell(); err != nil {
+			log.Fatalln(err)
+		}
+
+		fmt.Fprintln(pipe, "kill -USR1", pid)
+		fmt.Fprintln(pipe, "exit")
+		sess.Close()
+
+		log.Printf("%s %s@%s sent a reload signal", Type(c), Name(c), Location(c))
+		return ErrProcExists
 	}
 
 	if !canControl(c) {
@@ -214,5 +245,6 @@ func gatewayReload(c Instance, params []string) (err error) {
 		log.Println(Type(c), Name(c), "refresh failed", err)
 
 	}
+	log.Printf("%s %s@%s sent a reload signal", Type(c), Name(c), Location(c))
 	return
 }

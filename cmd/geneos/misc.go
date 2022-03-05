@@ -34,12 +34,12 @@ var helpFlag bool
 
 const helpUsage = "Help text for command"
 
-func commandVersion(comp ComponentType, args []string, params []string) error {
+func commandVersion(comp Component, args []string, params []string) error {
 	log.Println("version:", releaseVersion)
 	return nil
 }
 
-func commandHelp(comp ComponentType, args []string, params []string) error {
+func commandHelp(comp Component, args []string, params []string) error {
 	if len(args) == 0 {
 		keys := make([]string, 0, len(commands))
 		for k := range commands {
