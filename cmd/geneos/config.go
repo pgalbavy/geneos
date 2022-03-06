@@ -844,26 +844,26 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	oldhome := Home(oldconf)
 	newhome := Home(newconf)
 
-	if err = renameFile(Location(oldhome), oldhome, newhome); err != nil {
+	if err = renameFile(Location(oldconf), oldhome, newhome); err != nil {
 		logDebug.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
 
 	if err = setField(oldconf, "Name", newname); err != nil {
 		// try to recover
-		_ = renameFile(Location(newhome), newhome, oldhome)
+		_ = renameFile(Location(newconf), newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(ct.componentBaseDir(Location(newhome)), newname)); err != nil {
+	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(ct.componentBaseDir(Location(newconf)), newname)); err != nil {
 		// try to recover
-		_ = renameFile(Location(newhome), newhome, oldhome)
+		_ = renameFile(Location(newconf), newhome, oldhome)
 		return
 		//
 	}
 
 	// config changes don't matter until writing config succeeds
 	if err = writeConfigFile(Location(newconf), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
-		_ = renameFile(Location(newhome), newhome, oldhome)
+		_ = renameFile(Location(newconf), newhome, oldhome)
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
