@@ -8,7 +8,7 @@ import (
 )
 
 type Webservers struct {
-	Instance
+	InstanceBase
 	//BinSuffix string `default:"licd.linux_64"`
 	WebsHome string `default:"{{join .Root \"webserver\" \"webservers\" .Name}}"`
 	WebsBins string `default:"{{join .Root \"packages\" \"webserver\"}}"`
@@ -125,9 +125,9 @@ var webserverFiles = []string{
 	"config/=users.properties",
 }
 
-func webserverAdd(name string, username string, params []string) (c Instance, err error) {
+func webserverAdd(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
-	c = webserverInstance(name).(Instance)
+	c = webserverInstance(name)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
 	if webport != "8080" {
 		if err = setField(c, c.Prefix("Port"), webport); err != nil {

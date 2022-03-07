@@ -26,7 +26,7 @@ const (
 type ComponentFuncs struct {
 	Instance func(string) Instances
 	Command  func(Instances) ([]string, []string)
-	Add      func(string, string, []string) (Instance, error)
+	Add      func(string, string, []string) (Instances, error)
 	Clean    func(Instances, bool, []string) error
 	Reload   func(Instances, []string) error
 }
@@ -58,7 +58,7 @@ type Instances interface {
 }
 
 // The Common type is the common data shared by all component types
-type Instance struct {
+type InstanceBase struct {
 	Instances
 	// The Name of an instance. This may be different to the instance
 	// directory InstanceName during certain operations, e.g. rename
@@ -140,23 +140,23 @@ func (ct Component) componentBaseDir(remote string) string {
 // Accessor functions
 
 // Return the Component for an Instance
-func Type(c Instance) Component {
+func Type(c InstanceBase) Component {
 	return parseComponentName(getString(c, "Type"))
 }
 
-func Name(c Instance) string {
+func Name(c InstanceBase) string {
 	return getString(c, "Name")
 }
 
-func Location(c Instance) string {
+func Location(c InstanceBase) string {
 	return getString(c, "Location")
 }
 
-func Home(c Instance) string {
+func Home(c InstanceBase) string {
 	return getString(c, c.Prefix("Home"))
 }
 
-func Prefix(c Instance) string {
+func Prefix(c InstanceBase) string {
 	switch c.Type() {
 	case Remote:
 		return ""

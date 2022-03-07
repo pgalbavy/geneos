@@ -17,7 +17,7 @@ import (
 // remote support
 
 type Remotes struct {
-	Instance
+	InstanceBase
 	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
 	Hostname string
 	Port     int `default:"22"`
@@ -95,12 +95,12 @@ func remoteRoot(remote string) string {
 //
 // 'geneos add remote NAME SSH-URL'
 //
-func remoteAdd(remote string, username string, params []string) (c Instance, err error) {
+func remoteAdd(remote string, username string, params []string) (c Instances, err error) {
 	if len(params) == 0 {
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}
 
-	c = remoteInstance(remote).(Instance)
+	c = remoteInstance(remote)
 
 	u, err := url.Parse(params[0])
 	if err != nil {

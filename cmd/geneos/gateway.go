@@ -15,7 +15,7 @@ import (
 )
 
 type Gateways struct {
-	Instance
+	InstanceBase
 	BinSuffix string `default:"gateway2.linux_64"`
 	GateHome  string `default:"{{join .InstanceRoot \"gateway\" \"gateways\" .InstanceName}}"`
 	GateBins  string `default:"{{join .InstanceRoot \"packages\" \"gateway\"}}"`
@@ -135,9 +135,9 @@ func gatewayCommand(c Instances) (args, env []string) {
 	return
 }
 
-func gatewayAdd(name string, username string, params []string) (c Instance, err error) {
+func gatewayAdd(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
-	c = gatewayInstance(name).(Instance)
+	c = gatewayInstance(name)
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
 	if gateport != "7039" {
 		if err = setField(c, c.Prefix("Port"), gateport); err != nil {

@@ -6,7 +6,7 @@ import (
 )
 
 type Netprobes struct {
-	Instance
+	InstanceBase
 	BinSuffix string `default:"netprobe.linux_64"`
 	NetpHome  string `default:"{{join .InstanceRoot \"netprobe\" \"netprobes\" .InstanceName}}"`
 	NetpBins  string `default:"{{join .InstanceRoot \"packages\" \"netprobe\"}}"`
@@ -92,9 +92,9 @@ func netprobeCommand(c Instances) (args, env []string) {
 }
 
 // create a plain netprobe instance
-func netprobeAdd(name string, username string, params []string) (c Instance, err error) {
+func netprobeAdd(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
-	c = netprobeInstance(name).(Instance)
+	c = netprobeInstance(name)
 	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
 	if netport != "7036" {
 		if err = setField(c, c.Prefix("Port"), netport); err != nil {

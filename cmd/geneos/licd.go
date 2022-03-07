@@ -6,7 +6,7 @@ import (
 )
 
 type Licds struct {
-	Instance
+	InstanceBase
 	BinSuffix string `default:"licd.linux_64"`
 	LicdHome  string `default:"{{join .InstanceRoot \"licd\" \"licds\" .InstanceName}}"`
 	LicdBins  string `default:"{{join .InstanceRoot \"packages\" \"licd\"}}"`
@@ -92,9 +92,9 @@ func licdCommand(c Instances) (args, env []string) {
 	return
 }
 
-func licdAdd(name string, username string, params []string) (c Instance, err error) {
+func licdAdd(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
-	c = licdInstance(name).(Instance)
+	c = licdInstance(name)
 	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
 	if licdport != "7041" {
 		if err = setField(c, c.Prefix("Port"), licdport); err != nil {
