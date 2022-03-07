@@ -47,9 +47,7 @@ type Instances interface {
 	Location() string
 	Prefix(string) string
 
-	// Instance func(string) Instances
 	Command() ([]string, []string)
-	// Add      func(string, string, []string) (Instances, error)
 	Clean(bool, []string) error
 	Reload(params []string) (err error)
 }
