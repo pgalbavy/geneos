@@ -37,9 +37,5 @@ func commandClean(ct Component, args []string, params []string) error {
 }
 
 func cleanInstance(c Instances, params []string) (err error) {
-	cm, ok := components[c.Type()]
-	if !ok || cm.Clean == nil {
-		return ErrNotSupported
-	}
-	return cm.Clean(c, cleanPurge, params)
+	return c.Clean(cleanPurge, params)
 }

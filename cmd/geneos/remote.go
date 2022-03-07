@@ -25,6 +25,15 @@ type Remotes struct {
 	ITRSHome string `default:"{{.InstanceRoot}}"`
 }
 
+func init() {
+	components[Remote] = ComponentFuncs{
+		Instance: NewRemote,
+		Add:      remoteAdd,
+	}
+}
+
+// interface method set
+
 func (r Remotes) Type() Component {
 	return parseComponentName(r.InstanceType)
 }
@@ -45,17 +54,19 @@ func (r Remotes) Home() string {
 	return getString(r, "HomeDir")
 }
 
-func init() {
-	components[Remote] = ComponentFuncs{
-		Instance: remoteInstance,
-		Command:  nil,
-		Add:      remoteAdd,
-		Clean:    nil,
-		Reload:   nil,
-	}
+func (c Remotes) Command() (args, env []string) {
+	return
 }
 
-func remoteInstance(name string) Instances {
+func (c Remotes) Clean(purge bool, params []string) (err error) {
+	return ErrNotSupported
+}
+
+func (c Remotes) Reload(params []string) (err error) {
+	return ErrNotSupported
+}
+
+func NewRemote(name string) Instances {
 	local, remote := splitInstanceName(name)
 	if remote != LOCAL {
 		logError.Fatalln("remote remotes not suported")
@@ -71,7 +82,7 @@ func remoteInstance(name string) Instances {
 }
 
 func loadRemoteConfig(remote string) (c Instances) {
-	c = remoteInstance(remote)
+	c = NewRemote(remote)
 	if err := loadConfig(c, false); err != nil {
 		logError.Fatalf("cannot open remote %q configuration file", remote)
 	}
@@ -100,7 +111,7 @@ func remoteAdd(remote string, username string, params []string) (c Instances, er
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}
 
-	c = remoteInstance(remote)
+	c = NewRemote(remote)
 
 	u, err := url.Parse(params[0])
 	if err != nil {

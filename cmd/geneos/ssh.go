@@ -107,7 +107,7 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 func sshOpenRemote(remote string) (client *ssh.Client, err error) {
 	client, ok := remoteSSHClients[remote]
 	if !ok {
-		i := remoteInstance(remote)
+		i := NewRemote(remote)
 		if err = loadConfig(i, false); err != nil {
 			logError.Fatalln(err)
 		}

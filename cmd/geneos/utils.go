@@ -528,7 +528,16 @@ func getLogfilePath(c Instances) (logdir string) {
 // reflect methods to get and set struct fields
 
 func getIntAsString(c interface{}, name string) string {
-	v := reflect.ValueOf(c).Elem().FieldByName(name)
+	v := reflect.ValueOf(c)
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return ""
+	}
+
+	v = v.FieldByName(name)
 	if v.IsValid() && v.Kind() == reflect.Int {
 		return fmt.Sprintf("%v", v.Int())
 	}

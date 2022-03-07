@@ -102,14 +102,7 @@ func loadConfig(c Instances, update bool) (err error) {
 func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
 	binary := getString(c, c.Prefix("Exec"))
 
-	cm, ok := components[c.Type()]
-	if !ok {
-		return
-	}
-	if cm.Command == nil {
-		return
-	}
-	args, env := cm.Command(c)
+	args, env := c.Command()
 
 	opts := strings.Fields(getString(c, c.Prefix("Opts")))
 	args = append(args, opts...)

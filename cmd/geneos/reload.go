@@ -17,9 +17,10 @@ func commandReload(ct Component, args []string, params []string) error {
 }
 
 func reloadInstance(c Instances, params []string) (err error) {
-	cm, ok := components[c.Type()]
-	if !ok || cm.Reload == nil {
-		return ErrNotSupported
-	}
-	return cm.Reload(c, params)
+	// cm, ok := components[c.Type()]
+	// if !ok || cm.Reload == nil {
+	// 	return ErrNotSupported
+	// }
+	// return cm.Reload(c, params)
+	return c.Reload(params)
 }

@@ -21,30 +21,21 @@ const (
 	Remote
 )
 
-// XXX this should become an interface
-// but that involves lots of rebuilding.
 type ComponentFuncs struct {
 	Instance func(string) Instances
-	Command  func(Instances) ([]string, []string)
 	Add      func(string, string, []string) (Instances, error)
-	Clean    func(Instances, bool, []string) error
-	Reload   func(Instances, []string) error
 }
 
-// ???
-type ComponentInterface interface {
-	Instance(string) interface{}
-	Command(Instances) ([]string, []string)
+type Components interface {
+	New(string) Instances
 	Add(string, string, []string) (Instances, error)
-	Clean(Instances, bool, []string) error
-	Reload(Instances, []string) error
 }
 
-type Components map[Component]ComponentFuncs
+type ComponentsMap map[Component]ComponentFuncs
 
 // slice of registered component types for indirect calls
 // this should actually become an Interface
-var components Components = make(Components)
+var components ComponentsMap = make(ComponentsMap)
 
 // The Instance type is a placeholder interface that can be passed to
 // functions which then use reflection to get and set concrete data
@@ -55,6 +46,12 @@ type Instances interface {
 	Type() Component
 	Location() string
 	Prefix(string) string
+
+	// Instance func(string) Instances
+	Command() ([]string, []string)
+	// Add      func(string, string, []string) (Instances, error)
+	Clean(bool, []string) error
+	Reload(params []string) (err error)
 }
 
 // The Common type is the common data shared by all component types

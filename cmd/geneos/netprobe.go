@@ -25,6 +25,49 @@ type Netprobes struct {
 
 const netprobePortRange = "7036,7100-"
 
+func init() {
+	components[Netprobe] = ComponentFuncs{
+		Instance: NewNetprobe,
+		Add:      netprobeAdd,
+	}
+}
+
+func NewNetprobe(name string) Instances {
+	local, remote := splitInstanceName(name)
+	c := &Netprobes{}
+	c.InstanceRoot = remoteRoot(remote)
+	c.InstanceType = Netprobe.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
+	setDefaults(&c)
+	return c
+}
+
+// create a plain netprobe instance
+func netprobeAdd(name string, username string, params []string) (c Instances, err error) {
+	// fill in the blanks
+	c = NewNetprobe(name)
+	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
+	if netport != "7036" {
+		if err = setField(c, c.Prefix("Port"), netport); err != nil {
+			return
+		}
+	}
+	if err = setField(c, c.Prefix("User"), username); err != nil {
+		return
+	}
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
+
+	// default config XML etc.
+	return
+}
+
 // interface method set
 
 // Return the Component for an Instance
@@ -48,28 +91,7 @@ func (n Netprobes) Prefix(field string) string {
 	return "Netp" + field
 }
 
-func init() {
-	components[Netprobe] = ComponentFuncs{
-		Instance: netprobeInstance,
-		Command:  netprobeCommand,
-		Add:      netprobeAdd,
-		Clean:    netprobeClean,
-		Reload:   netprobeReload,
-	}
-}
-
-func netprobeInstance(name string) Instances {
-	local, remote := splitInstanceName(name)
-	c := &Netprobes{}
-	c.InstanceRoot = remoteRoot(remote)
-	c.InstanceType = Netprobe.String()
-	c.InstanceName = local
-	c.InstanceLocation = remote
-	setDefaults(&c)
-	return c
-}
-
-func netprobeCommand(c Instances) (args, env []string) {
+func (c Netprobes) Command() (args, env []string) {
 	certfile := getString(c, c.Prefix("Cert"))
 	keyfile := getString(c, c.Prefix("Key"))
 	logFile := getLogfilePath(c)
@@ -91,35 +113,10 @@ func netprobeCommand(c Instances) (args, env []string) {
 	return
 }
 
-// create a plain netprobe instance
-func netprobeAdd(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = netprobeInstance(name)
-	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
-	if netport != "7036" {
-		if err = setField(c, c.Prefix("Port"), netport); err != nil {
-			return
-		}
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
-
-	writeInstanceConfig(c)
-
-	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
-	}
-
-	// default config XML etc.
-	return
-}
-
 var defaultNetprobeCleanList = "*.old"
 var defaultNetprobePurgeList = "netprobe.log:netprobe.txt:*.snooze:*.user_assignment"
 
-func netprobeClean(c Instances, purge bool, params []string) (err error) {
+func (c Netprobes) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
@@ -143,6 +140,6 @@ func netprobeClean(c Instances, purge bool, params []string) (err error) {
 	return removePathList(c, RunningConfig.NetprobeCleanList)
 }
 
-func netprobeReload(c Instances, params []string) (err error) {
+func (c Netprobes) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

@@ -14,6 +14,8 @@ import (
 	"github.com/pkg/sftp"
 )
 
+type GatewayComponent Component
+
 type Gateways struct {
 	InstanceBase
 	BinSuffix string `default:"gateway2.linux_64"`
@@ -40,40 +42,14 @@ const gatewayPortRange = "7039,7100-"
 //go:embed emptyGateway.xml
 var emptyXMLTemplate string
 
-// interface method set
-
-// Return the Component for an Instance
-func (g Gateways) Type() Component {
-	return parseComponentName(g.InstanceType)
-}
-
-func (g Gateways) Name() string {
-	return g.InstanceName
-}
-
-func (g Gateways) Location() string {
-	return g.InstanceLocation
-}
-
-func (g Gateways) Home() string {
-	return getString(g, g.Prefix("Home"))
-}
-
-func (g Gateways) Prefix(field string) string {
-	return "Gate" + field
-}
-
 func init() {
 	components[Gateway] = ComponentFuncs{
-		Instance: gatewayInstance,
-		Command:  gatewayCommand,
+		Instance: NewGateway,
 		Add:      gatewayAdd,
-		Clean:    gatewayClean,
-		Reload:   gatewayReload,
 	}
 }
 
-func gatewayInstance(name string) Instances {
+func NewGateway(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := new(Gateways)
 	c.InstanceRoot = remoteRoot(remote)
@@ -84,60 +60,9 @@ func gatewayInstance(name string) Instances {
 	return c
 }
 
-func gatewayCommand(c Instances) (args, env []string) {
-	// get opts from
-	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
-	//
-	licdhost := getString(c, c.Prefix("LicH"))
-	licdport := getIntAsString(c, c.Prefix("LicP"))
-	licdsecure := getString(c, c.Prefix("LicS"))
-	certfile := getString(c, c.Prefix("Cert"))
-	keyfile := getString(c, c.Prefix("Key"))
-
-	args = []string{
-		/* "-gateway-name",  */ c.Name(),
-		"-resources-dir",
-		filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")), "resources"),
-		"-log",
-		getLogfilePath(c),
-		// enable stats by default
-		"-stats",
-	}
-
-	// only add a port arg is the value is defined - empty means use config file
-	port := getIntAsString(c, c.Prefix("Port"))
-	if port != "0" {
-		args = append([]string{"-port", port}, args...)
-	}
-
-	if licdhost != "" {
-		args = append(args, "-licd-host", licdhost)
-	}
-
-	if licdport != "0" {
-		args = append(args, "-licd-port", licdport)
-	}
-
-	if licdsecure != "" && licdsecure != "false" {
-		args = append(args, "-licd-secure")
-	}
-
-	if certfile != "" {
-		args = append(args, "-ssl-certificate", certfile)
-		chainfile := filepath.Join(remoteRoot(c.Location()), "tls", "chain.pem")
-		args = append(args, "-ssl-certificate-chain", chainfile)
-	}
-
-	if keyfile != "" {
-		args = append(args, "-ssl-certificate-key", keyfile)
-	}
-
-	return
-}
-
 func gatewayAdd(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
-	c = gatewayInstance(name)
+	c = NewGateway(name)
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
 	if gateport != "7039" {
 		if err = setField(c, c.Prefix("Port"), gateport); err != nil {
@@ -197,10 +122,84 @@ func gatewayAdd(name string, username string, params []string) (c Instances, err
 	return
 }
 
+// interface method set
+
+// Return the Component for an Instance
+func (g Gateways) Type() Component {
+	return parseComponentName(g.InstanceType)
+}
+
+func (g Gateways) Name() string {
+	return g.InstanceName
+}
+
+func (g Gateways) Location() string {
+	return g.InstanceLocation
+}
+
+func (g Gateways) Home() string {
+	return getString(g, g.Prefix("Home"))
+}
+
+func (g Gateways) Prefix(field string) string {
+	return "Gate" + field
+}
+
+func (c Gateways) Command() (args, env []string) {
+	// get opts from
+	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
+	//
+	licdhost := getString(c, c.Prefix("LicH"))
+	licdport := getIntAsString(c, c.Prefix("LicP"))
+	licdsecure := getString(c, c.Prefix("LicS"))
+	certfile := getString(c, c.Prefix("Cert"))
+	keyfile := getString(c, c.Prefix("Key"))
+
+	args = []string{
+		/* "-gateway-name",  */ c.Name(),
+		"-resources-dir",
+		filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")), "resources"),
+		"-log",
+		getLogfilePath(c),
+		// enable stats by default
+		"-stats",
+	}
+
+	// only add a port arg is the value is defined - empty means use config file
+	port := getIntAsString(c, c.Prefix("Port"))
+	if port != "0" {
+		args = append([]string{"-port", port}, args...)
+	}
+
+	if licdhost != "" {
+		args = append(args, "-licd-host", licdhost)
+	}
+
+	if licdport != "0" {
+		args = append(args, "-licd-port", licdport)
+	}
+
+	if licdsecure != "" && licdsecure != "false" {
+		args = append(args, "-licd-secure")
+	}
+
+	if certfile != "" {
+		args = append(args, "-ssl-certificate", certfile)
+		chainfile := filepath.Join(remoteRoot(c.Location()), "tls", "chain.pem")
+		args = append(args, "-ssl-certificate-chain", chainfile)
+	}
+
+	if keyfile != "" {
+		args = append(args, "-ssl-certificate-key", keyfile)
+	}
+
+	return
+}
+
 var defaultGatewayCleanList = "*.old:*.history"
 var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
 
-func gatewayClean(c Instances, purge bool, params []string) (err error) {
+func (c Gateways) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
@@ -229,7 +228,7 @@ func gatewayClean(c Instances, purge bool, params []string) (err error) {
 	return
 }
 
-func gatewayReload(c Instances, params []string) (err error) {
+func (c Gateways) Reload(params []string) (err error) {
 	pid, err := findInstancePID(c)
 	if err != nil {
 		return

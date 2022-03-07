@@ -25,6 +25,48 @@ type Licds struct {
 
 const licdPortRange = "7041,7100-"
 
+func init() {
+	components[Licd] = ComponentFuncs{
+		Instance: NewLicd,
+		Add:      licdAdd,
+	}
+}
+
+func NewLicd(name string) Instances {
+	local, remote := splitInstanceName(name)
+	c := &Licds{}
+	c.InstanceRoot = remoteRoot(remote)
+	c.InstanceType = Licd.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
+	setDefaults(&c)
+	return c
+}
+
+func licdAdd(name string, username string, params []string) (c Instances, err error) {
+	// fill in the blanks
+	c = NewLicd(name)
+	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
+	if licdport != "7041" {
+		if err = setField(c, c.Prefix("Port"), licdport); err != nil {
+			return
+		}
+	}
+	if err = setField(c, c.Prefix("User"), username); err != nil {
+		return
+	}
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
+
+	// default config XML etc.
+	return
+}
+
 // interface method set
 
 // Return the Component for an Instance
@@ -48,28 +90,7 @@ func (l Licds) Prefix(field string) string {
 	return "Licd" + field
 }
 
-func init() {
-	components[Licd] = ComponentFuncs{
-		Instance: licdInstance,
-		Command:  licdCommand,
-		Add:      licdAdd,
-		Clean:    licdClean,
-		Reload:   licdReload,
-	}
-}
-
-func licdInstance(name string) Instances {
-	local, remote := splitInstanceName(name)
-	c := &Licds{}
-	c.InstanceRoot = remoteRoot(remote)
-	c.InstanceType = Licd.String()
-	c.InstanceName = local
-	c.InstanceLocation = remote
-	setDefaults(&c)
-	return c
-}
-
-func licdCommand(c Instances) (args, env []string) {
+func (c Licds) Command() (args, env []string) {
 	certfile := getString(c, c.Prefix("Cert"))
 	keyfile := getString(c, c.Prefix("Key"))
 
@@ -92,34 +113,10 @@ func licdCommand(c Instances) (args, env []string) {
 	return
 }
 
-func licdAdd(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = licdInstance(name)
-	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
-	if licdport != "7041" {
-		if err = setField(c, c.Prefix("Port"), licdport); err != nil {
-			return
-		}
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
-
-	writeInstanceConfig(c)
-
-	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
-	}
-
-	// default config XML etc.
-	return
-}
-
 var defaultLicdCleanList = "*.old"
 var defaultLicdPurgeList = "licd.log:licd.txt"
 
-func licdClean(c Instances, purge bool, params []string) (err error) {
+func (c Licds) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
@@ -143,6 +140,6 @@ func licdClean(c Instances, purge bool, params []string) (err error) {
 	return removePathList(c, RunningConfig.LicdCleanList)
 }
 
-func licdReload(c Instances, params []string) (err error) {
+func (c Licds) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
