@@ -66,10 +66,8 @@ func CreateWebserver(name string, username string, params []string) (c Instances
 	// fill in the blanks
 	c = NewWebserver(name)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
-	if webport != "8080" {
-		if err = setField(c, c.Prefix("Port"), webport); err != nil {
-			return
-		}
+	if err = setField(c, c.Prefix("Port"), webport); err != nil {
+		return
 	}
 	if err = setField(c, c.Prefix("User"), username); err != nil {
 		return

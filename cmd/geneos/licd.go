@@ -47,10 +47,8 @@ func CreateLicd(name string, username string, params []string) (c Instances, err
 	// fill in the blanks
 	c = NewLicd(name)
 	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
-	if licdport != "7041" {
-		if err = setField(c, c.Prefix("Port"), licdport); err != nil {
-			return
-		}
+	if err = setField(c, c.Prefix("Port"), licdport); err != nil {
+		return
 	}
 	if err = setField(c, c.Prefix("User"), username); err != nil {
 		return

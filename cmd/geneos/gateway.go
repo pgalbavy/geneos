@@ -62,10 +62,8 @@ func CreateGateway(name string, username string, params []string) (c Instances, 
 	// fill in the blanks
 	c = NewGateway(name)
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
-	if gateport != "7039" {
-		if err = setField(c, c.Prefix("Port"), gateport); err != nil {
-			return
-		}
+	if err = setField(c, c.Prefix("Port"), gateport); err != nil {
+		return
 	}
 	if err = setField(c, c.Prefix("User"), username); err != nil {
 		return
