@@ -83,7 +83,7 @@ func (l Licds) Create(username string, params []string) (err error) {
 	}
 
 	// default config XML etc.
-	return
+	return nil
 }
 
 func (c Licds) Command() (args, env []string) {

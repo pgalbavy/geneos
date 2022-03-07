@@ -10,8 +10,8 @@ import (
 type Webservers struct {
 	InstanceBase
 	//BinSuffix string `default:"licd.linux_64"`
-	WebsHome string `default:"{{join .Root \"webserver\" \"webservers\" .Name}}"`
-	WebsBins string `default:"{{join .Root \"packages\" \"webserver\"}}"`
+	WebsHome string `default:"{{join .InstanceRoot \"webserver\" \"webservers\" .InstanceName}}"`
+	WebsBins string `default:"{{join .InstanceRoot \"packages\" \"webserver\"}}"`
 	WebsBase string `default:"active_prod"`
 	WebsExec string `default:"{{join .WebsBins .WebsBase \"JRE/bin/java\"}}"`
 	WebsLogD string `default:"logs"`

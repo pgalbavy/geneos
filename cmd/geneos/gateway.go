@@ -23,7 +23,7 @@ type Gateways struct {
 	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
 	GateLogD  string `json:",omitempty"`
 	GateLogF  string `default:"gateway.log"`
-	GatePort  int    `json:",omitempty"`
+	GatePort  int    `default:"7039" json:",omitempty"`
 	GateMode  string `json:",omitempty"`
 	GateLicP  int    `json:",omitempty"`
 	GateLicH  string `json:",omitempty"`
@@ -162,7 +162,7 @@ func (c Gateways) Command() (args, env []string) {
 
 	// only add a port arg is the value is defined - empty means use config file
 	port := getIntAsString(c, c.Prefix("Port"))
-	if port != "0" {
+	if port != "7039" {
 		args = append([]string{"-port", port}, args...)
 	}
 

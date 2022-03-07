@@ -46,7 +46,7 @@ func (r Remotes) Location() string {
 }
 
 func (r Remotes) Prefix(field string) string {
-	return "Gate" + field
+	return "" + field
 }
 
 func (r Remotes) Home() string {

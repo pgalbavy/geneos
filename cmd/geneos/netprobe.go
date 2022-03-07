@@ -83,7 +83,7 @@ func (n Netprobes) Create(username string, params []string) (err error) {
 	}
 
 	// default config XML etc.
-	return
+	return nil
 }
 
 func (c Netprobes) Command() (args, env []string) {
