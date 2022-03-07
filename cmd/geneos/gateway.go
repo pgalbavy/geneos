@@ -137,8 +137,6 @@ func (g Gateways) Create(username string, params []string) (err error) {
 		logError.Fatalln(err)
 	}
 
-	log.Printf("gateway %T=%+v", c, c)
-
 	return
 }
 
