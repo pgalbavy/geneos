@@ -118,15 +118,15 @@ func outHeader(logfile string) {
 	lastout = logfile
 }
 
-func logTailInstance(c Instance, params []string) (err error) {
+func logTailInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, st, err := openStatFile(Location(c), logfile)
+	lines, st, err := openStatFile(c.Location(), logfile)
 	if err != nil {
 		return
 	}
 	defer lines.Close()
-	tails[logfile] = &tail{lines, Type(c), Name(c) + "@" + Location(c)}
+	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + c.Location()}
 
 	text, err := tailLines(lines, st, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
@@ -220,22 +220,22 @@ func filterOutput(logfile string, reader io.Reader) {
 	}
 }
 
-func logCatInstance(c Instance, params []string) (err error) {
+func logCatInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, _, err := openStatFile(Location(c), logfile)
+	lines, _, err := openStatFile(c.Location(), logfile)
 	if err != nil {
 		return
 	}
-	tails[logfile] = &tail{lines, Type(c), Name(c) + "@" + Location(c)}
+	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + c.Location()}
 	defer lines.Close()
 	filterOutput(logfile, lines)
 
 	return
 }
 
-func logFollowInstance(c Instance, params []string) (err error) {
-	if Location(c) != LOCAL {
+func logFollowInstance(c Instances, params []string) (err error) {
+	if c.Location() != LOCAL {
 		logError.Fatalln("remote!=local", ErrNotSupported)
 	}
 	logfile := getLogfilePath(c)
@@ -243,7 +243,7 @@ func logFollowInstance(c Instance, params []string) (err error) {
 	f, _ := os.Open(logfile)
 	st, _ := statFile(LOCAL, logfile)
 	// perfectly valid to not have a file to watch at start
-	tails[logfile] = &tail{f, Type(c), Name(c) + "@" + Location(c)}
+	tails[logfile] = &tail{f, c.Type(), c.Name() + "@" + c.Location()}
 
 	// output up to this point
 	text, _ := tailLines(tails[logfile].f, st, logsLines)

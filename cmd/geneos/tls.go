@@ -217,7 +217,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 	return
 }
 
-func TLSInstance(c Instance, subcommand string, params []string) (err error) {
+func TLSInstance(c Instances, subcommand string, params []string) (err error) {
 	switch subcommand {
 	case "new":
 		// create a cert, DO NOT overwrite any existing unless renewing
@@ -229,13 +229,13 @@ func TLSInstance(c Instance, subcommand string, params []string) (err error) {
 	return
 }
 
-func lsInstanceCert(c Instance, params []string) (err error) {
+func lsInstanceCert(c Instances, params []string) (err error) {
 	cert, err := readInstanceCert(c)
 	if err != nil {
 		return
 	}
 	expires := cert.NotAfter
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%.f\t%q\t%q\t%q\t", Type(c), Name(c), Location(c), time.Until(expires).Seconds(), expires, cert.Subject.CommonName, cert.Issuer.CommonName)
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%.f\t%q\t%q\t%q\t", c.Type(), c.Name(), c.Location(), time.Until(expires).Seconds(), expires, cert.Subject.CommonName, cert.Issuer.CommonName)
 	if len(cert.DNSNames) > 0 {
 		fmt.Fprintf(lsTabWriter, "%v", cert.DNSNames)
 	}
@@ -247,14 +247,14 @@ func lsInstanceCert(c Instance, params []string) (err error) {
 	return
 }
 
-func lsInstanceCertCSV(c Instance, params []string) (err error) {
+func lsInstanceCertCSV(c Instances, params []string) (err error) {
 	cert, err := readInstanceCert(c)
 	if err != nil {
 		return
 	}
 	expires := cert.NotAfter
 	until := fmt.Sprintf("%0f", time.Until(expires).Seconds())
-	cols := []string{Type(c).String(), Name(c), Location(c), until, expires.String(), cert.Subject.CommonName, cert.Issuer.CommonName}
+	cols := []string{c.Type().String(), c.Name(), c.Location(), until, expires.String(), cert.Subject.CommonName, cert.Issuer.CommonName}
 	cols = append(cols, fmt.Sprintf("%v", cert.DNSNames))
 	cols = append(cols, fmt.Sprintf("%v", cert.IPAddresses))
 
@@ -262,12 +262,12 @@ func lsInstanceCertCSV(c Instance, params []string) (err error) {
 	return
 }
 
-func lsInstanceCertJSON(c Instance, params []string) (err error) {
+func lsInstanceCertJSON(c Instances, params []string) (err error) {
 	cert, err := readInstanceCert(c)
 	if err != nil {
 		return
 	}
-	jsonEncoder.Encode(lsCertType{Type(c).String(), Name(c), Location(c), time.Duration(time.Until(cert.NotAfter).Seconds()),
+	jsonEncoder.Encode(lsCertType{c.Type().String(), c.Name(), c.Location(), time.Duration(time.Until(cert.NotAfter).Seconds()),
 		cert.NotAfter, cert.Subject.CommonName, cert.Issuer.CommonName, cert.DNSNames, cert.IPAddresses})
 	return
 }
@@ -313,17 +313,17 @@ func TLSSync() (err error) {
 	}
 
 	for _, remote := range allRemotes() {
-		if Name(remote) == LOCAL {
+		if remote.Name() == LOCAL {
 			continue
 		}
-		tlsPath := filepath.Join(remoteRoot(Name(remote)), "tls")
-		if err = mkdirAll(Name(remote), tlsPath, 0775); err != nil {
+		tlsPath := filepath.Join(remoteRoot(remote.Name()), "tls")
+		if err = mkdirAll(remote.Name(), tlsPath, 0775); err != nil {
 			logError.Fatalln(err)
 		}
-		if err = writeCerts(Name(remote), filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
+		if err = writeCerts(remote.Name(), filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
 			logError.Fatalln(err)
 		}
-		log.Println("Updated chain.pem on", Name(remote))
+		log.Println("Updated chain.pem on", remote.Name())
 	}
 	return
 }
@@ -461,7 +461,7 @@ func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 // this also creates a new private key
 //
 // skip if certificate exists (no expiry check)
-func createInstanceCert(c Instance) (err error) {
+func createInstanceCert(c Instances) (err error) {
 	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
 
 	// skip if we can load an existing certificate
@@ -470,8 +470,8 @@ func createInstanceCert(c Instance) (err error) {
 	}
 
 	host, _ := os.Hostname()
-	if Location(c) != LOCAL {
-		r := loadRemoteConfig(Location(c))
+	if c.Location() != LOCAL {
+		r := loadRemoteConfig(c.Location())
 		host = getString(r, "Hostname")
 	}
 
@@ -483,7 +483,7 @@ func createInstanceCert(c Instance) (err error) {
 	template := x509.Certificate{
 		SerialNumber: serial,
 		Subject: pkix.Name{
-			CommonName: fmt.Sprintf("geneos %s %s", Type(c), Name(c)),
+			CommonName: fmt.Sprintf("geneos %s %s", c.Type(), c.Name()),
 		},
 		NotBefore:      time.Now().Add(-60 * time.Second),
 		NotAfter:       expires,
@@ -518,7 +518,7 @@ func createInstanceCert(c Instance) (err error) {
 		logError.Fatalln(err)
 	}
 
-	log.Printf("certificate created for %s %s@%s (expires %s)", Type(c), Name(c), Location(c), expires)
+	log.Printf("certificate created for %s %s@%s (expires %s)", c.Type(), c.Name(), c.Location(), expires)
 
 	return
 }
@@ -526,12 +526,12 @@ func createInstanceCert(c Instance) (err error) {
 // renew an instance certificate, leave the private key untouched
 //
 // if private key doesn't exist, do we error?
-func renewInstanceCert(c Instance) (err error) {
+func renewInstanceCert(c Instances) (err error) {
 	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
 
 	host, _ := os.Hostname()
-	if Location(c) != LOCAL {
-		r := loadRemoteConfig(Location(c))
+	if c.Location() != LOCAL {
+		r := loadRemoteConfig(c.Location())
 		host = getString(r, "Hostname")
 	}
 
@@ -543,7 +543,7 @@ func renewInstanceCert(c Instance) (err error) {
 	template := x509.Certificate{
 		SerialNumber: serial,
 		Subject: pkix.Name{
-			CommonName: fmt.Sprintf("geneos %s %s", Type(c), Name(c)),
+			CommonName: fmt.Sprintf("geneos %s %s", c.Type(), c.Name()),
 		},
 		NotBefore:      time.Now().Add(-60 * time.Second),
 		NotAfter:       expires,
@@ -581,20 +581,20 @@ func renewInstanceCert(c Instance) (err error) {
 		}
 	}
 
-	log.Printf("certificate renewed for %s %s@%s (expires %s)", Type(c), Name(c), Location(c), expires)
+	log.Printf("certificate renewed for %s %s@%s (expires %s)", c.Type(), c.Name(), c.Location(), expires)
 
 	return
 }
 
-func writeInstanceCert(c Instance, cert *x509.Certificate) (err error) {
-	if c == nil || Type(c) == None {
+func writeInstanceCert(c Instances, cert *x509.Certificate) (err error) {
+	if c.Type() == None {
 		logError.Fatalln(err)
 	}
-	certfile := Type(c).String() + ".pem"
-	if err = writeCert(Location(c), filepath.Join(Home(c), certfile), cert); err != nil {
+	certfile := c.Type().String() + ".pem"
+	if err = writeCert(c.Location(), filepath.Join(c.Home(), certfile), cert); err != nil {
 		return
 	}
-	if err = setField(c, Prefix(c)+"Cert", certfile); err != nil {
+	if err = setField(c, c.Prefix("Cert"), certfile); err != nil {
 		return
 	}
 
@@ -604,16 +604,16 @@ func writeInstanceCert(c Instance, cert *x509.Certificate) (err error) {
 	return
 }
 
-func writeInstanceKey(c Instance, key *rsa.PrivateKey) (err error) {
-	if Type(c) == None {
+func writeInstanceKey(c Instances, key *rsa.PrivateKey) (err error) {
+	if c.Type() == None {
 		logError.Fatalln(err)
 	}
 
-	keyfile := Type(c).String() + ".key"
-	if err = writeKey(Location(c), filepath.Join(Home(c), keyfile), key); err != nil {
+	keyfile := c.Type().String() + ".key"
+	if err = writeKey(c.Location(), filepath.Join(c.Home(), keyfile), key); err != nil {
 		return
 	}
-	if err = setField(c, Prefix(c)+"Key", keyfile); err != nil {
+	if err = setField(c, c.Prefix("Key"), keyfile); err != nil {
 		return
 	}
 	return writeInstanceConfig(c)
@@ -689,12 +689,12 @@ func readSigningCert() (cert *x509.Certificate, err error) {
 	return readCert(LOCAL, filepath.Join(tlsDir, signingCertFile+".pem"))
 }
 
-func readInstanceCert(c Instance) (cert *x509.Certificate, err error) {
-	if Type(c) == None {
+func readInstanceCert(c Instances) (cert *x509.Certificate, err error) {
+	if c.Type() == None {
 		logError.Fatalln(err)
 	}
 
-	return readCert(Location(c), filepathForInstance(c, getString(c, Prefix(c)+"Cert")))
+	return readCert(c.Location(), filepathForInstance(c, getString(c, c.Prefix("Cert"))))
 }
 
 func readKey(remote string, path string) (key *rsa.PrivateKey, err error) {
@@ -711,12 +711,12 @@ func readKey(remote string, path string) (key *rsa.PrivateKey, err error) {
 	return x509.ParsePKCS1PrivateKey(p.Bytes)
 }
 
-func readInstanceKey(c Instance) (key *rsa.PrivateKey, err error) {
-	if Type(c) == None {
+func readInstanceKey(c Instances) (key *rsa.PrivateKey, err error) {
+	if c.Type() == None {
 		logError.Fatalln(err)
 	}
 
-	return readKey(Location(c), filepathForInstance(c, getString(c, Prefix(c)+"Key")))
+	return readKey(c.Location(), filepathForInstance(c, getString(c, c.Prefix("Key"))))
 }
 
 func createCert(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, existingKey *rsa.PrivateKey) (cert *x509.Certificate, key *rsa.PrivateKey, err error) {

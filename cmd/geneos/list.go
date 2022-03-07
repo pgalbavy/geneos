@@ -88,22 +88,22 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func lsInstancePlain(c Instance, params []string) (err error) {
+func lsInstancePlain(c Instances, params []string) (err error) {
 	logDebug.Println("params", params)
 	var suffix string
 	if isDisabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", Type(c), Name(c)+suffix, Location(c), Home(c))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), c.Home())
 	return
 }
 
-func lsInstanceCSV(c Instance, params []string) (err error) {
+func lsInstanceCSV(c Instances, params []string) (err error) {
 	var dis string = "N"
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{Type(c).String(), Name(c), dis, Location(c), Home(c)})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, c.Location(), c.Home()})
 	return
 }
 
@@ -115,12 +115,12 @@ type lsType struct {
 	Home     string
 }
 
-func lsInstanceJSON(c Instance, params []string) (err error) {
+func lsInstanceJSON(c Instances, params []string) (err error) {
 	var dis string = "N"
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsType{Type(c).String(), Name(c), dis, Location(c), Home(c)})
+	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, c.Location(), c.Home()})
 	return
 }
 
@@ -162,7 +162,7 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func psInstancePlain(c Instance, params []string) (err error) {
+func psInstancePlain(c Instances, params []string) (err error) {
 	if isDisabled(c) {
 		return nil
 	}
@@ -184,12 +184,12 @@ func psInstancePlain(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	fmt.Fprintf(psTabWriter, "%s:%s@%s\t%d\t%s\t%s\t%s\t%s\n", Type(c), Name(c), Location(c), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c))
+	fmt.Fprintf(psTabWriter, "%s:%s@%s\t%d\t%s\t%s\t%s\t%s\n", c.Type(), c.Name(), c.Location(), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home())
 
 	return
 }
 
-func psInstanceCSV(c Instance, params []string) (err error) {
+func psInstanceCSV(c Instances, params []string) (err error) {
 	if isDisabled(c) {
 		return nil
 	}
@@ -211,12 +211,12 @@ func psInstanceCSV(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	csvWriter.Write([]string{Type(c).String() + ":" + Name(c) + "@" + Location(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
+	csvWriter.Write([]string{c.Type().String() + ":" + c.Name() + "@" + c.Location(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
 
 	return
 }
 
-func psInstanceJSON(c Instance, params []string) (err error) {
+func psInstanceJSON(c Instances, params []string) (err error) {
 	if isDisabled(c) {
 		return nil
 	}
@@ -238,7 +238,7 @@ func psInstanceJSON(c Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	jsonEncoder.Encode(psType{Type(c).String(), Name(c), Location(c), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), Home(c)})
+	jsonEncoder.Encode(psType{c.Type().String(), c.Name(), c.Location(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
 
 	return
 }
@@ -247,8 +247,8 @@ func commandCommand(ct Component, args []string, params []string) (err error) {
 	return loopCommand(commandInstance, ct, args, params)
 }
 
-func commandInstance(c Instance, params []string) (err error) {
-	log.Printf("=== %s %s@%s ===", Type(c), Name(c), Location(c))
+func commandInstance(c Instances, params []string) (err error) {
+	log.Printf("=== %s %s@%s ===", c.Type(), c.Name(), c.Location())
 	cmd, env := buildCmd(c)
 	if cmd != nil {
 		log.Println("command line:")

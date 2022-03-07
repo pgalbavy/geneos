@@ -17,12 +17,32 @@ import (
 // remote support
 
 type Remotes struct {
-	Common
-	Home     string `default:"{{join .Root \"remotes\" .Name}}"`
+	Instance
+	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
 	Hostname string
 	Port     int `default:"22"`
 	Username string
-	ITRSHome string `default:"{{.Root}}"`
+	ITRSHome string `default:"{{.InstanceRoot}}"`
+}
+
+func (r Remotes) Type() Component {
+	return parseComponentName(r.InstanceType)
+}
+
+func (r Remotes) Name() string {
+	return r.InstanceName
+}
+
+func (r Remotes) Location() string {
+	return r.InstanceLocation
+}
+
+func (r Remotes) Prefix(field string) string {
+	return "Gate" + field
+}
+
+func (r Remotes) Home() string {
+	return getString(r, "HomeDir")
 }
 
 func init() {
@@ -35,23 +55,23 @@ func init() {
 	}
 }
 
-func remoteInstance(name string) interface{} {
+func remoteInstance(name string) Instances {
 	local, remote := splitInstanceName(name)
 	if remote != LOCAL {
 		logError.Fatalln("remote remotes not suported")
 	}
 	// Bootstrap
 	c := &Remotes{}
-	c.Root = RunningConfig.ITRSHome
-	c.Type = Remote.String()
-	c.Name = local
-	c.Location = remote
+	c.InstanceRoot = RunningConfig.ITRSHome
+	c.InstanceType = Remote.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
 }
 
-func loadRemoteConfig(remote string) (c Instance) {
-	c = remoteInstance(remote).(Instance)
+func loadRemoteConfig(remote string) (c Instances) {
+	c = remoteInstance(remote)
 	if err := loadConfig(c, false); err != nil {
 		logError.Fatalf("cannot open remote %q configuration file", remote)
 	}
@@ -80,7 +100,7 @@ func remoteAdd(remote string, username string, params []string) (c Instance, err
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}
 
-	c = remoteInstance(remote)
+	c = remoteInstance(remote).(Instance)
 
 	u, err := url.Parse(params[0])
 	if err != nil {
@@ -169,7 +189,7 @@ func splitInstanceName(in string) (name, remote string) {
 
 // this is not recursive,
 // but we include a special LOCAL instance
-func allRemotes() (remotes []Instance) {
+func allRemotes() (remotes []Instances) {
 	remotes = Remote.newComponent(LOCAL)
 	remotes = append(remotes, Remote.instancesOfComponent(LOCAL)...)
 	return

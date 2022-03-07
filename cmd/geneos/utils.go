@@ -28,12 +28,12 @@ import (
 
 // walk the /proc directory (local or remote) and find the matching pid
 // this is subject to races, but...
-func findInstancePID(c Instance) (pid int, err error) {
+func findInstancePID(c Instances) (pid int, err error) {
 	var pids []int
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
-	dirs, _ := globPath(Location(c), "/proc/[0-9]*")
+	dirs, _ := globPath(c.Location(), "/proc/[0-9]*")
 
 	for _, dir := range dirs {
 		p, _ := strconv.Atoi(filepath.Base(dir))
@@ -44,7 +44,7 @@ func findInstancePID(c Instance) (pid int, err error) {
 
 	for _, pid = range pids {
 		var data []byte
-		data, err = readFile(Location(c), fmt.Sprintf("/proc/%d/cmdline", pid))
+		data, err = readFile(c.Location(), fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
 			// process may disappear by this point, ignore error
 			logDebug.Println(err)
@@ -52,14 +52,14 @@ func findInstancePID(c Instance) (pid int, err error) {
 		}
 		args := bytes.Split(data, []byte("\000"))
 		execfile := filepath.Base(string(args[0]))
-		switch Type(c) {
+		switch c.Type() {
 		case Webserver:
 			var wdOK, jarOK bool
 			if execfile != "java" {
 				continue
 			}
 			for _, arg := range args[1:] {
-				if string(arg) == "-Dworking.directory="+Home(c) {
+				if string(arg) == "-Dworking.directory="+c.Home() {
 					wdOK = true
 				}
 				if strings.HasSuffix(string(arg), "geneos-web-server.jar") {
@@ -70,10 +70,10 @@ func findInstancePID(c Instance) (pid int, err error) {
 				}
 			}
 		default:
-			if strings.HasPrefix(execfile, Type(c).String()) {
+			if strings.HasPrefix(execfile, c.Type().String()) {
 				for _, arg := range args[1:] {
 					// very simplistic - we look for a bare arg that matches the instance name
-					if string(arg) == Name(c) {
+					if string(arg) == c.Name() {
 						// found
 						return
 					}
@@ -90,11 +90,11 @@ func findInstancePID(c Instance) (pid int, err error) {
 // the component name must be on the command line as an exact and
 // standalone args
 //
-func findInstanceProc(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+func findInstanceProc(c Instances) (pid int, uid uint32, gid uint32, mtime int64, err error) {
 	pid, err = findInstancePID(c)
 	if err == nil {
 		var s fileStat
-		s, err = statFile(Location(c), fmt.Sprintf("/proc/%d", pid))
+		s, err = statFile(c.Location(), fmt.Sprintf("/proc/%d", pid))
 		return pid, s.uid, s.uid, s.mtime, err
 	}
 	return 0, 0, 0, 0, ErrProcNotExist
@@ -172,13 +172,13 @@ func setUser(cmd *exec.Cmd, username string) (err error) {
 // this does not however change the user to match anything, so starting a
 // process still requires a seteuid type change
 //
-func canControl(c Instance) bool {
+func canControl(c Instances) bool {
 	if superuser {
 		logDebug.Println("I am root")
 		return true
 	}
 
-	username := getString(c, Prefix(c)+"User")
+	username := getString(c, c.Prefix("User"))
 	if len(username) == 0 {
 		logDebug.Println("no user configured")
 		// assume the caller with try to set-up the correct user
@@ -325,7 +325,7 @@ func parseArgsNoWildcard(rawargs []string) (ct Component, args []string, params 
 }
 
 func (ct Component) allArgsForComponent() (args []string) {
-	var confs []Instance
+	var confs []Instances
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
@@ -334,13 +334,13 @@ func (ct Component) allArgsForComponent() (args []string) {
 		confs = append(confs, ct.instancesOfComponent(LOCAL)...)
 	default:
 		for _, remote := range allRemotes() {
-			logDebug.Println("checking remote:", Name(remote))
-			confs = append(confs, ct.instancesOfComponent(Name(remote))...)
+			logDebug.Println("checking remote:", remote.Name())
+			confs = append(confs, ct.instancesOfComponent(remote.Name())...)
 		}
 	}
 	for _, c := range confs {
 		// XXX
-		args = append(args, Name(c)+"@"+Location(c))
+		args = append(args, c.Name()+"@"+c.Location())
 	}
 	return
 }
@@ -387,15 +387,15 @@ func validInstanceName(in string) (ok bool) {
 // called 'thisserver')
 //
 // try to use go routines here - mutexes required
-func loopCommand(fn func(Instance, []string) error, ct Component, args []string, params []string) (err error) {
+func loopCommand(fn func(Instances, []string) error, ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range ct.newComponent(name) {
 			if err = loadConfig(c, false); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration")
+				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				return
 			}
 			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
-				log.Println(Type(c), Name(c), err)
+				log.Println(c.Type(), c.Name(), err)
 			}
 		}
 	}
@@ -403,15 +403,15 @@ func loopCommand(fn func(Instance, []string) error, ct Component, args []string,
 }
 
 // call a function but with an extra subcommand parameter to allow some indirection
-func loopSubcommand(fn func(Instance, string, []string) error, subcommand string, ct Component, args []string, params []string) (err error) {
+func loopSubcommand(fn func(Instances, string, []string) error, subcommand string, ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range ct.newComponent(name) {
 			if err = loadConfig(c, false); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration")
+				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				return
 			}
 			if err = fn(c, subcommand, params); err != nil && !errors.Is(err, ErrProcNotExist) {
-				log.Println(Type(c), Name(c), err)
+				log.Println(c.Type(), c.Name(), err)
 			}
 		}
 	}
@@ -422,7 +422,7 @@ func loopSubcommand(fn func(Instance, string, []string) error, subcommand string
 // that accept only zero or one named instance and the rest of the args are parameters
 // pass the remaining args the to function
 //
-func (ct Component) singleCommand(fn func(Instance, []string, []string) error, args []string, params []string) (err error) {
+func (ct Component) singleCommand(fn func(Instances, []string, []string) error, args []string, params []string) (err error) {
 	if len(args) == 0 {
 		// do nothing
 		return
@@ -430,13 +430,13 @@ func (ct Component) singleCommand(fn func(Instance, []string, []string) error, a
 	name := args[0]
 	for _, c := range ct.newComponent(name) {
 		if err = loadConfig(c, false); err != nil {
-			log.Println(Type(c), Name(c), "cannot load configuration")
+			log.Println(c.Type(), c.Name(), "cannot load configuration")
 			return
 		}
 
 		// empty remaining args, prepend to params
 		if err = fn(c, []string{}, append(args[1:], params...)); err != nil {
-			log.Println(Type(c), Name(c), err)
+			log.Println(c.Type(), c.Name(), err)
 		}
 	}
 	return nil
@@ -478,15 +478,15 @@ func cleanRelativePath(path string) (clean string, err error) {
 
 // given a filename or path, prepend the instance home directory
 // if not absolute, and clean
-func filepathForInstance(c Instance, file string) (path string) {
+func filepathForInstance(c Instances, file string) (path string) {
 	path = filepath.Clean(file)
 	if filepath.IsAbs(path) {
 		return
 	}
-	return filepath.Join(Home(c), path)
+	return filepath.Join(c.Home(), path)
 }
 
-func removePathList(c Instance, paths string) (err error) {
+func removePathList(c Instances, paths string) (err error) {
 	list := filepath.SplitList(paths)
 	for _, p := range list {
 		// clean path, error on absolute or parent paths, like 'upload'
@@ -496,12 +496,12 @@ func removePathList(c Instance, paths string) (err error) {
 			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
-		m, err := globPath(Location(c), filepath.Join(Home(c), p))
+		m, err := globPath(c.Location(), filepath.Join(c.Home(), p))
 		if err != nil {
 			return err
 		}
 		for _, f := range m {
-			if err = removeAll(Location(c), f); err != nil {
+			if err = removeAll(c.Location(), f); err != nil {
 				logError.Println(err)
 				continue
 			}
@@ -511,17 +511,17 @@ func removePathList(c Instance, paths string) (err error) {
 }
 
 // logdir = LogD relative to Home or absolute
-func getLogfilePath(c Instance) (logdir string) {
-	logd := filepath.Clean(getString(c, Prefix(c)+"LogD"))
+func getLogfilePath(c Instances) (logdir string) {
+	logd := filepath.Clean(getString(c, c.Prefix("LogD")))
 	switch {
 	case logd == "":
-		logdir = Home(c)
+		logdir = c.Home()
 	case strings.HasPrefix(logd, string(os.PathSeparator)):
 		logdir = logd
 	default:
-		logdir = filepath.Join(Home(c), logd)
+		logdir = filepath.Join(c.Home(), logd)
 	}
-	logdir = filepath.Join(logdir, getString(c, Prefix(c)+"LogF"))
+	logdir = filepath.Join(logdir, getString(c, c.Prefix("LogF")))
 	return
 }
 

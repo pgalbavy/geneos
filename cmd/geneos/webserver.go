@@ -8,7 +8,7 @@ import (
 )
 
 type Webservers struct {
-	Common
+	Instance
 	//BinSuffix string `default:"licd.linux_64"`
 	WebsHome string `default:"{{join .Root \"webserver\" \"webservers\" .Name}}"`
 	WebsBins string `default:"{{join .Root \"packages\" \"webserver\"}}"`
@@ -29,6 +29,29 @@ type Webservers struct {
 
 const webserverPortRange = "8080,8100-"
 
+// interface method set
+
+// Return the Component for an Instance
+func (w Webservers) Type() Component {
+	return parseComponentName(w.InstanceType)
+}
+
+func (w Webservers) Name() string {
+	return w.InstanceName
+}
+
+func (w Webservers) Location() string {
+	return w.InstanceLocation
+}
+
+func (w Webservers) Home() string {
+	return getString(w, w.Prefix("Home"))
+}
+
+func (w Webservers) Prefix(field string) string {
+	return "Webs" + field
+}
+
 func init() {
 	components[Webserver] = ComponentFuncs{
 		Instance: webserverInstance,
@@ -39,24 +62,24 @@ func init() {
 	}
 }
 
-func webserverInstance(name string) interface{} {
+func webserverInstance(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Webservers{}
-	c.Root = remoteRoot(remote)
-	c.Type = Webserver.String()
-	c.Name = local
-	c.Location = remote
+	c.InstanceRoot = remoteRoot(remote)
+	c.InstanceType = Webserver.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
 }
 
-func webserverCommand(c Instance) (args, env []string) {
-	WebsHome := getString(c, Prefix(c)+"Home")
-	WebsBase := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"))
+func webserverCommand(c Instances) (args, env []string) {
+	WebsHome := getString(c, c.Prefix("Home"))
+	WebsBase := filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")))
 	args = []string{
 		// "-Duser.home=" + WebsHome,
 		"-XX:+UseConcMarkSweepGC",
-		"-Xmx" + getString(c, Prefix(c)+"Xmx"),
+		"-Xmx" + getString(c, c.Prefix("Xmx")),
 		"-server",
 		"-Djava.io.tmpdir=" + WebsHome + "/webapps",
 		"-Djava.awt.headless=true",
@@ -64,7 +87,7 @@ func webserverCommand(c Instance) (args, env []string) {
 		"-Dcom.itrsgroup.configuration.file=" + WebsHome + "/config/config.xml",
 		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
 		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
-		"-Djava.library.path=" + getString(c, Prefix(c)+"Libs"),
+		"-Djava.library.path=" + getString(c, c.Prefix("Libs")),
 		"-Dlog4j2.configurationFile=file:" + WebsHome + "/config/log4j2.properties",
 		"-Dworking.directory=" + WebsHome,
 		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
@@ -78,7 +101,7 @@ func webserverCommand(c Instance) (args, env []string) {
 		"-XX:HeapDumpPath=/tmp",
 		"-jar", WebsBase + "/geneos-web-server.jar",
 		"-dir", WebsBase + "/webapps",
-		"-port", getIntAsString(c, Prefix(c)+"Port"),
+		"-port", getIntAsString(c, c.Prefix("Port")),
 		// "-ssl true",
 		"-maxThreads 254",
 		// "-log", getLogfilePath(c),
@@ -104,14 +127,14 @@ var webserverFiles = []string{
 
 func webserverAdd(name string, username string, params []string) (c Instance, err error) {
 	// fill in the blanks
-	c = webserverInstance(name)
+	c = webserverInstance(name).(Instance)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
 	if webport != "8080" {
-		if err = setField(c, Prefix(c)+"Port", webport); err != nil {
+		if err = setField(c, c.Prefix("Port"), webport); err != nil {
 			return
 		}
 	}
-	if err = setField(c, Prefix(c)+"User", username); err != nil {
+	if err = setField(c, c.Prefix("User"), username); err != nil {
 		return
 	}
 
@@ -125,12 +148,12 @@ func webserverAdd(name string, username string, params []string) (c Instance, er
 	// copy default configs - use existing upload routines?
 	dir, err := os.Getwd()
 	defer os.Chdir(dir)
-	configSrc := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "config")
+	configSrc := filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")), "config")
 	if err = os.Chdir(configSrc); err != nil {
 		return
 	}
 
-	if err = mkdirAll(Location(c), filepath.Join(Home(c), "webapps"), 0777); err != nil {
+	if err = mkdirAll(c.Location(), filepath.Join(c.Home(), "webapps"), 0777); err != nil {
 		return
 	}
 
@@ -146,8 +169,8 @@ func webserverAdd(name string, username string, params []string) (c Instance, er
 var defaultWebserverCleanList = "*.old"
 var defaultWebserverPurgeList = "webserver.log:webserver.txt"
 
-func webserverClean(c Instance, purge bool, params []string) (err error) {
-	logDebug.Println(Type(c), Name(c), "clean")
+func webserverClean(c Instances, purge bool, params []string) (err error) {
+	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
@@ -170,6 +193,6 @@ func webserverClean(c Instance, purge bool, params []string) (err error) {
 	return removePathList(c, RunningConfig.WebserverCleanList)
 }
 
-func webserverReload(c Instance, params []string) (err error) {
+func webserverReload(c Instances, params []string) (err error) {
 	return ErrNotSupported
 }

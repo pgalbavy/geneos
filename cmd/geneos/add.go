@@ -78,7 +78,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	if err != nil {
 		return
 	}
-	log.Printf("new %s %q added, port %s\n", Type(c), Name(c), getIntAsString(c, Prefix(c)+"Port"))
+	log.Printf("new %s %q added, port %s\n", c.Type(), c.Name(), getIntAsString(c, c.Prefix("Port")))
 
 	return
 }
@@ -91,13 +91,13 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 func getPorts() (ports map[int]Component) {
 	ports = make(map[int]Component)
 	for _, c := range allInstances() {
-		if err := loadConfig(&c, false); err != nil {
-			log.Println(Type(c), Name(c), "- cannot load configuration")
+		if err := loadConfig(c, false); err != nil {
+			log.Println(c.Type(), c.Name(), "- cannot load configuration")
 			continue
 		}
-		if port := getIntAsString(c, Prefix(c)+"Port"); port != "" {
+		if port := getIntAsString(c, c.Prefix("Port")); port != "" {
 			if p, err := strconv.Atoi(port); err == nil {
-				ports[int(p)] = Type(c)
+				ports[int(p)] = c.Type()
 			}
 		}
 	}
@@ -191,8 +191,8 @@ func commandUpload(ct Component, args []string, params []string) (err error) {
 // 'geneos upload netprobe exampel3 scripts/=myscript.sh'
 //
 // local directroreies are created
-func uploadInstance(c Instance, args []string, params []string) (err error) {
-	if Type(c) == None || Type(c) == Unknown {
+func uploadInstance(c Instances, args []string, params []string) (err error) {
+	if c.Type() == None || c.Type() == Unknown {
 		return ErrNotSupported
 	}
 
@@ -208,16 +208,16 @@ func uploadInstance(c Instance, args []string, params []string) (err error) {
 	return
 }
 
-func uploadFile(c Instance, source string) (err error) {
+func uploadFile(c Instances, source string) (err error) {
 	var backuppath string
 	var from io.ReadCloser
 
-	uid, gid, _, err := getUser(getString(c, Prefix(c)+"User"))
+	uid, gid, _, err := getUser(getString(c, c.Prefix("User")))
 	if err != nil {
 		return err
 	}
 
-	destdir := Home(c)
+	destdir := c.Home()
 	destfile := ""
 
 	// if the source is a http(s) url then skip '=' split (protect queries in URL)
@@ -233,9 +233,9 @@ func uploadFile(c Instance, source string) (err error) {
 				logError.Fatalln("dest path must be relative to (and in) instance directory")
 			}
 			// if the destination exists is it a directory?
-			if s, err := statFile(Location(c), filepath.Join(Home(c), destfile)); err == nil {
+			if s, err := statFile(c.Location(), filepath.Join(c.Home(), destfile)); err == nil {
 				if s.st.IsDir() {
-					destdir = filepath.Join(Home(c), destfile)
+					destdir = filepath.Join(c.Home(), destfile)
 					destfile = ""
 				}
 			}
@@ -292,34 +292,34 @@ func uploadFile(c Instance, source string) (err error) {
 
 	destfile = filepath.Join(destdir, destfile)
 
-	if _, err := statFile(Location(c), filepath.Dir(destfile)); err != nil {
-		err = mkdirAll(Location(c), filepath.Dir(destfile), 0775)
+	if _, err := statFile(c.Location(), filepath.Dir(destfile)); err != nil {
+		err = mkdirAll(c.Location(), filepath.Dir(destfile), 0775)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			logError.Fatalln(err)
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = chown(Location(c), filepath.Dir(destfile), int(uid), int(gid)); err != nil {
+			if err = chown(c.Location(), filepath.Dir(destfile), int(uid), int(gid)); err != nil {
 				return err
 			}
 		}
 	}
 
 	// xxx - wrong way around. create tmp first, move over later
-	if s, err := statFile(Location(c), destfile); err == nil {
+	if s, err := statFile(c.Location(), destfile); err == nil {
 		if !s.st.Mode().IsRegular() {
 			logError.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")
 		backuppath = destfile + "." + datetime + ".old"
-		if err = renameFile(Location(c), destfile, backuppath); err != nil {
+		if err = renameFile(c.Location(), destfile, backuppath); err != nil {
 			return err
 		}
 	}
 
 	var out io.Writer
 
-	switch Location(c) {
+	switch c.Location() {
 	case LOCAL:
 		cf, err := os.Create(destfile)
 		if err != nil {
@@ -329,16 +329,16 @@ func uploadFile(c Instance, source string) (err error) {
 		defer cf.Close()
 
 		if err = cf.Chown(int(uid), int(gid)); err != nil {
-			removeFile(Location(c), destfile)
+			removeFile(c.Location(), destfile)
 			if backuppath != "" {
-				if err = renameFile(Location(c), backuppath, destfile); err != nil {
+				if err = renameFile(c.Location(), backuppath, destfile); err != nil {
 					return err
 				}
 				return err
 			}
 		}
 	default:
-		cf, err := createRemoteFile(Location(c), destfile)
+		cf, err := createRemoteFile(c.Location(), destfile)
 		if err != nil {
 			return err
 		}
@@ -346,9 +346,9 @@ func uploadFile(c Instance, source string) (err error) {
 		defer cf.Close()
 
 		if err = cf.Chown(int(uid), int(gid)); err != nil {
-			removeFile(Location(c), destfile)
+			removeFile(c.Location(), destfile)
 			if backuppath != "" {
-				if err = renameFile(Location(c), backuppath, destfile); err != nil {
+				if err = renameFile(c.Location(), backuppath, destfile); err != nil {
 					return err
 				}
 				return err

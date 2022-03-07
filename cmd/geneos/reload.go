@@ -16,8 +16,8 @@ func commandReload(ct Component, args []string, params []string) error {
 	return loopCommand(reloadInstance, ct, args, params)
 }
 
-func reloadInstance(c Instance, params []string) (err error) {
-	cm, ok := components[Type(c)]
+func reloadInstance(c Instances, params []string) (err error) {
+	cm, ok := components[c.Type()]
 	if !ok || cm.Reload == nil {
 		return ErrNotSupported
 	}

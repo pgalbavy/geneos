@@ -36,8 +36,8 @@ func commandClean(ct Component, args []string, params []string) error {
 	return loopCommand(cleanInstance, ct, args, params)
 }
 
-func cleanInstance(c Instance, params []string) (err error) {
-	cm, ok := components[Type(c)]
+func cleanInstance(c Instances, params []string) (err error) {
+	cm, ok := components[c.Type()]
 	if !ok || cm.Clean == nil {
 		return ErrNotSupported
 	}

@@ -36,17 +36,17 @@ type Commands map[string]Command
 
 // return a single slice of all instances, ordered and grouped
 // configuration are not loaded, just the defaults ready for overlay
-func allInstances() (confs []Instance) {
+func allInstances() (confs []Instances) {
 	for _, ct := range realComponentTypes() {
 		for _, remote := range allRemotes() {
-			confs = append(confs, ct.instancesOfComponent(Name(remote))...)
+			confs = append(confs, ct.instancesOfComponent(remote.Name())...)
 		}
 	}
 	return
 }
 
 // return a slice of instancesOfComponent for a given Component
-func (ct Component) instancesOfComponent(remote string) (confs []Instance) {
+func (ct Component) instancesOfComponent(remote string) (confs []Instances) {
 	for _, name := range ct.instanceDirsForComponent(remote) {
 		confs = append(confs, ct.newComponent(name)...)
 	}
@@ -71,11 +71,11 @@ func findInstances(name string) (cts []Component) {
 // loadConfig will load the JSON config file is available, otherwise
 // try to load the "legacy" .rc file and optionally write out a JSON file
 // for later re-use, while renaming .rc file as a backup
-func loadConfig(c Instance, update bool) (err error) {
-	baseconf := filepath.Join(Home(c), Type(c).String())
+func loadConfig(c Instances, update bool) (err error) {
+	baseconf := filepath.Join(c.Home(), c.Type().String())
 	j := baseconf + ".json"
 
-	if err = readConfigFile(Location(c), j, &c); err == nil {
+	if err = readConfigFile(c.Location(), j, &c); err == nil {
 		// return if NO error, else drop through
 		return
 	}
@@ -87,10 +87,10 @@ func loadConfig(c Instance, update bool) (err error) {
 			logError.Println("failed to wrtite config file:", err)
 			return
 		}
-		if err = renameFile(Location(c), baseconf+".rc", baseconf+".rc.orig"); err != nil {
+		if err = renameFile(c.Location(), baseconf+".rc", baseconf+".rc.orig"); err != nil {
 			logError.Println("failed to rename old config:", err)
 		}
-		logDebug.Println(Type(c), Name(c), "migrated to JSON config")
+		logDebug.Println(c.Type(), c.Name(), "migrated to JSON config")
 	}
 
 	return
@@ -99,10 +99,10 @@ func loadConfig(c Instance, update bool) (err error) {
 // buildCmd gathers the path to the binary, arguments and any environment variables
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers
 // will add more details such as working directories, user and group etc.
-func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
-	binary := getString(c, Prefix(c)+"Exec")
+func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
+	binary := getString(c, c.Prefix("Exec"))
 
-	cm, ok := components[Type(c)]
+	cm, ok := components[c.Type()]
 	if !ok {
 		return
 	}
@@ -111,11 +111,11 @@ func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 	}
 	args, env := cm.Command(c)
 
-	opts := strings.Fields(getString(c, Prefix(c)+"Opts"))
+	opts := strings.Fields(getString(c, c.Prefix("Opts")))
 	args = append(args, opts...)
 	// XXX find common envs - JAVA_HOME etc.
 	env = append(env, getSliceStrings(c, "Env")...)
-	env = append(env, "LD_LIBRARY_PATH="+getString(c, Prefix(c)+"Libs"))
+	env = append(env, "LD_LIBRARY_PATH="+getString(c, c.Prefix("Libs")))
 	cmd = exec.Command(binary, args...)
 
 	return
@@ -123,12 +123,12 @@ func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 
 // save off extra env too
 // XXX - scan file line by line, protect memory
-func readRCConfig(c Instance) (err error) {
-	rcdata, err := readFile(Location(c), filepath.Join(Home(c), Type(c).String()+".rc"))
+func readRCConfig(c Instances) (err error) {
+	rcdata, err := readFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".rc"))
 	if err != nil {
 		return
 	}
-	logDebug.Printf("loading config from %s/%s.rc", Home(c), Type(c))
+	logDebug.Printf("loading config from %s/%s.rc", c.Home(), c.Type())
 
 	confs := make(map[string]string)
 
@@ -157,7 +157,7 @@ func readRCConfig(c Instance) (err error) {
 				return
 			}
 		default:
-			if strings.HasPrefix(k, Prefix(c)) {
+			if strings.HasPrefix(k, c.Prefix("")) {
 				if err = setField(c, k, v); err != nil {
 					return
 				}
