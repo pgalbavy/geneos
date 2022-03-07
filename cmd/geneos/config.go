@@ -479,9 +479,9 @@ func commandMigrate(ct Component, names []string, params []string) (err error) {
 	return loopCommand(migrateInstance, ct, names, params)
 }
 
-func migrateInstance(c Instance, params []string) (err error) {
+func migrateInstance(c Instances, params []string) (err error) {
 	if err = loadConfig(c, true); err != nil {
-		log.Println(Type(c), Name(c), "cannot migrate configuration", err)
+		log.Println(c.Type(), c.Name(), "cannot migrate configuration", err)
 	}
 	return
 }
@@ -490,27 +490,27 @@ func commandRevert(ct Component, names []string, params []string) (err error) {
 	return loopCommand(revertInstance, ct, names, params)
 }
 
-func revertInstance(c Instance, params []string) (err error) {
-	baseconf := filepath.Join(Home(c), Type(c).String())
+func revertInstance(c Instances, params []string) (err error) {
+	baseconf := filepath.Join(c.Home(), c.Type().String())
 
 	// if *.rc file exists, remove rc.orig+JSON, continue
-	if _, err := statFile(Location(c), baseconf+".rc"); err == nil {
+	if _, err := statFile(c.Location(), baseconf+".rc"); err == nil {
 		// ignore errors
-		if removeFile(Location(c), baseconf+".rc.orig") == nil || removeFile(Location(c), baseconf+".json") == nil {
-			logDebug.Println(Type(c), Name(c), "removed extra config file(s)")
+		if removeFile(c.Location(), baseconf+".rc.orig") == nil || removeFile(c.Location(), baseconf+".json") == nil {
+			logDebug.Println(c.Type(), c.Name(), "removed extra config file(s)")
 		}
 		return err
 	}
 
-	if err = renameFile(Location(c), baseconf+".rc.orig", baseconf+".rc"); err != nil {
+	if err = renameFile(c.Location(), baseconf+".rc.orig", baseconf+".rc"); err != nil {
 		return
 	}
 
-	if err = removeFile(Location(c), baseconf+".json"); err != nil {
+	if err = removeFile(c.Location(), baseconf+".json"); err != nil {
 		return
 	}
 
-	logDebug.Println(Type(c), Name(c), "reverted to RC config")
+	logDebug.Println(c.Type(), c.Name(), "reverted to RC config")
 	return nil
 }
 
@@ -541,16 +541,14 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
-	var cs []Instance
+	var cs []Instances
 	for _, name := range names {
 		for _, c := range ct.newComponent(name) {
 			if err = loadConfig(c, false); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration")
+				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				continue
 			}
-			if c != nil {
-				cs = append(cs, c)
-			}
+			cs = append(cs, c)
 		}
 	}
 	printConfigSliceJSON(cs)
@@ -558,7 +556,7 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	return
 }
 
-func printConfigSliceJSON(Slice []Instance) {
+func printConfigSliceJSON(Slice []Instances) {
 	js := []string{}
 
 	for _, i := range Slice {
@@ -624,14 +622,14 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 	// but allow for RC files again
 	//
 	// consume component names, stop at first parameter, error out if more names
-	var instances []Instance
+	var instances []Instances
 
 	// loop through named instances
 	for _, arg := range args {
 		for _, c := range ct.newComponent(arg) {
 			// migration required to set values
 			if err = loadConfig(c, true); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration")
+				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				continue
 			}
 			instances = append(instances, c)
@@ -697,8 +695,8 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	// now loop through the collected results anbd write out
 	for _, c := range instances {
-		conffile := filepath.Join(Home(c), Type(c).String()+".json")
-		if err = writeConfigFile(Location(c), conffile, c); err != nil {
+		conffile := filepath.Join(c.Home(), c.Type().String()+".json")
+		if err = writeConfigFile(c.Location(), conffile, c); err != nil {
 			log.Println(err)
 		}
 	}
@@ -725,8 +723,8 @@ func writeConfigParams(filename string, params []string) (err error) {
 	return writeConfigFile(LOCAL, filename, c)
 }
 
-func writeInstanceConfig(c Instance) (err error) {
-	err = writeConfigFile(Location(c), filepath.Join(Home(c), Type(c).String()+".json"), c)
+func writeInstanceConfig(c Instances) (err error) {
+	err = writeConfigFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".json"), c)
 	return
 }
 
@@ -750,7 +748,7 @@ func writeConfigFile(remote, file string, config interface{}) (err error) {
 
 	uid, gid := -1, -1
 	if superuser {
-		username := getString(config, Prefix(config)+"User")
+		username := "" // getString(config, Prefix(config)+"User")
 		if username == "" {
 			logError.Fatalln("cannot find non-root user to write config file", file)
 		}
@@ -841,29 +839,29 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	stopInstance(oldconf, nil)
 
 	// save for recover, as config gets changed
-	oldhome := Home(oldconf)
-	newhome := Home(newconf)
+	oldhome := oldconf.Home()
+	newhome := newconf.Home()
 
-	if err = renameFile(Location(oldconf), oldhome, newhome); err != nil {
+	if err = renameFile(oldconf.Location(), oldhome, newhome); err != nil {
 		logDebug.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
 
 	if err = setField(oldconf, "Name", newname); err != nil {
 		// try to recover
-		_ = renameFile(Location(newconf), newhome, oldhome)
+		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, Prefix(oldconf)+"Home", filepath.Join(ct.componentBaseDir(Location(newconf)), newname)); err != nil {
+	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.componentBaseDir(newconf.Location()), newname)); err != nil {
 		// try to recover
-		_ = renameFile(Location(newconf), newhome, oldhome)
+		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
 		//
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeConfigFile(Location(newconf), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
-		_ = renameFile(Location(newconf), newhome, oldhome)
+	if err = writeConfigFile(newconf.Location(), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
+		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
@@ -874,14 +872,14 @@ func commandDelete(ct Component, args []string, params []string) (err error) {
 	return loopCommand(deleteInstance, ct, args, params)
 }
 
-func deleteInstance(c Instance, params []string) (err error) {
+func deleteInstance(c Instances, params []string) (err error) {
 	if isDisabled(c) {
-		if err = removeAll(Location(c), Home(c)); err != nil {
+		if err = removeAll(c.Location(), c.Home()); err != nil {
 			logError.Fatalln(err)
 		}
 		return nil
 	}
-	log.Println(Type(c), Name(c), "must be disabled before delete")
+	log.Println(c.Type(), c.Name(), "must be disabled before delete")
 	return nil
 }
 

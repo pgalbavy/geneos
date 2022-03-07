@@ -6,10 +6,10 @@ import (
 )
 
 type Licds struct {
-	Common
+	InstanceBase
 	BinSuffix string `default:"licd.linux_64"`
-	LicdHome  string `default:"{{join .Root \"licd\" \"licds\" .Name}}"`
-	LicdBins  string `default:"{{join .Root \"packages\" \"licd\"}}"`
+	LicdHome  string `default:"{{join .InstanceRoot \"licd\" \"licds\" .InstanceName}}"`
+	LicdBins  string `default:"{{join .InstanceRoot \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
 	LicdExec  string `default:"{{join .LicdBins .LicdBase .BinSuffix}}"`
 	LicdLogD  string `json:",omitempty"`
@@ -27,33 +27,77 @@ const licdPortRange = "7041,7100-"
 
 func init() {
 	components[Licd] = ComponentFuncs{
-		Instance: licdInstance,
-		Command:  licdCommand,
-		Add:      licdAdd,
-		Clean:    licdClean,
-		Reload:   licdReload,
+		Instance: NewLicd,
+		Add:      CreateLicd,
 	}
 }
 
-func licdInstance(name string) interface{} {
+func NewLicd(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Licds{}
-	c.Root = remoteRoot(remote)
-	c.Type = Licd.String()
-	c.Name = local
-	c.Location = remote
+	c.InstanceRoot = remoteRoot(remote)
+	c.InstanceType = Licd.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
 }
 
-func licdCommand(c Instance) (args, env []string) {
-	certfile := getString(c, Prefix(c)+"Cert")
-	keyfile := getString(c, Prefix(c)+"Key")
+func CreateLicd(name string, username string, params []string) (c Instances, err error) {
+	// fill in the blanks
+	c = NewLicd(name)
+	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
+	if licdport != "7041" {
+		if err = setField(c, c.Prefix("Port"), licdport); err != nil {
+			return
+		}
+	}
+	if err = setField(c, c.Prefix("User"), username); err != nil {
+		return
+	}
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
+
+	// default config XML etc.
+	return
+}
+
+// interface method set
+
+// Return the Component for an Instance
+func (l Licds) Type() Component {
+	return parseComponentName(l.InstanceType)
+}
+
+func (l Licds) Name() string {
+	return l.InstanceName
+}
+
+func (l Licds) Location() string {
+	return l.InstanceLocation
+}
+
+func (l Licds) Home() string {
+	return getString(l, l.Prefix("Home"))
+}
+
+func (l Licds) Prefix(field string) string {
+	return "Licd" + field
+}
+
+func (c Licds) Command() (args, env []string) {
+	certfile := getString(c, c.Prefix("Cert"))
+	keyfile := getString(c, c.Prefix("Key"))
 
 	args = []string{
-		Name(c),
+		c.Name(),
 		"-port",
-		getIntAsString(c, Prefix(c)+"Port"),
+		getIntAsString(c, c.Prefix("Port")),
 		"-log",
 		getLogfilePath(c),
 	}
@@ -69,35 +113,11 @@ func licdCommand(c Instance) (args, env []string) {
 	return
 }
 
-func licdAdd(name string, username string, params []string) (c Instance, err error) {
-	// fill in the blanks
-	c = licdInstance(name)
-	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
-	if licdport != "7041" {
-		if err = setField(c, Prefix(c)+"Port", licdport); err != nil {
-			return
-		}
-	}
-	if err = setField(c, Prefix(c)+"User", username); err != nil {
-		return
-	}
-
-	writeInstanceConfig(c)
-
-	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
-	}
-
-	// default config XML etc.
-	return
-}
-
 var defaultLicdCleanList = "*.old"
 var defaultLicdPurgeList = "licd.log:licd.txt"
 
-func licdClean(c Instance, purge bool, params []string) (err error) {
-	logDebug.Println(Type(c), Name(c), "clean")
+func (c Licds) Clean(purge bool, params []string) (err error) {
+	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
@@ -120,6 +140,6 @@ func licdClean(c Instance, purge bool, params []string) (err error) {
 	return removePathList(c, RunningConfig.LicdCleanList)
 }
 
-func licdReload(c Instance, params []string) (err error) {
+func (c Licds) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

@@ -67,18 +67,17 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	var cs []string
 	for _, name := range args {
 		for _, c := range ct.newComponent(name) {
-			if Location(c) != LOCAL {
+			if c.Location() != LOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}
 			// try to migrate the config, which will not work if empty
 			if err = loadConfig(c, true); err != nil {
-				log.Println(Type(c), Name(c), "cannot load configuration, check syntax")
+				log.Println(c.Type(), c.Name(), "cannot load configuration, check syntax")
 				// in case of error manually build path
 				cs = append(cs, filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s", name, ct.String()+".json"))
 			}
-			if c != nil {
-				cs = append(cs, filepath.Join(Home(c), Type(c).String()+".json"))
-			}
+			cs = append(cs, filepath.Join(c.Home(), c.Type().String()+".json"))
+
 		}
 	}
 	if len(cs) > 0 {

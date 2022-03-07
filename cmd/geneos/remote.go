@@ -17,41 +17,72 @@ import (
 // remote support
 
 type Remotes struct {
-	Common
-	Home     string `default:"{{join .Root \"remotes\" .Name}}"`
+	InstanceBase
+	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
 	Hostname string
 	Port     int `default:"22"`
 	Username string
-	ITRSHome string `default:"{{.Root}}"`
+	ITRSHome string `default:"{{.InstanceRoot}}"`
 }
 
 func init() {
 	components[Remote] = ComponentFuncs{
-		Instance: remoteInstance,
-		Command:  nil,
-		Add:      remoteAdd,
-		Clean:    nil,
-		Reload:   nil,
+		Instance: NewRemote,
+		Add:      CreateRemote,
 	}
 }
 
-func remoteInstance(name string) interface{} {
+// interface method set
+
+func (r Remotes) Type() Component {
+	return parseComponentName(r.InstanceType)
+}
+
+func (r Remotes) Name() string {
+	return r.InstanceName
+}
+
+func (r Remotes) Location() string {
+	return r.InstanceLocation
+}
+
+func (r Remotes) Prefix(field string) string {
+	return "Gate" + field
+}
+
+func (r Remotes) Home() string {
+	return getString(r, "HomeDir")
+}
+
+func (c Remotes) Command() (args, env []string) {
+	return
+}
+
+func (c Remotes) Clean(purge bool, params []string) (err error) {
+	return ErrNotSupported
+}
+
+func (c Remotes) Reload(params []string) (err error) {
+	return ErrNotSupported
+}
+
+func NewRemote(name string) Instances {
 	local, remote := splitInstanceName(name)
 	if remote != LOCAL {
 		logError.Fatalln("remote remotes not suported")
 	}
 	// Bootstrap
 	c := &Remotes{}
-	c.Root = RunningConfig.ITRSHome
-	c.Type = Remote.String()
-	c.Name = local
-	c.Location = remote
+	c.InstanceRoot = RunningConfig.ITRSHome
+	c.InstanceType = Remote.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
 }
 
-func loadRemoteConfig(remote string) (c Instance) {
-	c = remoteInstance(remote).(Instance)
+func loadRemoteConfig(remote string) (c Instances) {
+	c = NewRemote(remote)
 	if err := loadConfig(c, false); err != nil {
 		logError.Fatalf("cannot open remote %q configuration file", remote)
 	}
@@ -75,12 +106,12 @@ func remoteRoot(remote string) string {
 //
 // 'geneos add remote NAME SSH-URL'
 //
-func remoteAdd(remote string, username string, params []string) (c Instance, err error) {
+func CreateRemote(remote string, username string, params []string) (c Instances, err error) {
 	if len(params) == 0 {
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}
 
-	c = remoteInstance(remote)
+	c = NewRemote(remote)
 
 	u, err := url.Parse(params[0])
 	if err != nil {
@@ -169,7 +200,7 @@ func splitInstanceName(in string) (name, remote string) {
 
 // this is not recursive,
 // but we include a special LOCAL instance
-func allRemotes() (remotes []Instance) {
+func allRemotes() (remotes []Instances) {
 	remotes = Remote.newComponent(LOCAL)
 	remotes = append(remotes, Remote.instancesOfComponent(LOCAL)...)
 	return

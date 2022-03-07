@@ -21,52 +21,51 @@ const (
 	Remote
 )
 
-// XXX this should become an interface
-// but that involves lots of rebuilding.
 type ComponentFuncs struct {
-	Instance func(string) interface{}
-	Command  func(Instance) ([]string, []string)
-	Add      func(string, string, []string) (Instance, error)
-	Clean    func(Instance, bool, []string) error
-	Reload   func(Instance, []string) error
+	Instance func(string) Instances
+	Add      func(string, string, []string) (Instances, error)
 }
 
-// ???
-type ComponentInterface interface {
-	Instance(string) interface{}
-	Command(Instance) ([]string, []string)
-	Add(string, string, []string) (Instance, error)
-	Clean(Instance, bool, []string) error
-	Reload(Instance, []string) error
+type Components interface {
+	New(string) Instances
+	Add(string, string, []string) (Instances, error)
 }
 
-type Components map[Component]ComponentFuncs
+type ComponentsMap map[Component]ComponentFuncs
 
 // slice of registered component types for indirect calls
 // this should actually become an Interface
-var components Components = make(Components)
+var components ComponentsMap = make(ComponentsMap)
 
 // The Instance type is a placeholder interface that can be passed to
 // functions which then use reflection to get and set concrete data
 // depending on the underlying component type
-type Instance interface {
-	// empty
+type Instances interface {
+	Name() string
+	Home() string
+	Type() Component
+	Location() string
+	Prefix(string) string
+
+	Command() ([]string, []string)
+	Clean(bool, []string) error
+	Reload(params []string) (err error)
 }
 
 // The Common type is the common data shared by all component types
-type Common struct {
-	Instance `json:"-"`
+type InstanceBase struct {
+	Instances
 	// The Name of an instance. This may be different to the instance
-	// directory name during certain operations, e.g. rename
-	Name string `json:"Name"`
+	// directory InstanceName during certain operations, e.g. rename
+	InstanceName string `json:"Name"`
 	// The potential remote name (this is a remote component and not
 	// a server name)
-	Location string `default:"local" json:"Location"`
+	InstanceLocation string `default:"local" json:"Location"`
 	// The Component of an instance
-	Type string `json:"-"`
-	// The root directory of the Geneos installation. Used in template
+	InstanceType string `json:"-"`
+	// The InstanceRoot directory of the Geneos installation. Used in template
 	// default settings for component types
-	Root string `json:"-"`
+	InstanceRoot string `json:"-"`
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`
 }
@@ -136,35 +135,35 @@ func (ct Component) componentBaseDir(remote string) string {
 // Accessor functions
 
 // Return the Component for an Instance
-func Type(c Instance) Component {
+func Type(c InstanceBase) Component {
 	return parseComponentName(getString(c, "Type"))
 }
 
-func Name(c Instance) string {
+func Name(c InstanceBase) string {
 	return getString(c, "Name")
 }
 
-func Location(c Instance) string {
+func Location(c InstanceBase) string {
 	return getString(c, "Location")
 }
 
-func Home(c Instance) string {
-	return getString(c, Prefix(c)+"Home")
+func Home(c InstanceBase) string {
+	return getString(c, c.Prefix("Home"))
 }
 
-func Prefix(c Instance) string {
-	switch Type(c) {
+func Prefix(c InstanceBase) string {
+	switch c.Type() {
 	case Remote:
 		return ""
 	default:
 	}
-	if len(Type(c).String()) < 4 {
+	if len(c.Type().String()) < 4 {
 		return "Default"
 	}
-	return strings.Title(Type(c).String()[0:4])
+	return strings.Title(c.Type().String()[0:4])
 }
 
-func (ct Component) newComponent(name string) (c []Instance) {
+func (ct Component) newComponent(name string) (c []Instances) {
 	if ct == None {
 		// for _, cts := realComponentTypes() {
 		// }
@@ -179,7 +178,7 @@ func (ct Component) newComponent(name string) (c []Instance) {
 		logError.Fatalln(ct, ErrNotSupported)
 	}
 	if cm.Instance == nil {
-		return []Instance{}
+		return
 	}
-	return []Instance{cm.Instance(name)}
+	return []Instances{cm.Instance(name)}
 }

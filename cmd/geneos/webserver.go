@@ -8,7 +8,7 @@ import (
 )
 
 type Webservers struct {
-	Common
+	InstanceBase
 	//BinSuffix string `default:"licd.linux_64"`
 	WebsHome string `default:"{{join .Root \"webserver\" \"webservers\" .Name}}"`
 	WebsBins string `default:"{{join .Root \"packages\" \"webserver\"}}"`
@@ -31,60 +31,20 @@ const webserverPortRange = "8080,8100-"
 
 func init() {
 	components[Webserver] = ComponentFuncs{
-		Instance: webserverInstance,
-		Command:  webserverCommand,
-		Add:      webserverAdd,
-		Clean:    webserverClean,
-		Reload:   webserverReload,
+		Instance: NewWebserver,
+		Add:      CreateWebserver,
 	}
 }
 
-func webserverInstance(name string) interface{} {
+func NewWebserver(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Webservers{}
-	c.Root = remoteRoot(remote)
-	c.Type = Webserver.String()
-	c.Name = local
-	c.Location = remote
+	c.InstanceRoot = remoteRoot(remote)
+	c.InstanceType = Webserver.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
-}
-
-func webserverCommand(c Instance) (args, env []string) {
-	WebsHome := getString(c, Prefix(c)+"Home")
-	WebsBase := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"))
-	args = []string{
-		// "-Duser.home=" + WebsHome,
-		"-XX:+UseConcMarkSweepGC",
-		"-Xmx" + getString(c, Prefix(c)+"Xmx"),
-		"-server",
-		"-Djava.io.tmpdir=" + WebsHome + "/webapps",
-		"-Djava.awt.headless=true",
-		"-DsecurityConfig=" + WebsHome + "/config/security.xml",
-		"-Dcom.itrsgroup.configuration.file=" + WebsHome + "/config/config.xml",
-		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
-		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
-		"-Djava.library.path=" + getString(c, Prefix(c)+"Libs"),
-		"-Dlog4j2.configurationFile=file:" + WebsHome + "/config/log4j2.properties",
-		"-Dworking.directory=" + WebsHome,
-		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
-		// SSO
-		"-Dcom.itrsgroup.sso.config.file=" + WebsHome + "/config/sso.properties",
-		"-Djava.security.auth.login.config=" + WebsHome + "/config/login.conf",
-		"-Djava.security.krb5.conf=/etc/krb5.conf",
-		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
-		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",
-		"-XX:+HeapDumpOnOutOfMemoryError",
-		"-XX:HeapDumpPath=/tmp",
-		"-jar", WebsBase + "/geneos-web-server.jar",
-		"-dir", WebsBase + "/webapps",
-		"-port", getIntAsString(c, Prefix(c)+"Port"),
-		// "-ssl true",
-		"-maxThreads 254",
-		// "-log", getLogfilePath(c),
-	}
-
-	return
 }
 
 // list of file patterns to copy?
@@ -102,16 +62,16 @@ var webserverFiles = []string{
 	"config/=users.properties",
 }
 
-func webserverAdd(name string, username string, params []string) (c Instance, err error) {
+func CreateWebserver(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
-	c = webserverInstance(name)
+	c = NewWebserver(name)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
 	if webport != "8080" {
-		if err = setField(c, Prefix(c)+"Port", webport); err != nil {
+		if err = setField(c, c.Prefix("Port"), webport); err != nil {
 			return
 		}
 	}
-	if err = setField(c, Prefix(c)+"User", username); err != nil {
+	if err = setField(c, c.Prefix("User"), username); err != nil {
 		return
 	}
 
@@ -125,12 +85,12 @@ func webserverAdd(name string, username string, params []string) (c Instance, er
 	// copy default configs - use existing upload routines?
 	dir, err := os.Getwd()
 	defer os.Chdir(dir)
-	configSrc := filepath.Join(getString(c, Prefix(c)+"Bins"), getString(c, Prefix(c)+"Base"), "config")
+	configSrc := filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")), "config")
 	if err = os.Chdir(configSrc); err != nil {
 		return
 	}
 
-	if err = mkdirAll(Location(c), filepath.Join(Home(c), "webapps"), 0777); err != nil {
+	if err = mkdirAll(c.Location(), filepath.Join(c.Home(), "webapps"), 0777); err != nil {
 		return
 	}
 
@@ -143,11 +103,71 @@ func webserverAdd(name string, username string, params []string) (c Instance, er
 	return
 }
 
+// interface method set
+
+// Return the Component for an Instance
+func (w Webservers) Type() Component {
+	return parseComponentName(w.InstanceType)
+}
+
+func (w Webservers) Name() string {
+	return w.InstanceName
+}
+
+func (w Webservers) Location() string {
+	return w.InstanceLocation
+}
+
+func (w Webservers) Home() string {
+	return getString(w, w.Prefix("Home"))
+}
+
+func (w Webservers) Prefix(field string) string {
+	return "Webs" + field
+}
+
+func (c Webservers) Command() (args, env []string) {
+	WebsHome := getString(c, c.Prefix("Home"))
+	WebsBase := filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")))
+	args = []string{
+		// "-Duser.home=" + WebsHome,
+		"-XX:+UseConcMarkSweepGC",
+		"-Xmx" + getString(c, c.Prefix("Xmx")),
+		"-server",
+		"-Djava.io.tmpdir=" + WebsHome + "/webapps",
+		"-Djava.awt.headless=true",
+		"-DsecurityConfig=" + WebsHome + "/config/security.xml",
+		"-Dcom.itrsgroup.configuration.file=" + WebsHome + "/config/config.xml",
+		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
+		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
+		"-Djava.library.path=" + getString(c, c.Prefix("Libs")),
+		"-Dlog4j2.configurationFile=file:" + WebsHome + "/config/log4j2.properties",
+		"-Dworking.directory=" + WebsHome,
+		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
+		// SSO
+		"-Dcom.itrsgroup.sso.config.file=" + WebsHome + "/config/sso.properties",
+		"-Djava.security.auth.login.config=" + WebsHome + "/config/login.conf",
+		"-Djava.security.krb5.conf=/etc/krb5.conf",
+		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
+		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",
+		"-XX:+HeapDumpOnOutOfMemoryError",
+		"-XX:HeapDumpPath=/tmp",
+		"-jar", WebsBase + "/geneos-web-server.jar",
+		"-dir", WebsBase + "/webapps",
+		"-port", getIntAsString(c, c.Prefix("Port")),
+		// "-ssl true",
+		"-maxThreads 254",
+		// "-log", getLogfilePath(c),
+	}
+
+	return
+}
+
 var defaultWebserverCleanList = "*.old"
 var defaultWebserverPurgeList = "webserver.log:webserver.txt"
 
-func webserverClean(c Instance, purge bool, params []string) (err error) {
-	logDebug.Println(Type(c), Name(c), "clean")
+func (c Webservers) Clean(purge bool, params []string) (err error) {
+	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)
@@ -170,6 +190,6 @@ func webserverClean(c Instance, purge bool, params []string) (err error) {
 	return removePathList(c, RunningConfig.WebserverCleanList)
 }
 
-func webserverReload(c Instance, params []string) (err error) {
+func (c Webservers) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

@@ -174,8 +174,8 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 
 		if extractRemote == ALL {
 			for _, remote := range allRemotes() {
-				if _, err = unarchive(Name(remote), ct, filename, gz); err != nil {
-					log.Println("location:", Name(remote), err)
+				if _, err = unarchive(remote.Name(), ct, filename, gz); err != nil {
+					log.Println("location:", remote.Name(), err)
 					continue
 				}
 			}
@@ -199,8 +199,8 @@ func commandDownload(ct Component, files []string, params []string) (err error) 
 
 	if downloadRemote == ALL {
 		for _, remote := range allRemotes() {
-			if err = downloadComponent(Name(remote), ct, version); err != nil {
-				logError.Println("location:", Name(remote), err)
+			if err = downloadComponent(remote.Name(), ct, version); err != nil {
+				logError.Println("location:", remote.Name(), err)
 				continue
 			}
 		}
@@ -386,8 +386,8 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 	}
 	if updateRemote == ALL {
 		for _, remote := range allRemotes() {
-			if err = updateToVersion(Name(remote), ct, version, true); err != nil {
-				log.Println("could not update", Name(remote), err)
+			if err = updateToVersion(remote.Name(), ct, version, true); err != nil {
+				log.Println("could not update", remote.Name(), err)
 			}
 		}
 		return nil
@@ -499,11 +499,11 @@ func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) 
 
 // given a component type and a key/value pair, return matching
 // instances
-func matchComponents(remote string, ct Component, k, v string) (insts []Instance) {
+func matchComponents(remote string, ct Component, k, v string) (insts []Instances) {
 	for _, i := range ct.instancesOfComponent(remote) {
-		if v == getString(i, Prefix(i)+k) {
-			if err := loadConfig(&i, false); err != nil {
-				log.Println(Type(i), Name(i), "cannot load config")
+		if v == getString(i, i.Prefix(k)) {
+			if err := loadConfig(i, false); err != nil {
+				log.Println(i.Type(), i.Name(), "cannot load config")
 			}
 			insts = append(insts, i)
 		}
