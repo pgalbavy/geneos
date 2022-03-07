@@ -45,7 +45,7 @@ var emptyXMLTemplate string
 func init() {
 	components[Gateway] = ComponentFuncs{
 		Instance: NewGateway,
-		Add:      gatewayAdd,
+		Add:      CreateGateway,
 	}
 }
 
@@ -60,7 +60,7 @@ func NewGateway(name string) Instances {
 	return c
 }
 
-func gatewayAdd(name string, username string, params []string) (c Instances, err error) {
+func CreateGateway(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
 	c = NewGateway(name)
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))

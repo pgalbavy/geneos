@@ -28,7 +28,7 @@ const licdPortRange = "7041,7100-"
 func init() {
 	components[Licd] = ComponentFuncs{
 		Instance: NewLicd,
-		Add:      licdAdd,
+		Add:      CreateLicd,
 	}
 }
 
@@ -43,7 +43,7 @@ func NewLicd(name string) Instances {
 	return c
 }
 
-func licdAdd(name string, username string, params []string) (c Instances, err error) {
+func CreateLicd(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
 	c = NewLicd(name)
 	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))

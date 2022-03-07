@@ -28,7 +28,7 @@ const netprobePortRange = "7036,7100-"
 func init() {
 	components[Netprobe] = ComponentFuncs{
 		Instance: NewNetprobe,
-		Add:      netprobeAdd,
+		Add:      CreateNetprobe,
 	}
 }
 
@@ -44,7 +44,7 @@ func NewNetprobe(name string) Instances {
 }
 
 // create a plain netprobe instance
-func netprobeAdd(name string, username string, params []string) (c Instances, err error) {
+func CreateNetprobe(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
 	c = NewNetprobe(name)
 	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))

@@ -32,7 +32,7 @@ const webserverPortRange = "8080,8100-"
 func init() {
 	components[Webserver] = ComponentFuncs{
 		Instance: NewWebserver,
-		Add:      webserverAdd,
+		Add:      CreateWebserver,
 	}
 }
 
@@ -62,7 +62,7 @@ var webserverFiles = []string{
 	"config/=users.properties",
 }
 
-func webserverAdd(name string, username string, params []string) (c Instances, err error) {
+func CreateWebserver(name string, username string, params []string) (c Instances, err error) {
 	// fill in the blanks
 	c = NewWebserver(name)
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))

@@ -28,7 +28,7 @@ type Remotes struct {
 func init() {
 	components[Remote] = ComponentFuncs{
 		Instance: NewRemote,
-		Add:      remoteAdd,
+		Add:      CreateRemote,
 	}
 }
 
@@ -106,7 +106,7 @@ func remoteRoot(remote string) string {
 //
 // 'geneos add remote NAME SSH-URL'
 //
-func remoteAdd(remote string, username string, params []string) (c Instances, err error) {
+func CreateRemote(remote string, username string, params []string) (c Instances, err error) {
 	if len(params) == 0 {
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}
