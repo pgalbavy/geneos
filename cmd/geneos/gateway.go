@@ -14,8 +14,6 @@ import (
 	"github.com/pkg/sftp"
 )
 
-type GatewayComponent Component
-
 type Gateways struct {
 	InstanceBase
 	BinSuffix string `default:"gateway2.linux_64"`

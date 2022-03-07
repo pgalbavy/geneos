@@ -26,11 +26,6 @@ type ComponentFuncs struct {
 	Add      func(string, string, []string) (Instances, error)
 }
 
-type Components interface {
-	New(string) Instances
-	Add(string, string, []string) (Instances, error)
-}
-
 type ComponentsMap map[Component]ComponentFuncs
 
 // slice of registered component types for indirect calls
