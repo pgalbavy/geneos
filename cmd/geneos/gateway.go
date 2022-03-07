@@ -41,15 +41,15 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	components[Gateway] = ComponentFuncs{
-		Instance: NewGateway,
-		Add:      CreateGateway,
+	components[Gateway] = Components{
+		New: NewGateway,
 	}
+
 }
 
 func NewGateway(name string) Instances {
 	local, remote := splitInstanceName(name)
-	c := new(Gateways)
+	c := &Gateways{}
 	c.InstanceRoot = remoteRoot(remote)
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
@@ -58,14 +58,34 @@ func NewGateway(name string) Instances {
 	return c
 }
 
-func CreateGateway(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = NewGateway(name)
+// interface method set
+
+// Return the Component for an Instance
+func (g Gateways) Type() Component {
+	return parseComponentName(g.InstanceType)
+}
+
+func (g Gateways) Name() string {
+	return g.InstanceName
+}
+
+func (g Gateways) Location() string {
+	return g.InstanceLocation
+}
+
+func (g Gateways) Home() string {
+	return getString(g, g.Prefix("Home"))
+}
+
+func (g Gateways) Prefix(field string) string {
+	return "Gate" + field
+}
+
+func (g Gateways) Create(username string, params []string) (err error) {
+	c := &g
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
-	if gateport != "7039" {
-		if err = setField(c, c.Prefix("Port"), gateport); err != nil {
-			return
-		}
+	if err = setField(c, c.Prefix("Port"), gateport); err != nil {
+		return
 	}
 	if err = setField(c, c.Prefix("User"), username); err != nil {
 		return
@@ -117,30 +137,9 @@ func CreateGateway(name string, username string, params []string) (c Instances, 
 		logError.Fatalln(err)
 	}
 
+	log.Printf("gateway %T=%+v", c, c)
+
 	return
-}
-
-// interface method set
-
-// Return the Component for an Instance
-func (g Gateways) Type() Component {
-	return parseComponentName(g.InstanceType)
-}
-
-func (g Gateways) Name() string {
-	return g.InstanceName
-}
-
-func (g Gateways) Location() string {
-	return g.InstanceLocation
-}
-
-func (g Gateways) Home() string {
-	return getString(g, g.Prefix("Home"))
-}
-
-func (g Gateways) Prefix(field string) string {
-	return "Gate" + field
 }
 
 func (c Gateways) Command() (args, env []string) {

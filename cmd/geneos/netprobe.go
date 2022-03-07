@@ -26,9 +26,8 @@ type Netprobes struct {
 const netprobePortRange = "7036,7100-"
 
 func init() {
-	components[Netprobe] = ComponentFuncs{
-		Instance: NewNetprobe,
-		Add:      CreateNetprobe,
+	components[Netprobe] = Components{
+		New: NewNetprobe,
 	}
 }
 
@@ -41,31 +40,6 @@ func NewNetprobe(name string) Instances {
 	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
-}
-
-// create a plain netprobe instance
-func CreateNetprobe(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = NewNetprobe(name)
-	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
-	if netport != "7036" {
-		if err = setField(c, c.Prefix("Port"), netport); err != nil {
-			return
-		}
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
-
-	writeInstanceConfig(c)
-
-	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
-	}
-
-	// default config XML etc.
-	return
 }
 
 // interface method set
@@ -89,6 +63,27 @@ func (n Netprobes) Home() string {
 
 func (n Netprobes) Prefix(field string) string {
 	return "Netp" + field
+}
+
+func (n Netprobes) Create(username string, params []string) (err error) {
+	c := &n
+	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
+	if err = setField(c, c.Prefix("Port"), netport); err != nil {
+		return
+	}
+	if err = setField(c, c.Prefix("User"), username); err != nil {
+		return
+	}
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
+
+	// default config XML etc.
+	return
 }
 
 func (c Netprobes) Command() (args, env []string) {

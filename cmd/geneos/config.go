@@ -543,7 +543,7 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	// but allow for RC files again
 	var cs []Instances
 	for _, name := range names {
-		for _, c := range ct.newComponent(name) {
+		for _, c := range ct.Match(name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				continue
@@ -626,7 +626,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	// loop through named instances
 	for _, arg := range args {
-		for _, c := range ct.newComponent(arg) {
+		for _, c := range ct.Match(arg) {
 			// migration required to set values
 			if err = loadConfig(c, true); err != nil {
 				log.Println(c.Type(), c.Name(), "cannot load configuration")
@@ -823,15 +823,11 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	newname := args[1]
 
 	logDebug.Println("rename", ct, oldname, newname)
-	oldconf := ct.newComponent(oldname)[0]
+	oldconf := ct.New(oldname)
 	if err = loadConfig(oldconf, true); err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
-	tos := ct.newComponent(newname)
-	newconf := tos[0]
-	if len(tos) == 0 {
-		return fmt.Errorf("%s %s: %w", ct, newname, ErrInvalidArgs)
-	}
+	newconf := ct.New(newname)
 	if err = loadConfig(newconf, false); err == nil {
 		return fmt.Errorf("%s %s already exists", ct, newname)
 	}
@@ -856,7 +852,6 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		// try to recover
 		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
-		//
 	}
 
 	// config changes don't matter until writing config succeeds

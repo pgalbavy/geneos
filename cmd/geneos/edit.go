@@ -63,10 +63,10 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	}
 
 	// loop instances - parse the args again and load/print the config,
-	// but allow for RC files again
+	// XXX allow for RC files again
 	var cs []string
 	for _, name := range args {
-		for _, c := range ct.newComponent(name) {
+		for _, c := range ct.Match(name) {
 			if c.Location() != LOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}

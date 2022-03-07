@@ -26,9 +26,8 @@ type Licds struct {
 const licdPortRange = "7041,7100-"
 
 func init() {
-	components[Licd] = ComponentFuncs{
-		Instance: NewLicd,
-		Add:      CreateLicd,
+	components[Licd] = Components{
+		New: NewLicd,
 	}
 }
 
@@ -41,30 +40,6 @@ func NewLicd(name string) Instances {
 	c.InstanceLocation = remote
 	setDefaults(&c)
 	return c
-}
-
-func CreateLicd(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = NewLicd(name)
-	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
-	if licdport != "7041" {
-		if err = setField(c, c.Prefix("Port"), licdport); err != nil {
-			return
-		}
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
-
-	writeInstanceConfig(c)
-
-	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
-	}
-
-	// default config XML etc.
-	return
 }
 
 // interface method set
@@ -88,6 +63,27 @@ func (l Licds) Home() string {
 
 func (l Licds) Prefix(field string) string {
 	return "Licd" + field
+}
+
+func (l Licds) Create(username string, params []string) (err error) {
+	c := &l
+	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
+	if err = setField(c, c.Prefix("Port"), licdport); err != nil {
+		return
+	}
+	if err = setField(c, c.Prefix("User"), username); err != nil {
+		return
+	}
+
+	writeInstanceConfig(c)
+
+	// check tls config, create certs if found
+	if _, err = readSigningCert(); err == nil {
+		createInstanceCert(c)
+	}
+
+	// default config XML etc.
+	return
 }
 
 func (c Licds) Command() (args, env []string) {
