@@ -33,6 +33,7 @@ func init() {
 		ComponentType:    Remote,
 		ComponentMatches: []string{"remote", "remotes"},
 		IncludeInLoops:   false,
+		DownloadBase:     "",
 	})
 }
 

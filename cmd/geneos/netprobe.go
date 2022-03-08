@@ -33,6 +33,7 @@ func init() {
 		ComponentType:    Netprobe,
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 		IncludeInLoops:   true,
+		DownloadBase:     "Netprobe",
 	})
 }
 

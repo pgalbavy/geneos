@@ -19,6 +19,7 @@ type Components struct {
 	ComponentType    Component
 	ComponentMatches []string
 	IncludeInLoops   bool
+	DownloadBase     string
 }
 
 func init() {
@@ -26,6 +27,7 @@ func init() {
 		ComponentType:    None,
 		ComponentMatches: []string{"", "all", "any"},
 		IncludeInLoops:   false,
+		DownloadBase:     "",
 	})
 }
 

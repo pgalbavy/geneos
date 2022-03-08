@@ -37,6 +37,7 @@ func init() {
 		ComponentType:    Webserver,
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
 		IncludeInLoops:   true,
+		DownloadBase:     "Web+Dashboard",
 	})
 }
 

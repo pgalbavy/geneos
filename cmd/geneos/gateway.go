@@ -48,6 +48,7 @@ func init() {
 		ComponentType:    Gateway,
 		ComponentMatches: []string{"gateway", "gateways"},
 		IncludeInLoops:   true,
+		DownloadBase:     "Gateway+2",
 	})
 }
 

@@ -33,6 +33,7 @@ func init() {
 		ComponentType:    Licd,
 		ComponentMatches: []string{"licd", "licds"},
 		IncludeInLoops:   true,
+		DownloadBase:     "Licence+Daemon",
 	})
 }
 

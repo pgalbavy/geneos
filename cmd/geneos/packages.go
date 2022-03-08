@@ -538,13 +538,6 @@ type DownloadAuth struct {
 	Password string `json:"password"`
 }
 
-var downloadMap = map[Component]string{
-	Gateway:   "Gateway+2",
-	Netprobe:  "Netprobe",
-	Licd:      "Licence+Daemon",
-	Webserver: "Web+Dashboard",
-}
-
 // XXX use HEAD to check match and compare to on disk versions
 func downloadArchive(ct Component, version string) (filename string, body io.ReadCloser, err error) {
 	baseurl := RunningConfig.DownloadURL
@@ -555,8 +548,10 @@ func downloadArchive(ct Component, version string) (filename string, body io.Rea
 	var resp *http.Response
 
 	downloadURL, _ := url.Parse(baseurl)
-	realpath, _ := url.Parse(downloadMap[ct])
+	realpath, _ := url.Parse(components[ct].DownloadBase)
 	v := url.Values{}
+	// XXX OS filter for EL8 here
+	// v.Set("title", "el8") - but account for versions etc.
 	v.Set("os", "linux")
 	if version != "latest" {
 		v.Set("title", version)
