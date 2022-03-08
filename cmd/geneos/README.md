@@ -17,7 +17,16 @@ The `geneos` program will help you manage your Geneos environment, one server at
 
 ## Getting Started
 
-You can either download a single binary - or build and install from source, if you have Go 1.17+ installed:
+You can either download a single binary:
+
+```bash
+# edit version to suit - until this is a non pre-release 'latest' will not work
+curl -OL https://github.com/pgalbavy/geneos/releases/download/v0.11.1/geneos
+chmod +x geneos
+sudo mv geneos /usr/local/bin/
+```
+
+Or build and install from source, if you have Go 1.17+ installed:
 
 `go install wonderland.org/geneos/cmd/geneos@latest`
 
