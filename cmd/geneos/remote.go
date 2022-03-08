@@ -16,6 +16,8 @@ import (
 
 // remote support
 
+const Remote Component = "remote"
+
 type Remotes struct {
 	InstanceBase
 	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
@@ -26,10 +28,12 @@ type Remotes struct {
 }
 
 func init() {
-	components[Remote] = ComponentFuncs{
-		Instance: NewRemote,
-		Add:      CreateRemote,
-	}
+	RegisterComponent(&Components{
+		New:              NewRemote,
+		ComponentType:    Remote,
+		ComponentMatches: []string{"remote", "remotes"},
+		IncludeInLoops:   false,
+	})
 }
 
 // interface method set
@@ -47,11 +51,88 @@ func (r Remotes) Location() string {
 }
 
 func (r Remotes) Prefix(field string) string {
-	return "Gate" + field
+	return "" + field
 }
 
 func (r Remotes) Home() string {
 	return getString(r, "HomeDir")
+}
+
+//
+// 'geneos add remote NAME SSH-URL'
+//
+func (r Remotes) Create(username string, params []string) (err error) {
+	c := &r
+	if len(params) == 0 {
+		logError.Fatalln("remote destination must be provided in the form of a URL")
+	}
+
+	u, err := url.Parse(params[0])
+	if err != nil {
+		logDebug.Println(err)
+		return
+	}
+
+	if u.Scheme != "ssh" {
+		logError.Fatalln("unsupport scheme (only ssh at the moment):", u.Scheme)
+	}
+
+	if u.Host == "" {
+		logError.Fatalln("hostname must be provided")
+	}
+	setField(c, "Hostname", u.Host)
+
+	if u.Port() != "" {
+		setField(c, "Port", u.Port())
+	}
+
+	if u.User.Username() != "" {
+		username = u.User.Username()
+	}
+	setField(c, "Username", username)
+
+	homepath := RunningConfig.ITRSHome
+	if u.Path != "" {
+		homepath = u.Path
+	}
+	setField(c, "ITRSHome", homepath)
+
+	err = writeInstanceConfig(c)
+	if err != nil {
+		logError.Fatalln(err)
+	}
+
+	// now check and created file layout
+	// s := sftpOpenSession(name)
+	if _, err = statFile(c.Name(), homepath); err == nil {
+
+		dirs, err := readDir(c.Name(), homepath)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		// ignore dot files
+		for _, entry := range dirs {
+			if !strings.HasPrefix(entry.Name(), ".") {
+				// directory exists and contains non dot files/dirs - so return
+				return nil
+			}
+		}
+	} else {
+		// need to create out own, chown base directory only
+		if err = mkdirAll(c.Name(), homepath, 0775); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+
+	// create dirs
+	// create directories - initDirs is global, in main.go
+	for _, d := range initDirs {
+		dir := filepath.Join(homepath, d)
+		if err = mkdirAll(c.Name(), dir, 0775); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+	return
 }
 
 func (c Remotes) Command() (args, env []string) {
@@ -201,8 +282,7 @@ func splitInstanceName(in string) (name, remote string) {
 // this is not recursive,
 // but we include a special LOCAL instance
 func allRemotes() (remotes []Instances) {
-	remotes = Remote.newComponent(LOCAL)
-	remotes = append(remotes, Remote.instancesOfComponent(LOCAL)...)
+	remotes = append([]Instances{Remote.New(LOCAL)}, Remote.remoteInstances(LOCAL)...)
 	return
 }
 

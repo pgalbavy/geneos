@@ -331,11 +331,13 @@ func (ct Component) allArgsForComponent() (args []string) {
 		// wildcard again - sort oder matters, fix
 		confs = allInstances()
 	case Remote:
-		confs = append(confs, ct.instancesOfComponent(LOCAL)...)
+		// we only look for actual "remote" components on the local system
+		confs = append(confs, Remote.remoteInstances(LOCAL)...)
 	default:
+		// scan all remotes for the instances of type ct
 		for _, remote := range allRemotes() {
 			logDebug.Println("checking remote:", remote.Name())
-			confs = append(confs, ct.instancesOfComponent(remote.Name())...)
+			confs = append(confs, ct.remoteInstances(remote.Name())...)
 		}
 	}
 	for _, c := range confs {
@@ -389,7 +391,7 @@ func validInstanceName(in string) (ok bool) {
 // try to use go routines here - mutexes required
 func loopCommand(fn func(Instances, []string) error, ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
-		for _, c := range ct.newComponent(name) {
+		for _, c := range ct.Match(name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				return
@@ -405,7 +407,7 @@ func loopCommand(fn func(Instances, []string) error, ct Component, args []string
 // call a function but with an extra subcommand parameter to allow some indirection
 func loopSubcommand(fn func(Instances, string, []string) error, subcommand string, ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
-		for _, c := range ct.newComponent(name) {
+		for _, c := range ct.Match(name) {
 			if err = loadConfig(c, false); err != nil {
 				log.Println(c.Type(), c.Name(), "cannot load configuration")
 				return
@@ -428,7 +430,7 @@ func (ct Component) singleCommand(fn func(Instances, []string, []string) error, 
 		return
 	}
 	name := args[0]
-	for _, c := range ct.newComponent(name) {
+	for _, c := range ct.Match(name) {
 		if err = loadConfig(c, false); err != nil {
 			log.Println(c.Type(), c.Name(), "cannot load configuration")
 			return
@@ -599,7 +601,7 @@ func setField(c interface{}, k string, v string) (err error) {
 			return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
 		}
 	} else {
-		return fmt.Errorf("cannot set %q: %w", k, ErrInvalidArgs)
+		return fmt.Errorf("cannot set %q: %w (isValid=%v, canset=%v, type=%v)", k, ErrInvalidArgs, fv.IsValid(), fv.CanSet(), fv.Type())
 	}
 	return
 }

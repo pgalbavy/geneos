@@ -70,14 +70,14 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		username = u.Username
 	}
 
-	cm, ok := components[ct]
-	if !ok || cm.Add == nil {
-		return ErrNotSupported
+	// XXX check if instance already exists
+
+	c := ct.New(name)
+	if err = c.Create(username, params); err != nil {
+		log.Fatalln(err)
 	}
-	c, err := cm.Add(name, username, params)
-	if err != nil {
-		return
-	}
+	// reload config as 'c' is not updated by Create() as an interface value
+	loadConfig(c, false)
 	log.Printf("new %s %q added, port %s\n", c.Type(), c.Name(), getIntAsString(c, c.Prefix("Port")))
 
 	return
@@ -192,7 +192,7 @@ func commandUpload(ct Component, args []string, params []string) (err error) {
 //
 // local directroreies are created
 func uploadInstance(c Instances, args []string, params []string) (err error) {
-	if c.Type() == None || c.Type() == Unknown {
+	if !components[c.Type()].IncludeInLoops {
 		return ErrNotSupported
 	}
 

@@ -2,39 +2,41 @@ package main
 
 import (
 	"path/filepath"
-	"strings"
 )
 
 // definitions and access methods for the generic component types
 
-type Component int
+type Component string
 
 const (
-	// None - no component supplied or required
-	None Component = iota
-	// Unknown - doesn't match component type
-	Unknown
-	Gateway
-	Netprobe
-	Licd
-	Webserver
-	Remote
+	None    Component = "none"
+	Unknown Component = "unknown"
 )
 
-type ComponentFuncs struct {
-	Instance func(string) Instances
-	Add      func(string, string, []string) (Instances, error)
+type Components struct {
+	New func(string) Instances
+
+	ComponentType    Component
+	ComponentMatches []string
+	IncludeInLoops   bool
 }
 
-type ComponentsMap map[Component]ComponentFuncs
+func init() {
+	RegisterComponent(&Components{
+		ComponentType:    None,
+		ComponentMatches: []string{"", "all", "any"},
+		IncludeInLoops:   false,
+	})
+}
+
+type ComponentsMap map[Component]Components
 
 // slice of registered component types for indirect calls
 // this should actually become an Interface
 var components ComponentsMap = make(ComponentsMap)
 
-// The Instance type is a placeholder interface that can be passed to
-// functions which then use reflection to get and set concrete data
-// depending on the underlying component type
+// The Instances interface is used by all components through
+// the InstancesBase struct below
 type Instances interface {
 	Name() string
 	Home() string
@@ -42,6 +44,7 @@ type Instances interface {
 	Location() string
 	Prefix(string) string
 
+	Create(string, []string) error
 	Command() ([]string, []string)
 	Clean(bool, []string) error
 	Reload(params []string) (err error)
@@ -49,7 +52,7 @@ type Instances interface {
 
 // The Common type is the common data shared by all component types
 type InstanceBase struct {
-	Instances
+	Instances `json:"-"`
 	// The Name of an instance. This may be different to the instance
 	// directory InstanceName during certain operations, e.g. rename
 	InstanceName string `json:"Name"`
@@ -68,57 +71,49 @@ type InstanceBase struct {
 // currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 // not including Remote - this is special
-func realComponentTypes() []Component {
-	return []Component{Gateway, Netprobe, Licd, Webserver}
+func realComponentTypes() (cts []Component) {
+	for ct, c := range components {
+		if c.IncludeInLoops {
+			cts = append(cts, ct)
+		}
+	}
+	return
 }
 
-func (ct Component) String() string {
-	switch ct {
-	case None:
-		return "none"
-	case Gateway:
-		return "gateway"
-	case Netprobe:
-		return "netprobe"
-	case Licd:
-		return "licd"
-	case Webserver:
-		return "webserver"
-	case Remote:
-		return "remote"
-	}
-	return "unknown"
+func (ct Component) String() (name string) {
+	return string(ct)
 }
 
 func parseComponentName(component string) Component {
-	switch strings.ToLower(component) {
-	case "", "any":
-		return None
-	case "gateway", "gateways":
-		return Gateway
-	case "netprobe", "probe", "netprobes", "probes":
-		return Netprobe
-	case "licd", "licds":
-		return Licd
-	case "web-server", "webserver", "webservers", "webdashboard", "dashboards":
-		return Webserver
-	case "remote", "remotes":
-		return Remote
-	default:
-		return Unknown
+	for ct, v := range components {
+		for _, m := range v.ComponentMatches {
+			if m == component {
+				return ct
+			}
+		}
 	}
+	return Unknown
+}
+
+// register a component type
+func RegisterComponent(c *Components) {
+	components[c.ComponentType] = *c
 }
 
 // Return a slice of all instances for a given Component. No checking is done
 // to validate that the directory is a populated instance.
 //
 // No side-effects
-func (ct Component) instanceDirsForComponent(remote string) []string {
+func (ct Component) instanceNamesForComponent(remote string) []string {
 	return sortedInstancesInDir(remote, ct.componentBaseDir(remote))
 }
 
 // Return the base directory for a Component
+// ct cannot be None
 func (ct Component) componentBaseDir(remote string) string {
+	if ct == None {
+		logError.Fatalln(ct, ErrNotSupported)
+	}
 	switch ct {
 	case Remote:
 		return filepath.Join(RunningConfig.ITRSHome, ct.String()+"s")
@@ -127,53 +122,52 @@ func (ct Component) componentBaseDir(remote string) string {
 	}
 }
 
-// Accessor functions
-
-// Return the Component for an Instance
-func Type(c InstanceBase) Component {
-	return parseComponentName(getString(c, "Type"))
-}
-
-func Name(c InstanceBase) string {
-	return getString(c, "Name")
-}
-
-func Location(c InstanceBase) string {
-	return getString(c, "Location")
-}
-
-func Home(c InstanceBase) string {
-	return getString(c, c.Prefix("Home"))
-}
-
-func Prefix(c InstanceBase) string {
-	switch c.Type() {
-	case Remote:
-		return ""
-	default:
-	}
-	if len(c.Type().String()) < 4 {
-		return "Default"
-	}
-	return strings.Title(c.Type().String()[0:4])
-}
-
-func (ct Component) newComponent(name string) (c []Instances) {
+// return a new instance of component ct
+func (ct Component) New(name string) (c Instances) {
 	if ct == None {
-		// for _, cts := realComponentTypes() {
-		// }
-		cs := findInstances(name)
-		for _, cm := range cs {
-			c = append(c, cm.newComponent(name)...)
-		}
-		return
-	}
-	cm, ok := components[ct]
-	if !ok {
 		logError.Fatalln(ct, ErrNotSupported)
 	}
-	if cm.Instance == nil {
-		return
+
+	cm, ok := components[ct]
+	if !ok || cm.New == nil {
+		logError.Fatalln(ct, ErrNotSupported)
 	}
-	return []Instances{cm.Instance(name)}
+	return cm.New(name)
+}
+
+// construct and return a slice of a/all component types that have
+// a matching name
+// if ct == None, check all real types
+func (ct Component) Match(name string) (c []Instances) {
+	var cs []Component
+
+	if ct != None {
+		return []Instances{ct.New(name)}
+	}
+
+	local, remote := splitInstanceName(name)
+	for _, t := range realComponentTypes() {
+		for _, dir := range t.instanceNamesForComponent(remote) {
+			// for case insensitive match change to EqualFold here
+			ldir, _ := splitInstanceName(dir)
+			if filepath.Base(ldir) == local {
+				cs = append(cs, t)
+			}
+		}
+	}
+	for _, cm := range cs {
+		c = append(c, cm.New(name))
+	}
+	return
+}
+
+// return a slice of all instances, ordered and grouped.
+// configurations are not loaded, just the defaults ready for overlay
+func allInstances() (confs []Instances) {
+	for _, ct := range realComponentTypes() {
+		for _, remote := range allRemotes() {
+			confs = append(confs, ct.remoteInstances(remote.Name())...)
+		}
+	}
+	return
 }

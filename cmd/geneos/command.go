@@ -34,36 +34,10 @@ type Command struct {
 // The Commands type is a map of command text (as a string) to a Command structure
 type Commands map[string]Command
 
-// return a single slice of all instances, ordered and grouped
-// configuration are not loaded, just the defaults ready for overlay
-func allInstances() (confs []Instances) {
-	for _, ct := range realComponentTypes() {
-		for _, remote := range allRemotes() {
-			confs = append(confs, ct.instancesOfComponent(remote.Name())...)
-		}
-	}
-	return
-}
-
-// return a slice of instancesOfComponent for a given Component
-func (ct Component) instancesOfComponent(remote string) (confs []Instances) {
-	for _, name := range ct.instanceDirsForComponent(remote) {
-		confs = append(confs, ct.newComponent(name)...)
-	}
-	return
-}
-
-// return a slice of component types that exist for this name
-func findInstances(name string) (cts []Component) {
-	local, remote := splitInstanceName(name)
-	for _, t := range realComponentTypes() {
-		for _, dir := range t.instanceDirsForComponent(remote) {
-			// for case insensitive match change to EqualFold here
-			ldir, _ := splitInstanceName(dir)
-			if filepath.Base(ldir) == local {
-				cts = append(cts, t)
-			}
-		}
+// return a slice of Instances for a given Component
+func (ct Component) remoteInstances(remote string) (confs []Instances) {
+	for _, name := range ct.instanceNamesForComponent(remote) {
+		confs = append(confs, ct.New(name))
 	}
 	return
 }

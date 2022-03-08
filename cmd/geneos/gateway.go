@@ -14,6 +14,8 @@ import (
 	"github.com/pkg/sftp"
 )
 
+const Gateway Component = "gateway"
+
 type Gateways struct {
 	InstanceBase
 	BinSuffix string `default:"gateway2.linux_64"`
@@ -23,7 +25,7 @@ type Gateways struct {
 	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
 	GateLogD  string `json:",omitempty"`
 	GateLogF  string `default:"gateway.log"`
-	GatePort  int    `json:",omitempty"`
+	GatePort  int    `default:"7039" json:",omitempty"`
 	GateMode  string `json:",omitempty"`
 	GateLicP  int    `json:",omitempty"`
 	GateLicH  string `json:",omitempty"`
@@ -41,15 +43,17 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	components[Gateway] = ComponentFuncs{
-		Instance: NewGateway,
-		Add:      CreateGateway,
-	}
+	RegisterComponent(&Components{
+		New:              NewGateway,
+		ComponentType:    Gateway,
+		ComponentMatches: []string{"gateway", "gateways"},
+		IncludeInLoops:   true,
+	})
 }
 
 func NewGateway(name string) Instances {
 	local, remote := splitInstanceName(name)
-	c := new(Gateways)
+	c := &Gateways{}
 	c.InstanceRoot = remoteRoot(remote)
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
@@ -58,9 +62,31 @@ func NewGateway(name string) Instances {
 	return c
 }
 
-func CreateGateway(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = NewGateway(name)
+// interface method set
+
+// Return the Component for an Instance
+func (g Gateways) Type() Component {
+	return parseComponentName(g.InstanceType)
+}
+
+func (g Gateways) Name() string {
+	return g.InstanceName
+}
+
+func (g Gateways) Location() string {
+	return g.InstanceLocation
+}
+
+func (g Gateways) Home() string {
+	return getString(g, g.Prefix("Home"))
+}
+
+func (g Gateways) Prefix(field string) string {
+	return "Gate" + field
+}
+
+func (g Gateways) Create(username string, params []string) (err error) {
+	c := &g
 	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
 	if err = setField(c, c.Prefix("Port"), gateport); err != nil {
 		return
@@ -118,29 +144,6 @@ func CreateGateway(name string, username string, params []string) (c Instances, 
 	return
 }
 
-// interface method set
-
-// Return the Component for an Instance
-func (g Gateways) Type() Component {
-	return parseComponentName(g.InstanceType)
-}
-
-func (g Gateways) Name() string {
-	return g.InstanceName
-}
-
-func (g Gateways) Location() string {
-	return g.InstanceLocation
-}
-
-func (g Gateways) Home() string {
-	return getString(g, g.Prefix("Home"))
-}
-
-func (g Gateways) Prefix(field string) string {
-	return "Gate" + field
-}
-
 func (c Gateways) Command() (args, env []string) {
 	// get opts from
 	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
@@ -163,7 +166,7 @@ func (c Gateways) Command() (args, env []string) {
 
 	// only add a port arg is the value is defined - empty means use config file
 	port := getIntAsString(c, c.Prefix("Port"))
-	if port != "0" {
+	if port != "7039" {
 		args = append([]string{"-port", port}, args...)
 	}
 

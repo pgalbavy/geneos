@@ -7,11 +7,13 @@ import (
 	"strconv"
 )
 
+const Webserver Component = "webserver"
+
 type Webservers struct {
 	InstanceBase
 	//BinSuffix string `default:"licd.linux_64"`
-	WebsHome string `default:"{{join .Root \"webserver\" \"webservers\" .Name}}"`
-	WebsBins string `default:"{{join .Root \"packages\" \"webserver\"}}"`
+	WebsHome string `default:"{{join .InstanceRoot \"webserver\" \"webservers\" .InstanceName}}"`
+	WebsBins string `default:"{{join .InstanceRoot \"packages\" \"webserver\"}}"`
 	WebsBase string `default:"active_prod"`
 	WebsExec string `default:"{{join .WebsBins .WebsBase \"JRE/bin/java\"}}"`
 	WebsLogD string `default:"logs"`
@@ -30,10 +32,12 @@ type Webservers struct {
 const webserverPortRange = "8080,8100-"
 
 func init() {
-	components[Webserver] = ComponentFuncs{
-		Instance: NewWebserver,
-		Add:      CreateWebserver,
-	}
+	RegisterComponent(&Components{
+		New:              NewWebserver,
+		ComponentType:    Webserver,
+		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
+		IncludeInLoops:   true,
+	})
 }
 
 func NewWebserver(name string) Instances {
@@ -62,9 +66,31 @@ var webserverFiles = []string{
 	"config/=users.properties",
 }
 
-func CreateWebserver(name string, username string, params []string) (c Instances, err error) {
-	// fill in the blanks
-	c = NewWebserver(name)
+// interface method set
+
+// Return the Component for an Instance
+func (w Webservers) Type() Component {
+	return parseComponentName(w.InstanceType)
+}
+
+func (w Webservers) Name() string {
+	return w.InstanceName
+}
+
+func (w Webservers) Location() string {
+	return w.InstanceLocation
+}
+
+func (w Webservers) Home() string {
+	return getString(w, w.Prefix("Home"))
+}
+
+func (w Webservers) Prefix(field string) string {
+	return "Webs" + field
+}
+
+func (w Webservers) Create(username string, params []string) (err error) {
+	c := &w
 	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
 	if err = setField(c, c.Prefix("Port"), webport); err != nil {
 		return
@@ -99,29 +125,6 @@ func CreateWebserver(name string, username string, params []string) (c Instances
 	}
 
 	return
-}
-
-// interface method set
-
-// Return the Component for an Instance
-func (w Webservers) Type() Component {
-	return parseComponentName(w.InstanceType)
-}
-
-func (w Webservers) Name() string {
-	return w.InstanceName
-}
-
-func (w Webservers) Location() string {
-	return w.InstanceLocation
-}
-
-func (w Webservers) Home() string {
-	return getString(w, w.Prefix("Home"))
-}
-
-func (w Webservers) Prefix(field string) string {
-	return "Webs" + field
 }
 
 func (c Webservers) Command() (args, env []string) {
