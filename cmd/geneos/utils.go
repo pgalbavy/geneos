@@ -446,7 +446,7 @@ func (ct Component) singleCommand(fn func(Instances, []string, []string) error, 
 
 func filenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err error) {
 	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
-	if !ok {
+	if !ok && resp.Request.Response != nil {
 		cd, ok = resp.Request.Response.Header[http.CanonicalHeaderKey("content-disposition")]
 	}
 	if ok {

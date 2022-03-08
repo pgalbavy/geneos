@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -256,6 +257,11 @@ func uploadFile(c Instances, source string) (err error) {
 	case u.Scheme == "https" || u.Scheme == "http":
 		resp, err := http.Get(u.String())
 		if err != nil {
+			return err
+		}
+		if resp.StatusCode > 299 {
+			err = fmt.Errorf("cannot download %q: %s", source, resp.Status)
+			resp.Body.Close()
 			return err
 		}
 
