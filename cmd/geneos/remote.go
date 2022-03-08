@@ -485,7 +485,7 @@ func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
 	return
 }
 
-func openStatFile(remote string, name string) (f io.ReadSeekCloser, st fileStat, err error) {
+func statAndOpenFile(remote string, name string) (f io.ReadSeekCloser, st fileStat, err error) {
 	st, err = statFile(remote, name)
 	if err != nil {
 		return

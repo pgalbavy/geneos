@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,8 +122,11 @@ func outHeader(logfile string) {
 func logTailInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, st, err := openStatFile(c.Location(), logfile)
+	lines, st, err := statAndOpenFile(c.Location(), logfile)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		return
 	}
 	defer lines.Close()
@@ -146,6 +150,9 @@ func tailLines(f io.ReadSeekCloser, st fileStat, linecount int) (text string, er
 	var i int64
 	var alllines []string = []string{""}
 
+	if f == nil {
+		return
+	}
 	if linecount == 0 {
 		// seek to end and return
 		_, err = f.Seek(0, os.SEEK_END)
@@ -156,10 +163,13 @@ func tailLines(f io.ReadSeekCloser, st fileStat, linecount int) (text string, er
 	if err != nil {
 		return
 	}
-	end := st.st.Size()
+	var end int64
+	if st != (fileStat{}) {
+		end = st.st.Size()
+	}
 
 	for i = 1 + end/chunk; i > 0; i-- {
-		f.Seek((i-1)*chunk, 0)
+		f.Seek((i-1)*chunk, io.SeekStart)
 		n, err := f.Read(buf)
 		if err != nil && !errors.Is(err, io.EOF) {
 			logError.Fatalln(err)
@@ -184,7 +194,6 @@ func tailLines(f io.ReadSeekCloser, st fileStat, linecount int) (text string, er
 }
 
 func isLineSep(r rune) bool {
-	//DebugLog.Println(r, string(r))
 	if r == rune('\n') || r == rune('\r') {
 		return true
 	}
@@ -223,8 +232,11 @@ func filterOutput(logfile string, reader io.Reader) {
 func logCatInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, _, err := openStatFile(c.Location(), logfile)
+	lines, _, err := statAndOpenFile(c.Location(), logfile)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		return
 	}
 	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + c.Location()}
@@ -236,13 +248,13 @@ func logCatInstance(c Instances, params []string) (err error) {
 
 func logFollowInstance(c Instances, params []string) (err error) {
 	if c.Location() != LOCAL {
-		logError.Fatalln("remote!=local", ErrNotSupported)
+		log.Printf("===> %s %s@%s -f not supported for remote instances, ignoring <===", c.Type(), c.Name(), c.Location())
+		return
 	}
 	logfile := getLogfilePath(c)
 
-	f, _ := os.Open(logfile)
-	st, err := statFile(LOCAL, logfile)
-	if err != nil {
+	f, st, err := statAndOpenFile(LOCAL, logfile)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return
 	}
 	// perfectly valid to not have a file to watch at start
