@@ -103,9 +103,7 @@ func (r Remotes) Create(username string, params []string) (err error) {
 	}
 
 	// now check and created file layout
-	// s := sftpOpenSession(name)
 	if _, err = statFile(c.Name(), homepath); err == nil {
-
 		dirs, err := readDir(c.Name(), homepath)
 		if err != nil {
 			logError.Fatalln(err)
@@ -230,9 +228,7 @@ func CreateRemote(remote string, username string, params []string) (c Instances,
 	}
 
 	// now check and created file layout
-	// s := sftpOpenSession(name)
 	if _, err = statFile(remote, homepath); err == nil {
-
 		dirs, err := readDir(remote, homepath)
 		if err != nil {
 			logError.Fatalln(err)
