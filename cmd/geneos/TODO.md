@@ -29,8 +29,6 @@
   * transparency - all except `logs -f` should work with ssh and sftp
   * add support for rwildcard remote instances, e.g. '@remote'
 * Examine integrating `upload` into `add`
-* Look at how to use go interfaces for components, make it easier to add
-  new types
-
+* Support gateway2.gci format files
 
 
