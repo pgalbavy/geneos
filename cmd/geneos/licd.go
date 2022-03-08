@@ -26,9 +26,13 @@ type Licds struct {
 const licdPortRange = "7041,7100-"
 
 func init() {
-	components[Licd] = Components{
-		New: NewLicd,
-	}
+	RegisterComponent(&Components{
+		New:              NewLicd,
+		ComponentType:    Licd,
+		ComponentName:    "licd",
+		ComponentMatches: []string{"licd", "licds"},
+		IncludeInLoops:   true,
+	})
 }
 
 func NewLicd(name string) Instances {

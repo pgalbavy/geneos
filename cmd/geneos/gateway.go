@@ -41,10 +41,13 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	components[Gateway] = Components{
-		New: NewGateway,
-	}
-
+	RegisterComponent(&Components{
+		New:              NewGateway,
+		ComponentType:    Gateway,
+		ComponentName:    "gateway",
+		ComponentMatches: []string{"gateway", "gateways"},
+		IncludeInLoops:   true,
+	})
 }
 
 func NewGateway(name string) Instances {

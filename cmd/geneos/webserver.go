@@ -30,9 +30,13 @@ type Webservers struct {
 const webserverPortRange = "8080,8100-"
 
 func init() {
-	components[Webserver] = Components{
-		New: NewWebserver,
-	}
+	RegisterComponent(&Components{
+		New:              NewWebserver,
+		ComponentType:    Webserver,
+		ComponentName:    "webserver",
+		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
+		IncludeInLoops:   true,
+	})
 }
 
 func NewWebserver(name string) Instances {

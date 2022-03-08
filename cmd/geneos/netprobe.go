@@ -26,9 +26,13 @@ type Netprobes struct {
 const netprobePortRange = "7036,7100-"
 
 func init() {
-	components[Netprobe] = Components{
-		New: NewNetprobe,
-	}
+	RegisterComponent(&Components{
+		New:              NewNetprobe,
+		ComponentType:    Netprobe,
+		ComponentName:    "netprobe",
+		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
+		IncludeInLoops:   true,
+	})
 }
 
 func NewNetprobe(name string) Instances {

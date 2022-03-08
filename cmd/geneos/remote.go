@@ -26,9 +26,13 @@ type Remotes struct {
 }
 
 func init() {
-	components[Remote] = Components{
-		New: NewRemote,
-	}
+	RegisterComponent(&Components{
+		New:              NewRemote,
+		ComponentType:    Remote,
+		ComponentName:    "remote",
+		ComponentMatches: []string{"remote", "remotes"},
+		IncludeInLoops:   false,
+	})
 }
 
 // interface method set

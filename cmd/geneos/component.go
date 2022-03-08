@@ -2,7 +2,6 @@ package main
 
 import (
 	"path/filepath"
-	"strings"
 )
 
 // definitions and access methods for the generic component types
@@ -23,6 +22,20 @@ const (
 
 type Components struct {
 	New func(string) Instances
+
+	ComponentType    Component
+	ComponentName    string
+	ComponentMatches []string
+	IncludeInLoops   bool
+}
+
+func init() {
+	RegisterComponent(&Components{
+		ComponentType:    None,
+		ComponentName:    "none",
+		ComponentMatches: []string{"", "all", "any"},
+		IncludeInLoops:   false,
+	})
 }
 
 type ComponentsMap map[Component]Components
@@ -67,45 +80,37 @@ type InstanceBase struct {
 // currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 // not including Remote - this is special
-func realComponentTypes() []Component {
-	return []Component{Gateway, Netprobe, Licd, Webserver}
+func realComponentTypes() (cts []Component) {
+	for ct, c := range components {
+		if c.IncludeInLoops {
+			cts = append(cts, ct)
+		}
+	}
+	return
 }
 
-func (ct Component) String() string {
-	switch ct {
-	case None:
-		return "none"
-	case Gateway:
-		return "gateway"
-	case Netprobe:
-		return "netprobe"
-	case Licd:
-		return "licd"
-	case Webserver:
-		return "webserver"
-	case Remote:
-		return "remote"
+func (ct Component) String() (name string) {
+	c, ok := components[ct]
+	if !ok {
+		return "unknown"
 	}
-	return "unknown"
+	return c.ComponentName
 }
 
 func parseComponentName(component string) Component {
-	switch strings.ToLower(component) {
-	case "", "any":
-		return None
-	case "gateway", "gateways":
-		return Gateway
-	case "netprobe", "probe", "netprobes", "probes":
-		return Netprobe
-	case "licd", "licds":
-		return Licd
-	case "web-server", "webserver", "webservers", "webdashboard", "dashboards":
-		return Webserver
-	case "remote", "remotes":
-		return Remote
-	default:
-		return Unknown
+	for ct, v := range components {
+		for _, m := range v.ComponentMatches {
+			if m == component {
+				return ct
+			}
+		}
 	}
+	return Unknown
+}
+
+// register a component type
+func RegisterComponent(c *Components) {
+	components[c.ComponentType] = *c
 }
 
 // Return a slice of all instances for a given Component. No checking is done
