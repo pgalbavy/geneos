@@ -231,6 +231,10 @@ func TLSInstance(c Instances, subcommand string, params []string) (err error) {
 
 func lsInstanceCert(c Instances, params []string) (err error) {
 	cert, err := readInstanceCert(c)
+	if err == ErrNotFound {
+		// this is OK - readInstanceCert() reports no configured cert this way
+		return nil
+	}
 	if err != nil {
 		return
 	}
@@ -249,6 +253,10 @@ func lsInstanceCert(c Instances, params []string) (err error) {
 
 func lsInstanceCertCSV(c Instances, params []string) (err error) {
 	cert, err := readInstanceCert(c)
+	if err == ErrNotFound {
+		// this is OK
+		return nil
+	}
 	if err != nil {
 		return
 	}
@@ -264,6 +272,10 @@ func lsInstanceCertCSV(c Instances, params []string) (err error) {
 
 func lsInstanceCertJSON(c Instances, params []string) (err error) {
 	cert, err := readInstanceCert(c)
+	if err == ErrNotFound {
+		// this is OK
+		return nil
+	}
 	if err != nil {
 		return
 	}
@@ -563,7 +575,10 @@ func renewInstanceCert(c Instances) (err error) {
 		logError.Fatalln(err)
 	}
 
-	existingKey, _ := readInstanceKey(c)
+	existingKey, err := readInstanceKey(c)
+	if err != nil {
+		logError.Fatalln(err)
+	}
 	cert, key, err := createCert(&template, intrCert, intrKey, existingKey)
 	if err != nil {
 		logError.Fatalln(err)
@@ -694,6 +709,9 @@ func readInstanceCert(c Instances) (cert *x509.Certificate, err error) {
 		logError.Fatalln(err)
 	}
 
+	if getString(c, c.Prefix("Cert")) == "" {
+		return nil, ErrNotFound
+	}
 	return readCert(c.Location(), filepathForInstance(c, getString(c, c.Prefix("Cert"))))
 }
 

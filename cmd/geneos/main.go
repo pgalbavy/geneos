@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -38,6 +39,7 @@ var (
 	ErrProcNotExist = errors.New("process not found")
 	ErrProcExists   = errors.New("process exists")
 	ErrDisabled     = errors.New("disabled")
+	ErrNotFound     = fs.ErrNotExist
 )
 
 // simple check for root
