@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+const Webserver Component = "webserver"
+
 type Webservers struct {
 	InstanceBase
 	//BinSuffix string `default:"licd.linux_64"`
@@ -33,7 +35,6 @@ func init() {
 	RegisterComponent(&Components{
 		New:              NewWebserver,
 		ComponentType:    Webserver,
-		ComponentName:    "webserver",
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
 		IncludeInLoops:   true,
 	})

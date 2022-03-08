@@ -16,6 +16,8 @@ import (
 
 // remote support
 
+const Remote Component = "remote"
+
 type Remotes struct {
 	InstanceBase
 	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
@@ -29,7 +31,6 @@ func init() {
 	RegisterComponent(&Components{
 		New:              NewRemote,
 		ComponentType:    Remote,
-		ComponentName:    "remote",
 		ComponentMatches: []string{"remote", "remotes"},
 		IncludeInLoops:   false,
 	})

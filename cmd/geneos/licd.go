@@ -5,6 +5,8 @@ import (
 	"strconv"
 )
 
+const Licd Component = "licd"
+
 type Licds struct {
 	InstanceBase
 	BinSuffix string `default:"licd.linux_64"`
@@ -29,7 +31,6 @@ func init() {
 	RegisterComponent(&Components{
 		New:              NewLicd,
 		ComponentType:    Licd,
-		ComponentName:    "licd",
 		ComponentMatches: []string{"licd", "licds"},
 		IncludeInLoops:   true,
 	})

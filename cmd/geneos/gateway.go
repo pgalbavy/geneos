@@ -14,6 +14,8 @@ import (
 	"github.com/pkg/sftp"
 )
 
+const Gateway Component = "gateway"
+
 type Gateways struct {
 	InstanceBase
 	BinSuffix string `default:"gateway2.linux_64"`
@@ -44,7 +46,6 @@ func init() {
 	RegisterComponent(&Components{
 		New:              NewGateway,
 		ComponentType:    Gateway,
-		ComponentName:    "gateway",
 		ComponentMatches: []string{"gateway", "gateways"},
 		IncludeInLoops:   true,
 	})

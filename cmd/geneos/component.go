@@ -6,25 +6,17 @@ import (
 
 // definitions and access methods for the generic component types
 
-type Component int
+type Component string
 
 const (
-	// None - no component supplied or required
-	None Component = iota
-	// Unknown - doesn't match component type
-	Unknown
-	Gateway
-	Netprobe
-	Licd
-	Webserver
-	Remote
+	None    Component = "none"
+	Unknown Component = "unknown"
 )
 
 type Components struct {
 	New func(string) Instances
 
 	ComponentType    Component
-	ComponentName    string
 	ComponentMatches []string
 	IncludeInLoops   bool
 }
@@ -32,7 +24,6 @@ type Components struct {
 func init() {
 	RegisterComponent(&Components{
 		ComponentType:    None,
-		ComponentName:    "none",
 		ComponentMatches: []string{"", "all", "any"},
 		IncludeInLoops:   false,
 	})
@@ -90,11 +81,7 @@ func realComponentTypes() (cts []Component) {
 }
 
 func (ct Component) String() (name string) {
-	c, ok := components[ct]
-	if !ok {
-		return "unknown"
-	}
-	return c.ComponentName
+	return string(ct)
 }
 
 func parseComponentName(component string) Component {

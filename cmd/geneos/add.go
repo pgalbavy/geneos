@@ -192,7 +192,7 @@ func commandUpload(ct Component, args []string, params []string) (err error) {
 //
 // local directroreies are created
 func uploadInstance(c Instances, args []string, params []string) (err error) {
-	if c.Type() == None || c.Type() == Unknown {
+	if !components[c.Type()].IncludeInLoops {
 		return ErrNotSupported
 	}
 

@@ -5,6 +5,8 @@ import (
 	"strconv"
 )
 
+const Netprobe Component = "netprobe"
+
 type Netprobes struct {
 	InstanceBase
 	BinSuffix string `default:"netprobe.linux_64"`
@@ -29,7 +31,6 @@ func init() {
 	RegisterComponent(&Components{
 		New:              NewNetprobe,
 		ComponentType:    Netprobe,
-		ComponentName:    "netprobe",
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 		IncludeInLoops:   true,
 	})
