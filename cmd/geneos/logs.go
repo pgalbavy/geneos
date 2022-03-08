@@ -241,7 +241,10 @@ func logFollowInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
 	f, _ := os.Open(logfile)
-	st, _ := statFile(LOCAL, logfile)
+	st, err := statFile(LOCAL, logfile)
+	if err != nil {
+		return
+	}
 	// perfectly valid to not have a file to watch at start
 	tails[logfile] = &tail{f, c.Type(), c.Name() + "@" + c.Location()}
 
