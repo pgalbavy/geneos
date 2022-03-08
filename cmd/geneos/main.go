@@ -69,13 +69,18 @@ var commands Commands = make(Commands)
 // Soecial case or genearlise some commands - the don't call parseArgs()
 // or whatever. e.g. "geneos set global [PARAM...]"
 func main() {
-	var debug, quiet, verbose bool
+	var debug, quiet, version bool
 
 	flag.BoolVar(&debug, "d", false, "enable debug output")
-	flag.BoolVar(&verbose, "v", false, "verbose output")
+	flag.BoolVar(&version, "v", false, "show version")
 	flag.BoolVar(&quiet, "q", false, "quiet output")
 	flag.Parse()
 	var leftargs = flag.Args()
+
+	if version {
+		log.Println("version:", releaseVersion)
+		os.Exit(0)
+	}
 
 	if quiet {
 		log.SetOutput(ioutil.Discard)
