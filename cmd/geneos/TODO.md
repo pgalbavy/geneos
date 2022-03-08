@@ -10,7 +10,7 @@
   * Help highlight typos rather than skip them
 * Command line verbosity control - PARTIAL
 * TLS support
-  * output cacert file on stdout for sharing
+  * output chain.pem file on stdout for sharing
 * Docker / Compose file build from selection of components
 * check capabilities and not just setuid/root user
 * Run REST commands against gateways
@@ -28,7 +28,10 @@
 * remote management support
   * transparency - all except `logs -f` should work with ssh and sftp
   * add support for rwildcard remote instances, e.g. '@remote'
-* Examine integrating `upload` into `add`
+* Rename 'upload' to 'copy' or something more intuitive
+* Examine integrating `upload` into `add` - see above too
 * Support gateway2.gci format files
+* Add a 'clone' command (rename without delete)
+
 
 
