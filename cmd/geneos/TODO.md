@@ -32,6 +32,7 @@
 * Examine integrating `upload` into `add` - see above too
 * Support gateway2.gci format files
 * Add a 'clone' command (rename without delete)
+* RHEL8 binary install support
 
 
 
