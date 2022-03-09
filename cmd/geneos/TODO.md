@@ -31,7 +31,9 @@
 * Rename 'upload' to 'copy' or something more intuitive
 * Examine integrating `upload` into `add` - see above too
 * Support gateway2.gci format files
-* Add a 'clone' command (rename without delete)
+* Add a 'clone' command (rename without delete) - for backup gateways etc.
+  * do both "mv" and "cp" working across remotes
+  * reset configs / clean etc.
 * RHEL8 binary install support
 
 
