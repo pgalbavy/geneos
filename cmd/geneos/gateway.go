@@ -36,8 +36,6 @@ type Gateways struct {
 	GateKey   string `json:",omitempty"`
 }
 
-const gatewayPortRange = "7039,7100-"
-
 //go:embed emptyGateway.xml
 var emptyXMLTemplate string
 
@@ -193,9 +191,6 @@ func (c Gateways) Command() (args, env []string) {
 
 	return
 }
-
-var defaultGatewayCleanList = "*.old:*.history"
-var defaultGatewayPurgeList = "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/"
 
 func (c Gateways) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")

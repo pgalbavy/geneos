@@ -25,8 +25,6 @@ type Licds struct {
 	LicdKey   string `json:",omitempty"`
 }
 
-const licdPortRange = "7041,7100-"
-
 func init() {
 	RegisterComponent(Components{
 		New:              NewLicd,
@@ -112,9 +110,6 @@ func (c Licds) Command() (args, env []string) {
 
 	return
 }
-
-var defaultLicdCleanList = "*.old"
-var defaultLicdPurgeList = "licd.log:licd.txt"
 
 func (c Licds) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")

@@ -15,15 +15,6 @@ import (
 
 const userSSHdir = ".ssh"
 
-var privateKeyFiles = []string{
-	"id_rsa",
-	"id_ecdsa",
-	"id_ecdsa_sk",
-	"id_ed25519",
-	"id_ed25519_sk",
-	"id_dsa",
-}
-
 // cache SSH connections
 var remoteSSHClients = make(map[string]*ssh.Client)
 var remoteSFTPClients = make(map[string]*sftp.Client)

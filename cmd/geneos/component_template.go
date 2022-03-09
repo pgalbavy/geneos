@@ -37,8 +37,6 @@ type Names struct {
 	NameKey   string `json:",omitempty"`
 }
 
-const NAMEPortRange = "7036,7100-"
-
 func init() {
 	RegisterComponent(&Components{
 		New:              NewName,
@@ -46,6 +44,12 @@ func init() {
 		ComponentMatches: []string{"words", "to", "match"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Name+Whatever",
+	})
+	RegisterDirs([]string{
+		"",
+	})
+	RegisterSettings(GlobalSettings{
+		"Key": "Value",
 	})
 }
 
@@ -117,9 +121,6 @@ func (c Names) Command() (args, env []string) {
 
 	return
 }
-
-var defaultNameCleanList = "*.old"
-var defaultNamePurgeList = "name.log:name.txt:*.snooze:*.user_assignment"
 
 func (c Names) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")

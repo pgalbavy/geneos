@@ -25,8 +25,6 @@ type Netprobes struct {
 	NetpKey   string `json:",omitempty"`
 }
 
-const netprobePortRange = "7036,7100-"
-
 func init() {
 	RegisterComponent(Components{
 		New:              NewNetprobe,
@@ -113,9 +111,6 @@ func (c Netprobes) Command() (args, env []string) {
 
 	return
 }
-
-var defaultNetprobeCleanList = "*.old"
-var defaultNetprobePurgeList = "netprobe.log:netprobe.txt:*.snooze:*.user_assignment"
 
 func (c Netprobes) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")

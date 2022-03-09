@@ -29,8 +29,6 @@ type Webservers struct {
 	WebsKey  string `json:",omitempty"`
 }
 
-const webserverPortRange = "8080,8100-"
-
 func init() {
 	RegisterComponent(Components{
 		New:              NewWebserver,
@@ -166,9 +164,6 @@ func (c Webservers) Command() (args, env []string) {
 
 	return
 }
-
-var defaultWebserverCleanList = "*.old"
-var defaultWebserverPurgeList = "webserver.log:webserver.txt"
 
 func (c Webservers) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")

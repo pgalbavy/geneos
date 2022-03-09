@@ -195,18 +195,6 @@ func loadSysConfig() {
 	}
 }
 
-func checkDefault(v *string, d string) {
-	if *v == "" {
-		*v = d
-	}
-}
-
-func checkDefaultSlice(v *[]string, d []string) {
-	if *v == nil {
-		*v = d
-	}
-}
-
 func ITRSHome() string {
 	home, ok := GlobalConfig["ITRSHome"]
 	if !ok {
