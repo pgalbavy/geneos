@@ -368,7 +368,7 @@ func TLSImport(files []string) (err error) {
 				if err = writeCert(LOCAL, filepath.Join(tlsPath, signingCertFile+".pem"), cert); err != nil {
 					log.Fatalln(err)
 				}
-				log.Println("imported certificate to", filepath.Join(tlsPath, signingCertFile+".pem"))
+				log.Printf("imported certificate %q to %q", source, filepath.Join(tlsPath, signingCertFile+".pem"))
 			case "RSA PRIVATE KEY":
 				key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 				if err != nil {
@@ -377,7 +377,7 @@ func TLSImport(files []string) (err error) {
 				if err = writeKey(LOCAL, filepath.Join(tlsPath, signingCertFile+".key"), key); err != nil {
 					log.Fatalln(err)
 				}
-				log.Println("imported RSA private key to", filepath.Join(tlsPath, signingCertFile+".pem"))
+				log.Printf("imported RSA private key %q to %q", source, filepath.Join(tlsPath, signingCertFile+".pem"))
 			default:
 				logError.Fatalln("unknown PEM type:", block.Type)
 			}
