@@ -98,7 +98,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		}
 		return loopSubcommand(TLSInstance, "new", ct, args, params)
 	case "import":
-		return TLSImport(args)
+		return TLSImport(params)
 	case "ls":
 		return listCertsCommand(ct, args, params)
 	case "sync":
@@ -345,6 +345,10 @@ func TLSSync() (err error) {
 // be decided (CN.pem etc.)
 func TLSImport(files []string) (err error) {
 	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
+	err = mkdirAll(LOCAL, tlsPath, 0755)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	for _, source := range files {
 		f, err := readSource(source)
 		if err != nil {
