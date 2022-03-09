@@ -91,7 +91,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 // returns a map
 func getPorts(remote string) (ports map[int]Component) {
 	ports = make(map[int]Component)
-	for _, c := range allInstances(remote) {
+	for _, c := range getInstances(remote) {
 		if err := loadConfig(c, false); err != nil {
 			log.Println(c.Type(), c.Name(), "- cannot load configuration")
 			continue

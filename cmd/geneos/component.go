@@ -165,7 +165,7 @@ func (ct Component) Match(name string) (c []Instances) {
 
 // return a slice of all instances, ordered and grouped.
 // configurations are not loaded, just the defaults ready for overlay
-func allInstances(remote string) (confs []Instances) {
+func getInstances(remote string) (confs []Instances) {
 	for _, ct := range realComponentTypes() {
 		if remote == ALL {
 			for _, r := range allRemotes() {
