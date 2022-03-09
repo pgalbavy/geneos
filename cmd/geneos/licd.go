@@ -72,7 +72,7 @@ func (l Licds) Prefix(field string) string {
 }
 
 func (l Licds) Create(username string, params []string) (err error) {
-	l.LicdPort = nextPort(RunningConfig.LicdPortRange)
+	l.LicdPort = nextPort(l.Location(), RunningConfig.LicdPortRange)
 	l.LicdUser = username
 
 	writeInstanceConfig(l)

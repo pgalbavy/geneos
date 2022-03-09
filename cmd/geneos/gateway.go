@@ -86,7 +86,7 @@ func (g Gateways) Prefix(field string) string {
 }
 
 func (g Gateways) Create(username string, params []string) (err error) {
-	g.GatePort = nextPort(RunningConfig.GatewayPortRange)
+	g.GatePort = nextPort(g.Location(), RunningConfig.GatewayPortRange)
 	g.GateUser = username
 
 	writeInstanceConfig(g)

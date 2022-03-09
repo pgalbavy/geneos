@@ -329,7 +329,7 @@ func (ct Component) allArgsForComponent() (args []string) {
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
-		confs = allInstances()
+		confs = allInstances(ALL)
 	case Remote:
 		// we only look for actual "remote" components on the local system
 		confs = append(confs, Remote.remoteInstances(LOCAL)...)

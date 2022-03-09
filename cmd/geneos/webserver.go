@@ -91,7 +91,7 @@ func (w Webservers) Prefix(field string) string {
 }
 
 func (w Webservers) Create(username string, params []string) (err error) {
-	w.WebsPort = nextPort(RunningConfig.WebserverPortRange)
+	w.WebsPort = nextPort(w.Location(), RunningConfig.WebserverPortRange)
 	w.WebsUser = username
 
 	writeInstanceConfig(w)

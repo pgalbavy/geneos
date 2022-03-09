@@ -72,7 +72,7 @@ func (n Netprobes) Prefix(field string) string {
 }
 
 func (n Netprobes) Create(username string, params []string) (err error) {
-	n.NetpPort = nextPort(RunningConfig.NetprobePortRange)
+	n.NetpPort = nextPort(n.Location(), RunningConfig.NetprobePortRange)
 	n.NetpUser = username
 
 	writeInstanceConfig(n)
