@@ -85,7 +85,7 @@ func (n Names) Prefix(field string) string {
 }
 
 func (n Names) Create(username string, params []string) (err error) {
-	n.NamePort = nextPort(RunningConfig.NamePortRange)
+	n.NamePort = nextPort(RunningConfigMap["NamePortRange"])
 	n.NameUser = username
 
 	writeInstanceConfig(n)
@@ -133,16 +133,16 @@ func (c Names) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfig.NameCleanList); err != nil {
+		if err = removePathList(c, RunningConfigMap["NameCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfig.NamePurgeList)
+		err = removePathList(c, RunningConfigMap["NamePurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, RunningConfig.NameCleanList)
+	return removePathList(c, RunningConfigMap["NameCleanList"])
 }
 
 func (c Names) Reload(params []string) (err error) {

@@ -1,7 +1,14 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"text/template"
+
+	"github.com/pkg/sftp"
 )
 
 const San Component = "san"
@@ -26,13 +33,25 @@ type Sans struct {
 
 const sanPortRange = "7036,7100-"
 
+//go:embed netprobe.setup.Template.xml
+var emptySANTemplate string
+
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewSan,
 		ComponentType:    San,
 		ComponentMatches: []string{"san", "sans"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Netprobe",
+	})
+	RegisterDirs([]string{
+		"packages/netprobe",
+		"san/sans",
+	})
+	RegisterSettings(GlobalSettings{
+		"SanPortRange": "7036,7100-",
+		"SanCleanList": "*.old",
+		"SanPurgeList": "san.log:san.txt:*.snooze:*.user_assignment",
 	})
 }
 
@@ -72,7 +91,7 @@ func (n Sans) Prefix(field string) string {
 }
 
 func (n Sans) Create(username string, params []string) (err error) {
-	n.SanPort = nextPort(n.Location(), RunningConfig.SanPortRange)
+	n.SanPort = nextPort(n.Location(), GlobalConfig["SanPortRange"])
 	n.SanUser = username
 
 	writeInstanceConfig(n)
@@ -83,6 +102,44 @@ func (n Sans) Create(username string, params []string) (err error) {
 	}
 
 	// default config XML etc.
+	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(emptySANTemplate)
+	if err != nil {
+		logError.Fatalln(err)
+	}
+
+	var out io.Writer
+
+	switch n.Location() {
+	case LOCAL:
+		var cf *os.File
+		cf, err = os.Create(filepath.Join(n.Home(), "netprobe.setup.xml"))
+		out = cf
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer cf.Close()
+		if err = cf.Chmod(0664); err != nil {
+			logError.Fatalln(err)
+		}
+	default:
+		var cf *sftp.File
+		cf, err = createRemoteFile(n.Location(), filepath.Join(n.Home(), "netprobe.setup.xml"))
+		out = cf
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer cf.Close()
+		if err = cf.Chmod(0664); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+
+	if err = t.Execute(out, n); err != nil {
+		logError.Fatalln(err)
+	}
+
 	return nil
 }
 
@@ -93,6 +150,8 @@ func (c Sans) Command() (args, env []string) {
 		"-listenip", "none",
 		"-setup", "netprobe.setup.xml",
 	}
+
+	// add environment variables to use in setup file substitution
 	env = append(env, "LOG_FILENAME="+logFile)
 
 	if c.SanCert != "" {
@@ -121,16 +180,16 @@ func (c Sans) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfig.SanCleanList); err != nil {
+		if err = removePathList(c, GlobalConfig["SanCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfig.SanPurgeList)
+		err = removePathList(c, GlobalConfig["SanPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, RunningConfig.SanCleanList)
+	return removePathList(c, GlobalConfig["SanCleanList"])
 }
 
 func (c Sans) Reload(params []string) (err error) {

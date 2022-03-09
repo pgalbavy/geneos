@@ -74,7 +74,7 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 			if err = loadConfig(c, true); err != nil {
 				log.Println(c.Type(), c.Name(), "cannot load configuration, check syntax")
 				// in case of error manually build path
-				cs = append(cs, filepath.Join(RunningConfig.ITRSHome, ct.String(), ct.String()+"s", name, ct.String()+".json"))
+				cs = append(cs, filepath.Join(ITRSHome(), ct.String(), ct.String()+"s", name, ct.String()+".json"))
 			}
 			cs = append(cs, filepath.Join(c.Home(), c.Type().String()+".json"))
 

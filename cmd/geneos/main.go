@@ -125,7 +125,7 @@ func main() {
 			// check the unparsed args here
 			if len(leftargs[1:]) == 0 {
 				// output resolved config and exit
-				printConfigStructJSON(RunningConfig)
+				printConfigStructJSON(GlobalConfig)
 				os.Exit(0)
 			}
 		}
@@ -144,7 +144,7 @@ func main() {
 		fallthrough
 	default:
 		// test home dir, stop if invalid
-		if RunningConfig.ITRSHome == "" {
+		if ITRSHome() == "" {
 			log.Fatalln(`
 Installation directory is not set.
 
@@ -166,25 +166,25 @@ You can fix this by doing one of the following:
 
 	$ echo '{ "ITRSHome": "/path/to/geneos" }' >` + globalConfig)
 		}
-		s, err := statFile(LOCAL, RunningConfig.ITRSHome)
+		s, err := statFile(LOCAL, ITRSHome())
 		if err != nil {
-			logError.Fatalf("home directory %q: %s", RunningConfig.ITRSHome, errors.Unwrap(err))
+			logError.Fatalf("home directory %q: %s", ITRSHome(), errors.Unwrap(err))
 		}
 		if !s.st.IsDir() {
-			logError.Fatalln(RunningConfig.ITRSHome, "is not a directory")
+			logError.Fatalln(ITRSHome(), "is not a directory")
 		}
 
 		// we have a valid home directory, now set default user if
 		// not set elsewhere
-		if RunningConfig.DefaultUser == "" {
+		if GlobalConfig["DefaultUser"] == "" {
 			if s.uid == 0 {
-				logError.Fatalf("home directory %q: owned by root and no default user configured", RunningConfig.ITRSHome)
+				logError.Fatalf("home directory %q: owned by root and no default user configured", ITRSHome())
 			}
 			u, err := user.LookupId(fmt.Sprint(s.uid))
 			if err != nil {
-				logError.Fatalln(RunningConfig.ITRSHome, err)
+				logError.Fatalln(ITRSHome(), err)
 			}
-			RunningConfig.DefaultUser = u.Username
+			GlobalConfig["DefaultUser"] = u.Username
 		}
 
 		//logger.EnableDebugLog()

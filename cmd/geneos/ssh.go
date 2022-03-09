@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -29,7 +30,7 @@ var remoteSFTPClients = make(map[string]*sftp.Client)
 
 // load all the known private keys with no passphrase
 func readSSHkeys(homedir string) (signers []ssh.Signer) {
-	for _, keyfile := range RunningConfig.PrivateKeys {
+	for _, keyfile := range strings.Split(GlobalConfig["PrivateKeys"], ",") {
 		path := filepath.Join(homedir, userSSHdir, keyfile)
 		key, err := os.ReadFile(path)
 		if err != nil {

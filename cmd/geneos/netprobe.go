@@ -28,12 +28,21 @@ type Netprobes struct {
 const netprobePortRange = "7036,7100-"
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewNetprobe,
 		ComponentType:    Netprobe,
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Netprobe",
+	})
+	RegisterDirs([]string{
+		"packages/netprobe",
+		"netprobe/netprobes",
+	})
+	RegisterSettings(GlobalSettings{
+		"NetprobePortRange": "7036,7100-",
+		"NetprobeCleanList": "*.old",
+		"NetprobePurgeList": "netprobe.log:netprobe.txt:*.snooze:*.user_assignment",
 	})
 }
 
@@ -72,7 +81,7 @@ func (n Netprobes) Prefix(field string) string {
 }
 
 func (n Netprobes) Create(username string, params []string) (err error) {
-	n.NetpPort = nextPort(n.Location(), RunningConfig.NetprobePortRange)
+	n.NetpPort = nextPort(n.Location(), GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username
 
 	writeInstanceConfig(n)
@@ -120,16 +129,16 @@ func (c Netprobes) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfig.NetprobeCleanList); err != nil {
+		if err = removePathList(c, GlobalConfig["NetprobeCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfig.NetprobePurgeList)
+		err = removePathList(c, GlobalConfig["NetprobePurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, RunningConfig.NetprobeCleanList)
+	return removePathList(c, GlobalConfig["NetprobeCleanList"])
 }
 
 func (c Netprobes) Reload(params []string) (err error) {

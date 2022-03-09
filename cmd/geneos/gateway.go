@@ -42,12 +42,23 @@ const gatewayPortRange = "7039,7100-"
 var emptyXMLTemplate string
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewGateway,
 		ComponentType:    Gateway,
 		ComponentMatches: []string{"gateway", "gateways"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Gateway+2",
+	})
+	RegisterDirs([]string{
+		"packages/gateway",
+		"gateway/gateways",
+		"gateway/gateway_shared",
+		"gateway/gateway_config",
+	})
+	RegisterSettings(GlobalSettings{
+		"GatewayPortRange": "7039,7100-",
+		"GatewayCleanList": "*.old:*.history",
+		"GatewayPurgeList": "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/",
 	})
 }
 
@@ -86,7 +97,7 @@ func (g Gateways) Prefix(field string) string {
 }
 
 func (g Gateways) Create(username string, params []string) (err error) {
-	g.GatePort = nextPort(g.Location(), RunningConfig.GatewayPortRange)
+	g.GatePort = nextPort(g.Location(), GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
 
 	writeInstanceConfig(g)
@@ -198,17 +209,17 @@ func (c Gateways) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfig.GatewayCleanList); err != nil {
+		if err = removePathList(c, GlobalConfig["GatewayCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfig.GatewayPurgeList)
+		err = removePathList(c, GlobalConfig["GatewayPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		log.Printf("%s %s@%s cleaned fully", c.Type(), c.Name(), c.Location())
 		return
 	}
-	err = removePathList(c, RunningConfig.GatewayCleanList)
+	err = removePathList(c, GlobalConfig["GatewayCleanList"])
 	if err == nil {
 		log.Printf("%s %s@%s cleaned", c.Type(), c.Name(), c.Location())
 	}

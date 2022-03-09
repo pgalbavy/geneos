@@ -37,13 +37,17 @@ type Remotes struct {
 }
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewRemote,
 		ComponentType:    Remote,
 		ComponentMatches: []string{"remote", "remotes"},
 		IncludeInLoops:   false,
 		DownloadBase:     "",
 	})
+	RegisterDirs([]string{
+		"remotes",
+	})
+	RegisterSettings(GlobalSettings{})
 }
 
 // interface method set
@@ -100,7 +104,7 @@ func (r Remotes) Create(username string, params []string) (err error) {
 	}
 	r.Username = username
 
-	homepath := RunningConfig.ITRSHome
+	homepath := ITRSHome()
 	if u.Path != "" {
 		homepath = u.Path
 	}
@@ -172,7 +176,7 @@ func NewRemote(name string) Instances {
 	}
 	// Bootstrap
 	c := &Remotes{}
-	c.InstanceRoot = RunningConfig.ITRSHome
+	c.InstanceRoot = ITRSHome()
 	c.InstanceType = Remote.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote
@@ -220,7 +224,7 @@ func loadRemoteConfig(remote string) (c Instances) {
 func remoteRoot(remote string) string {
 	switch remote {
 	case LOCAL:
-		return RunningConfig.ITRSHome
+		return ITRSHome()
 	default:
 		i := loadRemoteConfig(remote)
 		if err := loadConfig(i, false); err != nil {

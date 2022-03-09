@@ -28,12 +28,21 @@ type Licds struct {
 const licdPortRange = "7041,7100-"
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewLicd,
 		ComponentType:    Licd,
 		ComponentMatches: []string{"licd", "licds"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Licence+Daemon",
+	})
+	RegisterDirs([]string{
+		"packages/licd",
+		"licd/licds",
+	})
+	RegisterSettings(GlobalSettings{
+		"LicdPortRange": "7041,7100-",
+		"LicdCleanList": "*.old",
+		"LicdPurgeList": "licd.log:licd.txt",
 	})
 }
 
@@ -72,7 +81,7 @@ func (l Licds) Prefix(field string) string {
 }
 
 func (l Licds) Create(username string, params []string) (err error) {
-	l.LicdPort = nextPort(l.Location(), RunningConfig.LicdPortRange)
+	l.LicdPort = nextPort(l.Location(), GlobalConfig["LicdPortRange"])
 	l.LicdUser = username
 
 	writeInstanceConfig(l)
@@ -119,16 +128,16 @@ func (c Licds) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfig.LicdCleanList); err != nil {
+		if err = removePathList(c, GlobalConfig["LicdCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfig.LicdPurgeList)
+		err = removePathList(c, GlobalConfig["LicdPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, RunningConfig.LicdCleanList)
+	return removePathList(c, GlobalConfig["LicdCleanList"])
 }
 
 func (c Licds) Reload(params []string) (err error) {

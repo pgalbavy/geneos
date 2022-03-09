@@ -65,7 +65,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 
 	var username string
 	if superuser {
-		username = RunningConfig.DefaultUser
+		username = GlobalConfig["DefaultUser"]
 	} else {
 		u, _ := user.Current()
 		username = u.Username

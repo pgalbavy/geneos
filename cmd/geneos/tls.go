@@ -288,7 +288,7 @@ func lsInstanceCertJSON(c Instances, params []string) (err error) {
 //
 // later options to allow import of a DCA
 func TLSInit() (err error) {
-	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
+	tlsPath := filepath.Join(ITRSHome(), "tls")
 	// directory permissions do not need to be restrictive
 	err = mkdirAll(LOCAL, tlsPath, 0777)
 	if err != nil {
@@ -344,7 +344,7 @@ func TLSSync() (err error) {
 // loop through args and decode pem, check type and import - filename to
 // be decided (CN.pem etc.)
 func TLSImport(files []string) (err error) {
-	tlsPath := filepath.Join(RunningConfig.ITRSHome, "tls")
+	tlsPath := filepath.Join(ITRSHome(), "tls")
 	err = mkdirAll(LOCAL, tlsPath, 0755)
 	if err != nil {
 		log.Fatalln(err)
@@ -484,7 +484,7 @@ func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 //
 // skip if certificate exists (no expiry check)
 func createInstanceCert(c Instances) (err error) {
-	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
+	tlsDir := filepath.Join(ITRSHome(), "tls")
 
 	// skip if we can load an existing certificate
 	if _, err = readInstanceCert(c); err == nil {
@@ -549,7 +549,7 @@ func createInstanceCert(c Instances) (err error) {
 //
 // if private key doesn't exist, do we error?
 func renewInstanceCert(c Instances) (err error) {
-	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
+	tlsDir := filepath.Join(ITRSHome(), "tls")
 
 	host, _ := os.Hostname()
 	if c.Location() != LOCAL {
@@ -705,12 +705,12 @@ func readCert(remote string, path string) (cert *x509.Certificate, err error) {
 }
 
 func readRootCert() (cert *x509.Certificate, err error) {
-	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
+	tlsDir := filepath.Join(ITRSHome(), "tls")
 	return readCert(LOCAL, filepath.Join(tlsDir, rootCAFile+".pem"))
 }
 
 func readSigningCert() (cert *x509.Certificate, err error) {
-	tlsDir := filepath.Join(RunningConfig.ITRSHome, "tls")
+	tlsDir := filepath.Join(ITRSHome(), "tls")
 	return readCert(LOCAL, filepath.Join(tlsDir, signingCertFile+".pem"))
 }
 

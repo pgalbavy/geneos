@@ -104,7 +104,7 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 	uid, gid = math.MaxUint32, math.MaxUint32
 
 	if username == "" {
-		username = RunningConfig.DefaultUser
+		username = GlobalConfig["DefaultUser"]
 	}
 
 	u, err := user.Lookup(username)
@@ -355,7 +355,7 @@ func reservedName(in string) (ok bool) {
 		logDebug.Println("matches a reserved word")
 		return true
 	}
-	if RunningConfig.ReservedNames != "" {
+	if GlobalConfig["ReservedNames"] != "" {
 		list := strings.Split(in, string(os.PathListSeparator))
 		for _, n := range list {
 			if strings.EqualFold(in, n) {

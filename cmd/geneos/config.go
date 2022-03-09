@@ -16,6 +16,8 @@ import (
 )
 
 func init() {
+	GlobalConfig = make(GlobalSettings)
+
 	commands["init"] = Command{
 		Function:    commandInit,
 		ParseFlags:  initFlag,
@@ -165,78 +167,23 @@ var initAll string
 
 var globalConfig = "/etc/geneos/geneos.json"
 
-// Todo:
-//  Port ranges for new components
-//
-type ConfigType struct {
-	// Root directory for all operations
-	ITRSHome string `json:",omitempty"`
+var initDirs = []string{}
 
-	// Root URL for all downloads of software archives
-	DownloadURL  string `json:",omitempty"`
-	DownloadUser string `json:",omitempty"`
-	DownloadPass string `json:",omitempty"`
+// new global config
+type Global string
+type GlobalSettings map[Global]string
 
-	// Username to start components if not explicitly defined
-	// and we are running with elevated privileges
-	//
-	// When running as a normal user this is unused and
-	// we simply test a defined user against the running user
-	//
-	// default is owner of ITRSHome
-	DefaultUser string `json:",omitempty"`
-
-	// Path List sperated additions to the reserved names list, over and above
-	// any words matched by parseComponentName()
-	ReservedNames string `json:",omitempty"`
-
-	GatewayPortRange   string `json:",omitempty"`
-	NetprobePortRange  string `json:",omitempty"`
-	SanPortRange       string `json:",omitempty"`
-	LicdPortRange      string `json:",omitempty"`
-	WebserverPortRange string `json:",omitempty"`
-
-	// Instance clean-up globs, two per type. Use PathListSep ':'
-	GatewayCleanList   string `json:",omitempty"`
-	GatewayPurgeList   string `json:",omitempty"`
-	NetprobeCleanList  string `json:",omitempty"`
-	NetprobePurgeList  string `json:",omitempty"`
-	SanCleanList       string `json:",omitempty"`
-	SanPurgeList       string `json:",omitempty"`
-	LicdCleanList      string `json:",omitempty"`
-	LicdPurgeList      string `json:",omitempty"`
-	WebserverCleanList string `json:",omitempty"`
-	WebserverPurgeList string `json:",omitempty"`
-
-	PrivateKeys []string `json:",omitempty"`
-}
-
-var RunningConfig ConfigType
-
-var initDirs = []string{
-	"packages/netprobe",
-	"packages/gateway",
-	"packages/licd",
-	"packages/webserver",
-	"netprobe/netprobes",
-	"san/sans",
-	"gateway/gateways",
-	"gateway/gateway_shared",
-	"gateway/gateway_config",
-	"licd/licds",
-	"webserver/webservers",
-	"remotes",
-}
+var GlobalConfig GlobalSettings = make(GlobalSettings)
 
 // load system config from global and user JSON files and process any
 // environment variables we choose
 func loadSysConfig() {
-	readConfigFile(LOCAL, globalConfig, &RunningConfig)
+	readConfigFile(LOCAL, globalConfig, &GlobalConfig)
 
 	// root should not have a per-user config, but if sun by sudo the
 	// HOME dir is conserved, so allow for now
 	userConfDir, _ := os.UserConfigDir()
-	err := readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &RunningConfig)
+	err := readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &GlobalConfig)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Println(err)
 	}
@@ -244,26 +191,8 @@ func loadSysConfig() {
 	// setting the environment variable - to match legacy programs - overrides
 	// all others
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
-		RunningConfig.ITRSHome = h
+		GlobalConfig["ITRSHome"] = h
 	}
-
-	// defaults - make this long chain simpler
-	checkDefault(&RunningConfig.GatewayPortRange, gatewayPortRange)
-	checkDefault(&RunningConfig.NetprobePortRange, netprobePortRange)
-	checkDefault(&RunningConfig.SanPortRange, sanPortRange)
-	checkDefault(&RunningConfig.LicdPortRange, licdPortRange)
-	checkDefault(&RunningConfig.WebserverPortRange, webserverPortRange)
-	checkDefault(&RunningConfig.GatewayCleanList, defaultGatewayCleanList)
-	checkDefault(&RunningConfig.GatewayPurgeList, defaultGatewayPurgeList)
-	checkDefault(&RunningConfig.NetprobeCleanList, defaultNetprobeCleanList)
-	checkDefault(&RunningConfig.NetprobePurgeList, defaultNetprobePurgeList)
-	checkDefault(&RunningConfig.SanCleanList, defaultSanCleanList)
-	checkDefault(&RunningConfig.SanPurgeList, defaultSanPurgeList)
-	checkDefault(&RunningConfig.LicdCleanList, defaultLicdCleanList)
-	checkDefault(&RunningConfig.LicdPurgeList, defaultLicdPurgeList)
-	checkDefault(&RunningConfig.WebserverCleanList, defaultWebserverCleanList)
-	checkDefault(&RunningConfig.WebserverPurgeList, defaultWebserverPurgeList)
-	checkDefaultSlice(&RunningConfig.PrivateKeys, privateKeyFiles)
 }
 
 func checkDefault(v *string, d string) {
@@ -278,6 +207,14 @@ func checkDefaultSlice(v *[]string, d []string) {
 	}
 }
 
+func ITRSHome() string {
+	home, ok := GlobalConfig["ITRSHome"]
+	if !ok {
+		return ""
+	}
+	return home
+}
+
 //
 // initialise a geneos installation
 //
@@ -286,8 +223,6 @@ func checkDefaultSlice(v *[]string, d []string) {
 //
 //
 func commandInit(ct Component, args []string, params []string) (err error) {
-	var c ConfigType
-
 	// none of the arguments can be a reserved type
 	if ct != None {
 		return ErrInvalidArgs
@@ -299,9 +234,9 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	}
 
 	if superuser {
-		err = initAsRoot(&c, args)
+		err = initAsRoot(args)
 	} else {
-		err = initAsUser(&c, args)
+		err = initAsUser(args)
 	}
 
 	// now reload config, after init
@@ -349,7 +284,8 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func initAsRoot(c *ConfigType, args []string) (err error) {
+func initAsRoot(args []string) (err error) {
+	c := make(GlobalSettings)
 	if len(args) == 0 {
 		logError.Fatalln("init requires a USERNAME when run as root")
 	}
@@ -402,8 +338,8 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	if err = chown(LOCAL, dir, int(uid), int(gid)); err != nil {
 		logError.Fatalln(err)
 	}
-	c.ITRSHome = dir
-	c.DefaultUser = username
+	c["ITRSHome"] = dir
+	c["DefaultUser"] = username
 	if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
 		logError.Fatalln("cannot write global config", err)
 	}
@@ -412,12 +348,12 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 
 	// create directories
 	for _, d := range initDirs {
-		dir := filepath.Join(c.ITRSHome, d)
+		dir := filepath.Join(c["ITRSHome"], d)
 		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
-	err = filepath.WalkDir(c.ITRSHome, func(path string, dir fs.DirEntry, err error) error {
+	err = filepath.WalkDir(c["ITRSHome"], func(path string, dir fs.DirEntry, err error) error {
 		if err == nil {
 			err = chown(LOCAL, path, int(uid), int(gid))
 		}
@@ -426,7 +362,8 @@ func initAsRoot(c *ConfigType, args []string) (err error) {
 	return
 }
 
-func initAsUser(c *ConfigType, args []string) (err error) {
+func initAsUser(args []string) (err error) {
+	c := make(GlobalSettings)
 	// normal user
 	var dir string
 	u, _ := user.Current()
@@ -467,14 +404,14 @@ func initAsUser(c *ConfigType, args []string) (err error) {
 		logError.Fatalln("no user config directory")
 	}
 	userConfFile := filepath.Join(userConfDir, "geneos.json")
-	c.ITRSHome = dir
-	c.DefaultUser = u.Username
+	c["ITRSHome"] = dir
+	c["DefaultUser"] = u.Username
 	if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
 		return
 	}
 	// create directories
 	for _, d := range initDirs {
-		dir := filepath.Join(c.ITRSHome, d)
+		dir := filepath.Join(c["ITRSHome"], d)
 		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
@@ -526,7 +463,7 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	// allow overrides to show specific or components
 	if len(names) == 0 {
 		// special case "config show" for resolved settings
-		printConfigStructJSON(RunningConfig)
+		printConfigStructJSON(GlobalConfig)
 		return
 	}
 
@@ -534,12 +471,12 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	// to sanitise the contents - or generate an error
 	switch names[0] {
 	case "global":
-		var c ConfigType
+		var c GlobalSettings
 		readConfigFile(LOCAL, globalConfig, &c)
 		printConfigStructJSON(c)
 		return
 	case "user":
-		var c ConfigType
+		var c GlobalSettings
 		userConfDir, _ := os.UserConfigDir()
 		readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &c)
 		printConfigStructJSON(c)
@@ -712,7 +649,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 }
 
 func writeConfigParams(filename string, params []string) (err error) {
-	var c ConfigType
+	var c GlobalSettings
 	// ignore err - config may not exist, but that's OK
 	_ = readConfigFile(LOCAL, filename, &c)
 	// change here

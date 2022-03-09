@@ -544,7 +544,7 @@ type DownloadAuth struct {
 
 // XXX use HEAD to check match and compare to on disk versions
 func downloadArchive(ct Component, version string) (filename string, body io.ReadCloser, err error) {
-	baseurl := RunningConfig.DownloadURL
+	baseurl := GlobalConfig["DownloadURL"]
 	if baseurl == "" {
 		baseurl = defaultURL
 	}
@@ -566,10 +566,10 @@ func downloadArchive(ct Component, version string) (filename string, body io.Rea
 
 	// if a download user is set then issue a POST with username and password
 	// in a JSON body, else just try the GET
-	if RunningConfig.DownloadUser != "" {
+	if GlobalConfig["DownloadUser"] != "" {
 		var authbody DownloadAuth
-		authbody.Username = RunningConfig.DownloadUser
-		authbody.Password = RunningConfig.DownloadPass
+		authbody.Username = GlobalConfig["DownloadUser"]
+		authbody.Password = GlobalConfig["DownloadPass"]
 
 		var authjson []byte
 		authjson, err = json.Marshal(authbody)
@@ -597,7 +597,7 @@ func downloadArchive(ct Component, version string) (filename string, body io.Rea
 
 	// check size against downloaded archive and serve local instead, regardless
 	// of -n flag
-	archiveDir := filepath.Join(RunningConfig.ITRSHome, "packages", "archives")
+	archiveDir := filepath.Join(ITRSHome(), "packages", "archives")
 	mkdirAll(LOCAL, archiveDir, 0775)
 	archivePath := filepath.Join(archiveDir, filename)
 	s, err := statFile(LOCAL, archivePath)

@@ -32,12 +32,21 @@ type Webservers struct {
 const webserverPortRange = "8080,8100-"
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewWebserver,
 		ComponentType:    Webserver,
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Web+Dashboard",
+	})
+	RegisterDirs([]string{
+		"packages/webserver",
+		"webserver/webservers",
+	})
+	RegisterSettings(GlobalSettings{
+		"WebserverPortRange": "8080,8100-",
+		"WebserverCleanList": "*.old",
+		"WebserverPurgeList": "webserver.log:webserver.txt",
 	})
 }
 
@@ -91,7 +100,7 @@ func (w Webservers) Prefix(field string) string {
 }
 
 func (w Webservers) Create(username string, params []string) (err error) {
-	w.WebsPort = nextPort(w.Location(), RunningConfig.WebserverPortRange)
+	w.WebsPort = nextPort(w.Location(), GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username
 
 	writeInstanceConfig(w)
@@ -173,16 +182,16 @@ func (c Webservers) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfig.WebserverCleanList); err != nil {
+		if err = removePathList(c, GlobalConfig["WebserverCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfig.WebserverPurgeList)
+		err = removePathList(c, GlobalConfig["WebserverPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, RunningConfig.WebserverCleanList)
+	return removePathList(c, GlobalConfig["WebserverCleanList"])
 }
 
 func (c Webservers) Reload(params []string) (err error) {

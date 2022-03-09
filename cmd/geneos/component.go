@@ -23,11 +23,35 @@ type Components struct {
 }
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		ComponentType:    None,
 		ComponentMatches: []string{"", "all", "any"},
 		IncludeInLoops:   false,
 		DownloadBase:     "",
+	})
+	RegisterSettings(GlobalSettings{
+		// Root directory for all operations
+		"ITRSHome": "",
+
+		// Root URL for all downloads of software archives
+		"DownloadURL":  "https://resources.itrsgroup.com/download/latest/",
+		"DownloadUser": "",
+		"DownloadPass": "",
+
+		// Username to start components if not explicitly defined
+		// and we are running with elevated privileges
+		//
+		// When running as a normal user this is unused and
+		// we simply test a defined user against the running user
+		//
+		// default is owner of ITRSHome
+		"DefaultUser": "",
+
+		// Path List sperated additions to the reserved names list, over and above
+		// any words matched by parseComponentName()
+		"ReservedNames": "",
+
+		"PrivateKeys": "id_rsa,id_ecdsa,id_ecdsa_sk,id_ed25519,id_ed25519_sk,id_dsa",
 	})
 }
 
@@ -98,8 +122,18 @@ func parseComponentName(component string) Component {
 }
 
 // register a component type
-func RegisterComponent(c *Components) {
-	components[c.ComponentType] = *c
+func RegisterComponent(c Components) {
+	components[c.ComponentType] = c
+}
+
+func RegisterDirs(dirs []string) {
+	initDirs = append(initDirs, dirs...)
+}
+
+func RegisterSettings(settings GlobalSettings) {
+	for k, v := range settings {
+		GlobalConfig[k] = v
+	}
 }
 
 // Return a slice of all instances for a given Component. No checking is done
@@ -118,7 +152,7 @@ func (ct Component) componentBaseDir(remote string) string {
 	}
 	switch ct {
 	case Remote:
-		return filepath.Join(RunningConfig.ITRSHome, ct.String()+"s")
+		return filepath.Join(ITRSHome(), ct.String()+"s")
 	default:
 		return filepath.Join(remoteRoot(remote), ct.String(), ct.String()+"s")
 	}
