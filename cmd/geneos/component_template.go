@@ -4,10 +4,12 @@ package main
 
 // Use this file as a template to add a new component.
 //
-// Replace 'NAME' with the camel-cased name of the component, e.g. Gateway
+// Replace 'Name' with the camel-cased name of the component, e.g. Gateway
 // Replace 'name' with the display name of the component, e.g. gateway
 //
 // Plural instances of 'Names' / 'names' should be carried through, e.g. Gateways/gateways
+//
+// Leave InstanceName alone
 //
 
 import (
@@ -15,9 +17,9 @@ import (
 	"strconv"
 )
 
-const NAME Component = "name"
+const Name Component = "name"
 
-type NAMEs struct {
+type Names struct {
 	InstanceBase
 	BinSuffix string `default:"binary.linux_64"`
 	NameHome  string `default:"{{join .InstanceRoot \"name\" \"names\" .InstanceName}}"`
@@ -73,7 +75,7 @@ func (n Names) Location() string {
 }
 
 func (n Names) Home() string {
-	return getString(n, n.Prefix("Home"))
+	return n.NameHome
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
@@ -82,20 +84,14 @@ func (n Names) Prefix(field string) string {
 }
 
 func (n Names) Create(username string, params []string) (err error) {
-	c := &n
-	port := strconv.Itoa(nextPort(RunningConfig.NamePortRange))
-	if err = setField(c, c.Prefix("Port"), port); err != nil {
-		return
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
+	n.NamePort = nextPort(RunningConfig.NamePortRange)
+	n.NameUser = username
 
-	writeInstanceConfig(c)
+	writeInstanceConfig(n)
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
+		createInstanceCert(n)
 	}
 
 	// default config XML etc.
@@ -103,22 +99,19 @@ func (n Names) Create(username string, params []string) (err error) {
 }
 
 func (c Names) Command() (args, env []string) {
-	certfile := getString(c, c.Prefix("Cert"))
-	keyfile := getString(c, c.Prefix("Key"))
 	logFile := getLogfilePath(c)
 	args = []string{
 		c.Name(),
-		"-port",
-		getIntAsString(c, c.Prefix("Port")),
+		"-port", fmt.Sprintf(c.NamePort),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if certfile != "" {
-		args = append(args, "-secure", "-ssl-certificate", certfile)
+	if c.NameCert != "" {
+		args = append(args, "-secure", "-ssl-certificate", c.NameCert)
 	}
 
-	if keyfile != "" {
-		args = append(args, "-ssl-certificate-key", keyfile)
+	if c.NameKey != "" {
+		args = append(args, "-ssl-certificate-key", c.NameKey)
 	}
 
 	return
