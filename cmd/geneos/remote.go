@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -19,13 +21,19 @@ import (
 
 const Remote Component = "remote"
 
+// global to indicate current remote target. default to "local" which is a special case
+// var remoteTarget = "local"
+const LOCAL = "local"
+const ALL = "all"
+
 type Remotes struct {
 	InstanceBase
 	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
 	Hostname string
 	Port     int `default:"22"`
 	Username string
-	ITRSHome string `default:"{{.InstanceRoot}}"`
+	ITRSHome string            `default:"{{.InstanceRoot}}"`
+	OSInfo   map[string]string `json:",omitempty"`
 }
 
 func init() {
@@ -75,7 +83,7 @@ func (r Remotes) Create(username string, params []string) (err error) {
 	}
 
 	if u.Scheme != "ssh" {
-		logError.Fatalln("unsupport scheme (only ssh at the moment):", u.Scheme)
+		logError.Fatalln("unsupported scheme (only ssh at the moment):", u.Scheme)
 	}
 
 	if u.Host == "" {
@@ -103,7 +111,18 @@ func (r Remotes) Create(username string, params []string) (err error) {
 		logError.Fatalln(err)
 	}
 
-	// now check and created file layout
+	// once we are bootstrapped, read os-release info and re-write config
+	err = r.getOSReleaseEnv()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	err = writeInstanceConfig(r)
+	if err != nil {
+		logError.Fatalln(err)
+	}
+
+	// check and created file layout
 	if _, err = statFile(r.Name(), homepath); err == nil {
 		dirs, err := readDir(r.Name(), homepath)
 		if err != nil {
@@ -161,6 +180,34 @@ func NewRemote(name string) Instances {
 	return c
 }
 
+func (r *Remotes) getOSReleaseEnv() (err error) {
+	r.OSInfo = make(map[string]string)
+	f, err := readFile(r.Name(), "/etc/os-release")
+	if err != nil {
+		f, err = readFile(r.Name(), "/usr/lib/os-release")
+		if err != nil {
+			log.Fatalln("cannot open /etc/os-release or /usr/lib/os-releaae")
+		}
+	}
+
+	releaseFile := bytes.NewBuffer(f)
+	scanner := bufio.NewScanner(releaseFile)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if len(line) == 0 || strings.HasPrefix(line, "#") {
+			continue
+		}
+		s := strings.SplitN(line, "=", 2)
+		if len(s) != 2 {
+			return ErrInvalidArgs
+		}
+		key, value := s[0], s[1]
+		value = strings.Trim(value, "\"")
+		r.OSInfo[key] = value
+	}
+	return
+}
+
 func loadRemoteConfig(remote string) (c Instances) {
 	c = NewRemote(remote)
 	if err := loadConfig(c, false); err != nil {
@@ -182,11 +229,6 @@ func remoteRoot(remote string) string {
 		return getString(i, "ITRSHome")
 	}
 }
-
-// global to indicate current remote target. default to "local" which is a special case
-// var remoteTarget = "local"
-const LOCAL = "local"
-const ALL = "all"
 
 // given an instance name, split on an '@' and return left and right parts, using
 // "local" as a default
