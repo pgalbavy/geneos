@@ -72,15 +72,14 @@ func (l Licds) Prefix(field string) string {
 }
 
 func (l Licds) Create(username string, params []string) (err error) {
-	c := &l
 	l.LicdPort = nextPort(RunningConfig.LicdPortRange)
 	l.LicdUser = username
 
-	writeInstanceConfig(c)
+	writeInstanceConfig(l)
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
+		createInstanceCert(l)
 	}
 
 	// default config XML etc.

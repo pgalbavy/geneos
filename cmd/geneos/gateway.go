@@ -86,15 +86,14 @@ func (g Gateways) Prefix(field string) string {
 }
 
 func (g Gateways) Create(username string, params []string) (err error) {
-	c := &g
 	g.GatePort = nextPort(RunningConfig.GatewayPortRange)
 	g.GateUser = username
 
-	writeInstanceConfig(c)
+	writeInstanceConfig(g)
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
+		createInstanceCert(g)
 	}
 
 	// default config XML etc.
@@ -105,10 +104,10 @@ func (g Gateways) Create(username string, params []string) (err error) {
 
 	var out io.Writer
 
-	switch c.Location() {
+	switch g.Location() {
 	case LOCAL:
 		var cf *os.File
-		cf, err = os.Create(filepath.Join(c.Home(), "gateway.setup.xml"))
+		cf, err = os.Create(filepath.Join(g.Home(), "gateway.setup.xml"))
 		out = cf
 		if err != nil {
 			log.Println(err)
@@ -120,7 +119,7 @@ func (g Gateways) Create(username string, params []string) (err error) {
 		}
 	default:
 		var cf *sftp.File
-		cf, err = createRemoteFile(c.Location(), filepath.Join(c.Home(), "gateway.setup.xml"))
+		cf, err = createRemoteFile(g.Location(), filepath.Join(g.Home(), "gateway.setup.xml"))
 		out = cf
 		if err != nil {
 			log.Println(err)
@@ -132,7 +131,7 @@ func (g Gateways) Create(username string, params []string) (err error) {
 		}
 	}
 
-	if err = t.Execute(out, c); err != nil {
+	if err = t.Execute(out, g); err != nil {
 		logError.Fatalln(err)
 	}
 

@@ -53,7 +53,7 @@ func (r Remotes) Location() string {
 }
 
 func (r Remotes) Prefix(field string) string {
-	return "" + field
+	return field
 }
 
 func (r Remotes) Home() string {
@@ -64,7 +64,6 @@ func (r Remotes) Home() string {
 // 'geneos add remote NAME SSH-URL'
 //
 func (r Remotes) Create(username string, params []string) (err error) {
-	c := &r
 	if len(params) == 0 {
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}
@@ -91,22 +90,22 @@ func (r Remotes) Create(username string, params []string) (err error) {
 	if u.User.Username() != "" {
 		username = u.User.Username()
 	}
-	c.Username = username
+	r.Username = username
 
 	homepath := RunningConfig.ITRSHome
 	if u.Path != "" {
 		homepath = u.Path
 	}
-	c.ITRSHome = homepath
+	r.ITRSHome = homepath
 
-	err = writeInstanceConfig(c)
+	err = writeInstanceConfig(r)
 	if err != nil {
 		logError.Fatalln(err)
 	}
 
 	// now check and created file layout
-	if _, err = statFile(c.Name(), homepath); err == nil {
-		dirs, err := readDir(c.Name(), homepath)
+	if _, err = statFile(r.Name(), homepath); err == nil {
+		dirs, err := readDir(r.Name(), homepath)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -119,7 +118,7 @@ func (r Remotes) Create(username string, params []string) (err error) {
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = mkdirAll(c.Name(), homepath, 0775); err != nil {
+		if err = mkdirAll(r.Name(), homepath, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -128,7 +127,7 @@ func (r Remotes) Create(username string, params []string) (err error) {
 	// create directories - initDirs is global, in main.go
 	for _, d := range initDirs {
 		dir := filepath.Join(homepath, d)
-		if err = mkdirAll(c.Name(), dir, 0775); err != nil {
+		if err = mkdirAll(r.Name(), dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}

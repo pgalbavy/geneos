@@ -91,15 +91,14 @@ func (w Webservers) Prefix(field string) string {
 }
 
 func (w Webservers) Create(username string, params []string) (err error) {
-	c := &w
 	w.WebsPort = nextPort(RunningConfig.WebserverPortRange)
 	w.WebsUser = username
 
-	writeInstanceConfig(c)
+	writeInstanceConfig(w)
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
+		createInstanceCert(w)
 	}
 
 	// copy default configs - use existing upload routines?
@@ -110,12 +109,12 @@ func (w Webservers) Create(username string, params []string) (err error) {
 		return
 	}
 
-	if err = mkdirAll(c.Location(), filepath.Join(c.Home(), "webapps"), 0777); err != nil {
+	if err = mkdirAll(w.Location(), filepath.Join(w.Home(), "webapps"), 0777); err != nil {
 		return
 	}
 
 	for _, source := range webserverFiles {
-		if err = uploadFile(c, source); err != nil {
+		if err = uploadFile(w, source); err != nil {
 			return
 		}
 	}

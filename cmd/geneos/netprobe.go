@@ -72,15 +72,14 @@ func (n Netprobes) Prefix(field string) string {
 }
 
 func (n Netprobes) Create(username string, params []string) (err error) {
-	c := &n
 	n.NetpPort = nextPort(RunningConfig.NetprobePortRange)
 	n.NetpUser = username
 
-	writeInstanceConfig(c)
+	writeInstanceConfig(n)
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(c)
+		createInstanceCert(n)
 	}
 
 	// default config XML etc.
