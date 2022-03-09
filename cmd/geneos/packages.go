@@ -263,7 +263,7 @@ func unarchive(remote string, ct Component, filename string, gz io.Reader) (fina
 	version := parts[2]
 	filect := parseComponentName(parts[1])
 	switch ct {
-	case None:
+	case None, San:
 		ct = filect
 	case filect:
 		break
@@ -273,6 +273,7 @@ func unarchive(remote string, ct Component, filename string, gz io.Reader) (fina
 	}
 
 	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String(), version)
+	logDebug.Println(basedir)
 	if _, err = statFile(remote, basedir); err == nil {
 		return // "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
 	}
@@ -397,6 +398,9 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 
 // check selected version exists first
 func updateToVersion(remote string, ct Component, version string, overwrite bool) (err error) {
+	if ct == San {
+		ct = Netprobe
+	}
 	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String())
 	basepath := filepath.Join(basedir, updateBase)
 

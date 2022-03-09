@@ -192,6 +192,7 @@ type ConfigType struct {
 
 	GatewayPortRange   string `json:",omitempty"`
 	NetprobePortRange  string `json:",omitempty"`
+	SanPortRange       string `json:",omitempty"`
 	LicdPortRange      string `json:",omitempty"`
 	WebserverPortRange string `json:",omitempty"`
 
@@ -200,6 +201,8 @@ type ConfigType struct {
 	GatewayPurgeList   string `json:",omitempty"`
 	NetprobeCleanList  string `json:",omitempty"`
 	NetprobePurgeList  string `json:",omitempty"`
+	SanCleanList       string `json:",omitempty"`
+	SanPurgeList       string `json:",omitempty"`
 	LicdCleanList      string `json:",omitempty"`
 	LicdPurgeList      string `json:",omitempty"`
 	WebserverCleanList string `json:",omitempty"`
@@ -216,6 +219,7 @@ var initDirs = []string{
 	"packages/licd",
 	"packages/webserver",
 	"netprobe/netprobes",
+	"san/sans",
 	"gateway/gateways",
 	"gateway/gateway_shared",
 	"gateway/gateway_config",
@@ -246,12 +250,15 @@ func loadSysConfig() {
 	// defaults - make this long chain simpler
 	checkDefault(&RunningConfig.GatewayPortRange, gatewayPortRange)
 	checkDefault(&RunningConfig.NetprobePortRange, netprobePortRange)
+	checkDefault(&RunningConfig.SanPortRange, sanPortRange)
 	checkDefault(&RunningConfig.LicdPortRange, licdPortRange)
 	checkDefault(&RunningConfig.WebserverPortRange, webserverPortRange)
 	checkDefault(&RunningConfig.GatewayCleanList, defaultGatewayCleanList)
 	checkDefault(&RunningConfig.GatewayPurgeList, defaultGatewayPurgeList)
 	checkDefault(&RunningConfig.NetprobeCleanList, defaultNetprobeCleanList)
 	checkDefault(&RunningConfig.NetprobePurgeList, defaultNetprobePurgeList)
+	checkDefault(&RunningConfig.SanCleanList, defaultSanCleanList)
+	checkDefault(&RunningConfig.SanPurgeList, defaultSanPurgeList)
 	checkDefault(&RunningConfig.LicdCleanList, defaultLicdCleanList)
 	checkDefault(&RunningConfig.LicdPurgeList, defaultLicdPurgeList)
 	checkDefault(&RunningConfig.WebserverCleanList, defaultWebserverCleanList)
