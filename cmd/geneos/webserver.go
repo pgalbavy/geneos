@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
 const Webserver Component = "webserver"
@@ -83,7 +83,7 @@ func (w Webservers) Location() string {
 }
 
 func (w Webservers) Home() string {
-	return getString(w, w.Prefix("Home"))
+	return w.WebsHome
 }
 
 func (w Webservers) Prefix(field string) string {
@@ -92,13 +92,8 @@ func (w Webservers) Prefix(field string) string {
 
 func (w Webservers) Create(username string, params []string) (err error) {
 	c := &w
-	webport := strconv.Itoa(nextPort(RunningConfig.WebserverPortRange))
-	if err = setField(c, c.Prefix("Port"), webport); err != nil {
-		return
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
+	w.WebsPort = nextPort(RunningConfig.WebserverPortRange)
+	w.WebsUser = username
 
 	writeInstanceConfig(c)
 
@@ -110,7 +105,7 @@ func (w Webservers) Create(username string, params []string) (err error) {
 	// copy default configs - use existing upload routines?
 	dir, err := os.Getwd()
 	defer os.Chdir(dir)
-	configSrc := filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")), "config")
+	configSrc := filepath.Join(w.WebsBins, w.WebsBase, "config")
 	if err = os.Chdir(configSrc); err != nil {
 		return
 	}
@@ -129,26 +124,25 @@ func (w Webservers) Create(username string, params []string) (err error) {
 }
 
 func (c Webservers) Command() (args, env []string) {
-	WebsHome := getString(c, c.Prefix("Home"))
-	WebsBase := filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")))
+	WebsBase := filepath.Join(c.WebsBins, c.WebsBase)
 	args = []string{
-		// "-Duser.home=" + WebsHome,
+		// "-Duser.home=" + c.WebsHome,
 		"-XX:+UseConcMarkSweepGC",
-		"-Xmx" + getString(c, c.Prefix("Xmx")),
+		"-Xmx" + c.WebsXmx,
 		"-server",
-		"-Djava.io.tmpdir=" + WebsHome + "/webapps",
+		"-Djava.io.tmpdir=" + c.WebsHome + "/webapps",
 		"-Djava.awt.headless=true",
-		"-DsecurityConfig=" + WebsHome + "/config/security.xml",
-		"-Dcom.itrsgroup.configuration.file=" + WebsHome + "/config/config.xml",
+		"-DsecurityConfig=" + c.WebsHome + "/config/security.xml",
+		"-Dcom.itrsgroup.configuration.file=" + c.WebsHome + "/config/config.xml",
 		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
 		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
-		"-Djava.library.path=" + getString(c, c.Prefix("Libs")),
-		"-Dlog4j2.configurationFile=file:" + WebsHome + "/config/log4j2.properties",
-		"-Dworking.directory=" + WebsHome,
+		"-Djava.library.path=" + c.WebsLibs,
+		"-Dlog4j2.configurationFile=file:" + c.WebsHome + "/config/log4j2.properties",
+		"-Dworking.directory=" + c.WebsHome,
 		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
 		// SSO
-		"-Dcom.itrsgroup.sso.config.file=" + WebsHome + "/config/sso.properties",
-		"-Djava.security.auth.login.config=" + WebsHome + "/config/login.conf",
+		"-Dcom.itrsgroup.sso.config.file=" + c.WebsHome + "/config/sso.properties",
+		"-Djava.security.auth.login.config=" + c.WebsHome + "/config/login.conf",
 		"-Djava.security.krb5.conf=/etc/krb5.conf",
 		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
 		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",
@@ -156,7 +150,7 @@ func (c Webservers) Command() (args, env []string) {
 		"-XX:HeapDumpPath=/tmp",
 		"-jar", WebsBase + "/geneos-web-server.jar",
 		"-dir", WebsBase + "/webapps",
-		"-port", getIntAsString(c, c.Prefix("Port")),
+		"-port", fmt.Sprint(c.WebsPort),
 		// "-ssl true",
 		"-maxThreads 254",
 		// "-log", getLogfilePath(c),

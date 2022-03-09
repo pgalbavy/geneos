@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"text/template" // text and not html for generating XML!
 
@@ -79,7 +78,7 @@ func (g Gateways) Location() string {
 }
 
 func (g Gateways) Home() string {
-	return getString(g, g.Prefix("Home"))
+	return g.GateHome
 }
 
 func (g Gateways) Prefix(field string) string {
@@ -88,13 +87,8 @@ func (g Gateways) Prefix(field string) string {
 
 func (g Gateways) Create(username string, params []string) (err error) {
 	c := &g
-	gateport := strconv.Itoa(nextPort(RunningConfig.GatewayPortRange))
-	if err = setField(c, c.Prefix("Port"), gateport); err != nil {
-		return
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
+	g.GatePort = nextPort(RunningConfig.GatewayPortRange)
+	g.GateUser = username
 
 	writeInstanceConfig(c)
 
@@ -149,16 +143,10 @@ func (c Gateways) Command() (args, env []string) {
 	// get opts from
 	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
 	//
-	licdhost := getString(c, c.Prefix("LicH"))
-	licdport := getIntAsString(c, c.Prefix("LicP"))
-	licdsecure := getString(c, c.Prefix("LicS"))
-	certfile := getString(c, c.Prefix("Cert"))
-	keyfile := getString(c, c.Prefix("Key"))
-
 	args = []string{
 		/* "-gateway-name",  */ c.Name(),
 		"-resources-dir",
-		filepath.Join(getString(c, c.Prefix("Bins")), getString(c, c.Prefix("Base")), "resources"),
+		filepath.Join(c.GateBins, c.GateBase, "resources"),
 		"-log",
 		getLogfilePath(c),
 		// enable stats by default
@@ -166,31 +154,31 @@ func (c Gateways) Command() (args, env []string) {
 	}
 
 	// only add a port arg is the value is defined - empty means use config file
-	port := getIntAsString(c, c.Prefix("Port"))
-	if port != "7039" {
-		args = append([]string{"-port", port}, args...)
+	port := c.GatePort
+	if port != 7039 {
+		args = append([]string{"-port", fmt.Sprint(port)}, args...)
 	}
 
-	if licdhost != "" {
-		args = append(args, "-licd-host", licdhost)
+	if c.GateLicH != "" {
+		args = append(args, "-licd-host", c.GateLicH)
 	}
 
-	if licdport != "0" {
-		args = append(args, "-licd-port", licdport)
+	if c.GateLicP != 0 {
+		args = append(args, "-licd-port", fmt.Sprint(c.GateLicP))
 	}
 
-	if licdsecure != "" && licdsecure != "false" {
+	if c.GateLicS != "" && c.GateLicS != "false" {
 		args = append(args, "-licd-secure")
 	}
 
-	if certfile != "" {
-		args = append(args, "-ssl-certificate", certfile)
+	if c.GateCert != "" {
+		args = append(args, "-ssl-certificate", c.GateCert)
 		chainfile := filepath.Join(remoteRoot(c.Location()), "tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
 	}
 
-	if keyfile != "" {
-		args = append(args, "-ssl-certificate-key", keyfile)
+	if c.GateKey != "" {
+		args = append(args, "-ssl-certificate-key", c.GateKey)
 	}
 
 	return

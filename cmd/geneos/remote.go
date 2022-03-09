@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -56,7 +57,7 @@ func (r Remotes) Prefix(field string) string {
 }
 
 func (r Remotes) Home() string {
-	return getString(r, "HomeDir")
+	return r.HomeDir
 }
 
 //
@@ -81,22 +82,22 @@ func (r Remotes) Create(username string, params []string) (err error) {
 	if u.Host == "" {
 		logError.Fatalln("hostname must be provided")
 	}
-	setField(c, "Hostname", u.Host)
+	r.Hostname = u.Host
 
 	if u.Port() != "" {
-		setField(c, "Port", u.Port())
+		r.Port, _ = strconv.Atoi(u.Port())
 	}
 
 	if u.User.Username() != "" {
 		username = u.User.Username()
 	}
-	setField(c, "Username", username)
+	c.Username = username
 
 	homepath := RunningConfig.ITRSHome
 	if u.Path != "" {
 		homepath = u.Path
 	}
-	setField(c, "ITRSHome", homepath)
+	c.ITRSHome = homepath
 
 	err = writeInstanceConfig(c)
 	if err != nil {
@@ -181,82 +182,6 @@ func remoteRoot(remote string) string {
 		}
 		return getString(i, "ITRSHome")
 	}
-}
-
-//
-// 'geneos add remote NAME SSH-URL'
-//
-func CreateRemote(remote string, username string, params []string) (c Instances, err error) {
-	if len(params) == 0 {
-		logError.Fatalln("remote destination must be provided in the form of a URL")
-	}
-
-	c = NewRemote(remote)
-
-	u, err := url.Parse(params[0])
-	if err != nil {
-		logDebug.Println(err)
-		return
-	}
-
-	if u.Scheme != "ssh" {
-		logError.Fatalln("unsupport scheme (only ssh at the moment):", u.Scheme)
-	}
-
-	if u.Host == "" {
-		logError.Fatalln("hostname must be provided")
-	}
-	setField(c, "Hostname", u.Host)
-
-	if u.Port() != "" {
-		setField(c, "Port", u.Port())
-	}
-
-	if u.User.Username() != "" {
-		username = u.User.Username()
-	}
-	setField(c, "Username", username)
-
-	homepath := RunningConfig.ITRSHome
-	if u.Path != "" {
-		homepath = u.Path
-	}
-	setField(c, "ITRSHome", homepath)
-
-	err = writeInstanceConfig(c)
-	if err != nil {
-		logError.Fatalln(err)
-	}
-
-	// now check and created file layout
-	if _, err = statFile(remote, homepath); err == nil {
-		dirs, err := readDir(remote, homepath)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		// ignore dot files
-		for _, entry := range dirs {
-			if !strings.HasPrefix(entry.Name(), ".") {
-				// directory exists and contains non dot files/dirs - so return
-				return c, nil
-			}
-		}
-	} else {
-		// need to create out own, chown base directory only
-		if err = mkdirAll(remote, homepath, 0775); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	// create dirs
-	// create directories - initDirs is global, in main.go
-	for _, d := range initDirs {
-		dir := filepath.Join(homepath, d)
-		if err = mkdirAll(remote, dir, 0775); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-	return
 }
 
 // global to indicate current remote target. default to "local" which is a special case

@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"strconv"
+	"fmt"
 )
 
 const Netprobe Component = "netprobe"
@@ -64,7 +64,7 @@ func (n Netprobes) Location() string {
 }
 
 func (n Netprobes) Home() string {
-	return getString(n, n.Prefix("Home"))
+	return n.NetpHome
 }
 
 func (n Netprobes) Prefix(field string) string {
@@ -73,13 +73,8 @@ func (n Netprobes) Prefix(field string) string {
 
 func (n Netprobes) Create(username string, params []string) (err error) {
 	c := &n
-	netport := strconv.Itoa(nextPort(RunningConfig.NetprobePortRange))
-	if err = setField(c, c.Prefix("Port"), netport); err != nil {
-		return
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
+	n.NetpPort = nextPort(RunningConfig.NetprobePortRange)
+	n.NetpUser = username
 
 	writeInstanceConfig(c)
 
@@ -93,22 +88,19 @@ func (n Netprobes) Create(username string, params []string) (err error) {
 }
 
 func (c Netprobes) Command() (args, env []string) {
-	certfile := getString(c, c.Prefix("Cert"))
-	keyfile := getString(c, c.Prefix("Key"))
 	logFile := getLogfilePath(c)
 	args = []string{
 		c.Name(),
-		"-port",
-		getIntAsString(c, c.Prefix("Port")),
+		"-port", fmt.Sprint(c.NetpPort),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if certfile != "" {
-		args = append(args, "-secure", "-ssl-certificate", certfile)
+	if c.NetpCert != "" {
+		args = append(args, "-secure", "-ssl-certificate", c.NetpCert)
 	}
 
-	if keyfile != "" {
-		args = append(args, "-ssl-certificate-key", keyfile)
+	if c.NetpKey != "" {
+		args = append(args, "-ssl-certificate-key", c.NetpKey)
 	}
 
 	return

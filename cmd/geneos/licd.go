@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"strconv"
+	"fmt"
 )
 
 const Licd Component = "licd"
@@ -64,7 +64,7 @@ func (l Licds) Location() string {
 }
 
 func (l Licds) Home() string {
-	return getString(l, l.Prefix("Home"))
+	return l.LicdHome
 }
 
 func (l Licds) Prefix(field string) string {
@@ -73,13 +73,8 @@ func (l Licds) Prefix(field string) string {
 
 func (l Licds) Create(username string, params []string) (err error) {
 	c := &l
-	licdport := strconv.Itoa(nextPort(RunningConfig.LicdPortRange))
-	if err = setField(c, c.Prefix("Port"), licdport); err != nil {
-		return
-	}
-	if err = setField(c, c.Prefix("User"), username); err != nil {
-		return
-	}
+	l.LicdPort = nextPort(RunningConfig.LicdPortRange)
+	l.LicdUser = username
 
 	writeInstanceConfig(c)
 
@@ -93,23 +88,18 @@ func (l Licds) Create(username string, params []string) (err error) {
 }
 
 func (c Licds) Command() (args, env []string) {
-	certfile := getString(c, c.Prefix("Cert"))
-	keyfile := getString(c, c.Prefix("Key"))
-
 	args = []string{
 		c.Name(),
-		"-port",
-		getIntAsString(c, c.Prefix("Port")),
-		"-log",
-		getLogfilePath(c),
+		"-port", fmt.Sprint(c.LicdPort),
+		"-log", getLogfilePath(c),
 	}
 
-	if certfile != "" {
-		args = append(args, "-secure", "-ssl-certificate", certfile)
+	if c.LicdCert != "" {
+		args = append(args, "-secure", "-ssl-certificate", c.LicdCert)
 	}
 
-	if keyfile != "" {
-		args = append(args, "-ssl-certificate-key", keyfile)
+	if c.LicdKey != "" {
+		args = append(args, "-ssl-certificate-key", c.LicdKey)
 	}
 
 	return
