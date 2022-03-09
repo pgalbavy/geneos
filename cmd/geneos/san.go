@@ -31,8 +31,6 @@ type Sans struct {
 	SanKey    string `json:",omitempty"`
 }
 
-const sanPortRange = "7036,7100-"
-
 //go:embed netprobe.setup.Template.xml
 var emptySANTemplate string
 
@@ -164,9 +162,6 @@ func (c Sans) Command() (args, env []string) {
 
 	return
 }
-
-var defaultSanCleanList = "*.old"
-var defaultSanPurgeList = "san.log:san.txt:*.snooze:*.user_assignment"
 
 func (c Sans) Clean(purge bool, params []string) (err error) {
 	logDebug.Println(c.Type(), c.Name(), "clean")
