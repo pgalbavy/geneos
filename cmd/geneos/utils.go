@@ -51,7 +51,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
-		execfile := filepath.Base(string(args[0]))
+		execfile := getString(c, "BinSuffix")
 		switch c.Type() {
 		case Webserver:
 			var wdOK, jarOK bool
