@@ -23,7 +23,7 @@ type Names struct {
 	InstanceBase
 	BinSuffix string `default:"binary.linux_64"`
 	NameHome  string `default:"{{join .InstanceRoot \"name\" \"names\" .InstanceName}}"`
-	NameBins  string `default:"{{join .InstanceRoot \"packages\" \"name\"}}"`
+	NameBins  string `default:"{{join .InstanceRoot \"packages\" \"netprobe\"}}"`
 	NameBase  string `default:"active_prod"`
 	NameExec  string `default:"{{join .NameBins .NameBase .BinSuffix}}"`
 	NameLogD  string `default:"{{.NameHome}}"`
@@ -45,6 +45,7 @@ func init() {
 		ComponentType:    name,
 		ComponentMatches: []string{"words", "to", "match"},
 		IncludeInLoops:   true,
+		DownloadBase:     "Name+Whatever",
 	})
 }
 
