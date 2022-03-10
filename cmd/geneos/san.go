@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"path/filepath"
 )
 
@@ -116,6 +117,7 @@ func (c Sans) Command() (args, env []string) {
 	args = []string{
 		c.Name(),
 		"-listenip", "none",
+		"-port", fmt.Sprint(c.SanPort),
 		"-setup", "netprobe.setup.xml",
 		"-setup-interval", "300",
 	}
