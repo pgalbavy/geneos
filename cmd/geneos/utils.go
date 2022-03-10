@@ -662,7 +662,7 @@ func readSourceBytes(source string) (b []byte) {
 		defer from.Close()
 	}
 
-	b, err = io.ReadAll(from)
+	b, _ = io.ReadAll(from)
 	return
 }
 

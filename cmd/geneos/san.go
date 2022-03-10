@@ -117,6 +117,7 @@ func (c Sans) Command() (args, env []string) {
 		c.Name(),
 		"-listenip", "none",
 		"-setup", "netprobe.setup.xml",
+		"-setup-interval", "300",
 	}
 
 	// add environment variables to use in setup file substitution
