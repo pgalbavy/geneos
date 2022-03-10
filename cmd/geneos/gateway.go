@@ -33,7 +33,7 @@ type Gateways struct {
 	GateKey   string `json:",omitempty"`
 }
 
-//go:embed gateway.setup.xml.gotmpl
+//go:embed templates/gateway.setup.xml.gotmpl
 var GatewayTemplate string
 
 func init() {

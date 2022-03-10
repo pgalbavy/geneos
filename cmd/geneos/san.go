@@ -36,7 +36,7 @@ type Sans struct {
 	Types []string
 }
 
-//go:embed netprobe.setup.xml.gotmpl
+//go:embed templates/netprobe.setup.xml.gotmpl
 var SanTemplate string
 
 func init() {
