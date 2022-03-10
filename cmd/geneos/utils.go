@@ -71,6 +71,16 @@ func findInstancePID(c Instances) (pid int, err error) {
 					return
 				}
 			}
+		case San:
+			if strings.HasPrefix(execfile, Netprobe.String()) {
+				for _, arg := range args[1:] {
+					// very simplistic - we look for a bare arg that matches the instance name
+					if string(arg) == c.Name() {
+						// found
+						return
+					}
+				}
+			}
 		default:
 			if strings.HasPrefix(execfile, c.Type().String()) {
 				for _, arg := range args[1:] {
