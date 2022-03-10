@@ -28,11 +28,11 @@ const ALL = "all"
 
 type Remotes struct {
 	InstanceBase
-	HomeDir  string `default:"{{join .InstanceRoot \"remotes\" .InstanceName}}"`
+	HomeDir  string `default:"{{join .RemoteRoot \"remotes\" .InstanceName}}"`
 	Hostname string
 	Port     int `default:"22"`
 	Username string
-	ITRSHome string            `default:"{{.InstanceRoot}}"`
+	ITRSHome string            `default:"{{.RemoteRoot}}"`
 	OSInfo   map[string]string `json:",omitempty"`
 }
 
@@ -51,6 +51,25 @@ func init() {
 }
 
 // interface method set
+
+func NewRemote(name string) Instances {
+	local, remote := splitInstanceName(name)
+	if remote != LOCAL {
+		logError.Fatalln("remote remotes not suported")
+	}
+	// Bootstrap
+	c := &Remotes{}
+	c.RemoteRoot = ITRSHome()
+	c.InstanceType = Remote.String()
+	c.InstanceName = local
+	c.InstanceLocation = remote
+	setDefaults(&c)
+	// fill this in directly as there is no config file to load
+	if name == LOCAL {
+		c.getOSReleaseEnv()
+	}
+	return c
+}
 
 func (r Remotes) Type() Component {
 	return parseComponentName(r.InstanceType)
@@ -167,25 +186,6 @@ func (c Remotes) Clean(purge bool, params []string) (err error) {
 
 func (c Remotes) Reload(params []string) (err error) {
 	return ErrNotSupported
-}
-
-func NewRemote(name string) Instances {
-	local, remote := splitInstanceName(name)
-	if remote != LOCAL {
-		logError.Fatalln("remote remotes not suported")
-	}
-	// Bootstrap
-	c := &Remotes{}
-	c.InstanceRoot = ITRSHome()
-	c.InstanceType = Remote.String()
-	c.InstanceName = local
-	c.InstanceLocation = remote
-	setDefaults(&c)
-	// fill this in directly as there is no config file to load
-	if name == LOCAL {
-		c.getOSReleaseEnv()
-	}
-	return c
 }
 
 func (r *Remotes) getOSReleaseEnv() (err error) {

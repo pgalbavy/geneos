@@ -24,6 +24,8 @@ import (
 	"strings"
 	"syscall"
 	"text/template"
+
+	"github.com/pkg/sftp"
 )
 
 // walk the /proc directory (local or remote) and find the matching pid
@@ -726,4 +728,47 @@ func sortedInstancesInDir(remote string, dir string) []string {
 		}
 	}
 	return components
+}
+
+func writeTemplate(c Instances, path string, tmpl string) (err error) {
+	var out io.Writer
+
+	// default config XML etc.
+	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(tmpl)
+	if err != nil {
+		logError.Fatalln(err)
+	}
+
+	switch c.Location() {
+	case LOCAL:
+		var cf *os.File
+		cf, err = os.Create(path)
+		out = cf
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer cf.Close()
+		if err = cf.Chmod(0664); err != nil {
+			logError.Fatalln(err)
+		}
+	default:
+		var cf *sftp.File
+		cf, err = createRemoteFile(c.Location(), path)
+		out = cf
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer cf.Close()
+		if err = cf.Chmod(0664); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+
+	if err = t.Execute(out, c); err != nil {
+		logError.Fatalln(err)
+	}
+
+	return
 }

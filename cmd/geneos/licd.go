@@ -10,8 +10,8 @@ const Licd Component = "licd"
 type Licds struct {
 	InstanceBase
 	BinSuffix string `default:"licd.linux_64"`
-	LicdHome  string `default:"{{join .InstanceRoot \"licd\" \"licds\" .InstanceName}}"`
-	LicdBins  string `default:"{{join .InstanceRoot \"packages\" \"licd\"}}"`
+	LicdHome  string `default:"{{join .RemoteRoot \"licd\" \"licds\" .InstanceName}}"`
+	LicdBins  string `default:"{{join .RemoteRoot \"packages\" \"licd\"}}"`
 	LicdBase  string `default:"active_prod"`
 	LicdExec  string `default:"{{join .LicdBins .LicdBase .BinSuffix}}"`
 	LicdLogD  string `json:",omitempty"`
@@ -47,7 +47,7 @@ func init() {
 func NewLicd(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Licds{}
-	c.InstanceRoot = remoteRoot(remote)
+	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = Licd.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote

@@ -12,8 +12,8 @@ const Webserver Component = "webserver"
 type Webservers struct {
 	InstanceBase
 	//BinSuffix string `default:"licd.linux_64"`
-	WebsHome string `default:"{{join .InstanceRoot \"webserver\" \"webservers\" .InstanceName}}"`
-	WebsBins string `default:"{{join .InstanceRoot \"packages\" \"webserver\"}}"`
+	WebsHome string `default:"{{join .RemoteRoot \"webserver\" \"webservers\" .InstanceName}}"`
+	WebsBins string `default:"{{join .RemoteRoot \"packages\" \"webserver\"}}"`
 	WebsBase string `default:"active_prod"`
 	WebsExec string `default:"{{join .WebsBins .WebsBase \"JRE/bin/java\"}}"`
 	WebsLogD string `default:"logs"`
@@ -51,7 +51,7 @@ func init() {
 func NewWebserver(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Webservers{}
-	c.InstanceRoot = remoteRoot(remote)
+	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = Webserver.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote

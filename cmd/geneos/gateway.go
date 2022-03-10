@@ -4,13 +4,10 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"syscall"
-	"text/template" // text and not html for generating XML!
-
-	"github.com/pkg/sftp"
+	// text and not html for generating XML!
 )
 
 const Gateway Component = "gateway"
@@ -18,8 +15,8 @@ const Gateway Component = "gateway"
 type Gateways struct {
 	InstanceBase
 	BinSuffix string `default:"gateway2.linux_64"`
-	GateHome  string `default:"{{join .InstanceRoot \"gateway\" \"gateways\" .InstanceName}}"`
-	GateBins  string `default:"{{join .InstanceRoot \"packages\" \"gateway\"}}"`
+	GateHome  string `default:"{{join .RemoteRoot \"gateway\" \"gateways\" .InstanceName}}"`
+	GateBins  string `default:"{{join .RemoteRoot \"packages\" \"gateway\"}}"`
 	GateBase  string `default:"active_prod"`
 	GateExec  string `default:"{{join .GateBins .GateBase .BinSuffix}}"`
 	GateLogD  string `json:",omitempty"`
@@ -36,8 +33,8 @@ type Gateways struct {
 	GateKey   string `json:",omitempty"`
 }
 
-//go:embed emptyGateway.xml
-var emptyXMLTemplate string
+//go:embed gateway.setup.xml.gotmpl
+var GatewayTemplate string
 
 func init() {
 	RegisterComponent(Components{
@@ -63,7 +60,7 @@ func init() {
 func NewGateway(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Gateways{}
-	c.InstanceRoot = remoteRoot(remote)
+	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote
@@ -105,46 +102,7 @@ func (g Gateways) Create(username string, params []string) (err error) {
 		createInstanceCert(g)
 	}
 
-	// default config XML etc.
-	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(emptyXMLTemplate)
-	if err != nil {
-		logError.Fatalln(err)
-	}
-
-	var out io.Writer
-
-	switch g.Location() {
-	case LOCAL:
-		var cf *os.File
-		cf, err = os.Create(filepath.Join(g.Home(), "gateway.setup.xml"))
-		out = cf
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		defer cf.Close()
-		if err = cf.Chmod(0664); err != nil {
-			logError.Fatalln(err)
-		}
-	default:
-		var cf *sftp.File
-		cf, err = createRemoteFile(g.Location(), filepath.Join(g.Home(), "gateway.setup.xml"))
-		out = cf
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		defer cf.Close()
-		if err = cf.Chmod(0664); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	if err = t.Execute(out, g); err != nil {
-		logError.Fatalln(err)
-	}
-
-	return
+	return writeTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayTemplate)
 }
 
 func (c Gateways) Command() (args, env []string) {

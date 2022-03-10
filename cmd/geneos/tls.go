@@ -624,7 +624,7 @@ func writeInstanceCert(c Instances, cert *x509.Certificate) (err error) {
 	}
 
 	if err = writeInstanceConfig(c); err != nil {
-		log.Fatalln("here:", err)
+		log.Fatalln(err)
 	}
 	return
 }

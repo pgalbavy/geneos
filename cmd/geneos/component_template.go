@@ -22,8 +22,8 @@ const Name Component = "name"
 type Names struct {
 	InstanceBase
 	BinSuffix string `default:"binary.linux_64"`
-	NameHome  string `default:"{{join .InstanceRoot \"name\" \"names\" .InstanceName}}"`
-	NameBins  string `default:"{{join .InstanceRoot \"packages\" \"netprobe\"}}"`
+	NameHome  string `default:"{{join .RemoteRoot \"name\" \"names\" .InstanceName}}"`
+	NameBins  string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
 	NameBase  string `default:"active_prod"`
 	NameExec  string `default:"{{join .NameBins .NameBase .BinSuffix}}"`
 	NameLogD  string `default:"{{.NameHome}}"`
@@ -56,7 +56,7 @@ func init() {
 func NewName(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Names{}
-	c.InstanceRoot = remoteRoot(remote)
+	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = Name.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote

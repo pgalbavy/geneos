@@ -10,8 +10,8 @@ const Netprobe Component = "netprobe"
 type Netprobes struct {
 	InstanceBase
 	BinSuffix string `default:"netprobe.linux_64"`
-	NetpHome  string `default:"{{join .InstanceRoot \"netprobe\" \"netprobes\" .InstanceName}}"`
-	NetpBins  string `default:"{{join .InstanceRoot \"packages\" \"netprobe\"}}"`
+	NetpHome  string `default:"{{join .RemoteRoot \"netprobe\" \"netprobes\" .InstanceName}}"`
+	NetpBins  string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
 	NetpExec  string `default:"{{join .NetpBins .NetpBase .BinSuffix}}"`
 	NetpLogD  string `default:"{{.NetpHome}}"`
@@ -47,7 +47,7 @@ func init() {
 func NewNetprobe(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Netprobes{}
-	c.InstanceRoot = remoteRoot(remote)
+	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = Netprobe.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote

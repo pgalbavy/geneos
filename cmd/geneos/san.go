@@ -3,36 +3,41 @@ package main
 import (
 	_ "embed"
 	"errors"
-	"io"
-	"os"
 	"path/filepath"
-	"text/template"
-
-	"github.com/pkg/sftp"
 )
 
 const San Component = "san"
 
 type Sans struct {
 	InstanceBase
-	BinSuffix string `default:"netprobe.linux_64"`
-	SanHome   string `default:"{{join .InstanceRoot \"san\" \"sans\" .InstanceName}}"`
-	SanBins   string `default:"{{join .InstanceRoot \"packages\" \"netprobe\"}}"`
-	SanBase   string `default:"active_prod"`
-	SanExec   string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
-	SanLogD   string `default:"{{.SanHome}}"`
-	SanLogF   string `default:"san.log"`
-	SanPort   int    `default:"7036"`
-	SanMode   string `json:",omitempty"`
-	SanOpts   string `json:",omitempty"`
-	SanLibs   string `default:"{{join .SanBins .SanBase \"lib64\"}}:{{join .SanBins .SanBase}}"`
-	SanUser   string `json:",omitempty"`
-	SanCert   string `json:",omitempty"`
-	SanKey    string `json:",omitempty"`
+	BinSuffix  string `default:"netprobe.linux_64"`
+	SanHome    string `default:"{{join .RemoteRoot \"san\" \"sans\" .InstanceName}}"`
+	SanBins    string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
+	SanBase    string `default:"active_prod"`
+	SanExec    string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
+	SanLogD    string `default:"{{.SanHome}}"`
+	SanLogF    string `default:"san.log"`
+	SanPort    int    `default:"7036"`
+	SanMode    string `json:",omitempty"`
+	SanOpts    string `json:",omitempty"`
+	SanLibs    string `default:"{{join .SanBins .SanBase \"lib64\"}}:{{join .SanBins .SanBase}}"`
+	SanUser    string `json:",omitempty"`
+	SanCert    string `json:",omitempty"`
+	SanKey     string `json:",omitempty"`
+	Attributes map[string]string
+	Variables  map[string]struct {
+		Type  string
+		Value string
+	}
+	Gateways map[string]struct {
+		Port   int
+		Secure string
+	}
+	Types []string
 }
 
-//go:embed netprobe.setup.Template.xml
-var emptySANTemplate string
+//go:embed netprobe.setup.xml.gotmpl
+var SanTemplate string
 
 func init() {
 	RegisterComponent(Components{
@@ -56,7 +61,7 @@ func init() {
 func NewSan(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Sans{}
-	c.InstanceRoot = remoteRoot(remote)
+	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = San.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote
@@ -99,46 +104,7 @@ func (n Sans) Create(username string, params []string) (err error) {
 		createInstanceCert(n)
 	}
 
-	// default config XML etc.
-	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(emptySANTemplate)
-	if err != nil {
-		logError.Fatalln(err)
-	}
-
-	var out io.Writer
-
-	switch n.Location() {
-	case LOCAL:
-		var cf *os.File
-		cf, err = os.Create(filepath.Join(n.Home(), "netprobe.setup.xml"))
-		out = cf
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		defer cf.Close()
-		if err = cf.Chmod(0664); err != nil {
-			logError.Fatalln(err)
-		}
-	default:
-		var cf *sftp.File
-		cf, err = createRemoteFile(n.Location(), filepath.Join(n.Home(), "netprobe.setup.xml"))
-		out = cf
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		defer cf.Close()
-		if err = cf.Chmod(0664); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	if err = t.Execute(out, n); err != nil {
-		logError.Fatalln(err)
-	}
-
-	return nil
+	return writeTemplate(n, filepath.Join(n.Home(), "netprobe.setup.xml"), SanTemplate)
 }
 
 func (c Sans) Command() (args, env []string) {

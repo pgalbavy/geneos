@@ -82,14 +82,16 @@ type InstanceBase struct {
 	// The Name of an instance. This may be different to the instance
 	// directory InstanceName during certain operations, e.g. rename
 	InstanceName string `json:"Name"`
-	// The potential remote name (this is a remote component and not
-	// a server name)
-	InstanceLocation string `default:"local" json:"Location"`
-	// The Component of an instance
+	// The remote location name (this is a remote component and not
+	// a server name). This is NOT written to the config file as it
+	// may change if the remote name changes
+	InstanceLocation string `default:"local" json:"-"`
+	// The Component Type of an instance
 	InstanceType string `json:"-"`
-	// The InstanceRoot directory of the Geneos installation. Used in template
+	// The RemoteRoot directory of the Geneos installation. Used in template
 	// default settings for component types
-	InstanceRoot string `json:"-"`
+	RemoteRoot string `json:"-"`
+
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`
 }

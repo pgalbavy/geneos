@@ -580,7 +580,8 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 		// loop through all provided instances, set the parameter(s)
 		for _, c := range instances {
-			if k == "Env" {
+			switch k {
+			case "Env", "Attributes", "Gateways", "Variables":
 				var remove bool
 				env := getSliceStrings(c, k)
 				e := strings.SplitN(v, "=", 2)
@@ -617,7 +618,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 				if err = setFieldSlice(c, k, newenv); err != nil {
 					return
 				}
-			} else {
+			default:
 				if err = setField(c, k, v); err != nil {
 					return
 				}
