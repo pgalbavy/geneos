@@ -101,7 +101,7 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(n)
+		createInstanceCert(&n)
 	}
 
 	if tmpl != "" {

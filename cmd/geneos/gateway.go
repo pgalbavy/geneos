@@ -99,7 +99,7 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(g)
+		createInstanceCert(&g)
 	}
 
 	return writeTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayTemplate)

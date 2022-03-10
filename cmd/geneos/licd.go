@@ -86,7 +86,7 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(l)
+		createInstanceCert(&l)
 	}
 
 	// default config XML etc.
