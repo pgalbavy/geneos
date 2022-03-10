@@ -493,7 +493,7 @@ func filepathForInstance(c Instances, file string) (path string) {
 func removePathList(c Instances, paths string) (err error) {
 	list := filepath.SplitList(paths)
 	for _, p := range list {
-		// clean path, error on absolute or parent paths, like 'upload'
+		// clean path, error on absolute or parent paths, like 'import'
 		// walk globbed directories, remove everything
 		p, err = cleanRelativePath(p)
 		if err != nil {

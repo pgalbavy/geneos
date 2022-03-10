@@ -60,7 +60,7 @@ geneos download latest
 geneos new gateway Gateway1
 geneos new netprobe Netprobe1
 geneos new licd Licd1
-geneos upload licd Licd1 geneos.lic
+geneos import licd Licd1 geneos.lic
 geneos start
 ```
 
@@ -247,15 +247,15 @@ Deletes the disabled component given. Only works on components that have been di
 * `geneos edit [user|component] [names]`
 Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
 
-* `geneos upload [TYPE] name [file|url|-]`
-Upload a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
+* `geneos import [TYPE] name [file|url|-]`
+Import a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
   ```bash
-  geneos upload gateway Example gateway.setup.xml
-  geneos upload gateway Example https://server/files/gateway.setup.xml
-  geneos upload gateway Example gateway.setup.xml=mygateway.setup.xml
-  geneos upload gateway Example scripts/newscript.sh=myscript.sh
-  geneos upload gateway Example scripts/=myscript.sh
-  cat someoutput | geneos upload gateway Example config.json=-
+  geneos import gateway Example gateway.setup.xml
+  geneos import gateway Example https://server/files/gateway.setup.xml
+  geneos import gateway Example gateway.setup.xml=mygateway.setup.xml
+  geneos import gateway Example scripts/newscript.sh=myscript.sh
+  geneos import gateway Example scripts/=myscript.sh
+  cat someoutput | geneos import gateway Example config.json=-
   ```
 
 Like other commands that write to the file system is can safely be run as root as the destination directory and file will be changed to be owned by either the instance or the default user, with the caveat that any intermediate directrories above the destination sub-directory (e.g. the first two in `my/long/path`) will be owned by root.

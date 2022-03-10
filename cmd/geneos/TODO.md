@@ -26,8 +26,6 @@
 * FIX2 netprobe
 * remote management support
   * add support for rwildcard remote instances, e.g. '@remote'
-* Rename 'upload' to 'copy' or something more intuitive ('import'?)
-* Examine integrating `upload` into `add` - see above too
 * Support gateway2.gci format files
 * Add a 'clone' command (rename without delete) - for backup gateways etc.
   * do both "mv" and "cp" working across remotes - tree walk needed

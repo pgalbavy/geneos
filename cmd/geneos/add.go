@@ -28,24 +28,24 @@ these need to be changed before starting, see the edit command.
 
 Gateways are given a minimal configuration file.`}
 
-	commands["upload"] = Command{
-		Function:    commandUpload,
+	commands["import"] = Command{
+		Function:    commandImport,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   parseArgs,
-		CommandLine: "geneos upload [TYPE] NAME [DEST=]SRC",
-		Summary:     `Upload file(s) to an instance.`,
-		Description: `Upload file(s) to the instance directory. This can be used to add configuration or license
+		CommandLine: "geneos import [TYPE] NAME [DEST=]SRC",
+		Summary:     `Import file(s) to an instance.`,
+		Description: `Import file(s) to the instance directory. This can be used to add configuration or license
 files or scripts for gateways and netprobes to run. The SRC can be a local path or a url or a '-'
 for stdin. DEST is local pathname ending in either a filename or a directory. Is the SRC is '-'
 then a DEST must be provided. If DEST includes a path then it must be relative and cannot contain
 '..'. Examples:
 
-	geneos upload gateway example1 https://example.com/myfiles/gateway.setup.xml
-	geneos upload licd example2 geneos.lic=license.txt
-	geneos upload netprobe exampel3 scripts/=myscript.sh
+	geneos import gateway example1 https://example.com/myfiles/gateway.setup.xml
+	geneos import licd example2 geneos.lic=license.txt
+	geneos import netprobe exampel3 scripts/=myscript.sh
 	
 Directories are created as required. If run as root, directories and files ownership is set to the
-user in the instance configuration or the default user. Currently only one file can be uploaded at a
+user in the instance configuration or the default user. Currently only one file can be imported at a
 time.`}
 }
 
@@ -177,8 +177,8 @@ func nextPort(remote string, from string) int {
 // backup / history track older files (date/time?)
 // no restart or reload of compnents?
 
-func commandUpload(ct Component, args []string, params []string) (err error) {
-	return ct.singleCommand(uploadInstance, args, params)
+func commandImport(ct Component, args []string, params []string) (err error) {
+	return ct.singleCommand(importInstance, args, params)
 }
 
 // args are instance [file...]
@@ -187,12 +187,12 @@ func commandUpload(ct Component, args []string, params []string) (err error) {
 // file can also be DEST=SOURCE where dest must be a relative path (with
 // no ../) to home area, anding in / means subdir, e.g.:
 //
-// 'geneos upload gateway example1 https://example.com/myfiles/gateway.setup.xml'
-// 'geneos upload licd example2 geneos.lic=license.txt'
-// 'geneos upload netprobe exampel3 scripts/=myscript.sh'
+// 'geneos import gateway example1 https://example.com/myfiles/gateway.setup.xml'
+// 'geneos import licd example2 geneos.lic=license.txt'
+// 'geneos import netprobe exampel3 scripts/=myscript.sh'
 //
 // local directroreies are created
-func uploadInstance(c Instances, args []string, params []string) (err error) {
+func importInstance(c Instances, args []string, params []string) (err error) {
 	if !components[c.Type()].IncludeInLoops {
 		return ErrNotSupported
 	}
@@ -202,14 +202,14 @@ func uploadInstance(c Instances, args []string, params []string) (err error) {
 	}
 
 	for _, source := range params {
-		if err = uploadFile(c, source); err != nil {
+		if err = importFile(c, source); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func uploadFile(c Instances, source string) (err error) {
+func importFile(c Instances, source string) (err error) {
 	var backuppath string
 	var from io.ReadCloser
 
@@ -365,6 +365,6 @@ func uploadFile(c Instances, source string) (err error) {
 	if _, err = io.Copy(out, from); err != nil {
 		return err
 	}
-	log.Println("uploaded", source, "to", destfile)
+	log.Println("imported", source, "to", destfile)
 	return nil
 }

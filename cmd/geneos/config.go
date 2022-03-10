@@ -258,7 +258,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		n := []string{"localhost"}
 		commandDownload(None, e, e)
 		commandAdd(Licd, g, e)
-		commandUpload(Licd, g, []string{"geneos.lic=" + initAll})
+		commandImport(Licd, g, []string{"geneos.lic=" + initAll})
 		commandAdd(Gateway, g, e)
 		commandAdd(Netprobe, n, e)
 		commandAdd(Webserver, g, e)

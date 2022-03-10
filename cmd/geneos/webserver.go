@@ -108,7 +108,7 @@ func (w Webservers) Create(username string, params []string) (err error) {
 		createInstanceCert(w)
 	}
 
-	// copy default configs - use existing upload routines?
+	// copy default configs - use existing import routines?
 	dir, err := os.Getwd()
 	defer os.Chdir(dir)
 	configSrc := filepath.Join(w.WebsBins, w.WebsBase, "config")
@@ -121,7 +121,7 @@ func (w Webservers) Create(username string, params []string) (err error) {
 	}
 
 	for _, source := range webserverFiles {
-		if err = uploadFile(w, source); err != nil {
+		if err = importFile(w, source); err != nil {
 			return
 		}
 	}
