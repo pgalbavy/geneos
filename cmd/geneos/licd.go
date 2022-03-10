@@ -78,7 +78,7 @@ func (l Licds) Prefix(field string) string {
 	return "Licd" + field
 }
 
-func (l Licds) Create(username string, params []string) (err error) {
+func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	l.LicdPort = nextPort(l.Location(), GlobalConfig["LicdPortRange"])
 	l.LicdUser = username
 

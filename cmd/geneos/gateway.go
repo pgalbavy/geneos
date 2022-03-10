@@ -91,7 +91,7 @@ func (g Gateways) Prefix(field string) string {
 	return "Gate" + field
 }
 
-func (g Gateways) Create(username string, params []string) (err error) {
+func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
 	g.GatePort = nextPort(g.Location(), GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
 

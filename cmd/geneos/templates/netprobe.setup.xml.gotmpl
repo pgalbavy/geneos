@@ -11,39 +11,39 @@
                 <managedEntities>
 	                <managedEntity>
 	                        <name>{{.InstanceName}}</name>
-                                {{if .Attributes}}
-	                        <attributes>
+                                {{if .Attributes}}<attributes>
                                         {{range $key, $value := .Attributes}}
                                         <attribute name="{{$key}}>{{$value}}</attribute>
                                         {{end}}
 	                        </attributes>
-                                {{end}}
-                                {{if .Variables}}
-	                        <variables>
+                                {{end -}}
+                                {{if .Variables}}<variables>
                                         {{range $key, $value := .Variables}}
                                         <var name="{{$key}}">
 	                                        <{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
 	                                </var>
                                         {{end}}
 	                        </variables>
-                                {{end}}
-                                {{if .Types}}
-	                        <types>
+                                {{end -}}
+                                {{if .Types}}<types>
                                         {{range .Types}}
 	                                <type>{{.}}</type>
                                         {{end}}
 	                        </types>
-                                {{end}}
-	                </managedEntity>
+                                {{- end}}
+                        </managedEntity>
                 </managedEntities>			
                 <gateways>
-                        {{range $key, $value := .Gateways}}
-                        <gateway>
+                        {{range $key, $value := .Gateways -}}<gateway>
                                 <hostname>{{$key}}</hostname>
                                 <port>{{$value.Port}}</port>
                                 <secure>{{$value.Secure}}</secure>
                         </gateway>
-                        {{end}}
-                </gateways>
+                        {{else -}}<gateway>
+                                <hostname>localhost</hostname>
+                                <port>7039</port>
+                                <secure>false</secure>
+                        </gateway>
+                {{end -}}</gateways>
         </selfAnnounce>
 </netprobe>

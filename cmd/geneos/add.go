@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -18,15 +19,23 @@ import (
 func init() {
 	commands["add"] = Command{
 		Function:    commandAdd,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  flagsAdd,
 		ParseArgs:   parseArgsNoWildcard,
-		CommandLine: "geneos add TYPE NAME",
+		CommandLine: "geneos add [-t FILE] TYPE NAME",
 		Summary:     `Add a new instance`,
 		Description: `Add a new instance called NAME with the TYPE supplied. The details will depends on the
 TYPE. Currently the listening port is selected automatically and other options are defaulted. If
 these need to be changed before starting, see the edit command.
 
-Gateways are given a minimal configuration file.`}
+Gateways are given a minimal configuration file.
+
+FLAGS:
+	-t FILE	- specifiy a template file to use instead of the embedded ones
+`}
+
+	addFlags = flag.NewFlagSet("add", flag.ExitOnError)
+	addFlags.StringVar(&addTemplateFile, "t", "", "template file to use instead of embedded")
+	addFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["import"] = Command{
 		Function:    commandImport,
@@ -47,6 +56,15 @@ then a DEST must be provided. If DEST includes a path then it must be relative a
 Directories are created as required. If run as root, directories and files ownership is set to the
 user in the instance configuration or the default user. Currently only one file can be imported at a
 time.`}
+}
+
+var addFlags *flag.FlagSet
+var addTemplateFile string
+
+func flagsAdd(command string, args []string) []string {
+	addFlags.Parse(args)
+	checkHelpFlag(command)
+	return addFlags.Args()
 }
 
 // Add a single instance
@@ -74,10 +92,10 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	// XXX check if instance already exists
 
 	c := ct.New(name)
-	if err = c.Create(username, params); err != nil {
+	if err = c.Add(username, params, addTemplateFile); err != nil {
 		log.Fatalln(err)
 	}
-	// reload config as 'c' is not updated by Create() as an interface value
+	// reload config as 'c' is not updated by Add() as an interface value
 	loadConfig(c, false)
 	log.Printf("new %s %q added, port %s\n", c.Type(), c.Name(), getIntAsString(c, c.Prefix("Port")))
 

@@ -350,9 +350,9 @@ func TLSImport(files []string) (err error) {
 		log.Fatalln(err)
 	}
 	for _, source := range files {
-		f, err := readSource(source)
-		if err != nil {
-			logError.Fatalln(err)
+		f := readSourceBytes(source)
+		if len(f) == 0 {
+			logError.Fatalln("read faile:", source)
 		}
 		for {
 			block, rest := pem.Decode(f)

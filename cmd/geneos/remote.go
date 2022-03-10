@@ -94,7 +94,7 @@ func (r Remotes) Home() string {
 //
 // 'geneos add remote NAME SSH-URL'
 //
-func (r Remotes) Create(username string, params []string) (err error) {
+func (r Remotes) Add(username string, params []string, tmpl string) (err error) {
 	if len(params) == 0 {
 		logError.Fatalln("remote destination must be provided in the form of a URL")
 	}

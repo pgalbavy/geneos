@@ -70,7 +70,7 @@ type Instances interface {
 	Location() string
 	Prefix(string) string
 
-	Create(string, []string) error
+	Add(string, []string, string) error
 	Command() ([]string, []string)
 	Clean(bool, []string) error
 	Reload(params []string) (err error)

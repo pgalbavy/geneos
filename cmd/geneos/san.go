@@ -93,7 +93,7 @@ func (n Sans) Prefix(field string) string {
 	return "San" + field
 }
 
-func (n Sans) Create(username string, params []string) (err error) {
+func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.SanPort = nextPort(n.Location(), GlobalConfig["SanPortRange"])
 	n.SanUser = username
 
@@ -102,6 +102,10 @@ func (n Sans) Create(username string, params []string) (err error) {
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(n)
+	}
+
+	if tmpl != "" {
+		SanTemplate = readSourceString(tmpl)
 	}
 
 	return writeTemplate(n, filepath.Join(n.Home(), "netprobe.setup.xml"), SanTemplate)

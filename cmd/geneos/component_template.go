@@ -88,7 +88,7 @@ func (n Names) Prefix(field string) string {
 	return "Name" + field
 }
 
-func (n Names) Create(username string, params []string) (err error) {
+func (n Names) Add(username string, params []string) (err error) {
 	n.NamePort = nextPort(RunningConfigMap["NamePortRange"])
 	n.NameUser = username
 

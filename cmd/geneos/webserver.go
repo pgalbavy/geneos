@@ -97,7 +97,7 @@ func (w Webservers) Prefix(field string) string {
 	return "Webs" + field
 }
 
-func (w Webservers) Create(username string, params []string) (err error) {
+func (w Webservers) Add(username string, params []string, tmpl string) (err error) {
 	w.WebsPort = nextPort(w.Location(), GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username
 

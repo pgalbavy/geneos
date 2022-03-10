@@ -78,7 +78,7 @@ func (n Netprobes) Prefix(field string) string {
 	return "Netp" + field
 }
 
-func (n Netprobes) Create(username string, params []string) (err error) {
+func (n Netprobes) Add(username string, params []string, tmpl string) (err error) {
 	n.NetpPort = nextPort(n.Location(), GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username
 

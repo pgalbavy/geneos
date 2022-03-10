@@ -631,7 +631,7 @@ func slicetoi(s []string) (n []int) {
 	return
 }
 
-func readSource(source string) (b []byte, err error) {
+func readSourceBytes(source string) (b []byte) {
 	var from io.ReadCloser
 
 	u, err := url.Parse(source)
@@ -643,7 +643,7 @@ func readSource(source string) (b []byte, err error) {
 	case u.Scheme == "https" || u.Scheme == "http":
 		resp, err := http.Get(u.String())
 		if err != nil {
-			return nil, err
+			return
 		}
 
 		from = resp.Body
@@ -663,6 +663,42 @@ func readSource(source string) (b []byte, err error) {
 	}
 
 	b, err = io.ReadAll(from)
+	return
+}
+
+func readSourceString(source string) (s string) {
+	var from io.ReadCloser
+
+	u, err := url.Parse(source)
+	if err != nil {
+		return
+	}
+
+	switch {
+	case u.Scheme == "https" || u.Scheme == "http":
+		resp, err := http.Get(u.String())
+		if err != nil {
+			return
+		}
+
+		from = resp.Body
+		defer from.Close()
+
+	case source == "-":
+		from = os.Stdin
+		source = "STDIN"
+		defer from.Close()
+
+	default:
+		from, err = os.Open(source)
+		if err != nil {
+			return
+		}
+		defer from.Close()
+	}
+
+	b, err := io.ReadAll(from)
+	s = string(b)
 	return
 }
 
