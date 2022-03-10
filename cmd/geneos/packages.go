@@ -230,7 +230,7 @@ func downloadComponent(remote string, ct Component, version string) (err error) 
 		}
 		return nil
 	default:
-		filename, gz, err := downloadArchive(ct, version)
+		filename, gz, err := downloadArchive(remote, ct, version)
 		if err != nil {
 			return err
 		}
@@ -398,6 +398,7 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 
 // check selected version exists first
 func updateToVersion(remote string, ct Component, version string, overwrite bool) (err error) {
+	// XXX temp hack while we work out parent/child components
 	if ct == San {
 		ct = Netprobe
 	}
@@ -543,7 +544,7 @@ type DownloadAuth struct {
 }
 
 // XXX use HEAD to check match and compare to on disk versions
-func downloadArchive(ct Component, version string) (filename string, body io.ReadCloser, err error) {
+func downloadArchive(remote string, ct Component, version string) (filename string, body io.ReadCloser, err error) {
 	baseurl := GlobalConfig["DownloadURL"]
 	if baseurl == "" {
 		baseurl = defaultURL
@@ -554,11 +555,22 @@ func downloadArchive(ct Component, version string) (filename string, body io.Rea
 	downloadURL, _ := url.Parse(baseurl)
 	realpath, _ := url.Parse(components[ct].DownloadBase)
 	v := url.Values{}
-	// XXX OS filter for EL8 here
-	// v.Set("title", "el8") - but account for versions etc.
+	// XXX OS filter for EL8 here - to test
+	// cannot fetch partial versions for el8
+	platform := ""
+	r := loadRemoteConfig(remote)
+	p, ok := r.OSInfo["PLATFORM_ID"]
+	if ok {
+		s := strings.Split(p, ":")
+		if len(s) > 1 {
+			platform = "-" + s[1]
+		}
+	}
 	v.Set("os", "linux")
 	if version != "latest" {
-		v.Set("title", version)
+		v.Set("title", version+platform)
+	} else if platform != "" {
+		v.Set("title", platform)
 	}
 	realpath.RawQuery = v.Encode()
 	source := downloadURL.ResolveReference(realpath).String()

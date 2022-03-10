@@ -181,6 +181,10 @@ func NewRemote(name string) Instances {
 	c.InstanceName = local
 	c.InstanceLocation = remote
 	setDefaults(&c)
+	// fill this in directly as there is no config file to load
+	if name == LOCAL {
+		c.getOSReleaseEnv()
+	}
 	return c
 }
 
@@ -212,8 +216,11 @@ func (r *Remotes) getOSReleaseEnv() (err error) {
 	return
 }
 
-func loadRemoteConfig(remote string) (c Instances) {
-	c = NewRemote(remote)
+func loadRemoteConfig(remote string) (c *Remotes) {
+	c = NewRemote(remote).(*Remotes)
+	if remote == LOCAL {
+		return
+	}
 	if err := loadConfig(c, false); err != nil {
 		logError.Fatalf("cannot open remote %q configuration file", remote)
 	}
