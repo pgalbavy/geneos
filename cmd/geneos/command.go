@@ -34,14 +34,6 @@ type Command struct {
 // The Commands type is a map of command text (as a string) to a Command structure
 type Commands map[string]Command
 
-// return a slice of initialised instances for a given component type
-func (ct Component) instances(remote string) (confs []Instances) {
-	for _, name := range ct.instanceNames(remote) {
-		confs = append(confs, ct.New(name))
-	}
-	return
-}
-
 // loadConfig will load the JSON config file is available, otherwise
 // try to load the "legacy" .rc file and optionally write out a JSON file
 // for later re-use, while renaming .rc file as a backup

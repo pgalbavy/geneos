@@ -781,7 +781,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
 	}
-	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.componentBaseDir(newconf.Location()), newname)); err != nil {
+	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.componentDir(newconf.Location()), newname)); err != nil {
 		// try to recover
 		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return

@@ -352,14 +352,14 @@ func (ct Component) allArgsForComponent() (args []string) {
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
-		confs = allInstances(ALL)
+		confs = None.instances(ALL)
 	case Remote:
 		// we only look for actual "remote" components on the local system
 		confs = Remote.instances(LOCAL)
 	default:
 		// args = ct.instanceNames(ALL)
 		// scan all remotes for the instances of type ct
-		for _, remote := range allRemotes() {
+		for _, remote := range allRemotesInstances() {
 			logDebug.Println("checking remote:", remote.Name())
 			confs = append(confs, ct.instances(remote.Name())...)
 		}

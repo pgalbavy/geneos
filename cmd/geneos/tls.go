@@ -324,7 +324,7 @@ func TLSSync() (err error) {
 		return
 	}
 
-	for _, remote := range allRemotes() {
+	for _, remote := range allRemotesInstances() {
 		if remote.Name() == LOCAL {
 			continue
 		}

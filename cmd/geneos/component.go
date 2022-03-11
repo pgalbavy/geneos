@@ -142,30 +142,27 @@ func RegisterSettings(settings GlobalSettings) {
 // Return a slice of all instanceNames for a given Component. No checking is done
 // to validate that the directory is a populated instance.
 func (ct Component) instanceNames(remote string) (components []string) {
-	files, _ := readDir(remote, ct.componentBaseDir(remote))
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].Name() < files[j].Name()
-	})
-	for _, file := range files {
-		if file.IsDir() {
-			components = append(components, file.Name()+"@"+remote)
+	switch remote {
+	case ALL:
+		for _, r := range allRemotes() {
+			components = append(components, ct.instanceNames(r)...)
+		}
+	default:
+		files, _ := readDir(remote, ct.componentDir(remote))
+		sort.Slice(files, func(i, j int) bool {
+			return files[i].Name() < files[j].Name()
+		})
+		for _, file := range files {
+			if file.IsDir() {
+				if ct == Remote {
+					components = append(components, file.Name())
+				} else {
+					components = append(components, file.Name()+"@"+remote)
+				}
+			}
 		}
 	}
 	return
-}
-
-// Return the base directory for a Component
-// ct cannot be None
-func (ct Component) componentBaseDir(remote string) string {
-	if ct == None {
-		logError.Fatalln(ct, ErrNotSupported)
-	}
-	switch ct {
-	case Remote:
-		return filepath.Join(ITRSHome(), ct.String()+"s")
-	default:
-		return filepath.Join(remoteRoot(remote), ct.String(), ct.String()+"s")
-	}
 }
 
 // return a new instance of component ct
@@ -207,11 +204,32 @@ func (ct Component) Match(name string) (c []Instances) {
 	return
 }
 
-// return a slice of all instances, ordered and grouped by type and remote.
-// configurations are not loaded, just the defaults ready for overlay
-func allInstances(remote string) (confs []Instances) {
-	for _, ct := range realComponentTypes() {
-		confs = append(confs, ct.instances(remote)...)
+// Return the base directory for a Component
+// ct cannot be None
+func (ct Component) componentDir(remote string) string {
+	if ct == None {
+		logError.Fatalln(ct, ErrNotSupported)
 	}
+	switch ct {
+	case Remote:
+		return filepath.Join(ITRSHome(), ct.String()+"s")
+	default:
+		return filepath.Join(remoteRoot(remote), ct.String(), ct.String()+"s")
+	}
+}
+
+// return a slice of initialised instances for a given component type
+func (ct Component) instances(remote string) (confs []Instances) {
+	switch ct {
+	case None:
+		for _, ct := range realComponentTypes() {
+			confs = append(confs, ct.instances(remote)...)
+		}
+	default:
+		for _, name := range ct.instanceNames(remote) {
+			confs = append(confs, ct.New(name))
+		}
+	}
+
 	return
 }
