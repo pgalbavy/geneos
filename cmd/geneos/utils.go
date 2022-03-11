@@ -453,17 +453,17 @@ func removePathList(c Instances, paths string) (err error) {
 }
 
 // logdir = LogD relative to Home or absolute
-func getLogfilePath(c Instances) (logdir string) {
+func getLogfilePath(c Instances) (logfile string) {
 	logd := filepath.Clean(getString(c, c.Prefix("LogD")))
 	switch {
 	case logd == "":
-		logdir = c.Home()
+		logfile = c.Home()
 	case strings.HasPrefix(logd, string(os.PathSeparator)):
-		logdir = logd
+		logfile = logd
 	default:
-		logdir = filepath.Join(c.Home(), logd)
+		logfile = filepath.Join(c.Home(), logd)
 	}
-	logdir = filepath.Join(logdir, getString(c, c.Prefix("LogF")))
+	logfile = filepath.Join(logfile, getString(c, c.Prefix("LogF")))
 	return
 }
 
