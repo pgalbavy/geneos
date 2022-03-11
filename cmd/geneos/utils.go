@@ -42,6 +42,8 @@ func findInstancePID(c Instances) (pid int, err error) {
 
 	sort.Ints(pids)
 
+	binsuffix := getString(c, "BinSuffix")
+
 	for _, pid = range pids {
 		var data []byte
 		data, err = readFile(c.Location(), fmt.Sprintf("/proc/%d/cmdline", pid))
@@ -69,18 +71,8 @@ func findInstancePID(c Instances) (pid int, err error) {
 					return
 				}
 			}
-		case San:
-			if strings.HasPrefix(execfile, Netprobe.String()) {
-				for _, arg := range args[1:] {
-					// very simplistic - we look for a bare arg that matches the instance name
-					if string(arg) == c.Name() {
-						// found
-						return
-					}
-				}
-			}
 		default:
-			if strings.HasPrefix(execfile, c.Type().String()) {
+			if strings.HasPrefix(execfile, binsuffix) {
 				for _, arg := range args[1:] {
 					// very simplistic - we look for a bare arg that matches the instance name
 					if string(arg) == c.Name() {
@@ -635,7 +627,7 @@ func readSourceString(source string) (s string) {
 }
 
 func writeTemplate(c Instances, path string, tmpl string) (err error) {
-	var out io.Writer
+	var out io.WriteCloser
 
 	// default config XML etc.
 	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(tmpl)
@@ -647,24 +639,24 @@ func writeTemplate(c Instances, path string, tmpl string) (err error) {
 	case LOCAL:
 		var cf *os.File
 		cf, err = os.Create(path)
-		out = cf
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		defer cf.Close()
+		out = cf
+		defer out.Close()
 		if err = cf.Chmod(0664); err != nil {
 			logError.Fatalln(err)
 		}
 	default:
 		var cf *sftp.File
 		cf, err = createRemoteFile(c.Location(), path)
-		out = cf
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		defer cf.Close()
+		out = cf
+		defer out.Close()
 		if err = cf.Chmod(0664); err != nil {
 			logError.Fatalln(err)
 		}
