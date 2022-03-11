@@ -390,30 +390,6 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 	return nil
 }
 
-// like the above but only process the first arg (if any) to allow for those commands
-// that accept only zero or one named instance and the rest of the args are parameters
-// pass the remaining args the to function
-//
-func (ct Component) singleCommand(fn func(Instances, []string, []string) error, args []string, params []string) (err error) {
-	if len(args) == 0 {
-		// do nothing
-		return
-	}
-	name := args[0]
-	for _, c := range ct.Match(name) {
-		if err = loadConfig(c, false); err != nil {
-			log.Println(c.Type(), c.Name(), "cannot load configuration")
-			return
-		}
-
-		// empty remaining args, prepend to params
-		if err = fn(c, []string{}, append(args[1:], params...)); err != nil {
-			log.Println(c.Type(), c.Name(), err)
-		}
-	}
-	return nil
-}
-
 func filenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err error) {
 	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
 	if !ok && resp.Request.Response != nil {

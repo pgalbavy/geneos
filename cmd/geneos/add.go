@@ -41,21 +41,27 @@ FLAGS:
 		Function:    commandImport,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   defaultArgs,
-		CommandLine: "geneos import [TYPE] NAME [DEST=]SRC",
+		CommandLine: "geneos import [TYPE] NAME [NAME...] [DEST=]SOURCE [[DEST=]SOURCE...]",
 		Summary:     `Import file(s) to an instance.`,
-		Description: `Import file(s) to the instance directory. This can be used to add configuration or license
-files or scripts for gateways and netprobes to run. The SRC can be a local path or a url or a '-'
-for stdin. DEST is local pathname ending in either a filename or a directory. Is the SRC is '-'
-then a DEST must be provided. If DEST includes a path then it must be relative and cannot contain
-'..'. Examples:
+		Description: `Import file(s) to the instance directory. This can be used to add
+configuration or license files or scripts for gateways and netprobes
+to run. The SOURCE can be a local path or a url or a '-' for stdin. DEST
+is local pathname ending in either a filename or a directory. Is the
+SRC is '-' then a DEST must be provided. If DEST includes a path then
+it must be relative and cannot contain '..'. Examples:
 
 	geneos import gateway example1 https://example.com/myfiles/gateway.setup.xml
 	geneos import licd example2 geneos.lic=license.txt
 	geneos import netprobe exampel3 scripts/=myscript.sh
-	
-Directories are created as required. If run as root, directories and files ownership is set to the
-user in the instance configuration or the default user. Currently only one file can be imported at a
-time.`}
+	geneos import san localhost ./netprobe.setup.xml
+
+To distinguish SOURCE from an instance name a bare filename in the
+current directory MUST be prefixed with './'. A file in a directory
+(relative or absolute) or a URL are seen as invalid instance names
+and become paths automatically. Directories are created as required.
+If run as root, directories and files ownership is set to the user in
+the instance configuration or the default user. Currently only one
+file can be imported at a time.`}
 }
 
 var addFlags *flag.FlagSet
@@ -196,7 +202,7 @@ func nextPort(remote string, from string) int {
 // no restart or reload of compnents?
 
 func commandImport(ct Component, args []string, params []string) (err error) {
-	return ct.singleCommand(importInstance, args, params)
+	return ct.loopCommand(importInstance, args, params)
 }
 
 // args are instance [file...]
@@ -210,7 +216,7 @@ func commandImport(ct Component, args []string, params []string) (err error) {
 // 'geneos import netprobe exampel3 scripts/=myscript.sh'
 //
 // local directroreies are created
-func importInstance(c Instances, args []string, params []string) (err error) {
+func importInstance(c Instances, params []string) (err error) {
 	if !components[c.Type()].IncludeInLoops {
 		return ErrNotSupported
 	}
