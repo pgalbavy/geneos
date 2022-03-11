@@ -375,7 +375,7 @@ func validInstanceName(in string) (ok bool) {
 // called 'thisserver')
 //
 // try to use go routines here - mutexes required
-func loopCommand(fn func(Instances, []string) error, ct Component, args []string, params []string) (err error) {
+func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range ct.Match(name) {
 			if err = loadConfig(c, false); err != nil {
@@ -391,7 +391,7 @@ func loopCommand(fn func(Instances, []string) error, ct Component, args []string
 }
 
 // call a function but with an extra subcommand parameter to allow some indirection
-func loopSubcommand(fn func(Instances, string, []string) error, subcommand string, ct Component, args []string, params []string) (err error) {
+func (ct Component) loopSubcommand(fn func(Instances, string, []string) error, subcommand string, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range ct.Match(name) {
 			if err = loadConfig(c, false); err != nil {

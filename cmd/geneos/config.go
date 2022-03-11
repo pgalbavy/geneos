@@ -240,7 +240,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
 		commandAdd(Netprobe, n, e)
 		commandAdd(Webserver, []string{"demo"}, e)
-		// call parseArgs() on an empty list to populate for loopCommand()
+		// call defaultArgs() on an empty list to populate for loopCommand()
 		ct, args, params := defaultArgs(e)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
@@ -262,7 +262,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		commandAdd(Gateway, g, e)
 		commandAdd(Netprobe, n, e)
 		commandAdd(Webserver, g, e)
-		// call parseArgs() on an empty list to populate for loopCommand()
+		// call defaultArgs() on an empty list to populate for loopCommand()
 		ct, args, params := defaultArgs(e)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
@@ -408,7 +408,7 @@ func initAsUser(args []string) (err error) {
 }
 
 func commandMigrate(ct Component, names []string, params []string) (err error) {
-	return loopCommand(migrateInstance, ct, names, params)
+	return ct.loopCommand(migrateInstance, names, params)
 }
 
 func migrateInstance(c Instances, params []string) (err error) {
@@ -419,7 +419,7 @@ func migrateInstance(c Instances, params []string) (err error) {
 }
 
 func commandRevert(ct Component, names []string, params []string) (err error) {
-	return loopCommand(revertInstance, ct, names, params)
+	return ct.loopCommand(revertInstance, names, params)
 }
 
 func revertInstance(c Instances, params []string) (err error) {
@@ -797,7 +797,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 }
 
 func commandDelete(ct Component, args []string, params []string) (err error) {
-	return loopCommand(deleteInstance, ct, args, params)
+	return ct.loopCommand(deleteInstance, args, params)
 }
 
 func deleteInstance(c Instances, params []string) (err error) {

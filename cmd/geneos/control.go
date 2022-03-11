@@ -102,14 +102,14 @@ func startFlag(command string, args []string) []string {
 }
 
 func commandStart(ct Component, args []string, params []string) (err error) {
-	if err = loopCommand(startInstance, ct, args, params); err != nil {
+	if err = ct.loopCommand(startInstance, args, params); err != nil {
 		return
 	}
 	if startLogs {
 		done := make(chan bool)
 		watcher, _ = watchLogs()
 		defer watcher.Close()
-		err = loopCommand(logFollowInstance, ct, args, params)
+		err = ct.loopCommand(logFollowInstance, args, params)
 		<-done
 	}
 	return
@@ -237,7 +237,7 @@ func stopFlag(command string, args []string) []string {
 }
 
 func commandStop(ct Component, args []string, params []string) (err error) {
-	return loopCommand(stopInstance, ct, args, params)
+	return ct.loopCommand(stopInstance, args, params)
 }
 
 func stopInstance(c Instances, params []string) (err error) {
@@ -337,7 +337,7 @@ func restartFlag(command string, args []string) []string {
 }
 
 func commandRestart(ct Component, args []string, params []string) (err error) {
-	if err = loopCommand(restartInstance, ct, args, params); err != nil {
+	if err = ct.loopCommand(restartInstance, args, params); err != nil {
 		logDebug.Println(err)
 		return
 	}
@@ -346,7 +346,7 @@ func commandRestart(ct Component, args []string, params []string) (err error) {
 		done := make(chan bool)
 		watcher, _ = watchLogs()
 		defer watcher.Close()
-		err = loopCommand(logFollowInstance, ct, args, params)
+		err = ct.loopCommand(logFollowInstance, args, params)
 		<-done
 	}
 	return
@@ -363,7 +363,7 @@ func restartInstance(c Instances, params []string) (err error) {
 const disableExtension = ".disabled"
 
 func commandDisable(ct Component, args []string, params []string) (err error) {
-	return loopCommand(disableInstance, ct, args, params)
+	return ct.loopCommand(disableInstance, args, params)
 }
 
 func disableInstance(c Instances, params []string) (err error) {
@@ -416,7 +416,7 @@ func enableFlag(command string, args []string) []string {
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
 func commandEneable(ct Component, args []string, params []string) (err error) {
-	return loopCommand(enableInstance, ct, args, params)
+	return ct.loopCommand(enableInstance, args, params)
 }
 
 func enableInstance(c Instances, params []string) (err error) {

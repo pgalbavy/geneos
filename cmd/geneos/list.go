@@ -73,16 +73,16 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 		if listJSONIndent {
 			jsonEncoder.SetIndent("", "    ")
 		}
-		err = loopCommand(lsInstanceJSON, ct, args, params)
+		err = ct.loopCommand(lsInstanceJSON, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
 		csvWriter.Write([]string{"Type", "Name", "Disabled", "Location", "Home"})
-		err = loopCommand(lsInstanceCSV, ct, args, params)
+		err = ct.loopCommand(lsInstanceCSV, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tHome\n")
-		err = loopCommand(lsInstancePlain, ct, args, params)
+		err = ct.loopCommand(lsInstancePlain, args, params)
 		lsTabWriter.Flush()
 	}
 	return
@@ -147,16 +147,16 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
 		//jsonEncoder.SetIndent("", "    ")
-		err = loopCommand(psInstanceJSON, ct, args, params)
+		err = ct.loopCommand(psInstanceJSON, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
 		csvWriter.Write([]string{"Type:Name@Location", "PID", "User", "Group", "Starttime", "Home"})
-		err = loopCommand(psInstanceCSV, ct, args, params)
+		err = ct.loopCommand(psInstanceCSV, args, params)
 		csvWriter.Flush()
 	default:
 		psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 		fmt.Fprintf(psTabWriter, "Type:Name@Location\tPID\tUser\tGroup\tStarttime\tHome\n")
-		err = loopCommand(psInstancePlain, ct, args, params)
+		err = ct.loopCommand(psInstancePlain, args, params)
 		psTabWriter.Flush()
 	}
 	return
@@ -244,7 +244,7 @@ func psInstanceJSON(c Instances, params []string) (err error) {
 }
 
 func commandCommand(ct Component, args []string, params []string) (err error) {
-	return loopCommand(commandInstance, ct, args, params)
+	return ct.loopCommand(commandInstance, args, params)
 }
 
 func commandInstance(c Instances, params []string) (err error) {

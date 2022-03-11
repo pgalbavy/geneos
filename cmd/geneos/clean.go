@@ -33,7 +33,7 @@ func cleanFlag(command string, args []string) []string {
 }
 
 func commandClean(ct Component, args []string, params []string) error {
-	return loopCommand(cleanInstance, ct, args, params)
+	return ct.loopCommand(cleanInstance, args, params)
 }
 
 func cleanInstance(c Instances, params []string) (err error) {

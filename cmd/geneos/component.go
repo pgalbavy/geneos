@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/fs"
 	"path/filepath"
 	"sort"
 )
@@ -148,7 +149,15 @@ func (ct Component) instanceNames(remote string) (components []string) {
 			components = append(components, ct.instanceNames(r)...)
 		}
 	default:
-		files, _ := readDir(remote, ct.componentDir(remote))
+		var files []fs.DirEntry
+		if ct == None {
+			for _, t := range realComponentTypes() {
+				d, _ := readDir(remote, t.componentDir(remote))
+				files = append(files, d...)
+			}
+		} else {
+			files, _ = readDir(remote, ct.componentDir(remote))
+		}
 		sort.Slice(files, func(i, j int) bool {
 			return files[i].Name() < files[j].Name()
 		})

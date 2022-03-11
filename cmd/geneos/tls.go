@@ -96,7 +96,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		if err = TLSInit(); err != nil {
 			logError.Fatalln(err)
 		}
-		return loopSubcommand(TLSInstance, "new", ct, args, params)
+		return ct.loopSubcommand(TLSInstance, "new", args, params)
 	case "import":
 		return TLSImport(params)
 	case "ls":
@@ -105,7 +105,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		return TLSSync()
 	}
 
-	return loopSubcommand(TLSInstance, subcommand, ct, args, params)
+	return ct.loopSubcommand(TLSInstance, subcommand, args, params)
 }
 
 type lsCertType struct {
@@ -156,7 +156,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				nil,
 			})
 		}
-		err = loopCommand(lsInstanceCertJSON, ct, args, params)
+		err = ct.loopCommand(lsInstanceCertJSON, args, params)
 	case TLSlistCSV:
 		csvWriter = csv.NewWriter(log.Writer())
 		csvWriter.Write([]string{
@@ -196,7 +196,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				"[]",
 			})
 		}
-		err = loopCommand(lsInstanceCertCSV, ct, args, params)
+		err = ct.loopCommand(lsInstanceCertCSV, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
@@ -211,7 +211,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
 				geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName)
 		}
-		err = loopCommand(lsInstanceCert, ct, args, params)
+		err = ct.loopCommand(lsInstanceCert, args, params)
 		lsTabWriter.Flush()
 	}
 	return

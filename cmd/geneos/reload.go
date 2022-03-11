@@ -13,7 +13,7 @@ Not implemented except for Gateways.`}
 }
 
 func commandReload(ct Component, args []string, params []string) error {
-	return loopCommand(reloadInstance, ct, args, params)
+	return ct.loopCommand(reloadInstance, args, params)
 }
 
 func reloadInstance(c Instances, params []string) (err error) {

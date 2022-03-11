@@ -87,7 +87,7 @@ func commandLogs(ct Component, args []string, params []string) (err error) {
 
 	switch {
 	case logsCat:
-		return loopCommand(logCatInstance, ct, args, params)
+		return ct.loopCommand(logCatInstance, args, params)
 	case logsFollow:
 		// tail -f here
 		done := make(chan bool)
@@ -97,11 +97,11 @@ func commandLogs(ct Component, args []string, params []string) (err error) {
 		// wait for events
 		// track end of each file
 		// support rolling via Rename / Create events
-		err = loopCommand(logFollowInstance, ct, args, params)
+		err = ct.loopCommand(logFollowInstance, args, params)
 
 		<-done
 	default:
-		err = loopCommand(logTailInstance, ct, args, params)
+		err = ct.loopCommand(logTailInstance, args, params)
 		// just tail a number of lines
 	}
 
