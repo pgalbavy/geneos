@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -459,7 +460,7 @@ func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) 
 			continue
 		}
 		s := strings.SplitN(x, ".", 3)
-		next := slicetoi(s)
+		next := sliceAtoi(s)
 
 	OUTER:
 		for i := range max {
@@ -478,6 +479,17 @@ func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) 
 				}
 			}
 		}
+	}
+	return
+}
+
+func sliceAtoi(s []string) (n []int) {
+	for _, x := range s {
+		i, err := strconv.Atoi(x)
+		if err != nil {
+			i = 0
+		}
+		n = append(n, i)
 	}
 	return
 }

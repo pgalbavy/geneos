@@ -471,17 +471,6 @@ func getLogfilePath(c Instances) (logdir string) {
 	return
 }
 
-func slicetoi(s []string) (n []int) {
-	for _, x := range s {
-		i, err := strconv.Atoi(x)
-		if err != nil {
-			i = 0
-		}
-		n = append(n, i)
-	}
-	return
-}
-
 func readSourceBytes(source string) (b []byte) {
 	var from io.ReadCloser
 
