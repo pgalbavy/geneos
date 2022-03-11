@@ -41,6 +41,7 @@ func init() {
 	RegisterComponent(&Components{
 		New:              NewName,
 		ComponentType:    name,
+		ParentType:       None,
 		ComponentMatches: []string{"words", "to", "match"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Name+Whatever",

@@ -40,6 +40,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewGateway,
 		ComponentType:    Gateway,
+		ParentType:       None,
 		ComponentMatches: []string{"gateway", "gateways"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Gateway+2",
@@ -162,17 +163,17 @@ func (c Gateways) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, GlobalConfig["GatewayCleanList"]); err != nil {
+		if err = deletePaths(c, GlobalConfig["GatewayCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, GlobalConfig["GatewayPurgeList"])
+		err = deletePaths(c, GlobalConfig["GatewayPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		log.Printf("%s %s@%s cleaned fully", c.Type(), c.Name(), c.Location())
 		return
 	}
-	err = removePathList(c, GlobalConfig["GatewayCleanList"])
+	err = deletePaths(c, GlobalConfig["GatewayCleanList"])
 	if err == nil {
 		log.Printf("%s %s@%s cleaned", c.Type(), c.Name(), c.Location())
 	}

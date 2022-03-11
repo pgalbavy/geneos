@@ -4,7 +4,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -366,24 +365,6 @@ func validInstanceName(in string) (ok bool) {
 	return
 }
 
-// given a component type and a slice of args, call the function for each arg
-//
-// rely on NewComponent() checking the component type and returning a slice
-// of all matching components for a single name in an arg (e.g all instances
-// called 'thisserver')
-//
-// try to use go routines here - mutexes required
-func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
-	for _, name := range args {
-		for _, c := range ct.instanceMatches(name) {
-			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
-				log.Println(c.Type(), c.Name(), err)
-			}
-		}
-	}
-	return nil
-}
-
 func filenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err error) {
 	cd, ok := resp.Header[http.CanonicalHeaderKey("content-disposition")]
 	if !ok && resp.Request.Response != nil {
@@ -420,7 +401,7 @@ func cleanRelativePath(path string) (clean string, err error) {
 
 // given a filename or path, prepend the instance home directory
 // if not absolute, and clean
-func filepathForInstance(c Instances, file string) (path string) {
+func instanceAbsPath(c Instances, file string) (path string) {
 	path = filepath.Clean(file)
 	if filepath.IsAbs(path) {
 		return
@@ -428,7 +409,7 @@ func filepathForInstance(c Instances, file string) (path string) {
 	return filepath.Join(c.Home(), path)
 }
 
-func removePathList(c Instances, paths string) (err error) {
+func deletePaths(c Instances, paths string) (err error) {
 	list := filepath.SplitList(paths)
 	for _, p := range list {
 		// clean path, error on absolute or parent paths, like 'import'

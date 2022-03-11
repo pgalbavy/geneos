@@ -11,20 +11,22 @@ const San Component = "san"
 
 type Sans struct {
 	InstanceBase
-	BinSuffix  string `default:"netprobe.linux_64"`
-	SanHome    string `default:"{{join .RemoteRoot \"san\" \"sans\" .InstanceName}}"`
-	SanBins    string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
-	SanBase    string `default:"active_prod"`
-	SanExec    string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
-	SanLogD    string `json:",omitempty"`
-	SanLogF    string `default:"san.log"`
-	SanPort    int    `default:"7036"`
-	SanMode    string `json:",omitempty"`
-	SanOpts    string `json:",omitempty"`
-	SanLibs    string `default:"{{join .SanBins .SanBase \"lib64\"}}:{{join .SanBins .SanBase}}"`
-	SanUser    string `json:",omitempty"`
-	SanCert    string `json:",omitempty"`
-	SanKey     string `json:",omitempty"`
+	BinSuffix string `default:"netprobe.linux_64"`
+	SanHome   string `default:"{{join .RemoteRoot \"san\" \"sans\" .InstanceName}}"`
+	SanBins   string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
+	SanBase   string `default:"active_prod"`
+	SanExec   string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
+	SanLogD   string `json:",omitempty"`
+	SanLogF   string `default:"san.log"`
+	SanPort   int    `default:"7036"`
+	SanMode   string `json:",omitempty"`
+	SanOpts   string `json:",omitempty"`
+	SanLibs   string `default:"{{join .SanBins .SanBase \"lib64\"}}:{{join .SanBins .SanBase}}"`
+	SanUser   string `json:",omitempty"`
+	SanCert   string `json:",omitempty"`
+	SanKey    string `json:",omitempty"`
+
+	// These fields are for templating the netprobe.setup.xml file but only as placeholders
 	Attributes map[string]string
 	Variables  map[string]struct {
 		Type  string
@@ -44,6 +46,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewSan,
 		ComponentType:    San,
+		ParentType:       Netprobe,
 		ComponentMatches: []string{"san", "sans"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Netprobe",
@@ -148,16 +151,16 @@ func (c Sans) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, GlobalConfig["SanCleanList"]); err != nil {
+		if err = deletePaths(c, GlobalConfig["SanCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, GlobalConfig["SanPurgeList"])
+		err = deletePaths(c, GlobalConfig["SanPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, GlobalConfig["SanCleanList"])
+	return deletePaths(c, GlobalConfig["SanCleanList"])
 }
 
 func (c Sans) Reload(params []string) (err error) {

@@ -718,7 +718,7 @@ func readInstanceCert(c Instances) (cert *x509.Certificate, err error) {
 	if getString(c, c.Prefix("Cert")) == "" {
 		return nil, ErrNotFound
 	}
-	return readCert(c.Location(), filepathForInstance(c, getString(c, c.Prefix("Cert"))))
+	return readCert(c.Location(), instanceAbsPath(c, getString(c, c.Prefix("Cert"))))
 }
 
 func readKey(remote string, path string) (key *rsa.PrivateKey, err error) {
@@ -740,7 +740,7 @@ func readInstanceKey(c Instances) (key *rsa.PrivateKey, err error) {
 		logError.Fatalln(err)
 	}
 
-	return readKey(c.Location(), filepathForInstance(c, getString(c, c.Prefix("Key"))))
+	return readKey(c.Location(), instanceAbsPath(c, getString(c, c.Prefix("Key"))))
 }
 
 func createCert(template, parent *x509.Certificate, parentKey *rsa.PrivateKey, existingKey *rsa.PrivateKey) (cert *x509.Certificate, key *rsa.PrivateKey, err error) {

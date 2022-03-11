@@ -379,62 +379,60 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 
 // check selected version exists first
 func updateToVersion(remote string, ct Component, version string, overwrite bool) (err error) {
-	// XXX temp hack while we work out parent/child components
-	if ct == San {
-		ct = Netprobe
+	if components[ct].ParentType != None {
+		ct = components[ct].ParentType
 	}
 	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String())
 	basepath := filepath.Join(basedir, updateBase)
 
-	logDebug.Printf("checking and updating %s %q to %q", remote, updateBase, version)
-
-	switch ct {
-	case None:
+	if ct == None {
 		for _, t := range realComponentTypes() {
 			if err = updateToVersion(remote, t, version, overwrite); err != nil {
 				log.Println(err)
 			}
 		}
-	case Gateway, Netprobe, Licd, Webserver:
-		if version == "" || version == "latest" {
-			version = latestMatch(remote, basedir, func(d os.DirEntry) bool {
-				return !d.IsDir()
-			})
-		}
-		// does the version directory exist?
-		current, err := readlink(remote, basepath)
-		if err != nil {
-			logDebug.Println("cannot read link for existing version", basepath)
-		}
-		if _, err = statFile(remote, filepath.Join(basedir, version)); err != nil {
-			err = fmt.Errorf("update %s@%s to version %s failed", ct, remote, version)
-			return err
-		}
-		if current != "" && !overwrite {
-			return nil
-		}
-		// empty current is fine
-		if current == version {
-			logDebug.Println(ct, updateBase, "is already linked to", version)
-			return nil
-		}
-		// check remote only
-		insts := matchComponents(remote, ct, "Base", updateBase)
-		// stop matching instances
-		for _, i := range insts {
-			stopInstance(i, nil)
-			defer startInstance(i, nil)
-		}
-		if err = removeFile(remote, basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		if err = symlink(remote, version, basepath); err != nil {
-			return err
-		}
-		log.Println(ct, "on", remote, updateBase, "updated to", version)
-	default:
-		return ErrNotSupported
+		return nil
 	}
+
+	logDebug.Printf("checking and updating %s %s %q to %q", remote, ct.String(), updateBase, version)
+
+	if version == "" || version == "latest" {
+		version = latestMatch(remote, basedir, func(d os.DirEntry) bool {
+			return !d.IsDir()
+		})
+	}
+	// does the version directory exist?
+	current, err := readlink(remote, basepath)
+	if err != nil {
+		logDebug.Println("cannot read link for existing version", basepath)
+	}
+	if _, err = statFile(remote, filepath.Join(basedir, version)); err != nil {
+		err = fmt.Errorf("update %s@%s to version %s failed", ct, remote, version)
+		return err
+	}
+	if current != "" && !overwrite {
+		return nil
+	}
+
+	// empty current is fine
+	if current == version {
+		logDebug.Println(ct, updateBase, "is already linked to", current)
+		return nil
+	}
+	// check remote only
+	insts := matchComponents(remote, ct, "Base", updateBase)
+	// stop matching instances
+	for _, i := range insts {
+		stopInstance(i, nil)
+		defer startInstance(i, nil)
+	}
+	if err = removeFile(remote, basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	if err = symlink(remote, version, basepath); err != nil {
+		return err
+	}
+	log.Println(ct, "on", remote, updateBase, "updated to", version)
 	return nil
 }
 

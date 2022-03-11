@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -11,7 +12,7 @@ import (
 type Component string
 
 const (
-	None    Component = "none"
+	None    Component = ""
 	Unknown Component = "unknown"
 )
 
@@ -19,6 +20,7 @@ type Components struct {
 	New func(string) Instances
 
 	ComponentType    Component
+	ParentType       Component
 	ComponentMatches []string
 	IncludeInLoops   bool
 	DownloadBase     string
@@ -27,6 +29,7 @@ type Components struct {
 func init() {
 	RegisterComponent(Components{
 		ComponentType:    None,
+		ParentType:       None,
 		ComponentMatches: []string{"", "all", "any"},
 		IncludeInLoops:   false,
 		DownloadBase:     "",
@@ -191,6 +194,24 @@ func (ct Component) New(name string) (c Instances) {
 		logError.Fatalln(ct, ErrNotSupported)
 	}
 	return cm.New(name)
+}
+
+// given a component type and a slice of args, call the function for each arg
+//
+// rely on NewComponent() checking the component type and returning a slice
+// of all matching components for a single name in an arg (e.g all instances
+// called 'thisserver')
+//
+// try to use go routines here - mutexes required
+func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
+	for _, name := range args {
+		for _, c := range ct.instanceMatches(name) {
+			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
+				log.Println(c.Type(), c.Name(), err)
+			}
+		}
+	}
+	return nil
 }
 
 // construct and return a slice of a/all component types that have

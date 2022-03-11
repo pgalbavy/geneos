@@ -29,6 +29,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewNetprobe,
 		ComponentType:    Netprobe,
+		ParentType:       None,
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Netprobe",
@@ -124,16 +125,16 @@ func (c Netprobes) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, GlobalConfig["NetprobeCleanList"]); err != nil {
+		if err = deletePaths(c, GlobalConfig["NetprobeCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, GlobalConfig["NetprobePurgeList"])
+		err = deletePaths(c, GlobalConfig["NetprobePurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, GlobalConfig["NetprobeCleanList"])
+	return deletePaths(c, GlobalConfig["NetprobeCleanList"])
 }
 
 func (c Netprobes) Reload(params []string) (err error) {

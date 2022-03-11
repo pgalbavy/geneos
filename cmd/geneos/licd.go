@@ -29,6 +29,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewLicd,
 		ComponentType:    Licd,
+		ParentType:       None,
 		ComponentMatches: []string{"licd", "licds"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Licence+Daemon",
@@ -123,16 +124,16 @@ func (c Licds) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, GlobalConfig["LicdCleanList"]); err != nil {
+		if err = deletePaths(c, GlobalConfig["LicdCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, GlobalConfig["LicdPurgeList"])
+		err = deletePaths(c, GlobalConfig["LicdPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, GlobalConfig["LicdCleanList"])
+	return deletePaths(c, GlobalConfig["LicdCleanList"])
 }
 
 func (c Licds) Reload(params []string) (err error) {

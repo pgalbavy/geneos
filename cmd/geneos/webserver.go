@@ -33,6 +33,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewWebserver,
 		ComponentType:    Webserver,
+		ParentType:       None,
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
 		IncludeInLoops:   true,
 		DownloadBase:     "Web+Dashboard",
@@ -177,16 +178,16 @@ func (c Webservers) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, GlobalConfig["WebserverCleanList"]); err != nil {
+		if err = deletePaths(c, GlobalConfig["WebserverCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, GlobalConfig["WebserverPurgeList"])
+		err = deletePaths(c, GlobalConfig["WebserverPurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, GlobalConfig["WebserverCleanList"])
+	return deletePaths(c, GlobalConfig["WebserverCleanList"])
 }
 
 func (c Webservers) Reload(params []string) (err error) {
