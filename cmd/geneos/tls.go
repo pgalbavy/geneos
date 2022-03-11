@@ -96,7 +96,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		if err = TLSInit(); err != nil {
 			logError.Fatalln(err)
 		}
-		return ct.loopSubcommand(TLSInstance, "new", args, params)
+		return ct.loopCommand(TLSNewInstance, args, params)
 	case "import":
 		return TLSImport(params)
 	case "ls":
@@ -105,7 +105,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		return TLSSync()
 	}
 
-	return ct.loopSubcommand(TLSInstance, subcommand, args, params)
+	return ct.loopCommand(TLSRenewInstance, args, params)
 }
 
 type lsCertType struct {
@@ -217,16 +217,12 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 	return
 }
 
-func TLSInstance(c Instances, subcommand string, params []string) (err error) {
-	switch subcommand {
-	case "new":
-		// create a cert, DO NOT overwrite any existing unless renewing
-		// re-user private key if it exists
-		return createInstanceCert(c)
-	case "renew":
-		return renewInstanceCert(c)
-	}
-	return
+func TLSNewInstance(c Instances, params []string) (err error) {
+	return createInstanceCert(c)
+}
+
+func TLSRenewInstance(c Instances, params []string) (err error) {
+	return renewInstanceCert(c)
 }
 
 func lsInstanceCert(c Instances, params []string) (err error) {

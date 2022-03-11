@@ -390,22 +390,6 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 	return nil
 }
 
-// call a function but with an extra subcommand parameter to allow some indirection
-func (ct Component) loopSubcommand(fn func(Instances, string, []string) error, subcommand string, args []string, params []string) (err error) {
-	for _, name := range args {
-		for _, c := range ct.Match(name) {
-			if err = loadConfig(c, false); err != nil {
-				log.Println(c.Type(), c.Name(), "cannot load configuration")
-				return
-			}
-			if err = fn(c, subcommand, params); err != nil && !errors.Is(err, ErrProcNotExist) {
-				log.Println(c.Type(), c.Name(), err)
-			}
-		}
-	}
-	return nil
-}
-
 // like the above but only process the first arg (if any) to allow for those commands
 // that accept only zero or one named instance and the rest of the args are parameters
 // pass the remaining args the to function
