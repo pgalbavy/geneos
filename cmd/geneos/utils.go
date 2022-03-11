@@ -26,6 +26,12 @@ import (
 	"github.com/pkg/sftp"
 )
 
+// locate a process instance
+//
+// the component type must be part of the basename of the executable and
+// the component name must be on the command line as an exact and
+// standalone args
+//
 // walk the /proc directory (local or remote) and find the matching pid
 // this is subject to races, but...
 func findInstancePID(c Instances) (pid int, err error) {
@@ -86,12 +92,6 @@ func findInstancePID(c Instances) (pid int, err error) {
 	return 0, ErrProcNotExist
 }
 
-// locate a process by compoent type and name
-//
-// the component type must be part of the basename of the executable and
-// the component name must be on the command line as an exact and
-// standalone args
-//
 func findInstanceProc(c Instances) (pid int, uid uint32, gid uint32, mtime int64, err error) {
 	pid, err = findInstancePID(c)
 	if err == nil {
@@ -209,32 +209,11 @@ func canControl(c Instances) bool {
 // arg is a component type and depdup the names. A name of "all" will
 // will override the rest and result in a lookup being done
 //
-// Check for spaces in args - they would have come in in quotes - and
-// do something with them.
-//
-// Check for specific, configurable, character (default '+') and replace with space
-// e.g. Demo+Gateway -> "Demo Gateway"
-//
 // args with an '=' should be checked and only allowed if there are names?
 //
 // support glob style wildcards for instance names - allow through, let loopCommand*
 // deal with them
 //
-func checkComponentArg(rawargs []string) (ct Component, args []string, params []string) {
-	if len(rawargs) == 0 {
-		// wildcard everything
-		ct = None
-	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
-		// first arg is not a known type
-		ct = None
-		args = rawargs
-	} else {
-		args = rawargs[1:]
-	}
-
-	return
-}
-
 // process command args in a standard way
 // flags will have been handled by another function before this one
 // any args with '=' are treated as parameters
@@ -245,18 +224,18 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 	if len(rawargs) == 0 {
 		// no more arguments? wildcard everything
 		ct = None
-		args = None.allArgsForComponent()
+		args = None.instanceNames(ALL) //  None.allArgsForComponent()
 	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
 		// first arg is not a known type, so treat the rest as instance names
 		ct = None
 		args = rawargs
 		if len(args) == 0 {
-			args = None.allArgsForComponent()
+			args = None.instanceNames(ALL) // allArgsForComponent()
 		}
 	} else {
 		args = rawargs[1:]
 		if len(args) == 0 {
-			args = ct.allArgsForComponent()
+			args = ct.instanceNames(ALL) //  allArgsForComponent()
 		}
 	}
 
@@ -293,7 +272,7 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 
 	// repeat if args is now empty (all params)
 	if len(args) == 0 {
-		args = ct.allArgsForComponent()
+		args = ct.instanceNames(ALL) //  allArgsForComponent()
 	}
 
 	logDebug.Println("params:", params)
@@ -339,28 +318,18 @@ func parseArgsNoWildcard(rawargs []string) (ct Component, args []string, params 
 	return
 }
 
-func (ct Component) allArgsForComponent() (args []string) {
-	var confs []Instances
-	switch ct {
-	case None, Unknown:
-		// wildcard again - sort oder matters, fix
-		confs = None.instances(ALL)
-	case Remote:
-		// we only look for actual "remote" components on the local system
-		confs = Remote.instances(LOCAL)
-	default:
-		// args = ct.instanceNames(ALL)
-		// scan all remotes for the instances of type ct
-		for _, remote := range allRemotesInstances() {
-			logDebug.Println("checking remote:", remote.Name())
-			confs = append(confs, ct.instances(remote.Name())...)
-		}
+// no wildcards or parameters, just check the first arg for a valid component type and
+// return the rest as args. the caller has to check component type for validity
+func checkComponentArg(rawargs []string) (ct Component, args []string, params []string) {
+	if len(rawargs) == 0 {
+		ct = None
+	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
+		ct = None
+		args = rawargs
+	} else {
+		args = rawargs[1:]
 	}
 
-	for _, c := range confs {
-		// XXX
-		args = append(args, c.Name()+"@"+c.Location())
-	}
 	return
 }
 
