@@ -80,7 +80,7 @@ func TLSArgs(rawargs []string) (ct Component, args []string, params []string) {
 		logError.Fatalln("command requires more arguments - help text here")
 	}
 	subcommand := rawargs[0]
-	ct, args, params = parseArgs(rawargs[1:])
+	ct, args, params = defaultArgs(rawargs[1:])
 	args = append([]string{subcommand}, args...)
 	return
 }

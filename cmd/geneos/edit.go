@@ -10,7 +10,7 @@ func init() {
 	commands["edit"] = Command{
 		Function:   commandEdit,
 		ParseFlags: defaultFlag,
-		ParseArgs:  parseArgs,
+		ParseArgs:  defaultArgs,
 		CommandLine: `geneos edit [global|user]
 	geneos edit [TYPE] [NAME...]`,
 		Summary: `Open a test editor for instance configuration file.`,

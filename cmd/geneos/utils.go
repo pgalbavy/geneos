@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"math"
 	"mime"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -245,22 +243,33 @@ func checkComponentArg(rawargs []string) (ct Component, args []string, params []
 	return
 }
 
-func parseArgs(rawargs []string) (ct Component, args []string, params []string) {
+// process command args in a standard way
+// flags will have been handled by another function before this one
+// any args with '=' are treated as parameters
+//
+// a bare argument with a '@' prefix means all instance of type on a remote
+func defaultArgs(rawargs []string) (ct Component, args []string, params []string) {
+	// work through wildcard options
 	if len(rawargs) == 0 {
 		// no more arguments? wildcard everything
 		ct = None
+		args = None.allArgsForComponent()
 	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
-		// first arg is not a known type
+		// first arg is not a known type, so treat the rest as instance names
 		ct = None
 		args = rawargs
+		if len(args) == 0 {
+			args = None.allArgsForComponent()
+		}
 	} else {
 		args = rawargs[1:]
+		if len(args) == 0 {
+			args = ct.allArgsForComponent()
+		}
 	}
 
-	// empty list of names = all names for that ct
-	if len(args) == 0 {
-		args = ct.allArgsForComponent()
-	}
+	// check args for prefix '@', expand
+	//
 
 	logDebug.Println("ct, args, params", ct, args, params)
 
@@ -270,23 +279,24 @@ func parseArgs(rawargs []string) (ct Component, args []string, params []string) 
 	var newnames []string
 
 	m := make(map[string]bool, len(args))
-	for _, name := range args {
+	for i, name := range args {
 		// filter name here
-		if reservedName(args[0]) {
-			logError.Fatalf("%q is reserved instance name", args[0])
+		if reservedName(name) {
+			logError.Fatalf("%q is reserved instance name", name)
 		}
-		if !validInstanceName(args[0]) {
-			logDebug.Printf("%q is not a valid instance name", args[0])
+		if !validInstanceName(name) {
+			// first invalid name end processing, save the rest as params
+			logDebug.Printf("%q is not a valid instance name, stopped processing args", name)
+			params = args[i:]
 			break
 		}
+		// simply ignore duplicates
 		if m[name] {
 			continue
 		}
 		newnames = append(newnames, name)
-		args = args[1:]
 		m[name] = true
 	}
-	params = args
 	args = newnames
 
 	// repeat if args is now empty (all params)
@@ -313,23 +323,24 @@ func parseArgsNoWildcard(rawargs []string) (ct Component, args []string, params 
 	logDebug.Println("ct, args, params", ct, args, params)
 
 	m := make(map[string]bool, len(args))
-	for _, name := range args {
+	for i, name := range args {
 		// filter name here
-		if reservedName(args[0]) {
-			logError.Fatalf("%q is reserved instance name", args[0])
+		if reservedName(name) {
+			logError.Fatalf("%q is reserved instance name", name)
 		}
-		if !validInstanceName(args[0]) {
-			logDebug.Printf("%q is not a valid instance name", args[0])
+		if !validInstanceName(name) {
+			// first invalid name end processing, save the rest as params
+			logDebug.Printf("%q is not a valid instance name, stopped processing args", name)
+			params = args[i:]
 			break
 		}
+		// simply ignore duplicates
 		if m[name] {
 			continue
 		}
 		newnames = append(newnames, name)
-		args = args[1:]
 		m[name] = true
 	}
-	params = args
 	args = newnames
 
 	logDebug.Println("params:", params)
@@ -341,17 +352,19 @@ func (ct Component) allArgsForComponent() (args []string) {
 	switch ct {
 	case None, Unknown:
 		// wildcard again - sort oder matters, fix
-		confs = getInstances(ALL)
+		confs = allInstances(ALL)
 	case Remote:
 		// we only look for actual "remote" components on the local system
-		confs = append(confs, Remote.remoteInstances(LOCAL)...)
+		confs = Remote.instances(LOCAL)
 	default:
+		// args = ct.instanceNames(ALL)
 		// scan all remotes for the instances of type ct
 		for _, remote := range allRemotes() {
 			logDebug.Println("checking remote:", remote.Name())
-			confs = append(confs, ct.remoteInstances(remote.Name())...)
+			confs = append(confs, ct.instances(remote.Name())...)
 		}
 	}
+
 	for _, c := range confs {
 		// XXX
 		args = append(args, c.Name()+"@"+c.Location())
@@ -539,97 +552,6 @@ func getLogfilePath(c Instances) (logdir string) {
 	return
 }
 
-// reflect methods to get and set struct fields
-
-func getIntAsString(c interface{}, name string) string {
-	v := reflect.ValueOf(c)
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-
-	if !v.IsValid() || v.Kind() != reflect.Struct {
-		return ""
-	}
-
-	v = v.FieldByName(name)
-	if v.IsValid() && v.Kind() == reflect.Int {
-		return fmt.Sprintf("%v", v.Int())
-	}
-	return ""
-}
-
-func getString(c interface{}, name string) string {
-	v := reflect.ValueOf(c)
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-
-	if !v.IsValid() || v.Kind() != reflect.Struct {
-		return ""
-	}
-
-	v = v.FieldByName(name)
-
-	if v.IsValid() && v.Kind() == reflect.String {
-		return v.String()
-	}
-
-	return ""
-}
-
-func getSliceStrings(c interface{}, name string) (strings []string) {
-	v := reflect.ValueOf(c)
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-
-	if !v.IsValid() || v.Kind() != reflect.Struct {
-		return nil
-	}
-
-	v = v.FieldByName(name)
-
-	if v.Type() != reflect.TypeOf(strings) {
-		return nil
-	}
-
-	return v.Interface().([]string)
-}
-
-func setField(c interface{}, k string, v string) (err error) {
-	fv := reflect.ValueOf(c)
-	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
-		fv = fv.Elem()
-	}
-	fv = fv.FieldByName(k)
-	if fv.IsValid() && fv.CanSet() {
-		switch fv.Kind() {
-		case reflect.String:
-			fv.SetString(v)
-		case reflect.Int:
-			i, _ := strconv.Atoi(v)
-			fv.SetInt(int64(i))
-		default:
-			return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
-		}
-	} else {
-		return fmt.Errorf("cannot set %q: %w (isValid=%v, canset=%v, type=%v)", k, ErrInvalidArgs, fv.IsValid(), fv.CanSet(), fv.Type())
-	}
-	return
-}
-
-func setFieldSlice(c interface{}, k string, v []string) (err error) {
-	fv := reflect.ValueOf(c)
-	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
-		fv = fv.Elem()
-	}
-	fv = fv.FieldByName(k)
-	if fv.IsValid() && fv.CanSet() {
-		fv.Set(reflect.ValueOf(v))
-	}
-	return
-}
-
 func slicetoi(s []string) (n []int) {
 	for _, x := range s {
 		i, err := strconv.Atoi(x)
@@ -710,70 +632,6 @@ func readSourceString(source string) (s string) {
 	b, err := io.ReadAll(from)
 	s = string(b)
 	return
-}
-
-// a template function to support "{{join .X .Y}}"
-var textJoinFuncs = template.FuncMap{"join": filepath.Join}
-
-// setDefaults() is a common function called by component New*()
-// functions to iterate over the component specific instance
-// struct and set the defaults as defined in the 'defaults'
-// struct tags.
-func setDefaults(c interface{}) (err error) {
-	st := reflect.TypeOf(c)
-	sv := reflect.ValueOf(c)
-	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
-		st = st.Elem()
-		sv = sv.Elem()
-	}
-
-	n := sv.NumField()
-
-	for i := 0; i < n; i++ {
-		ft := st.Field(i)
-		fv := sv.Field(i)
-
-		// only set plain strings
-		if !fv.CanSet() {
-			continue
-		}
-		if def, ok := ft.Tag.Lookup("default"); ok {
-			// treat all defaults as if they are templates
-			val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
-			if err != nil {
-				log.Println("parse error:", def)
-				continue
-			}
-			var b bytes.Buffer
-			if err = val.Execute(&b, c); err != nil {
-				log.Println("cannot convert:", def)
-			}
-			if err = setField(c, ft.Name, b.String()); err != nil {
-				return err
-			}
-		}
-	}
-	return
-}
-
-// Given a slice of directory entries, sort in place
-func sortDirEntries(files []fs.DirEntry) {
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].Name() < files[j].Name()
-	})
-}
-
-// Return a sorted list of sub-directories
-func sortedInstancesInDir(remote string, dir string) []string {
-	files, _ := readDir(remote, dir)
-	sortDirEntries(files)
-	components := make([]string, 0, len(files))
-	for _, file := range files {
-		if file.IsDir() {
-			components = append(components, file.Name()+"@"+remote)
-		}
-	}
-	return components
 }
 
 func writeTemplate(c Instances, path string, tmpl string) (err error) {

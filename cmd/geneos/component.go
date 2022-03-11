@@ -2,6 +2,7 @@ package main
 
 import (
 	"path/filepath"
+	"sort"
 )
 
 // definitions and access methods for the generic component types
@@ -138,12 +139,19 @@ func RegisterSettings(settings GlobalSettings) {
 	}
 }
 
-// Return a slice of all instances for a given Component. No checking is done
+// Return a slice of all instanceNames for a given Component. No checking is done
 // to validate that the directory is a populated instance.
-//
-// No side-effects
-func (ct Component) instanceNamesForComponent(remote string) []string {
-	return sortedInstancesInDir(remote, ct.componentBaseDir(remote))
+func (ct Component) instanceNames(remote string) (components []string) {
+	files, _ := readDir(remote, ct.componentBaseDir(remote))
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+	for _, file := range files {
+		if file.IsDir() {
+			components = append(components, file.Name()+"@"+remote)
+		}
+	}
+	return
 }
 
 // Return the base directory for a Component
@@ -185,7 +193,7 @@ func (ct Component) Match(name string) (c []Instances) {
 
 	local, remote := splitInstanceName(name)
 	for _, t := range realComponentTypes() {
-		for _, dir := range t.instanceNamesForComponent(remote) {
+		for _, dir := range t.instanceNames(remote) {
 			// for case insensitive match change to EqualFold here
 			ldir, _ := splitInstanceName(dir)
 			if filepath.Base(ldir) == local {
@@ -199,17 +207,11 @@ func (ct Component) Match(name string) (c []Instances) {
 	return
 }
 
-// return a slice of all instances, ordered and grouped.
+// return a slice of all instances, ordered and grouped by type and remote.
 // configurations are not loaded, just the defaults ready for overlay
-func getInstances(remote string) (confs []Instances) {
+func allInstances(remote string) (confs []Instances) {
 	for _, ct := range realComponentTypes() {
-		if remote == ALL {
-			for _, r := range allRemotes() {
-				confs = append(confs, ct.remoteInstances(r.Name())...)
-			}
-		} else {
-			confs = append(confs, ct.remoteInstances(remote)...)
-		}
+		confs = append(confs, ct.instances(remote)...)
 	}
 	return
 }

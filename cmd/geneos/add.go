@@ -40,7 +40,7 @@ FLAGS:
 	commands["import"] = Command{
 		Function:    commandImport,
 		ParseFlags:  defaultFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos import [TYPE] NAME [DEST=]SRC",
 		Summary:     `Import file(s) to an instance.`,
 		Description: `Import file(s) to the instance directory. This can be used to add configuration or license
@@ -109,7 +109,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 // returns a map
 func getPorts(remote string) (ports map[int]Component) {
 	ports = make(map[int]Component)
-	for _, c := range getInstances(remote) {
+	for _, c := range allInstances(remote) {
 		if err := loadConfig(c, false); err != nil {
 			log.Println(c.Type(), c.Name(), "- cannot load configuration")
 			continue

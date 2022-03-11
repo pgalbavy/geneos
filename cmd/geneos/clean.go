@@ -6,7 +6,7 @@ func init() {
 	commands["clean"] = Command{
 		Function:    commandClean,
 		ParseFlags:  cleanFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos clean [-f] [TYPE] [NAME...]",
 		Summary:     "Clean-up instance directory",
 		Description: `Clean-up instance directories, restarting instances if doing a 'purge' clean.

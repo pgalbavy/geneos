@@ -73,7 +73,7 @@ The '-d' and '-a' flags are mutually exclusive.
 	commands["migrate"] = Command{
 		Function:    commandMigrate,
 		ParseFlags:  defaultFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos migrate [TYPE] [NAME...]",
 		Summary:     `Migrate legacy .rc configuration to .json`,
 		Description: `Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
@@ -82,7 +82,7 @@ The '-d' and '-a' flags are mutually exclusive.
 	commands["revert"] = Command{
 		Function:    commandRevert,
 		ParseFlags:  defaultFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: `geneos revert [TYPE] [NAME...]`,
 		Summary:     `Revert migration of .rc files from backups.`,
 		Description: `Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
@@ -92,7 +92,7 @@ is never written to.`}
 	commands["show"] = Command{
 		Function:   commandShow,
 		ParseFlags: defaultFlag,
-		ParseArgs:  parseArgs,
+		ParseArgs:  defaultArgs,
 		CommandLine: `geneos show
 	geneos show [global|user]
 	geneos show [TYPE] [NAME...]`,
@@ -117,7 +117,7 @@ to prevent visibility in casual viewing.`}
 	commands["set"] = Command{
 		Function:   commandSet,
 		ParseFlags: defaultFlag,
-		ParseArgs:  parseArgs,
+		ParseArgs:  defaultArgs,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
 		Summary: `Set runtime, global, user or instance configuration parameters`,
@@ -151,7 +151,7 @@ It is an error to try to rename an instance to one that already exists with the 
 	commands["delete"] = Command{
 		Function:    commandDelete,
 		ParseFlags:  defaultFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: `geneos delete [TYPE] [NAME...]`,
 		Summary:     `Delete an instance. Instance must be stopped.`,
 		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
@@ -241,7 +241,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		commandAdd(Netprobe, n, e)
 		commandAdd(Webserver, []string{"demo"}, e)
 		// call parseArgs() on an empty list to populate for loopCommand()
-		ct, args, params := parseArgs(e)
+		ct, args, params := defaultArgs(e)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return
@@ -263,7 +263,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		commandAdd(Netprobe, n, e)
 		commandAdd(Webserver, g, e)
 		// call parseArgs() on an empty list to populate for loopCommand()
-		ct, args, params := parseArgs(e)
+		ct, args, params := defaultArgs(e)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return nil

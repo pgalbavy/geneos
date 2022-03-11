@@ -34,9 +34,9 @@ type Command struct {
 // The Commands type is a map of command text (as a string) to a Command structure
 type Commands map[string]Command
 
-// return a slice of Instances for a given Component
-func (ct Component) remoteInstances(remote string) (confs []Instances) {
-	for _, name := range ct.instanceNamesForComponent(remote) {
+// return a slice of initialised instances for a given component type
+func (ct Component) instances(remote string) (confs []Instances) {
+	for _, name := range ct.instanceNames(remote) {
 		confs = append(confs, ct.New(name))
 	}
 	return

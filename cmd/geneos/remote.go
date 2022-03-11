@@ -256,7 +256,7 @@ func splitInstanceName(in string) (name, remote string) {
 // this is not recursive,
 // but we include a special LOCAL instance
 func allRemotes() (remotes []Instances) {
-	remotes = append([]Instances{Remote.New(LOCAL)}, Remote.remoteInstances(LOCAL)...)
+	remotes = append([]Instances{Remote.New(LOCAL)}, Remote.instances(LOCAL)...)
 	return
 }
 

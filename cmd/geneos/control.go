@@ -16,7 +16,7 @@ func init() {
 	commands["start"] = Command{
 		Function:    commandStart,
 		ParseFlags:  startFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: `geneos start [-l] [TYPE] [NAME...]`,
 		Summary:     `Start one or more instances.`,
 		Description: `Start one or more matching instances. All instances are run in the background and
@@ -33,7 +33,7 @@ FLAGS:
 	commands["stop"] = Command{
 		Function:    commandStop,
 		ParseFlags:  stopFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: `geneos stop [-f] [TYPE] [NAME...]`,
 		Summary:     `Stop one or more instances`,
 		Description: `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and
@@ -52,7 +52,7 @@ FLAGS:
 	commands["restart"] = Command{
 		Function:    commandRestart,
 		ParseFlags:  restartFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos restart [-l] [TYPE] [NAME...]",
 		Summary:     `Restart one or more instances.`,
 		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.
@@ -70,7 +70,7 @@ FLAGS:
 	commands["disable"] = Command{
 		Function:    commandDisable,
 		ParseFlags:  defaultFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos disable [TYPE] [NAME...]",
 		Summary:     `Disable (and stop) one or more instances.`,
 		Description: `Mark any matching instances as disabled. The instances are also stopped.`}
@@ -78,7 +78,7 @@ FLAGS:
 	commands["enable"] = Command{
 		Function:    commandEneable,
 		ParseFlags:  enableFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos enable [TYPE] [NAME...]",
 		Summary:     `Enable one or more instances. Only previously disabled instances are started.`,
 		Description: `Mark any matcing instances as enabled and if this changes status then start the instance.`}

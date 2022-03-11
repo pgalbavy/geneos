@@ -505,7 +505,7 @@ func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) 
 // given a component type and a key/value pair, return matching
 // instances
 func matchComponents(remote string, ct Component, k, v string) (insts []Instances) {
-	for _, i := range ct.remoteInstances(remote) {
+	for _, i := range ct.instances(remote) {
 		if v == getString(i, i.Prefix(k)) {
 			if err := loadConfig(i, false); err != nil {
 				log.Println(i.Type(), i.Name(), "cannot load config")

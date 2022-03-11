@@ -18,7 +18,7 @@ func init() {
 	commands["logs"] = Command{
 		Function:    commandLogs,
 		ParseFlags:  logsFlag,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos logs [FLAGS] [TYPE] [NAME...]",
 		Summary:     `Show log(s) for instances.`,
 		Description: `Show log(s) for instances.
@@ -125,6 +125,7 @@ func logTailInstance(c Instances, params []string) (err error) {
 	lines, st, err := statAndOpenFile(c.Location(), logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
+			log.Printf("===> %s %s@%s log file not found <===", c.Type(), c.Name(), c.Location())
 			return nil
 		}
 		return
@@ -235,6 +236,7 @@ func logCatInstance(c Instances, params []string) (err error) {
 	lines, _, err := statAndOpenFile(c.Location(), logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
+			log.Printf("===> %s %s@%s log file not found <===", c.Type(), c.Name(), c.Location())
 			return nil
 		}
 		return

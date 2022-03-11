@@ -14,7 +14,7 @@ func init() {
 	commands["ls"] = Command{
 		Function:    commandLS,
 		ParseFlags:  flagsList,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos ls [-c|-j] [TYPE] [NAME...]",
 		Summary:     `List instances, optionally in CSV or JSON format.`,
 		Description: `List the matching instances and their component type.
@@ -24,7 +24,7 @@ Future versions will support CSV or JSON output formats for automation and monit
 	commands["ps"] = Command{
 		Function:    commandPS,
 		ParseFlags:  flagsList,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos ps [-c|-j] [TYPE] [NAMES...]",
 		Summary:     `List process information for instances, optionally in CSV or JSON format.`,
 		Description: `Show the status of the matching instances.
@@ -34,7 +34,7 @@ Future versions will support CSV or JSON output formats for automation and monit
 	commands["command"] = Command{
 		Function:    commandCommand,
 		ParseFlags:  nil,
-		ParseArgs:   parseArgs,
+		ParseArgs:   defaultArgs,
 		CommandLine: "geneos command [TYPE] [NAME...]",
 		Summary:     `Show command arguments and environment for instances.`,
 		Description: `Show the full command line for the matching instances along with any environment variables
