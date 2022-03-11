@@ -318,6 +318,33 @@ func createRemoteFile(remote string, path string) (*sftp.File, error) {
 	}
 }
 
+func createFile(remote string, path string, perms fs.FileMode) (out io.WriteCloser, err error) {
+	switch remote {
+	case LOCAL:
+		var cf *os.File
+		cf, err = os.Create(path)
+		if err != nil {
+			return
+		}
+		out = cf
+		if err = cf.Chmod(perms); err != nil {
+			return
+		}
+	default:
+		var cf *sftp.File
+		s := sftpOpenSession(remote)
+		cf, err = s.Create(path)
+		if err != nil {
+			return
+		}
+		out = cf
+		if err = cf.Chmod(perms); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func removeFile(remote string, name string) error {
 	switch remote {
 	case LOCAL:

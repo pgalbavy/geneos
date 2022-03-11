@@ -22,8 +22,6 @@ import (
 	"strings"
 	"syscall"
 	"text/template"
-
-	"github.com/pkg/sftp"
 )
 
 // locate a process instance
@@ -564,32 +562,11 @@ func writeTemplate(c Instances, path string, tmpl string) (err error) {
 		logError.Fatalln(err)
 	}
 
-	switch c.Location() {
-	case LOCAL:
-		var cf *os.File
-		cf, err = os.Create(path)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		out = cf
-		defer out.Close()
-		if err = cf.Chmod(0664); err != nil {
-			logError.Fatalln(err)
-		}
-	default:
-		var cf *sftp.File
-		cf, err = createRemoteFile(c.Location(), path)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		out = cf
-		defer out.Close()
-		if err = cf.Chmod(0664); err != nil {
-			logError.Fatalln(err)
-		}
+	out, err = createFile(c.Location(), path, 0660)
+	if err != nil {
+		log.Fatalln(err)
 	}
+	defer out.Close()
 
 	if err = t.Execute(out, c); err != nil {
 		logError.Fatalln(err)

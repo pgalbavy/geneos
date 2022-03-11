@@ -324,39 +324,19 @@ func unarchive(remote string, ct Component, filename string, gz io.Reader) (fina
 				return
 			}
 
-			switch remote {
-			case LOCAL:
-				// XXX
-				out, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
-				if err != nil {
-					return "", err
-				}
-				n, err := io.Copy(out, tr)
-				if err != nil {
-					out.Close()
-					return "", err
-				}
-				if n != hdr.Size {
-					log.Println("lengths different:", hdr.Size, n)
-				}
-				out.Close()
-			default:
-				// XXX
-				out, err := createRemoteFile(remote, fullpath) // , os.O_CREATE|os.O_WRONLY, hdr.FileInfo().Mode())
-				if err != nil {
-					return "", err
-				}
-				out.Chmod(hdr.FileInfo().Mode())
-				n, err := io.Copy(out, tr)
-				if err != nil {
-					out.Close()
-					return "", err
-				}
-				if n != hdr.Size {
-					log.Println("lengths different:", hdr.Size, n)
-				}
-				out.Close()
+			out, err := createFile(remote, fullpath, hdr.FileInfo().Mode())
+			if err != nil {
+				return "", err
 			}
+			n, err := io.Copy(out, tr)
+			if err != nil {
+				out.Close()
+				return "", err
+			}
+			if n != hdr.Size {
+				log.Println("lengths different:", hdr.Size, n)
+			}
+			out.Close()
 
 		case tar.TypeDir:
 			if err = mkdirAll(remote, fullpath, hdr.FileInfo().Mode()); err != nil {
