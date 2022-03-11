@@ -308,16 +308,6 @@ func chown(remote string, name string, uid, gid int) error {
 	}
 }
 
-func createRemoteFile(remote string, path string) (*sftp.File, error) {
-	switch remote {
-	case LOCAL:
-		return nil, ErrNotSupported
-	default:
-		s := sftpOpenSession(remote)
-		return s.Create(path)
-	}
-}
-
 func createFile(remote string, path string, perms fs.FileMode) (out io.WriteCloser, err error) {
 	switch remote {
 	case LOCAL:
@@ -518,17 +508,17 @@ func nextRandom() string {
 // based on os.CreatTemp, but allows for remotes and much simplified
 // given a remote and a full path, create a file with a suffix
 // and return an io.File
-func createRemoteTemp(remote string, path string) (*sftp.File, error) {
+func createTempFile(remote string, path string, perms fs.FileMode) (f io.WriteCloser, name string, err error) {
 	try := 0
 	for {
-		name := path + nextRandom()
-		f, err := createRemoteFile(remote, name)
+		name = path + nextRandom()
+		f, err = createFile(remote, name, perms)
 		if os.IsExist(err) {
 			if try++; try < 100 {
 				continue
 			}
-			return nil, fs.ErrExist
+			return nil, "", fs.ErrExist
 		}
-		return f, err
+		return
 	}
 }

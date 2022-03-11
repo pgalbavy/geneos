@@ -347,46 +347,23 @@ func importFile(c Instances, source string) (err error) {
 		}
 	}
 
-	var out io.Writer
+	cf, err := createFile(c.Location(), destfile, 0664)
+	if err != nil {
+		return err
+	}
+	defer cf.Close()
 
-	switch c.Location() {
-	case LOCAL:
-		cf, err := os.Create(destfile)
-		if err != nil {
-			return err
-		}
-		out = cf
-		defer cf.Close()
-
-		if err = cf.Chown(int(uid), int(gid)); err != nil {
-			removeFile(c.Location(), destfile)
-			if backuppath != "" {
-				if err = renameFile(c.Location(), backuppath, destfile); err != nil {
-					return err
-				}
+	if err = chown(c.Location(), destfile, int(uid), int(gid)); err != nil {
+		removeFile(c.Location(), destfile)
+		if backuppath != "" {
+			if err = renameFile(c.Location(), backuppath, destfile); err != nil {
 				return err
 			}
-		}
-	default:
-		cf, err := createRemoteFile(c.Location(), destfile)
-		if err != nil {
 			return err
-		}
-		out = cf
-		defer cf.Close()
-
-		if err = cf.Chown(int(uid), int(gid)); err != nil {
-			removeFile(c.Location(), destfile)
-			if backuppath != "" {
-				if err = renameFile(c.Location(), backuppath, destfile); err != nil {
-					return err
-				}
-				return err
-			}
 		}
 	}
 
-	if _, err = io.Copy(out, from); err != nil {
+	if _, err = io.Copy(cf, from); err != nil {
 		return err
 	}
 	log.Println("imported", source, "to", destfile)

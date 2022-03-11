@@ -1,18 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/sftp"
 )
 
 func init() {
@@ -674,7 +674,7 @@ func readConfigFile(remote, file string, config interface{}) (err error) {
 // we know the size of config structs is typicall small, so just marshal
 // in memory
 func writeConfigFile(remote, file string, config interface{}) (err error) {
-	buffer, err := json.MarshalIndent(config, "", "    ")
+	j, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
 	}
@@ -700,51 +700,23 @@ func writeConfigFile(remote, file string, config interface{}) (err error) {
 	// change final directory ownership
 	_ = chown(remote, dir, uid, gid)
 
-	switch remote {
-	case LOCAL:
-		f, err := os.CreateTemp(dir, filepath.Base(file))
-		if err != nil {
-			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
-		}
-		defer removeFile(remote, f.Name())
-		// use Println to get a final newline
-		if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
-			return err
-		}
-
-		// update file perms and owner before final rename to overwrite
-		// existing file
-		if err = f.Chmod(0664); err != nil {
-			return err
-		}
-		if err = f.Chown(uid, gid); err != nil {
-			return err
-		}
-
-		return renameFile(remote, f.Name(), file)
-	default:
-		var f *sftp.File
-		f, err = createRemoteTemp(remote, file)
-		if err != nil {
-			return fmt.Errorf("cannot create %q: %w", file, errors.Unwrap(err))
-		}
-		defer removeFile(remote, f.Name())
-		// use Println to get a final newline
-		if _, err = fmt.Fprintln(f, string(buffer)); err != nil {
-			return err
-		}
-
-		// update file perms and owner before final rename to overwrite
-		// existing file
-		if err = f.Chmod(0664); err != nil {
-			return err
-		}
-		if err = f.Chown(uid, gid); err != nil {
-			return err
-		}
-
-		return renameFile(remote, f.Name(), file)
+	buffer := bytes.NewBuffer(j)
+	f, fn, err := createTempFile(remote, file, 0664)
+	if err != nil {
+		return err
 	}
+	defer f.Close()
+
+	if err = chown(remote, file, int(uid), int(gid)); err != nil {
+		removeFile(remote, file)
+	}
+
+	if _, err = io.Copy(f, buffer); err != nil {
+		return err
+	}
+
+	return renameFile(remote, fn, file)
+
 }
 
 func commandRename(ct Component, args []string, params []string) (err error) {
