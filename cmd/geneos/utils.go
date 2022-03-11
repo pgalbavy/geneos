@@ -513,44 +513,16 @@ func readSourceBytes(source string) (b []byte) {
 		defer from.Close()
 	}
 
-	b, _ = io.ReadAll(from)
+	b, err = io.ReadAll(from)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	return
 }
 
 func readSourceString(source string) (s string) {
-	var from io.ReadCloser
-
-	u, err := url.Parse(source)
-	if err != nil {
-		return
-	}
-
-	switch {
-	case u.Scheme == "https" || u.Scheme == "http":
-		resp, err := http.Get(u.String())
-		if err != nil {
-			return
-		}
-
-		from = resp.Body
-		defer from.Close()
-
-	case source == "-":
-		from = os.Stdin
-		source = "STDIN"
-		defer from.Close()
-
-	default:
-		from, err = os.Open(source)
-		if err != nil {
-			return
-		}
-		defer from.Close()
-	}
-
-	b, err := io.ReadAll(from)
-	s = string(b)
-	return
+	b := readSourceBytes(source)
+	return string(b)
 }
 
 func writeTemplate(c Instances, path string, tmpl string) (err error) {
