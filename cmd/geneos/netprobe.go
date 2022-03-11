@@ -14,7 +14,7 @@ type Netprobes struct {
 	NetpBins  string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
 	NetpBase  string `default:"active_prod"`
 	NetpExec  string `default:"{{join .NetpBins .NetpBase .BinSuffix}}"`
-	NetpLogD  string `default:"{{.NetpHome}}"`
+	NetpLogD  string `json:",omitempty"`
 	NetpLogF  string `default:"netprobe.log"`
 	NetpPort  int    `default:"7036"`
 	NetpMode  string `json:",omitempty"`

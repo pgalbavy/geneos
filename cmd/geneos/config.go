@@ -475,19 +475,14 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	// but allow for RC files again
 	var cs []Instances
 	for _, name := range names {
-		for _, c := range ct.Match(name) {
-			if err = loadConfig(c, false); err != nil {
-				log.Println(c.Type(), c.Name(), "cannot load configuration")
-				continue
-			}
-			cs = append(cs, c)
-		}
+		cs = append(cs, ct.instanceMatches(name)...)
 	}
 	printConfigSliceJSON(cs)
 
 	return
 }
 
+// given a slice of structs, output as a JSON array of maps
 func printConfigSliceJSON(Slice []Instances) {
 	js := []string{}
 
@@ -558,15 +553,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	// loop through named instances
 	for _, arg := range args {
-		for _, c := range ct.Match(arg) {
-			// migration required to set values
-			if err = loadConfig(c, true); err != nil {
-				log.Println(c.Type(), c.Name(), "cannot load configuration")
-				continue
-			}
-			instances = append(instances, c)
-		}
-		continue
+		instances = append(instances, ct.instanceMatches(arg)...)
 	}
 
 	for _, arg := range params {

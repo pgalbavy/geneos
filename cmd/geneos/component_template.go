@@ -26,7 +26,7 @@ type Names struct {
 	NameBins  string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
 	NameBase  string `default:"active_prod"`
 	NameExec  string `default:"{{join .NameBins .NameBase .BinSuffix}}"`
-	NameLogD  string `default:"{{.NameHome}}"`
+	NameLogD  string `json:",omitempty"`
 	NameLogF  string `default:"name.log"`
 	NamePort  int    `default:"7036"`
 	NameMode  string `json:",omitempty"`

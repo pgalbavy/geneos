@@ -66,18 +66,12 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	// XXX allow for RC files again
 	var cs []string
 	for _, name := range args {
-		for _, c := range ct.Match(name) {
+		for _, c := range ct.instanceMatches(name) {
 			if c.Location() != LOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}
-			// try to migrate the config, which will not work if empty
-			if err = loadConfig(c, true); err != nil {
-				log.Println(c.Type(), c.Name(), "cannot load configuration, check syntax")
-				// in case of error manually build path
-				cs = append(cs, filepath.Join(ITRSHome(), ct.String(), ct.String()+"s", name, ct.String()+".json"))
-			}
+			// this wil lfail if not migrated
 			cs = append(cs, filepath.Join(c.Home(), c.Type().String()+".json"))
-
 		}
 	}
 	if len(cs) > 0 {

@@ -16,7 +16,7 @@ type Sans struct {
 	SanBins    string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
 	SanBase    string `default:"active_prod"`
 	SanExec    string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
-	SanLogD    string `default:"{{.SanHome}}"`
+	SanLogD    string `json:",omitempty"`
 	SanLogF    string `default:"san.log"`
 	SanPort    int    `default:"7036"`
 	SanMode    string `json:",omitempty"`

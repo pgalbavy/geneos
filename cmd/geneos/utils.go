@@ -375,11 +375,7 @@ func validInstanceName(in string) (ok bool) {
 // try to use go routines here - mutexes required
 func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
 	for _, name := range args {
-		for _, c := range ct.Match(name) {
-			if err = loadConfig(c, false); err != nil {
-				log.Println(c.Type(), c.Name(), "cannot load configuration")
-				return
-			}
+		for _, c := range ct.instanceMatches(name) {
 			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
 				log.Println(c.Type(), c.Name(), err)
 			}

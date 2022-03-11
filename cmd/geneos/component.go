@@ -196,13 +196,15 @@ func (ct Component) New(name string) (c Instances) {
 // construct and return a slice of a/all component types that have
 // a matching name
 // if ct == None, check all real types
-func (ct Component) Match(name string) (c []Instances) {
+//
+// change - loadconfig too
+func (ct Component) instanceMatches(name string) (c []Instances) {
 	var cs []Component
 	local, remote := splitInstanceName(name)
 
 	if ct == None {
 		for _, t := range realComponentTypes() {
-			c = append(c, t.Match(name)...)
+			c = append(c, t.instanceMatches(name)...)
 		}
 		return
 	}
@@ -216,7 +218,12 @@ func (ct Component) Match(name string) (c []Instances) {
 	}
 
 	for _, cm := range cs {
-		c = append(c, cm.New(name))
+		i := cm.New(name)
+		err := loadConfig(i, false)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		c = append(c, i)
 	}
 
 	return
