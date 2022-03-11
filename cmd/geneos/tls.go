@@ -320,18 +320,18 @@ func TLSSync() (err error) {
 		return
 	}
 
-	for _, remote := range allRemotesInstances() {
-		if remote.Name() == LOCAL {
+	for _, remote := range allRemotes() {
+		if remote == LOCAL {
 			continue
 		}
-		tlsPath := filepath.Join(remoteRoot(remote.Name()), "tls")
-		if err = mkdirAll(remote.Name(), tlsPath, 0775); err != nil {
+		tlsPath := filepath.Join(remoteRoot(remote), "tls")
+		if err = mkdirAll(remote, tlsPath, 0775); err != nil {
 			logError.Fatalln(err)
 		}
-		if err = writeCerts(remote.Name(), filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
+		if err = writeCerts(remote, filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
 			logError.Fatalln(err)
 		}
-		log.Println("Updated chain.pem on", remote.Name())
+		log.Println("Updated chain.pem on", remote)
 	}
 	return
 }

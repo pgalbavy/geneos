@@ -259,13 +259,6 @@ func allRemotes() (remotes []string) {
 	return
 }
 
-// this is not recursive,
-// but we include a special LOCAL instance
-func allRemotesInstances() (remotes []Instances) {
-	remotes = append([]Instances{Remote.New(LOCAL)}, Remote.instances(LOCAL)...)
-	return
-}
-
 // shim methods that test remote and direct to ssh / sftp / os
 
 func symlink(remote string, oldname, newname string) error {

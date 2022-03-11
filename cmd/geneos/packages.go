@@ -174,9 +174,9 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 		defer gz.Close()
 
 		if extractRemote == ALL {
-			for _, remote := range allRemotesInstances() {
-				if _, err = unarchive(remote.Name(), ct, filename, gz); err != nil {
-					log.Println("location:", remote.Name(), err)
+			for _, remote := range allRemotes() {
+				if _, err = unarchive(remote, ct, filename, gz); err != nil {
+					log.Println("location:", remote, err)
 					continue
 				}
 			}
@@ -199,9 +199,9 @@ func commandDownload(ct Component, files []string, params []string) (err error) 
 	}
 
 	if downloadRemote == ALL {
-		for _, remote := range allRemotesInstances() {
-			if err = downloadComponent(remote.Name(), ct, version); err != nil {
-				logError.Println("location:", remote.Name(), err)
+		for _, remote := range allRemotes() {
+			if err = downloadComponent(remote, ct, version); err != nil {
+				logError.Println("location:", remote, err)
 				continue
 			}
 		}
@@ -367,9 +367,9 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 		version = args[0]
 	}
 	if updateRemote == ALL {
-		for _, remote := range allRemotesInstances() {
-			if err = updateToVersion(remote.Name(), ct, version, true); err != nil {
-				log.Println("could not update", remote.Name(), err)
+		for _, remote := range allRemotes() {
+			if err = updateToVersion(remote, ct, version, true); err != nil {
+				log.Println("could not update", remote, err)
 			}
 		}
 		return nil
