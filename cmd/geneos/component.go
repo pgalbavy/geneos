@@ -114,6 +114,8 @@ func (ct Component) String() (name string) {
 	return string(ct)
 }
 
+// return the component type by iterating over all the
+// names registered by components. case sensitive.
 func parseComponentName(component string) Component {
 	for ct, v := range components {
 		for _, m := range v.ComponentMatches {
@@ -130,18 +132,22 @@ func RegisterComponent(c Components) {
 	components[c.ComponentType] = c
 }
 
+// register directories that need to be created in the
+// root of the install (by init)
 func RegisterDirs(dirs []string) {
 	initDirs = append(initDirs, dirs...)
 }
 
+// register setting with their defaults
 func RegisterSettings(settings GlobalSettings) {
 	for k, v := range settings {
 		GlobalConfig[k] = v
 	}
 }
 
-// Return a slice of all instanceNames for a given Component. No checking is done
-// to validate that the directory is a populated instance.
+// Return a slice of all instanceNames for a given Component. No
+// checking is done to validate that the directory is a populated
+// instance.
 func (ct Component) instanceNames(remote string) (components []string) {
 	switch remote {
 	case ALL:
@@ -192,24 +198,27 @@ func (ct Component) New(name string) (c Instances) {
 // if ct == None, check all real types
 func (ct Component) Match(name string) (c []Instances) {
 	var cs []Component
+	local, remote := splitInstanceName(name)
 
-	if ct != None {
-		return []Instances{ct.New(name)}
+	if ct == None {
+		for _, t := range realComponentTypes() {
+			c = append(c, t.Match(name)...)
+		}
+		return
 	}
 
-	local, remote := splitInstanceName(name)
-	for _, t := range realComponentTypes() {
-		for _, dir := range t.instanceNames(remote) {
-			// for case insensitive match change to EqualFold here
-			ldir, _ := splitInstanceName(dir)
-			if filepath.Base(ldir) == local {
-				cs = append(cs, t)
-			}
+	for _, dir := range ct.instanceNames(remote) {
+		// for case insensitive match change to EqualFold here
+		ldir, _ := splitInstanceName(dir)
+		if filepath.Base(ldir) == local {
+			cs = append(cs, ct)
 		}
 	}
+
 	for _, cm := range cs {
 		c = append(c, cm.New(name))
 	}
+
 	return
 }
 

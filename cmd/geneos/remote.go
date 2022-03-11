@@ -227,7 +227,7 @@ func loadRemoteConfig(remote string) (c *Remotes) {
 	return
 }
 
-// Return the base directory for a Component
+// Return the base directory for the remote, inc LOCAL
 func remoteRoot(remote string) string {
 	switch remote {
 	case LOCAL:
