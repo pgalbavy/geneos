@@ -90,7 +90,7 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 
 func lsInstancePlain(c Instances, params []string) (err error) {
 	var suffix string
-	if isDisabled(c) {
+	if Disabled(c) {
 		suffix = "*"
 	}
 	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), c.Home())
@@ -99,7 +99,7 @@ func lsInstancePlain(c Instances, params []string) (err error) {
 
 func lsInstanceCSV(c Instances, params []string) (err error) {
 	var dis string = "N"
-	if isDisabled(c) {
+	if Disabled(c) {
 		dis = "Y"
 	}
 	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
@@ -116,7 +116,7 @@ type lsType struct {
 
 func lsInstanceJSON(c Instances, params []string) (err error) {
 	var dis string = "N"
-	if isDisabled(c) {
+	if Disabled(c) {
 		dis = "Y"
 	}
 	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
@@ -162,7 +162,7 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 }
 
 func psInstancePlain(c Instances, params []string) (err error) {
-	if isDisabled(c) {
+	if Disabled(c) {
 		return nil
 	}
 	pid, uid, gid, mtime, err := findInstanceProc(c)
@@ -189,7 +189,7 @@ func psInstancePlain(c Instances, params []string) (err error) {
 }
 
 func psInstanceCSV(c Instances, params []string) (err error) {
-	if isDisabled(c) {
+	if Disabled(c) {
 		return nil
 	}
 	pid, uid, gid, mtime, err := findInstanceProc(c)
@@ -216,7 +216,7 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 }
 
 func psInstanceJSON(c Instances, params []string) (err error) {
-	if isDisabled(c) {
+	if Disabled(c) {
 		return nil
 	}
 	pid, uid, gid, mtime, err := findInstanceProc(c)

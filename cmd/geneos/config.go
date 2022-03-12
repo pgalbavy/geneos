@@ -804,7 +804,7 @@ func deleteInstance(c Instances, params []string) (err error) {
 		return nil
 	}
 
-	if isDisabled(c) {
+	if Disabled(c) {
 		if err = removeAll(c.Location(), c.Home()); err != nil {
 			logError.Fatalln(err)
 		}

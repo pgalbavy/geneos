@@ -124,7 +124,7 @@ func startInstance(c Instances, params []string) (err error) {
 		return nil
 	}
 
-	if isDisabled(c) {
+	if Disabled(c) {
 		return ErrDisabled
 	}
 
@@ -314,8 +314,8 @@ func commandDisable(ct Component, args []string, params []string) (err error) {
 }
 
 func disableInstance(c Instances, params []string) (err error) {
-	if isDisabled(c) {
-		return ErrDisabled
+	if Disabled(c) {
+		return nil
 	}
 
 	uid, gid, _, err := getUser(getString(c, c.Prefix("User")))
@@ -361,7 +361,7 @@ func enableInstance(c Instances, params []string) (err error) {
 	return nil
 }
 
-func isDisabled(c Instances) bool {
+func Disabled(c Instances) bool {
 	d := filepath.Join(c.Home(), c.Type().String()+disableExtension)
 	if f, err := statFile(c.Location(), d); err == nil && f.st.Mode().IsRegular() {
 		return true
