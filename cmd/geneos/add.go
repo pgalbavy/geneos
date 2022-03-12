@@ -34,7 +34,7 @@ FLAGS:
 `}
 
 	addFlags = flag.NewFlagSet("add", flag.ExitOnError)
-	addFlags.StringVar(&addTemplateFile, "t", "", "template file to use instead of embedded")
+	addFlags.StringVar(&addTemplateFile, "t", "", "configuration template file to use instead of default")
 	addFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["import"] = Command{
@@ -95,9 +95,13 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		username = u.Username
 	}
 
-	// XXX check if instance already exists
-
 	c := ct.New(name)
+	// XXX check if instance already exists
+	if err = loadConfig(c, false); err == nil {
+		log.Printf("%s %s@%s already exists", c.Type(), c.Name(), c.Location())
+		return
+	}
+
 	if err = c.Add(username, params, addTemplateFile); err != nil {
 		log.Fatalln(err)
 	}

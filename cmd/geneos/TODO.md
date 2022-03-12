@@ -31,7 +31,6 @@
   * do both "mv" and "cp" working across remotes - tree walk needed
   * reset configs / clean etc.
 * Redo template support, primarily for SANs but also gateways
-  * Have a templates/ directory under the top level component
   * The -t TEMPLATE option becomes a prefix for all matching files, e.g. -t netprobe or -t appname
   * -T to default ?
   * Output to single file, prefix as template name and set config to load this
