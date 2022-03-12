@@ -23,8 +23,11 @@ const Remote Component = "remote"
 
 // global to indicate current remote target. default to "local" which is a special case
 // var remoteTarget = "local"
-const LOCAL = "local"
-const ALL = "all"
+
+type RemoteName string
+
+const LOCAL RemoteName = "local"
+const ALL RemoteName = "all"
 
 type Remotes struct {
 	InstanceBase
@@ -65,7 +68,7 @@ func NewRemote(name string) Instances {
 	c.InstanceLocation = remote
 	setDefaults(&c)
 	// fill this in directly as there is no config file to load
-	if name == LOCAL {
+	if c.RemoteName() == LOCAL {
 		c.getOSReleaseEnv()
 	}
 	return c
@@ -79,7 +82,7 @@ func (r Remotes) Name() string {
 	return r.InstanceName
 }
 
-func (r Remotes) Location() string {
+func (r Remotes) Location() RemoteName {
 	return r.InstanceLocation
 }
 
@@ -89,6 +92,14 @@ func (r Remotes) Prefix(field string) string {
 
 func (r Remotes) Home() string {
 	return r.HomeDir
+}
+
+func (remote RemoteName) String() string {
+	return string(remote)
+}
+
+func (r Remotes) RemoteName() RemoteName {
+	return RemoteName(r.InstanceName)
 }
 
 //
@@ -149,8 +160,8 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	}
 
 	// check and created file layout
-	if _, err = statFile(r.Name(), homepath); err == nil {
-		dirs, err := readDir(r.Name(), homepath)
+	if _, err = statFile(r.RemoteName(), homepath); err == nil {
+		dirs, err := readDir(r.RemoteName(), homepath)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -163,7 +174,7 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = mkdirAll(r.Name(), homepath, 0775); err != nil {
+		if err = mkdirAll(r.RemoteName(), homepath, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -172,14 +183,16 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	// create directories - initDirs is global, in main.go
 	for _, d := range initDirs {
 		dir := filepath.Join(homepath, d)
-		if err = mkdirAll(r.Name(), dir, 0775); err != nil {
+		if err = mkdirAll(r.RemoteName(), dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
 
-	// copy templates - hardcoded for now
-	writeGatewayTemplate(r.Name())
-	writeSanTemplate(r.Name())
+	for _, c := range components {
+		if c.Initialise != nil {
+			c.Initialise(r.RemoteName())
+		}
+	}
 
 	return
 }
@@ -198,9 +211,9 @@ func (c Remotes) Reload(params []string) (err error) {
 
 func (r *Remotes) getOSReleaseEnv() (err error) {
 	r.OSInfo = make(map[string]string)
-	f, err := readFile(r.Name(), "/etc/os-release")
+	f, err := readFile(RemoteName(r.Name()), "/etc/os-release")
 	if err != nil {
-		f, err = readFile(r.Name(), "/usr/lib/os-release")
+		f, err = readFile(RemoteName(r.Name()), "/usr/lib/os-release")
 		if err != nil {
 			log.Fatalln("cannot open /etc/os-release or /usr/lib/os-releaae")
 		}
@@ -224,8 +237,8 @@ func (r *Remotes) getOSReleaseEnv() (err error) {
 	return
 }
 
-func loadRemoteConfig(remote string) (c *Remotes) {
-	c = NewRemote(remote).(*Remotes)
+func loadRemoteConfig(remote RemoteName) (c *Remotes) {
+	c = NewRemote(remote.String()).(*Remotes)
 	if remote == LOCAL {
 		return
 	}
@@ -236,7 +249,7 @@ func loadRemoteConfig(remote string) (c *Remotes) {
 }
 
 // Return the base directory for the remote, inc LOCAL
-func GeneosRoot(remote string) string {
+func GeneosRoot(remote RemoteName) string {
 	switch remote {
 	case LOCAL:
 		return ITRSHome()
@@ -251,31 +264,34 @@ func GeneosRoot(remote string) string {
 
 // return an absolute path anchored in the root directory of the remote
 // this can also be LOCAL
-func GeneosPath(remote string, paths ...string) string {
+func GeneosPath(remote RemoteName, paths ...string) string {
 	return filepath.Join(append([]string{GeneosRoot(remote)}, paths...)...)
 }
 
 // given an instance name, split on an '@' and return left and right parts, using
 // "local" as a default
-func splitInstanceName(in string) (name, remote string) {
-	remote = "local"
+func splitInstanceName(in string) (name string, remote RemoteName) {
+	remote = LOCAL
 	parts := strings.SplitN(in, "@", 2)
 	name = parts[0]
 	if len(parts) > 1 {
-		remote = parts[1]
+		remote = RemoteName(parts[1])
 	}
 	return
 }
 
 // return a list of all remote names include LOCAL
-func allRemotes() (remotes []string) {
-	remotes = append([]string{LOCAL}, Remote.instanceNames(LOCAL)...)
+func allRemotes() (remotes []RemoteName) {
+	remotes = []RemoteName{LOCAL}
+	for _, r := range Remote.instanceNames(LOCAL) {
+		remotes = append(remotes, RemoteName(r))
+	}
 	return
 }
 
 // shim methods that test remote and direct to ssh / sftp / os
 
-func symlink(remote string, oldname, newname string) error {
+func symlink(remote RemoteName, oldname, newname string) error {
 	switch remote {
 	case LOCAL:
 		return os.Symlink(oldname, newname)
@@ -285,7 +301,7 @@ func symlink(remote string, oldname, newname string) error {
 	}
 }
 
-func readlink(remote, file string) (link string, err error) {
+func readlink(remote RemoteName, file string) (link string, err error) {
 	switch remote {
 	case LOCAL:
 		return os.Readlink(file)
@@ -295,7 +311,7 @@ func readlink(remote, file string) (link string, err error) {
 	}
 }
 
-func mkdirAll(remote string, path string, perm os.FileMode) error {
+func mkdirAll(remote RemoteName, path string, perm os.FileMode) error {
 	switch remote {
 	case LOCAL:
 		return os.MkdirAll(path, perm)
@@ -305,7 +321,7 @@ func mkdirAll(remote string, path string, perm os.FileMode) error {
 	}
 }
 
-func chown(remote string, name string, uid, gid int) error {
+func chown(remote RemoteName, name string, uid, gid int) error {
 	switch remote {
 	case LOCAL:
 		return os.Chown(name, uid, gid)
@@ -315,7 +331,7 @@ func chown(remote string, name string, uid, gid int) error {
 	}
 }
 
-func createFile(remote string, path string, perms fs.FileMode) (out io.WriteCloser, err error) {
+func createFile(remote RemoteName, path string, perms fs.FileMode) (out io.WriteCloser, err error) {
 	switch remote {
 	case LOCAL:
 		var cf *os.File
@@ -342,7 +358,7 @@ func createFile(remote string, path string, perms fs.FileMode) (out io.WriteClos
 	return
 }
 
-func removeFile(remote string, name string) error {
+func removeFile(remote RemoteName, name string) error {
 	switch remote {
 	case LOCAL:
 		return os.Remove(name)
@@ -352,7 +368,7 @@ func removeFile(remote string, name string) error {
 	}
 }
 
-func removeAll(remote string, name string) (err error) {
+func removeAll(remote RemoteName, name string) (err error) {
 	switch remote {
 	case LOCAL:
 		return os.RemoveAll(name)
@@ -378,7 +394,7 @@ func removeAll(remote string, name string) (err error) {
 	}
 }
 
-func renameFile(remote string, oldpath, newpath string) error {
+func renameFile(remote RemoteName, oldpath, newpath string) error {
 	switch remote {
 	case LOCAL:
 		return os.Rename(oldpath, newpath)
@@ -398,7 +414,7 @@ type fileStat struct {
 }
 
 // stat() a local or remote file and normalise common values
-func statFile(remote string, name string) (s fileStat, err error) {
+func statFile(remote RemoteName, name string) (s fileStat, err error) {
 	switch remote {
 	case LOCAL:
 		s.st, err = os.Stat(name)
@@ -421,7 +437,7 @@ func statFile(remote string, name string) (s fileStat, err error) {
 	return
 }
 
-func globPath(remote string, pattern string) ([]string, error) {
+func globPath(remote RemoteName, pattern string) ([]string, error) {
 	switch remote {
 	case LOCAL:
 		return filepath.Glob(pattern)
@@ -431,7 +447,7 @@ func globPath(remote string, pattern string) ([]string, error) {
 	}
 }
 
-func writeFile(remote string, path string, b []byte, perm os.FileMode) (err error) {
+func writeFile(remote RemoteName, path string, b []byte, perm os.FileMode) (err error) {
 	switch remote {
 	case LOCAL:
 		return os.WriteFile(path, b, perm)
@@ -449,7 +465,7 @@ func writeFile(remote string, path string, b []byte, perm os.FileMode) (err erro
 	}
 }
 
-func readFile(remote string, name string) ([]byte, error) {
+func readFile(remote RemoteName, name string) ([]byte, error) {
 	switch remote {
 	case LOCAL:
 		return os.ReadFile(name)
@@ -476,13 +492,14 @@ func readFile(remote string, name string) ([]byte, error) {
 	}
 }
 
-func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
+func readDir(remote RemoteName, name string) (dirs []os.DirEntry, err error) {
 	switch remote {
 	case LOCAL:
 		return os.ReadDir(name)
 	default:
 		s := sftpOpenSession(remote)
 		f, err := s.ReadDir(name)
+		logDebug.Println(name, f)
 		if err != nil {
 			return nil, err
 		}
@@ -493,7 +510,7 @@ func readDir(remote string, name string) (dirs []os.DirEntry, err error) {
 	return
 }
 
-func statAndOpenFile(remote string, name string) (f io.ReadSeekCloser, st fileStat, err error) {
+func statAndOpenFile(remote RemoteName, name string) (f io.ReadSeekCloser, st fileStat, err error) {
 	st, err = statFile(remote, name)
 	if err != nil {
 		return
@@ -515,7 +532,7 @@ func nextRandom() string {
 // based on os.CreatTemp, but allows for remotes and much simplified
 // given a remote and a full path, create a file with a suffix
 // and return an io.File
-func createTempFile(remote string, path string, perms fs.FileMode) (f io.WriteCloser, name string, err error) {
+func createTempFile(remote RemoteName, path string, perms fs.FileMode) (f io.WriteCloser, name string, err error) {
 	try := 0
 	for {
 		name = path + nextRandom()

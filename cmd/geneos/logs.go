@@ -131,7 +131,7 @@ func logTailInstance(c Instances, params []string) (err error) {
 		return
 	}
 	defer lines.Close()
-	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + c.Location()}
+	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + string(c.Location())}
 
 	text, err := tailLines(lines, st, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
@@ -241,7 +241,7 @@ func logCatInstance(c Instances, params []string) (err error) {
 		}
 		return
 	}
-	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + c.Location()}
+	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + string(c.Location())}
 	defer lines.Close()
 	filterOutput(logfile, lines)
 
@@ -260,7 +260,7 @@ func logFollowInstance(c Instances, params []string) (err error) {
 		return
 	}
 	// perfectly valid to not have a file to watch at start
-	tails[logfile] = &tail{f, c.Type(), c.Name() + "@" + c.Location()}
+	tails[logfile] = &tail{f, c.Type(), c.Name() + "@" + string(c.Location())}
 
 	// output up to this point
 	text, _ := tailLines(tails[logfile].f, st, logsLines)

@@ -42,7 +42,7 @@ FLAGS:
 `}
 
 	extractFlags = flag.NewFlagSet("extract", flag.ExitOnError)
-	extractFlags.StringVar(&extractRemote, "r", ALL, "Perform on a remote. \"all\" means all remotes and locally")
+	extractFlags.StringVar(&extractRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["download"] = Command{
 		Function:    commandDownload,
@@ -70,7 +70,7 @@ FLAGS:
 	downloadFlags = flag.NewFlagSet("download", flag.ExitOnError)
 	downloadFlags.BoolVar(&downloadNosave, "n", false, "Do not save download")
 	downloadFlags.BoolVar(&helpFlag, "h", false, helpUsage)
-	downloadFlags.StringVar(&downloadRemote, "r", ALL, "Perform on a remote. \"all\" means all remotes and locally")
+	downloadFlags.StringVar(&downloadRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["update"] = Command{
 		Function:    commandUpdate,
@@ -103,7 +103,7 @@ FLAGS:
 
 	updateFlags = flag.NewFlagSet("update", flag.ExitOnError)
 	updateFlags.StringVar(&updateBase, "b", "active_prod", "Override the base active_prod link name")
-	updateFlags.StringVar(&updateRemote, "r", ALL, "Perform on a remote. \"all\" means all remotes and locally")
+	updateFlags.StringVar(&updateRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 }
 
 var extractFlags *flag.FlagSet
@@ -158,7 +158,7 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 			return err
 		}
 		defer gz.Close()
-		if _, err = unarchive(extractRemote, ct, archiveFile, gz); err != nil {
+		if _, err = unarchive(RemoteName(extractRemote), ct, archiveFile, gz); err != nil {
 			log.Println("location:", extractRemote, err)
 			return err
 		}
@@ -173,7 +173,7 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 		}
 		defer gz.Close()
 
-		if extractRemote == ALL {
+		if extractRemote == string(ALL) {
 			for _, remote := range allRemotes() {
 				if _, err = unarchive(remote, ct, filename, gz); err != nil {
 					log.Println("location:", remote, err)
@@ -181,7 +181,7 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 				}
 			}
 		} else {
-			if _, err = unarchive(extractRemote, ct, filename, gz); err != nil {
+			if _, err = unarchive(RemoteName(extractRemote), ct, filename, gz); err != nil {
 				log.Println("location:", LOCAL, err)
 				return err
 			}
@@ -189,7 +189,7 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 	}
 
 	// create a symlink only if one doesn't exist
-	return updateToVersion(extractRemote, ct, "latest", false)
+	return updateToVersion(RemoteName(extractRemote), ct, "latest", false)
 }
 
 func commandDownload(ct Component, files []string, params []string) (err error) {
@@ -198,7 +198,7 @@ func commandDownload(ct Component, files []string, params []string) (err error) 
 		version = files[0]
 	}
 
-	if downloadRemote == ALL {
+	if downloadRemote == string(ALL) {
 		for _, remote := range allRemotes() {
 			if err = downloadComponent(remote, ct, version); err != nil {
 				logError.Println("location:", remote, err)
@@ -206,7 +206,7 @@ func commandDownload(ct Component, files []string, params []string) (err error) 
 			}
 		}
 	} else {
-		if err = downloadComponent(downloadRemote, ct, version); err != nil {
+		if err = downloadComponent(RemoteName(downloadRemote), ct, version); err != nil {
 			logError.Println("location:", downloadRemote, err)
 			return err
 		}
@@ -214,7 +214,7 @@ func commandDownload(ct Component, files []string, params []string) (err error) 
 	return
 }
 
-func downloadComponent(remote string, ct Component, version string) (err error) {
+func downloadComponent(remote RemoteName, ct Component, version string) (err error) {
 	switch ct {
 	case Remote:
 		// do nothing
@@ -256,7 +256,7 @@ func downloadComponent(remote string, ct Component, version string) (err error) 
 // how to split an archive name into type and version
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func unarchive(remote string, ct Component, filename string, gz io.Reader) (finalVersion string, err error) {
+func unarchive(remote RemoteName, ct Component, filename string, gz io.Reader) (finalVersion string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
 		logError.Fatalf("invalid archive name format: %q", filename)
@@ -366,7 +366,7 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 	if len(args) > 0 {
 		version = args[0]
 	}
-	if updateRemote == ALL {
+	if updateRemote == string(ALL) {
 		for _, remote := range allRemotes() {
 			if err = updateToVersion(remote, ct, version, true); err != nil {
 				log.Println("could not update", remote, err)
@@ -374,11 +374,11 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 		}
 		return nil
 	}
-	return updateToVersion(updateRemote, ct, version, true)
+	return updateToVersion(RemoteName(updateRemote), ct, version, true)
 }
 
 // check selected version exists first
-func updateToVersion(remote string, ct Component, version string, overwrite bool) (err error) {
+func updateToVersion(remote RemoteName, ct Component, version string, overwrite bool) (err error) {
 	if components[ct].ParentType != None {
 		ct = components[ct].ParentType
 	}
@@ -440,7 +440,7 @@ var versRE = regexp.MustCompile(`(\d+(\.\d+){0,2})`)
 
 // given a directory find the "latest" version of the form
 // [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
-func latestMatch(remote, dir string, fn func(os.DirEntry) bool) (latest string) {
+func latestMatch(remote RemoteName, dir string, fn func(os.DirEntry) bool) (latest string) {
 	dirs, err := readDir(remote, dir)
 	if err != nil {
 		logError.Fatalln(err)
@@ -494,7 +494,7 @@ func sliceAtoi(s []string) (n []int) {
 
 // given a component type and a key/value pair, return matching
 // instances
-func matchComponents(remote string, ct Component, k, v string) (insts []Instances) {
+func matchComponents(remote RemoteName, ct Component, k, v string) (insts []Instances) {
 	for _, i := range ct.instances(remote) {
 		if v == getString(i, i.Prefix(k)) {
 			if err := loadConfig(i, false); err != nil {
@@ -534,7 +534,7 @@ type DownloadAuth struct {
 }
 
 // XXX use HEAD to check match and compare to on disk versions
-func downloadArchive(remote string, ct Component, version string) (filename string, body io.ReadCloser, err error) {
+func downloadArchive(remote RemoteName, ct Component, version string) (filename string, body io.ReadCloser, err error) {
 	baseurl := GlobalConfig["DownloadURL"]
 	if baseurl == "" {
 		baseurl = defaultURL

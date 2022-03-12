@@ -61,11 +61,7 @@ func init() {
 	})
 }
 
-func InitGateway() {
-	writeGatewayTemplate(LOCAL)
-}
-
-func writeGatewayTemplate(remote string) {
+func InitGateway(remote RemoteName) {
 	// copy default template to directory
 	if err := writeFile(remote, GeneosPath(remote, Gateway.String(), "templates", GatewayDefaultTemplateFile), GatewayTemplate, 0664); err != nil {
 		log.Fatalln(err)
@@ -94,7 +90,7 @@ func (g Gateways) Name() string {
 	return g.InstanceName
 }
 
-func (g Gateways) Location() string {
+func (g Gateways) Location() RemoteName {
 	return g.InstanceLocation
 }
 

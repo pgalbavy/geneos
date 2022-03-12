@@ -237,7 +237,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	loadSysConfig()
 	for _, c := range components {
 		if c.Initialise != nil {
-			c.Initialise()
+			c.Initialise(LOCAL)
 		}
 	}
 
@@ -674,7 +674,7 @@ func writeInstanceConfig(c Instances) (err error) {
 	return
 }
 
-func readConfigFile(remote, file string, config interface{}) (err error) {
+func readConfigFile(remote RemoteName, file string, config interface{}) (err error) {
 	jsonFile, err := readFile(remote, file)
 	if err != nil {
 		return
@@ -686,7 +686,7 @@ func readConfigFile(remote, file string, config interface{}) (err error) {
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func writeConfigFile(remote, file string, config interface{}) (err error) {
+func writeConfigFile(remote RemoteName, file string, config interface{}) (err error) {
 	j, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return

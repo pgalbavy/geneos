@@ -113,7 +113,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 type lsCertType struct {
 	Type        string
 	Name        string
-	Location    string
+	Location    RemoteName
 	Remaining   time.Duration
 	Expires     time.Time
 	CommonName  string
@@ -176,7 +176,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 			csvWriter.Write([]string{
 				"global",
 				rootCAFile,
-				LOCAL,
+				string(LOCAL),
 				fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
 				rootCert.NotAfter.String(),
 				rootCert.Subject.CommonName,
@@ -189,7 +189,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 			csvWriter.Write([]string{
 				"global",
 				signingCertFile,
-				LOCAL,
+				string(LOCAL),
 				fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
 				geneosCert.NotAfter.String(),
 				geneosCert.Subject.CommonName,
@@ -260,7 +260,7 @@ func lsInstanceCertCSV(c Instances, params []string) (err error) {
 	}
 	expires := cert.NotAfter
 	until := fmt.Sprintf("%0f", time.Until(expires).Seconds())
-	cols := []string{c.Type().String(), c.Name(), c.Location(), until, expires.String(), cert.Subject.CommonName, cert.Issuer.CommonName}
+	cols := []string{c.Type().String(), c.Name(), string(c.Location()), until, expires.String(), cert.Subject.CommonName, cert.Issuer.CommonName}
 	cols = append(cols, fmt.Sprintf("%v", cert.DNSNames))
 	cols = append(cols, fmt.Sprintf("%v", cert.IPAddresses))
 
@@ -642,7 +642,7 @@ func writeInstanceKey(c Instances, key *rsa.PrivateKey) (err error) {
 	return writeInstanceConfig(c)
 }
 
-func writeKey(remote, path string, key *rsa.PrivateKey) (err error) {
+func writeKey(remote RemoteName, path string, key *rsa.PrivateKey) (err error) {
 	logDebug.Println("write key to", path)
 	keyPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -656,7 +656,7 @@ func writeKey(remote, path string, key *rsa.PrivateKey) (err error) {
 	return
 }
 
-func writeCert(remote, path string, cert *x509.Certificate) (err error) {
+func writeCert(remote RemoteName, path string, cert *x509.Certificate) (err error) {
 	logDebug.Println("write cert to", path)
 	certPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
@@ -671,7 +671,7 @@ func writeCert(remote, path string, cert *x509.Certificate) (err error) {
 	return
 }
 
-func writeCerts(remote string, path string, certs ...*x509.Certificate) (err error) {
+func writeCerts(remote RemoteName, path string, certs ...*x509.Certificate) (err error) {
 	logDebug.Println("write certs to", path)
 	var certsPEM []byte
 	for _, cert := range certs {
@@ -688,7 +688,7 @@ func writeCerts(remote string, path string, certs ...*x509.Certificate) (err err
 	return
 }
 
-func readCert(remote string, path string) (cert *x509.Certificate, err error) {
+func readCert(remote RemoteName, path string) (cert *x509.Certificate, err error) {
 	certPEM, err := readFile(remote, path)
 	if err != nil {
 		return
@@ -723,7 +723,7 @@ func readInstanceCert(c Instances) (cert *x509.Certificate, err error) {
 	return readCert(c.Location(), instanceAbsPath(c, getString(c, c.Prefix("Cert"))))
 }
 
-func readKey(remote string, path string) (key *rsa.PrivateKey, err error) {
+func readKey(remote RemoteName, path string) (key *rsa.PrivateKey, err error) {
 	keyPEM, err := readFile(remote, path)
 	if err != nil {
 		return

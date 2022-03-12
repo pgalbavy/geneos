@@ -113,7 +113,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 // files, such as gateway setup or netprobe collection agent
 //
 // returns a map
-func getPorts(remote string) (ports map[int]Component) {
+func getPorts(remote RemoteName) (ports map[int]Component) {
 	ports = make(map[int]Component)
 	for _, c := range None.instances(remote) {
 		if err := loadConfig(c, false); err != nil {
@@ -150,7 +150,7 @@ func getPorts(remote string) (ports map[int]Component) {
 //
 // not concurrency safe at this time
 //
-func nextPort(remote string, from string) int {
+func nextPort(remote RemoteName, from string) int {
 	used := getPorts(remote)
 	ps := strings.Split(from, ",")
 	for _, p := range ps {

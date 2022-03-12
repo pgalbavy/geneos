@@ -67,7 +67,7 @@ func (l Licds) Name() string {
 	return l.InstanceName
 }
 
-func (l Licds) Location() string {
+func (l Licds) Location() RemoteName {
 	return l.InstanceLocation
 }
 

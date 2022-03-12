@@ -66,11 +66,7 @@ func init() {
 	})
 }
 
-func InitSan() {
-	writeSanTemplate(LOCAL)
-}
-
-func writeSanTemplate(remote string) {
+func InitSan(remote RemoteName) {
 	// copy default template to directory
 	if err := writeFile(remote, GeneosPath(remote, San.String(), "templates", SanDefaultTemplateFile), SanTemplate, 0664); err != nil {
 		log.Fatalln(err)
@@ -99,7 +95,7 @@ func (n Sans) Name() string {
 	return n.InstanceName
 }
 
-func (n Sans) Location() string {
+func (n Sans) Location() RemoteName {
 	return n.InstanceLocation
 }
 

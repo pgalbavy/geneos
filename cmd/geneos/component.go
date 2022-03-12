@@ -17,8 +17,9 @@ const (
 )
 
 type Components struct {
-	// function to call from 'init' command to set-up environment
-	Initialise func()
+	// function to call from 'init' and 'add remote' commands to set-up environment
+	// arg is the name of the remote
+	Initialise func(RemoteName)
 
 	// function to create a new instance of component
 	New func(string) Instances
@@ -76,7 +77,7 @@ type Instances interface {
 	Name() string
 	Home() string
 	Type() Component
-	Location() string
+	Location() RemoteName
 	Prefix(string) string
 
 	Add(string, []string, string) error
@@ -94,7 +95,7 @@ type InstanceBase struct {
 	// The remote location name (this is a remote component and not
 	// a server name). This is NOT written to the config file as it
 	// may change if the remote name changes
-	InstanceLocation string `default:"local" json:"-"`
+	InstanceLocation RemoteName `default:"local" json:"-"`
 	// The Component Type of an instance
 	InstanceType string `json:"-"`
 	// The RemoteRoot directory of the Geneos installation. Used in template
@@ -155,32 +156,35 @@ func RegisterSettings(settings GlobalSettings) {
 // Return a slice of all instanceNames for a given Component. No
 // checking is done to validate that the directory is a populated
 // instance.
-func (ct Component) instanceNames(remote string) (components []string) {
-	switch remote {
-	case ALL:
+func (ct Component) instanceNames(remote RemoteName) (components []string) {
+	var files []fs.DirEntry
+
+	if remote == ALL {
 		for _, r := range allRemotes() {
 			components = append(components, ct.instanceNames(r)...)
+			logDebug.Println("remote/comp:", r, components)
 		}
-	default:
-		var files []fs.DirEntry
-		if ct == None {
-			for _, t := range realComponentTypes() {
-				d, _ := readDir(remote, t.componentDir(remote))
-				files = append(files, d...)
-			}
-		} else {
-			files, _ = readDir(remote, ct.componentDir(remote))
+		return
+	}
+
+	if ct == None {
+		for _, t := range realComponentTypes() {
+			d, _ := readDir(remote, t.componentDir(remote))
+			files = append(files, d...)
 		}
-		sort.Slice(files, func(i, j int) bool {
-			return files[i].Name() < files[j].Name()
-		})
-		for _, file := range files {
-			if file.IsDir() {
-				if ct == Remote {
-					components = append(components, file.Name())
-				} else {
-					components = append(components, file.Name()+"@"+remote)
-				}
+	} else {
+		files, _ = readDir(remote, ct.componentDir(remote))
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+	for _, file := range files {
+		if file.IsDir() {
+			if ct == Remote {
+				components = append(components, file.Name())
+			} else {
+				components = append(components, file.Name()+"@"+remote.String())
 			}
 		}
 	}
@@ -256,7 +260,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 
 // Return the base directory for a Component
 // ct cannot be None
-func (ct Component) componentDir(remote string) string {
+func (ct Component) componentDir(remote RemoteName) string {
 	if ct == None {
 		logError.Fatalln(ct, ErrNotSupported)
 	}
@@ -269,7 +273,7 @@ func (ct Component) componentDir(remote string) string {
 }
 
 // return a slice of initialised instances for a given component type
-func (ct Component) instances(remote string) (confs []Instances) {
+func (ct Component) instances(remote RemoteName) (confs []Instances) {
 	switch ct {
 	case None:
 		for _, ct := range realComponentTypes() {

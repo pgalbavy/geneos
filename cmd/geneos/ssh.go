@@ -17,8 +17,8 @@ import (
 const userSSHdir = ".ssh"
 
 // cache SSH connections
-var remoteSSHClients = make(map[string]*ssh.Client)
-var remoteSFTPClients = make(map[string]*sftp.Client)
+var remoteSSHClients = make(map[RemoteName]*ssh.Client)
+var remoteSFTPClients = make(map[RemoteName]*sftp.Client)
 
 // load all the known private keys with no passphrase
 func readSSHkeys(homedir string) (signers []ssh.Signer) {
@@ -97,10 +97,10 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 	return
 }
 
-func sshOpenRemote(remote string) (client *ssh.Client, err error) {
+func sshOpenRemote(remote RemoteName) (client *ssh.Client, err error) {
 	client, ok := remoteSSHClients[remote]
 	if !ok {
-		i := NewRemote(remote)
+		i := NewRemote(remote.String())
 		if err = loadConfig(i, false); err != nil {
 			logError.Fatalln(err)
 		}
@@ -116,7 +116,7 @@ func sshOpenRemote(remote string) (client *ssh.Client, err error) {
 	return
 }
 
-func sshCloseRemote(remote string) {
+func sshCloseRemote(remote RemoteName) {
 	sftpCloseSession(remote)
 	c, ok := remoteSSHClients[remote]
 	if ok {
@@ -126,7 +126,7 @@ func sshCloseRemote(remote string) {
 }
 
 // succeed or fatal
-func sftpOpenSession(remote string) (s *sftp.Client) {
+func sftpOpenSession(remote RemoteName) (s *sftp.Client) {
 	s, ok := remoteSFTPClients[remote]
 	if !ok {
 		c, err := sshOpenRemote(remote)
@@ -143,7 +143,7 @@ func sftpOpenSession(remote string) (s *sftp.Client) {
 	return
 }
 
-func sftpCloseSession(remote string) {
+func sftpCloseSession(remote RemoteName) {
 	s, ok := remoteSFTPClients[remote]
 	if ok {
 		s.Close()

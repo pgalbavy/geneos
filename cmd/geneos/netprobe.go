@@ -67,7 +67,7 @@ func (n Netprobes) Name() string {
 	return n.InstanceName
 }
 
-func (n Netprobes) Location() string {
+func (n Netprobes) Location() RemoteName {
 	return n.InstanceLocation
 }
 

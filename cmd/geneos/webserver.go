@@ -86,7 +86,7 @@ func (w Webservers) Name() string {
 	return w.InstanceName
 }
 
-func (w Webservers) Location() string {
+func (w Webservers) Location() RemoteName {
 	return w.InstanceLocation
 }
 

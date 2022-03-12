@@ -102,7 +102,7 @@ func lsInstanceCSV(c Instances, params []string) (err error) {
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, c.Location(), c.Home()})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
 	return
 }
 
@@ -119,7 +119,7 @@ func lsInstanceJSON(c Instances, params []string) (err error) {
 	if isDisabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, c.Location(), c.Home()})
+	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
 	return
 }
 
@@ -210,7 +210,7 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	csvWriter.Write([]string{c.Type().String() + ":" + c.Name() + "@" + c.Location(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
+	csvWriter.Write([]string{c.Type().String() + ":" + c.Name() + "@" + string(c.Location()), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
 
 	return
 }
@@ -237,7 +237,7 @@ func psInstanceJSON(c Instances, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	jsonEncoder.Encode(psType{c.Type().String(), c.Name(), c.Location(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
+	jsonEncoder.Encode(psType{c.Type().String(), c.Name(), string(c.Location()), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
 
 	return
 }
