@@ -226,8 +226,6 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 		// first arg is not a known type, so treat the rest as instance names
 		ct = None
 		args = rawargs
-		if len(args) == 0 {
-		}
 	} else {
 		args = rawargs[1:]
 	}
@@ -235,12 +233,38 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 	if len(args) == 0 {
 		wild = true
 		args = ct.instanceNames(ALL)
+	} else {
+		// expand each arg
+		// if local == "", then all instances on remote (e.g. @remote)
+		// if remote == "all", then check instance on all remotes
+		// @all is not valid - should be no arg
+		var nargs []string
+		for _, arg := range args {
+			local, remote := splitInstanceName(arg)
+			if local == "" {
+				if Remote.exists(remote.String()) {
+					rargs := ct.instanceNames(RemoteName(remote))
+					nargs = append(nargs, rargs...)
+				}
+			} else if remote == ALL {
+				for _, r := range allRemotes() {
+					i := local + "@" + r.String()
+					if ct == None {
+						for _, cr := range RealComponents() {
+							if cr.exists(i) {
+								nargs = append(nargs, i)
+							}
+						}
+					} else if ct.exists(i) {
+						nargs = append(nargs, i)
+					}
+				}
+			} else {
+				nargs = append(nargs, arg)
+			}
+		}
+		args = nargs
 	}
-
-	// check args for prefix '@', expand
-	//
-
-	logDebug.Println("ct, args, params", ct, args, params)
 
 	// make sure names/args are unique but retain order
 	// check for reserved names here?
@@ -268,13 +292,7 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 	}
 	args = newnames
 
-	// repeat if args is now empty (all params)
-	if len(args) == 0 {
-		wild = true
-		args = ct.instanceNames(ALL) //  allArgsForComponent()
-	}
-
-	logDebug.Println("params:", params)
+	logDebug.Println("ct, args, params", ct, args, params)
 	return
 }
 

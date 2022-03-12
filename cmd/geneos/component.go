@@ -162,7 +162,6 @@ func (ct Component) instanceNames(remote RemoteName) (components []string) {
 	if remote == ALL {
 		for _, r := range allRemotes() {
 			components = append(components, ct.instanceNames(r)...)
-			logDebug.Println("remote/comp:", r, components)
 		}
 		return
 	}
@@ -286,4 +285,27 @@ func (ct Component) instances(remote RemoteName) (confs []Instances) {
 	}
 
 	return
+}
+
+func (ct Component) exists(name string) bool {
+	if name == LOCAL.String() {
+		return true
+	}
+
+	_, remote := splitInstanceName(name)
+	// first, does remote exist?
+
+	if remote != LOCAL {
+		r := Remote.New(remote.String())
+		if err := loadConfig(r, false); err != nil {
+			return false
+		}
+	}
+
+	c := ct.New(name)
+	if err := loadConfig(c, false); err != nil {
+		return false
+	}
+
+	return true
 }
