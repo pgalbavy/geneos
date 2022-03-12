@@ -51,7 +51,7 @@ func init() {
 		ComponentType:    San,
 		ParentType:       Netprobe,
 		ComponentMatches: []string{"san", "sans"},
-		IncludeInLoops:   true,
+		RealComponent:    true,
 		DownloadBase:     "Netprobe",
 	})
 	RegisterDirs([]string{

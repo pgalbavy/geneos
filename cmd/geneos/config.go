@@ -787,7 +787,7 @@ func commandDelete(ct Component, args []string, params []string) (err error) {
 
 func deleteInstance(c Instances, params []string) (err error) {
 	if deleteForced {
-		if components[c.Type()].IncludeInLoops {
+		if components[c.Type()].RealComponent {
 			stopInstance(c, nil)
 		}
 		if err = removeAll(c.Location(), c.Home()); err != nil {

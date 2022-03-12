@@ -31,7 +31,7 @@ func init() {
 		ComponentType:    Netprobe,
 		ParentType:       None,
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
-		IncludeInLoops:   true,
+		RealComponent:    true,
 		DownloadBase:     "Netprobe",
 	})
 	RegisterDirs([]string{

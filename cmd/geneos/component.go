@@ -27,7 +27,7 @@ type Components struct {
 	ComponentType    Component
 	ParentType       Component
 	ComponentMatches []string
-	IncludeInLoops   bool
+	RealComponent    bool
 	DownloadBase     string
 }
 
@@ -36,7 +36,7 @@ func init() {
 		ComponentType:    None,
 		ParentType:       None,
 		ComponentMatches: []string{"", "all", "any"},
-		IncludeInLoops:   false,
+		RealComponent:    false,
 		DownloadBase:     "",
 	})
 	RegisterSettings(GlobalSettings{
@@ -109,9 +109,9 @@ type InstanceBase struct {
 // currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
 // not including Remote - this is special
-func realComponentTypes() (cts []Component) {
+func RealComponents() (cts []Component) {
 	for ct, c := range components {
-		if c.IncludeInLoops {
+		if c.RealComponent {
 			cts = append(cts, ct)
 		}
 	}
@@ -168,7 +168,7 @@ func (ct Component) instanceNames(remote RemoteName) (components []string) {
 	}
 
 	if ct == None {
-		for _, t := range realComponentTypes() {
+		for _, t := range RealComponents() {
 			d, _ := readDir(remote, t.componentDir(remote))
 			files = append(files, d...)
 		}
@@ -232,7 +232,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	local, remote := splitInstanceName(name)
 
 	if ct == None {
-		for _, t := range realComponentTypes() {
+		for _, t := range RealComponents() {
 			c = append(c, t.instanceMatches(name)...)
 		}
 		return
@@ -276,7 +276,7 @@ func (ct Component) componentDir(remote RemoteName) string {
 func (ct Component) instances(remote RemoteName) (confs []Instances) {
 	switch ct {
 	case None:
-		for _, ct := range realComponentTypes() {
+		for _, ct := range RealComponents() {
 			confs = append(confs, ct.instances(remote)...)
 		}
 	default:

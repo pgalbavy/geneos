@@ -35,7 +35,7 @@ func init() {
 		ComponentType:    Webserver,
 		ParentType:       None,
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
-		IncludeInLoops:   true,
+		RealComponent:    true,
 		DownloadBase:     "Web+Dashboard",
 	})
 	RegisterDirs([]string{

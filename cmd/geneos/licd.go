@@ -31,7 +31,7 @@ func init() {
 		ComponentType:    Licd,
 		ParentType:       None,
 		ComponentMatches: []string{"licd", "licds"},
-		IncludeInLoops:   true,
+		RealComponent:    true,
 		DownloadBase:     "Licence+Daemon",
 	})
 	RegisterDirs([]string{

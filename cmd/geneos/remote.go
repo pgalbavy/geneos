@@ -44,7 +44,7 @@ func init() {
 		New:              NewRemote,
 		ComponentType:    Remote,
 		ComponentMatches: []string{"remote", "remotes"},
-		IncludeInLoops:   false,
+		RealComponent:    false,
 		DownloadBase:     "",
 	})
 	RegisterDirs([]string{

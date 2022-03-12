@@ -220,7 +220,7 @@ func downloadComponent(remote RemoteName, ct Component, version string) (err err
 		// do nothing
 		return nil
 	case None:
-		for _, t := range realComponentTypes() {
+		for _, t := range RealComponents() {
 			if err = downloadComponent(remote, t, version); err != nil {
 				if errors.Is(err, fs.ErrExist) {
 					continue
@@ -386,7 +386,7 @@ func updateToVersion(remote RemoteName, ct Component, version string, overwrite 
 	basepath := filepath.Join(basedir, updateBase)
 
 	if ct == None {
-		for _, t := range realComponentTypes() {
+		for _, t := range RealComponents() {
 			if err = updateToVersion(remote, t, version, overwrite); err != nil {
 				log.Println(err)
 			}

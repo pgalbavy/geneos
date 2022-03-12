@@ -44,7 +44,7 @@ func init() {
 		ComponentType:    Gateway,
 		ParentType:       None,
 		ComponentMatches: []string{"gateway", "gateways"},
-		IncludeInLoops:   true,
+		RealComponent:    true,
 		DownloadBase:     "Gateway+2",
 	})
 	RegisterDirs([]string{

@@ -215,7 +215,7 @@ func commandImport(ct Component, args []string, params []string) (err error) {
 //
 // local directroreies are created
 func importInstance(c Instances, params []string) (err error) {
-	if !components[c.Type()].IncludeInLoops {
+	if !components[c.Type()].RealComponent {
 		return ErrNotSupported
 	}
 
