@@ -22,7 +22,7 @@ func init() {
 		Function:    commandInit,
 		ParseFlags:  initFlag,
 		ParseArgs:   nil,
-		CommandLine: `geneos init [-d] [-a FILE] [USERNAME] [DIRECTORY]`,
+		CommandLine: `geneos init [-d] [-a FILE] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY]`,
 		Summary:     `Initialise a Geneos installation`,
 		Description: `Initialise a Geneos installation by creating the directory hierarchy and
 user configuration file, with the USERNAME and DIRECTORY if supplied.
@@ -52,22 +52,21 @@ only the configuration file for that user is created. e.g.:
 When USERNAME is supplied then the command must either be run with
 superuser privileges or be run by the same user.
 
-Flags:
+FLAGS:
 
-If the "-d" flag is given then the command performs all the steps
-necessary to initialise and start a basic system using the demo
-features of the gateway to avoid need for a license file.
+	-d	Initialise a Demo environment
+	-a LICENSE	Initialise a basic environment an import the give file as a license for licd
+	-c CERTFILE	Import the CERTFILE as a signing certificate with an optional embedded private key. This also intialises the TLS environment and all instances have certificates created for them
+	-k KEYFILE	Import the KEYFILE as a signing key. Overrides any embedded key in CERTFILE above
 
-If the "-a" flag is given along with the path to a license file then
-all the necessary steps are run to initialise a basic system using
-simple names for all components.
-
-The '-d' and '-a' flags are mutually exclusive.
+	The '-d' and '-a' flags are mutually exclusive.
 `}
 
 	initFlags = flag.NewFlagSet("init", flag.ExitOnError)
 	initFlags.BoolVar(&initDemo, "d", false, "Perform initialisation steps for a demo setup and start environment")
 	initFlags.StringVar(&initAll, "a", "", "Perform initialisation steps using provided license file and start environment")
+	initFlags.StringVar(&initSigningCert, "c", "", "signing certificate file with optional embedded private key")
+	initFlags.StringVar(&initSigningKey, "k", "", "signing private key file")
 	initFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["migrate"] = Command{
@@ -168,6 +167,8 @@ against.`}
 var initFlags, deleteFlags *flag.FlagSet
 var initDemo, initSAN bool
 var initAll string
+var initSigningCert, initSigningKey string
+
 var deleteForced bool
 
 var globalConfig = "/etc/geneos/geneos.json"
@@ -239,6 +240,15 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		if c.Initialise != nil {
 			c.Initialise(LOCAL)
 		}
+	}
+
+	// both options can import arbitrary PEM files, fix this
+	if initSigningCert != "" {
+		TLSImport(initSigningCert)
+	}
+
+	if initSigningKey != "" {
+		TLSImport(initSigningKey)
 	}
 
 	// create a demo environment

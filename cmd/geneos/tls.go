@@ -99,7 +99,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		}
 		return ct.loopCommand(TLSNewInstance, args, params)
 	case "import":
-		return TLSImport(params)
+		return TLSImport(params...)
 	case "ls":
 		return listCertsCommand(ct, args, params)
 	case "sync":
@@ -338,10 +338,10 @@ func TLSSync() (err error) {
 	return
 }
 
-// import intermediate (signing) cert and key from files on command line
+// import intermediate (signing) cert and key from files
 // loop through args and decode pem, check type and import - filename to
 // be decided (CN.pem etc.)
-func TLSImport(files []string) (err error) {
+func TLSImport(files ...string) (err error) {
 	tlsPath := filepath.Join(ITRSHome(), "tls")
 	err = mkdirAll(LOCAL, tlsPath, 0755)
 	if err != nil {

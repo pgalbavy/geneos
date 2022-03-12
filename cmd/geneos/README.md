@@ -176,7 +176,7 @@ Show log(s) for matching instances. Flags allow for follow etc.
 
 #### Environment Commands
 
-* `geneos init [username] [directory]`
+* `geneos init [-d|-a LICENSE] [-c CERT] [-k KEY] [USERNAME] [PATH]`
 Initialise the environment. 
 
 * `geneos tls ...`
