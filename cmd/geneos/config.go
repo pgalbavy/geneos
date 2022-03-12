@@ -672,9 +672,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 		}
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
-		if err = setMap(c, k, v); err != nil {
-			return
-		}
+		c[Global(k)] = v
 	}
 	return writeConfigFile(LOCAL, filename, c)
 }
