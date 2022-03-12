@@ -92,11 +92,12 @@ func (r Remotes) Home() string {
 }
 
 //
-// 'geneos add remote NAME SSH-URL'
+// 'geneos add remote NAME [SSH-URL]'
 //
 func (r Remotes) Add(username string, params []string, tmpl string) (err error) {
 	if len(params) == 0 {
-		logError.Fatalln("remote destination must be provided in the form of a URL")
+		// default - try ssh to a host with the same name as remote
+		params = []string{"ssh://" + r.Name()}
 	}
 
 	u, err := url.Parse(params[0])
@@ -109,10 +110,11 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 		logError.Fatalln("unsupported scheme (only ssh at the moment):", u.Scheme)
 	}
 
-	if u.Host == "" {
-		logError.Fatalln("hostname must be provided")
-	}
+	// if no hostname in URL fall back to remote name (e.g. ssh:///path)
 	r.Hostname = u.Host
+	if r.Hostname == "" {
+		r.Hostname = r.Name()
+	}
 
 	if u.Port() != "" {
 		r.Port, _ = strconv.Atoi(u.Port())
@@ -123,6 +125,7 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	}
 	r.Username = username
 
+	// default to remote user's home dir?
 	homepath := ITRSHome()
 	if u.Path != "" {
 		homepath = u.Path
@@ -173,6 +176,11 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 			logError.Fatalln(err)
 		}
 	}
+
+	// copy templates - hardcoded for now
+	writeGatewayTemplate(r.Name())
+	writeSanTemplate(r.Name())
+
 	return
 }
 

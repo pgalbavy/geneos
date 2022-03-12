@@ -35,6 +35,8 @@ type Gateways struct {
 //go:embed templates/gateway.setup.xml.gotmpl
 var GatewayTemplate []byte
 
+const GatewayDefaultTemplateFile = "gateway.default.xml.gotmpl"
+
 func init() {
 	RegisterComponent(Components{
 		Initialise:       InitGateway,
@@ -60,11 +62,14 @@ func init() {
 }
 
 func InitGateway() {
+	writeGatewayTemplate(LOCAL)
+}
+
+func writeGatewayTemplate(remote string) {
 	// copy default template to directory
-	if err := writeFile(LOCAL, "gateway/templates/gateway.setup.xml.tmpl", GatewayTemplate, 0664); err != nil {
+	if err := writeFile(remote, GeneosPath(remote, Gateway.String(), "templates", GatewayDefaultTemplateFile), GatewayTemplate, 0664); err != nil {
 		log.Fatalln(err)
 	}
-
 }
 
 func NewGateway(name string) Instances {

@@ -150,7 +150,7 @@ It is an error to try to rename an instance to one that already exists with the 
 
 	commands["delete"] = Command{
 		Function:    commandDelete,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  deleteFlag,
 		ParseArgs:   defaultArgs,
 		CommandLine: `geneos delete [TYPE] [NAME...]`,
 		Summary:     `Delete an instance. Instance must be stopped.`,
@@ -159,11 +159,16 @@ accidental deletion. The instance directory is removed without being backed-up. 
 the command must have the appropriate permissions and a partial deletion cannot be protected
 against.`}
 
+	deleteFlags = flag.NewFlagSet("delete", flag.ExitOnError)
+	deleteFlags.BoolVar(&deleteForced, "f", false, "Override need to have disabled instances")
+	deleteFlags.BoolVar(&helpFlag, "h", false, helpUsage)
+
 }
 
-var initFlags *flag.FlagSet
+var initFlags, deleteFlags *flag.FlagSet
 var initDemo, initSAN bool
 var initAll string
+var deleteForced bool
 
 var globalConfig = "/etc/geneos/geneos.json"
 
@@ -781,6 +786,16 @@ func commandDelete(ct Component, args []string, params []string) (err error) {
 }
 
 func deleteInstance(c Instances, params []string) (err error) {
+	if deleteForced {
+		if components[c.Type()].IncludeInLoops {
+			stopInstance(c, nil)
+		}
+		if err = removeAll(c.Location(), c.Home()); err != nil {
+			logError.Fatalln(err)
+		}
+		return nil
+	}
+
 	if isDisabled(c) {
 		if err = removeAll(c.Location(), c.Home()); err != nil {
 			logError.Fatalln(err)
@@ -795,4 +810,10 @@ func initFlag(command string, args []string) []string {
 	initFlags.Parse(args)
 	checkHelpFlag(command)
 	return initFlags.Args()
+}
+
+func deleteFlag(command string, args []string) []string {
+	deleteFlags.Parse(args)
+	checkHelpFlag(command)
+	return deleteFlags.Args()
 }
