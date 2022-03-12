@@ -54,6 +54,7 @@ func init() {
 	RegisterDirs([]string{
 		"packages/netprobe",
 		"san/sans",
+		"san/templates",
 	})
 	RegisterSettings(GlobalSettings{
 		"SanPortRange": "7036,7100-",
@@ -112,6 +113,7 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		SanTemplate = readSourceString(tmpl)
 	}
 
+	// writeFile(n.Location(), x, []byte(SanTemplate), 0664)
 	return writeTemplate(n, filepath.Join(n.Home(), "netprobe.setup.xml"), SanTemplate)
 }
 

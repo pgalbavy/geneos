@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"syscall"
 	// text and not html for generating XML!
@@ -50,6 +49,7 @@ func init() {
 		"gateway/gateways",
 		"gateway/gateway_shared",
 		"gateway/gateway_config",
+		"gateway/templates",
 	})
 	RegisterSettings(GlobalSettings{
 		"GatewayPortRange": "7039,7100-",
@@ -181,47 +181,5 @@ func (c Gateways) Clean(purge bool, params []string) (err error) {
 }
 
 func (c Gateways) Reload(params []string) (err error) {
-	pid, err := findInstancePID(c)
-	if err != nil {
-		return
-	}
-
-	if c.Location() != LOCAL {
-		rem, err := sshOpenRemote(c.Location())
-		if err != nil {
-			log.Fatalln(err)
-		}
-		sess, err := rem.NewSession()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		pipe, err := sess.StdinPipe()
-		if err != nil {
-			log.Fatalln()
-		}
-
-		if err = sess.Shell(); err != nil {
-			log.Fatalln(err)
-		}
-
-		fmt.Fprintln(pipe, "kill -USR1", pid)
-		fmt.Fprintln(pipe, "exit")
-		sess.Close()
-
-		log.Printf("%s %s@%s sent a reload signal", c.Type(), c.Name(), c.Location())
-		return ErrProcExists
-	}
-
-	if !canControl(c) {
-		return ErrPermission
-	}
-
-	// send a SIGUSR1
-	proc, _ := os.FindProcess(pid)
-	if err := proc.Signal(syscall.SIGUSR1); err != nil {
-		log.Println(c.Type(), c.Name(), "refresh failed", err)
-
-	}
-	log.Printf("%s %s@%s sent a reload signal", c.Type(), c.Name(), c.Location())
-	return
+	return signalInstance(c, syscall.SIGUSR1)
 }

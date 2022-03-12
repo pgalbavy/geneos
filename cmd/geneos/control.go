@@ -241,91 +241,38 @@ func commandStop(ct Component, args []string, params []string) (err error) {
 }
 
 func stopInstance(c Instances, params []string) (err error) {
-	pid, err := findInstancePID(c)
-	if err != nil && errors.Is(err, ErrProcNotExist) {
-		// not found is fine
-		return
-	}
-
-	if c.Location() != LOCAL {
-		rem, err := sshOpenRemote(c.Location())
-		if err != nil {
-			log.Fatalln(err)
-		}
-		sess, err := rem.NewSession()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		pipe, err := sess.StdinPipe()
-		if err != nil {
-			log.Fatalln()
-		}
-
-		if err = sess.Shell(); err != nil {
-			log.Fatalln(err)
-		}
-
-		if !stopKill {
-			fmt.Fprintln(pipe, "kill", pid)
-			for i := 0; i < 10; i++ {
-				time.Sleep(250 * time.Millisecond)
-				_, err = findInstancePID(c)
-				if err == ErrProcNotExist {
-					break
-				}
-				fmt.Fprintln(pipe, "kill", pid)
-			}
-			_, err = findInstancePID(c)
-			if err != ErrProcNotExist {
-				log.Printf("%s %s@%s stopped", c.Type(), c.Name(), c.Location())
-				fmt.Fprintln(pipe, "exit")
-				sess.Close()
-				return nil
-			}
-		}
-
-		fmt.Fprintln(pipe, "kill -KILL", pid)
-		fmt.Fprintln(pipe, "exit")
-		sess.Close()
-
-		_, err = findInstancePID(c)
+	if !stopKill {
+		err = signalInstance(c, syscall.SIGTERM)
 		if err == ErrProcNotExist {
-			log.Printf("%s %s@%s killed", c.Type(), c.Name(), c.Location())
 			return nil
 		}
 
-		logDebug.Println("process still running as", pid)
-		return ErrProcExists
-	}
-
-	if !canControl(c) {
-		return ErrPermission
-	}
-
-	proc, _ := os.FindProcess(pid)
-
-	if !stopKill {
-		if err = proc.Signal(syscall.SIGTERM); err != nil {
-			logError.Println("sending SIGTERM failed:", err)
-			return
-		}
-
-		// send a signal 0 in a loop to check if the process has terminated
 		for i := 0; i < 10; i++ {
 			time.Sleep(250 * time.Millisecond)
-			if err = proc.Signal(syscall.Signal(0)); err != nil {
-				log.Printf("%s %s@%s stopped", c.Type(), c.Name(), c.Location())
-				return nil
+			err = signalInstance(c, syscall.SIGTERM)
+			if err == ErrProcNotExist {
+				break
 			}
+		}
+
+		_, err = findInstancePID(c)
+		if err == ErrProcNotExist {
+			log.Printf("%s %s@%s stopped", c.Type(), c.Name(), c.Location())
+			return nil
 		}
 	}
 
-	// if -f or still running then sigkill
-	if err = proc.Signal(syscall.SIGKILL); err != nil {
-		log.Println("sending SIGKILL failed:", err)
+	err = signalInstance(c, syscall.SIGKILL)
+	if err == ErrProcNotExist {
+		return nil
 	}
 
-	log.Printf("%s %s@%s killed", c.Type(), c.Name(), c.Location())
+	time.Sleep(250 * time.Millisecond)
+	_, err = findInstancePID(c)
+	if err == ErrProcNotExist {
+		log.Printf("%s %s@%s killed", c.Type(), c.Name(), c.Location())
+		return nil
+	}
 	return
 
 }

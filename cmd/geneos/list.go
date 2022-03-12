@@ -89,7 +89,6 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 }
 
 func lsInstancePlain(c Instances, params []string) (err error) {
-	logDebug.Println("params", params)
 	var suffix string
 	if isDisabled(c) {
 		suffix = "*"

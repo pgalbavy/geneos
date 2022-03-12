@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -52,7 +53,6 @@ func findInstancePID(c Instances) (pid int, err error) {
 		data, err = readFile(c.Location(), fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
 			// process may disappear by this point, ignore error
-			logDebug.Println(err)
 			continue
 		}
 		args := bytes.Split(data, []byte("\000"))
@@ -217,23 +217,24 @@ func canControl(c Instances) bool {
 //
 // a bare argument with a '@' prefix means all instance of type on a remote
 func defaultArgs(rawargs []string) (ct Component, args []string, params []string) {
+	var wild bool
 	// work through wildcard options
 	if len(rawargs) == 0 {
 		// no more arguments? wildcard everything
 		ct = None
-		args = None.instanceNames(ALL) //  None.allArgsForComponent()
 	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
 		// first arg is not a known type, so treat the rest as instance names
 		ct = None
 		args = rawargs
 		if len(args) == 0 {
-			args = None.instanceNames(ALL) // allArgsForComponent()
 		}
 	} else {
 		args = rawargs[1:]
-		if len(args) == 0 {
-			args = ct.instanceNames(ALL) //  allArgsForComponent()
-		}
+	}
+
+	if len(args) == 0 {
+		wild = true
+		args = ct.instanceNames(ALL)
 	}
 
 	// check args for prefix '@', expand
@@ -248,8 +249,8 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 
 	m := make(map[string]bool, len(args))
 	for i, name := range args {
-		// filter name here
-		if reservedName(name) {
+		// filter name here - only if not wildcarded though, as we get those from directory names
+		if !wild && reservedName(name) {
 			logError.Fatalf("%q is reserved instance name", name)
 		}
 		if !validInstanceName(name) {
@@ -269,6 +270,7 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 
 	// repeat if args is now empty (all params)
 	if len(args) == 0 {
+		wild = true
 		args = ct.instanceNames(ALL) //  allArgsForComponent()
 	}
 
@@ -510,5 +512,39 @@ func writeTemplate(c Instances, path string, tmpl string) (err error) {
 		logError.Fatalln(err)
 	}
 
+	return
+}
+
+func signalInstance(c Instances, signal syscall.Signal) (err error) {
+	pid, err := findInstancePID(c)
+	if err != nil {
+		return ErrProcNotExist
+	}
+
+	if c.Location() != LOCAL {
+		rem, err := sshOpenRemote(c.Location())
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sess, err := rem.NewSession()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		output, err := sess.CombinedOutput(fmt.Sprintf("kill -s %d %d", signal, pid))
+		sess.Close()
+		if err != nil {
+			log.Fatalf("%s %s@%s FAILED to send %s signal: %s %q", c.Type(), c.Name(), c.Location(), signal, err, output)
+		}
+		logDebug.Printf("%s %s@%s sent a %s signal", c.Type(), c.Name(), c.Location(), signal)
+		return nil
+	}
+
+	proc, _ := os.FindProcess(pid)
+	if err = proc.Signal(signal); err != nil && !errors.Is(err, syscall.EEXIST) {
+		log.Printf("%s %s@%s sent a %s signal: %s", c.Type(), c.Name(), c.Location(), signal, err)
+		return
+	}
+	logDebug.Printf("%s %s@%s sent a %s signal", c.Type(), c.Name(), c.Location(), signal)
 	return
 }

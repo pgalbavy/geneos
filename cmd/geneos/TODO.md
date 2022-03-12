@@ -30,7 +30,13 @@
 * Add a 'clone' command (rename without delete) - for backup gateways etc.
   * do both "mv" and "cp" working across remotes - tree walk needed
   * reset configs / clean etc.
-* RHEL8 binary install support
-
+* Redo template support, primarily for SANs but also gateways
+  * Have a templates/ directory under the top level component
+  * The -t TEMPLATE option becomes a prefix for all matching files, e.g. -t netprobe or -t appname
+  * -T to default ?
+  * Output to single file, prefix as template name and set config to load this
+  * init copies default templates to directrories, but only once - also pass init other templates instead?
+  * Have a rebuild command/option in case templates change, also then support config settings to create templates
+  * 'geneos config san X' - also does a reload
 
 
