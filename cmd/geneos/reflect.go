@@ -11,21 +11,21 @@ import (
 
 // reflect methods to get and set struct fields
 
-func getIntAsString(c interface{}, name string) string {
+func getInt(c interface{}, name string) int64 {
 	v := reflect.ValueOf(c)
 	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		v = v.Elem()
 	}
 
 	if !v.IsValid() || v.Kind() != reflect.Struct {
-		return ""
+		return 0
 	}
 
 	v = v.FieldByName(name)
 	if v.IsValid() && v.Kind() == reflect.Int {
-		return fmt.Sprintf("%v", v.Int())
+		return v.Int()
 	}
-	return ""
+	return 0
 }
 
 func getString(c interface{}, name string) string {

@@ -162,7 +162,7 @@ against.`}
 }
 
 var initFlags *flag.FlagSet
-var initDemo bool
+var initDemo, initSAN bool
 var initAll string
 
 var globalConfig = "/etc/geneos/geneos.json"
@@ -245,6 +245,21 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return
+	}
+
+	// 'geneos init -s gw1:port1,gw2:port2,... -t templatefile'
+	// default localhost:7039 (or 7038 if secure)
+	//
+	// chain.pem / geneos.pem/.key
+	//
+	if initSAN {
+		e := []string{}
+		hostname, _ := os.Hostname()
+		s := []string{hostname}
+		commandDownload(San, e, e)
+		addTemplateFile = ""
+		commandAdd(San, s, e)
+
 	}
 
 	// create a basic environment with license file

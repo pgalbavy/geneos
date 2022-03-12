@@ -93,6 +93,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 
 	switch subcommand {
 	case "init":
+		// account for existing signing cert
 		if err = TLSInit(); err != nil {
 			logError.Fatalln(err)
 		}
@@ -103,9 +104,10 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		return listCertsCommand(ct, args, params)
 	case "sync":
 		return TLSSync()
+	case "renew":
+		return ct.loopCommand(TLSRenewInstance, args, params)
 	}
-
-	return ct.loopCommand(TLSRenewInstance, args, params)
+	return ErrInvalidArgs
 }
 
 type lsCertType struct {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -103,7 +104,7 @@ func sshOpenRemote(remote string) (client *ssh.Client, err error) {
 		if err = loadConfig(i, false); err != nil {
 			logError.Fatalln(err)
 		}
-		dest := getString(i, "Hostname") + ":" + getIntAsString(i, "Port")
+		dest := getString(i, "Hostname") + ":" + fmt.Sprint(getInt(i, "Port"))
 		user := getString(i, "Username")
 		client, err = sshConnect(dest, user)
 		if err != nil {

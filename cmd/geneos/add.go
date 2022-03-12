@@ -103,7 +103,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 	// reload config as 'c' is not updated by Add() as an interface value
 	loadConfig(c, false)
-	log.Printf("new %s %q added, port %s\n", c.Type(), c.Name(), getIntAsString(c, c.Prefix("Port")))
+	log.Printf("new %s %q added, port %d\n", c.Type(), c.Name(), getInt(c, c.Prefix("Port")))
 
 	return
 }
@@ -120,10 +120,8 @@ func getPorts(remote string) (ports map[int]Component) {
 			log.Println(c.Type(), c.Name(), "- cannot load configuration")
 			continue
 		}
-		if port := getIntAsString(c, c.Prefix("Port")); port != "" {
-			if p, err := strconv.Atoi(port); err == nil {
-				ports[int(p)] = c.Type()
-			}
+		if port := getInt(c, c.Prefix("Port")); port != 0 {
+			ports[int(port)] = c.Type()
 		}
 	}
 	return
