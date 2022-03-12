@@ -48,7 +48,7 @@ func init() {
 func NewLicd(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Licds{}
-	c.RemoteRoot = remoteRoot(remote)
+	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Licd.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote

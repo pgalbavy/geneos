@@ -40,10 +40,11 @@ type Sans struct {
 }
 
 //go:embed templates/netprobe.setup.xml.gotmpl
-var SanTemplate string
+var SanTemplate []byte
 
 func init() {
 	RegisterComponent(Components{
+		Initialise:       InitSan,
 		New:              NewSan,
 		ComponentType:    San,
 		ParentType:       Netprobe,
@@ -63,10 +64,18 @@ func init() {
 	})
 }
 
+func InitSan() {
+	// copy default template to directory
+	if err := writeFile(LOCAL, "san/templates/netprobe.setup.xml.tmpl", SanTemplate, 0664); err != nil {
+		log.Fatalln(err)
+	}
+
+}
+
 func NewSan(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Sans{}
-	c.RemoteRoot = remoteRoot(remote)
+	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = San.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote
@@ -110,11 +119,11 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	}
 
 	if tmpl != "" {
-		SanTemplate = readSourceString(tmpl)
+		SanTemplate = readSourceBytes(tmpl)
 	}
 
 	// writeFile(n.Location(), x, []byte(SanTemplate), 0664)
-	return writeTemplate(n, filepath.Join(n.Home(), "netprobe.setup.xml"), SanTemplate)
+	return writeTemplate(n, filepath.Join(n.Home(), "netprobe.setup.xml"), string(SanTemplate))
 }
 
 func (c Sans) Command() (args, env []string) {

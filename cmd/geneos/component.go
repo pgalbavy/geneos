@@ -17,6 +17,10 @@ const (
 )
 
 type Components struct {
+	// function to call from 'init' command to set-up environment
+	Initialise func()
+
+	// function to create a new instance of component
 	New func(string) Instances
 
 	ComponentType    Component
@@ -258,9 +262,9 @@ func (ct Component) componentDir(remote string) string {
 	}
 	switch ct {
 	case Remote:
-		return filepath.Join(ITRSHome(), ct.String()+"s")
+		return GeneosPath(LOCAL, ct.String()+"s")
 	default:
-		return filepath.Join(remoteRoot(remote), ct.String(), ct.String()+"s")
+		return GeneosPath(remote, ct.String(), ct.String()+"s")
 	}
 }
 

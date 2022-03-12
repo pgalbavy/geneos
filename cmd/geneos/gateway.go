@@ -33,10 +33,11 @@ type Gateways struct {
 }
 
 //go:embed templates/gateway.setup.xml.gotmpl
-var GatewayTemplate string
+var GatewayTemplate []byte
 
 func init() {
 	RegisterComponent(Components{
+		Initialise:       InitGateway,
 		New:              NewGateway,
 		ComponentType:    Gateway,
 		ParentType:       None,
@@ -58,10 +59,18 @@ func init() {
 	})
 }
 
+func InitGateway() {
+	// copy default template to directory
+	if err := writeFile(LOCAL, "gateway/templates/gateway.setup.xml.tmpl", GatewayTemplate, 0664); err != nil {
+		log.Fatalln(err)
+	}
+
+}
+
 func NewGateway(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Gateways{}
-	c.RemoteRoot = remoteRoot(remote)
+	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote
@@ -103,7 +112,7 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 		createInstanceCert(&g)
 	}
 
-	return writeTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayTemplate)
+	return writeTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), string(GatewayTemplate))
 }
 
 func (c Gateways) Command() (args, env []string) {
@@ -140,7 +149,7 @@ func (c Gateways) Command() (args, env []string) {
 
 	if c.GateCert != "" {
 		args = append(args, "-ssl-certificate", c.GateCert)
-		chainfile := filepath.Join(remoteRoot(c.Location()), "tls", "chain.pem")
+		chainfile := GeneosPath(c.Location(), "tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
 	}
 

@@ -228,7 +228,7 @@ func loadRemoteConfig(remote string) (c *Remotes) {
 }
 
 // Return the base directory for the remote, inc LOCAL
-func remoteRoot(remote string) string {
+func GeneosRoot(remote string) string {
 	switch remote {
 	case LOCAL:
 		return ITRSHome()
@@ -239,6 +239,12 @@ func remoteRoot(remote string) string {
 		}
 		return getString(i, "ITRSHome")
 	}
+}
+
+// return an absolute path anchored in the root directory of the remote
+// this can also be LOCAL
+func GeneosPath(remote string, paths ...string) string {
+	return filepath.Join(append([]string{GeneosRoot(remote)}, paths...)...)
 }
 
 // given an instance name, split on an '@' and return left and right parts, using
@@ -417,14 +423,14 @@ func globPath(remote string, pattern string) ([]string, error) {
 	}
 }
 
-func writeFile(remote string, name string, b []byte, perm os.FileMode) (err error) {
+func writeFile(remote string, path string, b []byte, perm os.FileMode) (err error) {
 	switch remote {
 	case LOCAL:
-		return os.WriteFile(name, b, perm)
+		return os.WriteFile(path, b, perm)
 	default:
 		s := sftpOpenSession(remote)
 		var f *sftp.File
-		f, err = s.Create(name)
+		f, err = s.Create(path)
 		if err != nil {
 			return
 		}

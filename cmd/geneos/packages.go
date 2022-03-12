@@ -143,7 +143,7 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 	if ct != None {
 		logDebug.Println(ct.String())
 		// archive directory is local?
-		archiveDir := filepath.Join(remoteRoot(LOCAL), "packages", "archives")
+		archiveDir := GeneosPath(LOCAL, "packages", "archives")
 		archiveFile := latestMatch(LOCAL, archiveDir, func(v os.DirEntry) bool {
 			switch ct {
 			default:
@@ -273,7 +273,7 @@ func unarchive(remote string, ct Component, filename string, gz io.Reader) (fina
 		logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
 	}
 
-	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String(), version)
+	basedir := GeneosPath(remote, "packages", ct.String(), version)
 	logDebug.Println(basedir)
 	if _, err = statFile(remote, basedir); err == nil {
 		return // "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
@@ -382,7 +382,7 @@ func updateToVersion(remote string, ct Component, version string, overwrite bool
 	if components[ct].ParentType != None {
 		ct = components[ct].ParentType
 	}
-	basedir := filepath.Join(remoteRoot(remote), "packages", ct.String())
+	basedir := GeneosPath(remote, "packages", ct.String())
 	basepath := filepath.Join(basedir, updateBase)
 
 	if ct == None {

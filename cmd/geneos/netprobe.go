@@ -48,7 +48,7 @@ func init() {
 func NewNetprobe(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Netprobes{}
-	c.RemoteRoot = remoteRoot(remote)
+	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Netprobe.String()
 	c.InstanceName = local
 	c.InstanceLocation = remote

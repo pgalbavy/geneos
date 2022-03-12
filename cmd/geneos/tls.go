@@ -326,7 +326,7 @@ func TLSSync() (err error) {
 		if remote == LOCAL {
 			continue
 		}
-		tlsPath := filepath.Join(remoteRoot(remote), "tls")
+		tlsPath := GeneosPath(remote, "tls")
 		if err = mkdirAll(remote, tlsPath, 0775); err != nil {
 			logError.Fatalln(err)
 		}

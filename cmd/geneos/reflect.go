@@ -66,10 +66,42 @@ func getSliceStrings(c interface{}, name string) (strings []string) {
 	return v.Interface().([]string)
 }
 
+func setMap(c interface{}, k string, v string) (err error) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+
+	if fv.Kind() != reflect.Map {
+		return fmt.Errorf("cannot set field in a map")
+	}
+
+	// make sure key is of right type
+	key := reflect.ValueOf(k).Convert(reflect.TypeOf(c).Key())
+
+	if fv.IsValid() && !fv.IsNil() {
+		switch reflect.TypeOf(c).Elem().Kind() {
+		case reflect.String:
+			fv.SetMapIndex(key, reflect.ValueOf(v))
+		case reflect.Int:
+			i, _ := strconv.Atoi(v)
+			fv.SetMapIndex(key, reflect.ValueOf(i))
+		default:
+			return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
+		}
+	} else {
+		return fmt.Errorf("cannot set %q: %w (isValid=%v, canset=%v, type=%v)", k, ErrInvalidArgs, fv.IsValid(), fv.CanSet(), fv.Type())
+	}
+	return
+}
+
 func setField(c interface{}, k string, v string) (err error) {
 	fv := reflect.ValueOf(c)
 	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
 		fv = fv.Elem()
+	}
+	if fv.Kind() == reflect.Map {
+		return fmt.Errorf("cannot set field in a map")
 	}
 	fv = fv.FieldByName(k)
 	if fv.IsValid() && fv.CanSet() {

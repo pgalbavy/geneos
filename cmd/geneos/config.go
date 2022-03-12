@@ -209,6 +209,7 @@ func ITRSHome() string {
 // if no directory given and not running as root and the last component of the user's
 // home direcvtory is NOT "geneos" then create a directory "geneos", else
 //
+// XXX Call any registered initialiser funcs from components
 //
 func commandInit(ct Component, args []string, params []string) (err error) {
 	// none of the arguments can be a reserved type
@@ -229,6 +230,11 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 
 	// now reload config, after init
 	loadSysConfig()
+	for _, c := range components {
+		if c.Initialise != nil {
+			c.Initialise()
+		}
+	}
 
 	// create a demo environment
 	if initDemo {
@@ -651,7 +657,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 		}
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
-		if err = setField(&c, k, v); err != nil {
+		if err = setMap(c, k, v); err != nil {
 			return
 		}
 	}
