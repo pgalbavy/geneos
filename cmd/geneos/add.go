@@ -96,7 +96,8 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 
 	c := ct.New(name)
-	// XXX check if instance already exists
+
+	// check if instance already exists
 	if err = loadConfig(c, false); err == nil {
 		log.Printf("%s %s@%s already exists", c.Type(), c.Name(), c.Location())
 		return
