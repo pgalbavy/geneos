@@ -247,6 +247,10 @@ func stopInstance(c Instances, params []string) (err error) {
 			return nil
 		}
 
+		if errors.Is(err, syscall.EPERM) {
+			return nil
+		}
+
 		for i := 0; i < 10; i++ {
 			time.Sleep(250 * time.Millisecond)
 			err = signalInstance(c, syscall.SIGTERM)
