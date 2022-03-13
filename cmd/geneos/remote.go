@@ -175,8 +175,7 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 		logError.Fatalln(err)
 	}
 
-	_, _, err = initGeneos(r.RemoteName(), []string{homepath})
-	if err != nil {
+	if err = initGeneos(r.RemoteName(), []string{homepath}); err != nil {
 		log.Fatalln(err)
 	}
 

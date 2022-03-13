@@ -249,150 +249,17 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
-	dir, username, err := initGeneos(LOCAL, args)
-	if err != nil {
+	if err = initGeneos(LOCAL, args); err != nil {
 		log.Fatalln(err)
-	}
-
-	c := make(GlobalSettings)
-	c["ITRSHome"] = dir
-	c["DefaultUser"] = username
-
-	if superuser {
-		if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
-			logError.Fatalln("cannot write global config", err)
-		}
-
-		// if everything else worked, remove any existing user config
-		_ = removeFile(LOCAL, filepath.Join(dir, ".config", "geneos.json"))
-	} else {
-		userConfDir, err := os.UserConfigDir()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		userConfFile := filepath.Join(userConfDir, "geneos.json")
-
-		if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
-			return err
-		}
-	}
-
-	// now reload config, after init
-	loadSysConfig()
-	for _, c := range components {
-		if c.Initialise != nil {
-			c.Initialise(LOCAL)
-		}
-	}
-
-	if initFlags.GatewayTmpl != "" {
-		tmpl := readSourceBytes(initFlags.GatewayTmpl)
-		if err = writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
-			log.Fatalln(err)
-		}
-	}
-
-	if initFlags.SanTmpl != "" {
-		tmpl := readSourceBytes(initFlags.SanTmpl)
-		if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
-			log.Fatalln(err)
-		}
-	}
-
-	// both options can import arbitrary PEM files, fix this
-	if initFlags.SigningCert != "" {
-		TLSImport(initFlags.SigningCert)
-	}
-
-	if initFlags.SigningKey != "" {
-		TLSImport(initFlags.SigningKey)
-	}
-
-	e := []string{}
-
-	// create a demo environment
-	if initFlags.Demo {
-		g := []string{"Demo Gateway"}
-		n := []string{"localhost"}
-		commandDownload(None, e, e)
-		commandAdd(Gateway, g, e)
-		commandSet(Gateway, g, []string{"GateOpts=-demo"})
-		commandAdd(Netprobe, n, e)
-		commandAdd(Webserver, []string{"demo"}, e)
-		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(e)
-		commandStart(ct, args, params)
-		commandPS(ct, args, params)
-		return
-	}
-
-	// 'geneos init -s gw1:port1,gw2:port2,... [-s templatefile] certs etc.'
-	// default localhost:7039 (or 7038 if secure)
-	//
-	// chain.pem / geneos.pem/.key
-	//
-	if initFlags.SAN != "" {
-		hostname, _ := os.Hostname()
-		commandAdd(San, []string{hostname}, e)
-		i := San.New(hostname)
-		loadConfig(i, false)
-		s := i.(*Sans)
-		s.Gateways = make(map[string]SanGateway)
-		gws := strings.Split(initFlags.SAN, ",")
-		secure := "false"
-		// even though secure is updated by Rebuild() we need it for default port
-		if s.SanCert != "" && s.SanKey != "" {
-			secure = "true"
-		}
-		for _, gw := range gws {
-			port := 7039
-			p := strings.Split(gw, ":")
-			if len(p) > 1 {
-				port, err = strconv.Atoi(p[1])
-				if err != nil {
-					log.Fatalln(err)
-				}
-			} else if secure == "true" {
-				port = 7038
-			}
-			s.Gateways[p[0]] = SanGateway{Port: port, Secure: secure}
-		}
-		writeInstanceConfig(i)
-		i.Rebuild()
-		ct, args, params := defaultArgs(e)
-		commandDownload(Netprobe, e, e)
-		commandStart(ct, args, params)
-		commandPS(ct, args, params)
-		return nil
-	}
-
-	// create a basic environment with license file
-	if initFlags.All != "" {
-		h, err := os.Hostname()
-		if err != nil {
-			return err
-		}
-		g := []string{h}
-		n := []string{"localhost"}
-		commandDownload(None, e, e)
-		commandAdd(Licd, g, e)
-		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
-		commandAdd(Gateway, g, e)
-		commandAdd(Netprobe, n, e)
-		commandAdd(Webserver, g, e)
-		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(e)
-		commandStart(ct, args, params)
-		commandPS(ct, args, params)
-		return nil
 	}
 
 	return
 }
 
-func initGeneos(remote RemoteName, args []string) (dir, username string, err error) {
+func initGeneos(remote RemoteName, args []string) (err error) {
+	var dir string
 	var uid, gid uint32
-	var homedir string
+	var username, homedir string
 
 	if remote != LOCAL && superuser {
 		err = ErrNotSupported
@@ -495,6 +362,150 @@ func initGeneos(remote RemoteName, args []string) (dir, username string, err err
 			return err
 		})
 	}
+
+	if remote == LOCAL {
+		c := make(GlobalSettings)
+		c["ITRSHome"] = dir
+		c["DefaultUser"] = username
+
+		if superuser {
+			if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
+				logError.Fatalln("cannot write global config", err)
+			}
+
+			// if everything else worked, remove any existing user config
+			_ = removeFile(LOCAL, filepath.Join(dir, ".config", "geneos.json"))
+		} else {
+			userConfDir, err := os.UserConfigDir()
+			if err != nil {
+				log.Fatalln(err)
+			}
+			userConfFile := filepath.Join(userConfDir, "geneos.json")
+
+			if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
+				return err
+			}
+		}
+	}
+
+	// now reload config, after init
+	loadSysConfig()
+	for _, c := range components {
+		if c.Initialise != nil {
+			c.Initialise(LOCAL)
+		}
+	}
+
+	if initFlags.GatewayTmpl != "" {
+		tmpl := readSourceBytes(initFlags.GatewayTmpl)
+		if err = writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	if initFlags.SanTmpl != "" {
+		tmpl := readSourceBytes(initFlags.SanTmpl)
+		if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	// both options can import arbitrary PEM files, fix this
+	if initFlags.SigningCert != "" {
+		TLSImport(initFlags.SigningCert)
+	}
+
+	if initFlags.SigningKey != "" {
+		TLSImport(initFlags.SigningKey)
+	}
+
+	e := []string{}
+	r := []string{"@" + remote.String()}
+
+	// create a demo environment
+	if initFlags.Demo {
+		g := []string{"Demo Gateway@" + remote.String()}
+		n := []string{"localhost@" + remote.String()}
+		w := []string{"demo@" + remote.String()}
+		commandDownload(None, e, e)
+		commandAdd(Gateway, g, e)
+		commandSet(Gateway, g, []string{"GateOpts=-demo"})
+		commandAdd(Netprobe, n, e)
+		commandAdd(Webserver, w, e)
+		// call defaultArgs() on an empty list to populate for loopCommand()
+		ct, args, params := defaultArgs(r)
+		commandStart(ct, args, params)
+		commandPS(ct, args, params)
+		return
+	}
+
+	// 'geneos init -s gw1:port1,gw2:port2,... [-s templatefile] certs etc.'
+	// default localhost:7039 (or 7038 if secure)
+	//
+	// chain.pem / geneos.pem/.key
+	//
+	if initFlags.SAN != "" {
+		var sanname string
+		if remote == LOCAL {
+			sanname, _ = os.Hostname()
+			sanname = sanname + "@" + LOCAL.String()
+		} else {
+			sanname = remote.String() + "@" + remote.String()
+		}
+		commandAdd(San, []string{sanname}, e)
+		i := San.New(sanname)
+		loadConfig(i, false)
+		s := i.(*Sans)
+		s.Gateways = make(map[string]SanGateway)
+		gws := strings.Split(initFlags.SAN, ",")
+		secure := "false"
+		// even though secure is updated by Rebuild() we need it for default port
+		if s.SanCert != "" && s.SanKey != "" {
+			secure = "true"
+		}
+		for _, gw := range gws {
+			port := 7039
+			p := strings.Split(gw, ":")
+			if len(p) > 1 {
+				port, err = strconv.Atoi(p[1])
+				if err != nil {
+					log.Fatalln(err)
+				}
+			} else if secure == "true" {
+				port = 7038
+			}
+			s.Gateways[p[0]] = SanGateway{Port: port, Secure: secure}
+		}
+		writeInstanceConfig(i)
+		i.Rebuild()
+		ct, args, params := defaultArgs(r)
+		commandDownload(Netprobe, e, e)
+		commandStart(ct, args, params)
+		commandPS(ct, args, params)
+		return nil
+	}
+
+	// create a basic environment with license file
+	if initFlags.All != "" {
+		h, err := os.Hostname()
+		if err != nil {
+			return err
+		}
+		g := []string{h}
+		n := []string{"localhost@" + remote.String()}
+		commandDownload(None, e, e)
+		commandAdd(Licd, g, e)
+		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
+		commandAdd(Gateway, g, e)
+		commandAdd(Netprobe, n, e)
+		commandAdd(Webserver, g, e)
+		// call defaultArgs() on an empty list to populate for loopCommand()
+		ct, args, params := defaultArgs(r)
+		commandStart(ct, args, params)
+		commandPS(ct, args, params)
+		return nil
+	}
+
 	return
 }
 
