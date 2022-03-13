@@ -369,7 +369,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		c["DefaultUser"] = username
 
 		if superuser {
-			if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
+			if err = writeConfigFile(LOCAL, globalConfig, "root", c); err != nil {
 				logError.Fatalln("cannot write global config", err)
 			}
 
@@ -382,7 +382,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 			}
 			userConfFile := filepath.Join(userConfDir, "geneos.json")
 
-			if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
+			if err = writeConfigFile(LOCAL, userConfFile, username, c); err != nil {
 				return err
 			}
 		}
@@ -641,33 +641,27 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 	return
 }
 
+// components - parse the args again and load/print the config,
+// but allow for RC files again
+//
+// consume component names, stop at first parameter, error out if more names
 func commandSet(ct Component, args []string, params []string) (err error) {
+	var instances []Instances
+
 	logDebug.Println("args", args, "params", params)
+
 	if len(args) == 0 && len(params) == 0 {
 		return os.ErrInvalid
 	}
 
-	if len(args) == 0 {
-		userConfDir, _ := os.UserConfigDir()
-		writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
-		return
-	}
-
-	// read the cofig into a struct, make changes, then save it out again,
-	// to sanitise the contents - or generate an error
-	switch args[0] {
-	case "global":
-		return writeConfigParams(globalConfig, params)
-	case "user":
+	if len(args) == 0 || args[0] == "user" {
 		userConfDir, _ := os.UserConfigDir()
 		return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
 	}
 
-	// components - parse the args again and load/print the config,
-	// but allow for RC files again
-	//
-	// consume component names, stop at first parameter, error out if more names
-	var instances []Instances
+	if args[0] == "global" {
+		return writeConfigParams(globalConfig, params)
+	}
 
 	// loop through named instances
 	for _, arg := range args {
@@ -681,6 +675,10 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 		// remove with leading '-' ?
 		// 'geneos set probe Env=-PASSWORD'
 		s := strings.SplitN(arg, "=", 2)
+		if len(s) != 2 {
+			logError.Printf("ignoring %q %s", arg, ErrInvalidArgs)
+			continue
+		}
 		k, v := s[0], s[1]
 
 		// loop through all provided instances, set the parameter(s)
@@ -688,7 +686,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 			switch k {
 			case "Env", "Attributes", "Gateways", "Variables":
 				var remove bool
-				env := getSliceStrings(c, k)
+				slice := getSliceStrings(c, k)
 				e := strings.SplitN(v, "=", 2)
 				if strings.HasPrefix(e[0], "-") {
 					e[0] = strings.TrimPrefix(e[0], "-")
@@ -703,24 +701,24 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 				var exists bool
 				// transfer ietms to new slice as removing items in a loop
 				// does random things
-				var newenv []string
-				for _, n := range env {
+				var newslice []string
+				for _, n := range slice {
 					if strings.HasPrefix(n, e[0]+anchor) {
 						if !remove {
 							// replace with new value
-							newenv = append(newenv, v)
+							newslice = append(newslice, v)
 							exists = true
 						}
 					} else {
 						// copy existing
-						newenv = append(newenv, n)
+						newslice = append(newslice, n)
 					}
 				}
 				// add a new item rather than update or remove
 				if !exists && !remove {
-					newenv = append(newenv, v)
+					newslice = append(newslice, v)
 				}
-				if err = setFieldSlice(c, k, newenv); err != nil {
+				if err = setFieldSlice(c, k, newslice); err != nil {
 					return
 				}
 			default:
@@ -733,9 +731,8 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	// now loop through the collected results anbd write out
 	for _, c := range instances {
-		conffile := filepath.Join(c.Home(), c.Type().String()+".json")
-		if err = writeConfigFile(c.Location(), conffile, c); err != nil {
-			log.Println(err)
+		if err = writeInstanceConfig(c); err != nil {
+			log.Fatalln(err)
 		}
 	}
 
@@ -747,6 +744,9 @@ func writeConfigParams(filename string, params []string) (err error) {
 	// ignore err - config may not exist, but that's OK
 	_ = readConfigFile(LOCAL, filename, &c)
 	// change here
+	if len(c) == 0 {
+		c = make(GlobalSettings)
+	}
 	for _, set := range params {
 		// skip all non '=' args
 		if !strings.Contains(set, "=") {
@@ -756,11 +756,16 @@ func writeConfigParams(filename string, params []string) (err error) {
 		k, v := s[0], s[1]
 		c[Global(k)] = v
 	}
-	return writeConfigFile(LOCAL, filename, c)
+
+	// XXX fix permissions assumptions here
+	if filename == globalConfig {
+		return writeConfigFile(LOCAL, filename, "root", c)
+	}
+	return writeConfigFile(LOCAL, filename, "", c)
 }
 
 func writeInstanceConfig(c Instances) (err error) {
-	err = writeConfigFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".json"), c)
+	err = writeConfigFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".json"), c.Prefix("User"), c)
 	return
 }
 
@@ -776,7 +781,7 @@ func readConfigFile(remote RemoteName, file string, config interface{}) (err err
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func writeConfigFile(remote RemoteName, file string, config interface{}) (err error) {
+func writeConfigFile(remote RemoteName, file string, username string, config interface{}) (err error) {
 	j, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
@@ -784,9 +789,8 @@ func writeConfigFile(remote RemoteName, file string, config interface{}) (err er
 
 	uid, gid := -1, -1
 	if superuser {
-		username := "" // getString(config, Prefix(config)+"User")
 		if username == "" {
-			logError.Fatalln("cannot find non-root user to write config file", file)
+			logError.Panicln("cannot find non-root user to write config file", file)
 		}
 		ux, gx, _, err := getUser(username)
 		if err != nil {
@@ -866,7 +870,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeConfigFile(newconf.Location(), filepath.Join(newhome, ct.String()+".json"), oldconf); err != nil {
+	if err = writeConfigFile(newconf.Location(), filepath.Join(newhome, ct.String()+".json"), newconf.Prefix("User"), oldconf); err != nil {
 		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
 	}
