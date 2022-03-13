@@ -341,13 +341,15 @@ func TLSSync() (err error) {
 // import intermediate (signing) cert and key from files
 // loop through args and decode pem, check type and import - filename to
 // be decided (CN.pem etc.)
-func TLSImport(files ...string) (err error) {
+func TLSImport(sources ...string) (err error) {
+	logDebug.Println(sources)
 	tlsPath := filepath.Join(ITRSHome(), "tls")
 	err = mkdirAll(LOCAL, tlsPath, 0755)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	for _, source := range files {
+	for _, source := range sources {
+		logDebug.Println("importing", source)
 		f := readSourceBytes(source)
 		if len(f) == 0 {
 			logError.Fatalln("read faile:", source)

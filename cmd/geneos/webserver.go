@@ -130,6 +130,10 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 	return
 }
 
+func (w Webservers) Rebuild() error {
+	return nil
+}
+
 func (c Webservers) Command() (args, env []string) {
 	WebsBase := filepath.Join(c.WebsBins, c.WebsBase)
 	args = []string{

@@ -511,23 +511,26 @@ func readSourceString(source string) (s string) {
 	return string(b)
 }
 
+//
+// load templates from TYPE/templates/[tmpl]* and parse it using the intance data
+// write it out to a single file. If tmpl is empty, load all files
+//
 func writeTemplate(c Instances, path string, tmpl string) (err error) {
 	var out io.WriteCloser
 
-	// default config XML etc.
-	t, err := template.New("empty").Funcs(textJoinFuncs).Parse(tmpl)
+	t, err := template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*"))
 	if err != nil {
-		logError.Fatalln(err)
+		logError.Fatalln("parse", err)
 	}
 
 	out, err = createFile(c.Location(), path, 0660)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("create", err)
 	}
 	defer out.Close()
 
-	if err = t.Execute(out, c); err != nil {
-		logError.Fatalln(err)
+	if err = t.ExecuteTemplate(out, tmpl, c); err != nil {
+		logError.Fatalln("exec", err)
 	}
 
 	return

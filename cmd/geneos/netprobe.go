@@ -94,6 +94,10 @@ func (n Netprobes) Add(username string, params []string, tmpl string) (err error
 	return nil
 }
 
+func (n Netprobes) Rebuild() error {
+	return nil
+}
+
 func (c Netprobes) Command() (args, env []string) {
 	logFile := getLogfilePath(c)
 	args = []string{

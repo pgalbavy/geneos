@@ -84,6 +84,7 @@ type Instances interface {
 	Command() ([]string, []string)
 	Clean(bool, []string) error
 	Reload(params []string) (err error)
+	Rebuild() error
 }
 
 // The Common type is the common data shared by all component types

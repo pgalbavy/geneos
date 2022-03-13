@@ -24,7 +24,7 @@
 	<operatingEnvironment>
 		<gatewayName>{{.Name}}</gatewayName>
 		<writeStatsToFile>
-			<filename>{{join .GateHome "stats.xml"}}</filename>
+			<filename>{{.GateHome}}/stats.xml</filename>
 			<enablePeriodicWrite>true</enablePeriodicWrite>
 			<writeInterval>5</writeInterval>
 		</writeStatsToFile>

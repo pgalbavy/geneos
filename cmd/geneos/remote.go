@@ -209,6 +209,10 @@ func (c Remotes) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
+func (r Remotes) Rebuild() error {
+	return nil
+}
+
 func (r *Remotes) getOSReleaseEnv() (err error) {
 	r.OSInfo = make(map[string]string)
 	f, err := readFile(RemoteName(r.Name()), "/etc/os-release")

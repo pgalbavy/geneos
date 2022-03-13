@@ -9,6 +9,11 @@ import (
 
 const San Component = "san"
 
+type SanGateway struct {
+	Port   int
+	Secure string
+}
+
 type Sans struct {
 	InstanceBase
 	BinSuffix string `default:"netprobe.linux_64"`
@@ -32,17 +37,14 @@ type Sans struct {
 		Type  string
 		Value string
 	}
-	Gateways map[string]struct {
-		Port   int
-		Secure string
-	}
-	Types []string
+	Gateways map[string]SanGateway
+	Types    []string
 }
 
 //go:embed templates/netprobe.setup.xml.gotmpl
 var SanTemplate []byte
 
-const SanDefaultTemplateFile = "netprobe.default.xml.gotmpl"
+const SanDefaultTemplate = "netprobe.setup.xml.gotmpl"
 
 func init() {
 	RegisterComponent(Components{
@@ -68,7 +70,7 @@ func init() {
 
 func InitSan(remote RemoteName) {
 	// copy default template to directory
-	if err := writeFile(remote, GeneosPath(remote, San.String(), "templates", SanDefaultTemplateFile), SanTemplate, 0664); err != nil {
+	if err := writeFile(remote, GeneosPath(remote, San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -119,12 +121,36 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		createInstanceCert(&n)
 	}
 
-	if tmpl != "" {
-		SanTemplate = readSourceBytes(tmpl)
-	}
-
 	// writeFile(n.Location(), x, []byte(SanTemplate), 0664)
-	return writeTemplate(n, filepath.Join(n.Home(), "netprobe.setup.xml"), string(SanTemplate))
+	// XXX this needs to use new filesystem saved templates
+
+	return n.Rebuild()
+}
+
+// rebuild the netprobe.setup.xml file
+//
+// we do a dance if there is a change in TLS setup and we use default ports
+func (s Sans) Rebuild() error {
+	// recheck check certs/keys
+	cert := getString(s, s.Prefix("Cert"))
+	key := getString(s, s.Prefix("Key"))
+	for gw := range s.Gateways {
+		g := s.Gateways[gw]
+		if cert != "" && key != "" {
+			if g.Secure == "false" && g.Port == 7039 {
+				g.Port = 7038
+			}
+			g.Secure = "true"
+		} else {
+			if g.Secure == "true" && g.Port == 7038 {
+				g.Port = 7038
+			}
+			g.Secure = "false"
+		}
+		s.Gateways[gw] = g
+	}
+	writeInstanceConfig(s)
+	return writeTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate)
 }
 
 func (c Sans) Command() (args, env []string) {

@@ -94,6 +94,10 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	return nil
 }
 
+func (l Licds) Rebuild() error {
+	return nil
+}
+
 func (c Licds) Command() (args, env []string) {
 	args = []string{
 		c.Name(),

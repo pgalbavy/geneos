@@ -150,3 +150,7 @@ func (c Names) Clean(purge bool, params []string) (err error) {
 func (c Names) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
+
+func (c Names) Rebuild() error {
+	return nil
+}
