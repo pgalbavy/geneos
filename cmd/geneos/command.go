@@ -37,7 +37,7 @@ type Commands map[string]Command
 // loadConfig will load the JSON config file is available, otherwise
 // try to load the "legacy" .rc file and optionally write out a JSON file
 // for later re-use, while renaming .rc file as a backup
-func loadConfig(c Instances, update bool) (err error) {
+func loadConfig(c Instances) (err error) {
 	baseconf := filepath.Join(c.Home(), c.Type().String())
 	j := baseconf + ".json"
 
@@ -48,17 +48,6 @@ func loadConfig(c Instances, update bool) (err error) {
 	if err = readRCConfig(c); err != nil {
 		return
 	}
-	if update {
-		if err = writeInstanceConfig(c); err != nil {
-			logError.Println("failed to wrtite config file:", err)
-			return
-		}
-		if err = renameFile(c.Location(), baseconf+".rc", baseconf+".rc.orig"); err != nil {
-			logError.Println("failed to rename old config:", err)
-		}
-		logDebug.Println(c.Type(), c.Name(), "migrated to JSON config")
-	}
-
 	return
 }
 

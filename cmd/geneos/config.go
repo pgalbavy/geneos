@@ -453,8 +453,10 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 			sanname = remote.String() + "@" + remote.String()
 		}
 		commandAdd(San, []string{sanname}, e)
-		i := San.New(sanname)
-		loadConfig(i, false)
+		i, err := San.getInstance(sanname)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		s := i.(*Sans)
 		s.Gateways = make(map[string]SanGateway)
 		gws := strings.Split(initFlags.SAN, ",")
@@ -514,9 +516,23 @@ func commandMigrate(ct Component, names []string, params []string) (err error) {
 }
 
 func migrateInstance(c Instances, params []string) (err error) {
-	if err = loadConfig(c, true); err != nil {
+	if err = migrateConfig(c); err != nil {
 		log.Println(c.Type(), c.Name(), "cannot migrate configuration", err)
 	}
+	return
+}
+
+func migrateConfig(c Instances) (err error) {
+	baseconf := filepath.Join(c.Home(), c.Type().String())
+	if err = writeInstanceConfig(c); err != nil {
+		logError.Println("failed to wrtite config file:", err)
+		return
+	}
+	if err = renameFile(c.Location(), baseconf+".rc", baseconf+".rc.orig"); err != nil {
+		logError.Println("failed to rename old config:", err)
+	}
+	logDebug.Println(c.Type(), c.Name(), "migrated to JSON config")
+
 	return
 }
 
@@ -815,12 +831,15 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	newname := args[1]
 
 	logDebug.Println("rename", ct, oldname, newname)
-	oldconf := ct.New(oldname)
-	if err = loadConfig(oldconf, true); err != nil {
+	oldconf, err := ct.getInstance(oldname)
+	if err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
-	newconf := ct.New(newname)
-	if err = loadConfig(newconf, false); err == nil {
+	if err = migrateConfig(oldconf); err != nil {
+		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, oldname)
+	}
+	newconf, err := ct.getInstance(newname)
+	if err == nil {
 		return fmt.Errorf("%s %s already exists", ct, newname)
 	}
 

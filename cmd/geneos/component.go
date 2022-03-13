@@ -247,14 +247,19 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	}
 
 	for _, cm := range cs {
-		i := cm.New(name)
-		err := loadConfig(i, false)
+		i, err := cm.getInstance(name)
 		if err != nil {
 			log.Fatalln(err)
 		}
 		c = append(c, i)
 	}
 
+	return
+}
+
+func (ct Component) getInstance(name string) (c Instances, err error) {
+	c = ct.New(name)
+	err = loadConfig(c)
 	return
 }
 
@@ -297,16 +302,12 @@ func (ct Component) exists(name string) bool {
 	// first, does remote exist?
 
 	if remote != LOCAL {
-		r := Remote.New(remote.String())
-		if err := loadConfig(r, false); err != nil {
+		_, err := Remote.getInstance(remote.String())
+		if err != nil {
 			return false
 		}
 	}
 
-	c := ct.New(name)
-	if err := loadConfig(c, false); err != nil {
-		return false
-	}
-
-	return true
+	_, err := ct.getInstance(name)
+	return err == nil
 }

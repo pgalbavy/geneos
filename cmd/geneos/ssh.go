@@ -100,8 +100,8 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 func sshOpenRemote(remote RemoteName) (client *ssh.Client, err error) {
 	client, ok := remoteSSHClients[remote]
 	if !ok {
-		i := NewRemote(remote.String())
-		if err = loadConfig(i, false); err != nil {
+		i, err := Remote.getInstance(remote.String())
+		if err != nil {
 			logError.Fatalln(err)
 		}
 		dest := getString(i, "Hostname") + ":" + fmt.Sprint(getInt(i, "Port"))

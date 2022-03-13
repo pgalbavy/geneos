@@ -31,6 +31,7 @@ Gateways are given a minimal configuration file.
 
 FLAGS:
 	-t FILE	- specifiy a template file to use instead of the embedded ones
+	Also accepts the same flags as 'init' for remotes
 `}
 
 	addFlags = flag.NewFlagSet("add", flag.ExitOnError)
@@ -95,10 +96,10 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		username = u.Username
 	}
 
-	c := ct.New(name)
+	c, err := ct.getInstance(name)
 
 	// check if instance already exists
-	if err = loadConfig(c, false); err == nil {
+	if err == nil {
 		log.Printf("%s %s@%s already exists", c.Type(), c.Name(), c.Location())
 		return
 	}
@@ -107,7 +108,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		log.Fatalln(err)
 	}
 	// reload config as 'c' is not updated by Add() as an interface value
-	loadConfig(c, false)
+	loadConfig(c)
 	log.Printf("new %s %q added, port %d\n", c.Type(), c.Name(), getInt(c, c.Prefix("Port")))
 
 	return
@@ -121,7 +122,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 func getPorts(remote RemoteName) (ports map[int]Component) {
 	ports = make(map[int]Component)
 	for _, c := range None.instances(remote) {
-		if err := loadConfig(c, false); err != nil {
+		if err := loadConfig(c); err != nil {
 			log.Println(c.Type(), c.Name(), "- cannot load configuration")
 			continue
 		}

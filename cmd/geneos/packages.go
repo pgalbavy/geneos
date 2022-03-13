@@ -497,7 +497,7 @@ func sliceAtoi(s []string) (n []int) {
 func matchComponents(remote RemoteName, ct Component, k, v string) (insts []Instances) {
 	for _, i := range ct.instances(remote) {
 		if v == getString(i, i.Prefix(k)) {
-			if err := loadConfig(i, false); err != nil {
+			if err := loadConfig(i); err != nil {
 				log.Println(i.Type(), i.Name(), "cannot load config")
 			}
 			insts = append(insts, i)

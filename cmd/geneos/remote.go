@@ -238,7 +238,7 @@ func loadRemoteConfig(remote RemoteName) (c *Remotes) {
 		return
 	}
 	// no error check, c will be nil on failure
-	loadConfig(c, false)
+	loadConfig(c)
 	return
 }
 
@@ -252,7 +252,7 @@ func GeneosRoot(remote RemoteName) string {
 		if i == nil {
 			return ""
 		}
-		if err := loadConfig(i, false); err != nil {
+		if err := loadConfig(i); err != nil {
 			logError.Fatalf("cannot open remote %q configuration file", remote)
 		}
 		return getString(i, "ITRSHome")
