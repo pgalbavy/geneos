@@ -506,11 +506,6 @@ func readSourceBytes(source string) (b []byte) {
 	return
 }
 
-func readSourceString(source string) (s string) {
-	b := readSourceBytes(source)
-	return string(b)
-}
-
 //
 // load templates from TYPE/templates/[tmpl]* and parse it using the intance data
 // write it out to a single file. If tmpl is empty, load all files
