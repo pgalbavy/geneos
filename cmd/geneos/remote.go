@@ -105,13 +105,29 @@ func (r Remotes) RemoteName() RemoteName {
 //
 // 'geneos add remote NAME [SSH-URL]'
 //
+// XXX re=use common code with init
+//
 func (r Remotes) Add(username string, params []string, tmpl string) (err error) {
 	if len(params) == 0 {
 		// default - try ssh to a host with the same name as remote
 		params = []string{"ssh://" + r.Name()}
 	}
 
-	u, err := url.Parse(params[0])
+	var remurl string
+	if strings.HasPrefix(params[0], "ssh://") {
+		remurl = params[0]
+		params = params[1:]
+	} else {
+		remurl = "ssh://" + r.Name()
+	}
+
+	if err = initFlagSet.Parse(params); err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println("add flags:", initFlags)
+
+	u, err := url.Parse(remurl)
 	if err != nil {
 		logDebug.Println(err)
 		return
@@ -159,33 +175,9 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 		logError.Fatalln(err)
 	}
 
-	// check and created file layout
-	if _, err = statFile(r.RemoteName(), homepath); err == nil {
-		dirs, err := readDir(r.RemoteName(), homepath)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		// ignore dot files
-		for _, entry := range dirs {
-			if !strings.HasPrefix(entry.Name(), ".") {
-				// directory exists and contains non dot files/dirs - so return
-				return nil
-			}
-		}
-	} else {
-		// need to create out own, chown base directory only
-		if err = mkdirAll(r.RemoteName(), homepath, 0775); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	// create dirs
-	// create directories - initDirs is global, in main.go
-	for _, d := range initDirs {
-		dir := filepath.Join(homepath, d)
-		if err = mkdirAll(r.RemoteName(), dir, 0775); err != nil {
-			logError.Fatalln(err)
-		}
+	_, _, err = initGeneos(r.RemoteName(), []string{homepath})
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	for _, c := range components {

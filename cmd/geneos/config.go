@@ -67,15 +67,15 @@ FLAGS:
 	The '-d' and '-a' flags are mutually exclusive.
 `}
 
-	initFlags = flag.NewFlagSet("init", flag.ExitOnError)
-	initFlags.BoolVar(&initDemo, "d", false, "Perform initialisation steps for a demo setup and start environment")
-	initFlags.StringVar(&initAll, "a", "", "Perform initialisation steps using provided license file and start environment")
-	initFlags.StringVar(&initSAN, "S", "", "Create a single SAN connecting to comma seperated list of gateways given, using other config options provided")
-	initFlags.StringVar(&initSigningCert, "c", "", "signing certificate file with optional embedded private key")
-	initFlags.StringVar(&initSigningKey, "k", "", "signing private key file")
-	initFlags.StringVar(&initGatewayTmpl, "g", "", "A `gateway` template file")
-	initFlags.StringVar(&initSanTmpl, "s", "", "A `san` template file")
-	initFlags.BoolVar(&helpFlag, "h", false, helpUsage)
+	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
+	initFlagSet.BoolVar(&initFlags.Demo, "d", false, "Perform initialisation steps for a demo setup and start environment")
+	initFlagSet.StringVar(&initFlags.All, "a", "", "Perform initialisation steps using provided license file and start environment")
+	initFlagSet.StringVar(&initFlags.SAN, "S", "", "Create a single SAN connecting to comma seperated list of gateways given, using other config options provided")
+	initFlagSet.StringVar(&initFlags.SigningCert, "c", "", "signing certificate file with optional embedded private key")
+	initFlagSet.StringVar(&initFlags.SigningKey, "k", "", "signing private key file")
+	initFlagSet.StringVar(&initFlags.GatewayTmpl, "g", "", "A `gateway` template file")
+	initFlagSet.StringVar(&initFlags.SanTmpl, "s", "", "A `san` template file")
+	initFlagSet.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["migrate"] = Command{
 		Function:    commandMigrate,
@@ -180,11 +180,15 @@ against.`}
 	}
 }
 
-var initFlags, deleteFlags *flag.FlagSet
-var initDemo bool
-var initAll, initSAN string
-var initSigningCert, initSigningKey string
-var initGatewayTmpl, initSanTmpl string
+type initFlagsType struct {
+	Demo                    bool
+	All, SAN                string
+	SigningCert, SigningKey string
+	GatewayTmpl, SanTmpl    string
+}
+
+var initFlagSet, deleteFlags *flag.FlagSet
+var initFlags initFlagsType
 
 var deleteForced bool
 
@@ -241,14 +245,36 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	}
 
 	// cannot pass both flags
-	if initDemo && initAll != "" {
+	if initFlags.Demo && initFlags.All != "" {
 		return ErrInvalidArgs
 	}
 
+	dir, username, err := initGeneos(LOCAL, args)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	c := make(GlobalSettings)
+	c["ITRSHome"] = dir
+	c["DefaultUser"] = username
+
 	if superuser {
-		err = initAsRoot(args)
+		if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
+			logError.Fatalln("cannot write global config", err)
+		}
+
+		// if everything else worked, remove any existing user config
+		_ = removeFile(LOCAL, filepath.Join(dir, ".config", "geneos.json"))
 	} else {
-		err = initAsUser(args)
+		userConfDir, err := os.UserConfigDir()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		userConfFile := filepath.Join(userConfDir, "geneos.json")
+
+		if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
+			return err
+		}
 	}
 
 	// now reload config, after init
@@ -259,33 +285,33 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		}
 	}
 
-	if initGatewayTmpl != "" {
-		tmpl := readSourceBytes(initGatewayTmpl)
+	if initFlags.GatewayTmpl != "" {
+		tmpl := readSourceBytes(initFlags.GatewayTmpl)
 		if err = writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	if initSanTmpl != "" {
-		tmpl := readSourceBytes(initSanTmpl)
+	if initFlags.SanTmpl != "" {
+		tmpl := readSourceBytes(initFlags.SanTmpl)
 		if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
 	// both options can import arbitrary PEM files, fix this
-	if initSigningCert != "" {
-		TLSImport(initSigningCert)
+	if initFlags.SigningCert != "" {
+		TLSImport(initFlags.SigningCert)
 	}
 
-	if initSigningKey != "" {
-		TLSImport(initSigningKey)
+	if initFlags.SigningKey != "" {
+		TLSImport(initFlags.SigningKey)
 	}
 
 	e := []string{}
 
 	// create a demo environment
-	if initDemo {
+	if initFlags.Demo {
 		g := []string{"Demo Gateway"}
 		n := []string{"localhost"}
 		commandDownload(None, e, e)
@@ -305,14 +331,14 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	//
 	// chain.pem / geneos.pem/.key
 	//
-	if initSAN != "" {
+	if initFlags.SAN != "" {
 		hostname, _ := os.Hostname()
 		commandAdd(San, []string{hostname}, e)
 		i := San.New(hostname)
 		loadConfig(i, false)
 		s := i.(*Sans)
 		s.Gateways = make(map[string]SanGateway)
-		gws := strings.Split(initSAN, ",")
+		gws := strings.Split(initFlags.SAN, ",")
 		secure := "false"
 		// even though secure is updated by Rebuild() we need it for default port
 		if s.SanCert != "" && s.SanKey != "" {
@@ -341,7 +367,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	}
 
 	// create a basic environment with license file
-	if initAll != "" {
+	if initFlags.All != "" {
 		h, err := os.Hostname()
 		if err != nil {
 			return err
@@ -350,7 +376,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		n := []string{"localhost"}
 		commandDownload(None, e, e)
 		commandAdd(Licd, g, e)
-		commandImport(Licd, g, []string{"geneos.lic=" + initAll})
+		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
 		commandAdd(Gateway, g, e)
 		commandAdd(Netprobe, n, e)
 		commandAdd(Webserver, g, e)
@@ -364,109 +390,77 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func initAsRoot(args []string) (err error) {
-	c := make(GlobalSettings)
-	if len(args) == 0 {
-		logError.Fatalln("init requires a USERNAME when run as root")
-	}
-	username := args[0]
-	uid, gid, _, err := getUser(username)
+func initGeneos(remote RemoteName, args []string) (dir, username string, err error) {
+	var uid, gid uint32
+	var homedir string
 
-	if err != nil {
-		logError.Fatalln("invalid user", username)
-	}
-	u, err := user.Lookup(username)
-	if err != nil {
-		logError.Fatalln("user lookup failed")
+	if remote != LOCAL && superuser {
+		err = ErrNotSupported
+		return
 	}
 
-	var dir string
-	if len(args) == 1 {
-		// If user's home dir doesn't end in "geneos" then create a
-		// directory "geneos" else use the home directory directly
-		dir = u.HomeDir
-		if filepath.Base(u.HomeDir) != "geneos" {
-			dir = filepath.Join(u.HomeDir, "geneos")
+	if superuser {
+		if len(args) == 0 {
+			logError.Fatalln("init requires a USERNAME when run as root")
 		}
-	} else {
-		// must be an absolute path or relative to given user's home
-		dir = args[1]
-		if !strings.HasPrefix(dir, "/") {
-			dir = u.HomeDir
-			if filepath.Base(u.HomeDir) != "geneos" {
-				dir = filepath.Join(u.HomeDir, dir)
+		username = args[0]
+		uid, gid, _, err = getUser(username)
+
+		if err != nil {
+			logError.Fatalln("invalid user", username)
+		}
+		u, err := user.Lookup(username)
+		homedir = u.HomeDir
+		if err != nil {
+			logError.Fatalln("user lookup failed")
+		}
+		if len(args) == 1 {
+			// If user's home dir doesn't end in "geneos" then create a
+			// directory "geneos" else use the home directory directly
+			dir = homedir
+			if filepath.Base(homedir) != "geneos" {
+				dir = filepath.Join(homedir, "geneos")
+			}
+		} else {
+			// must be an absolute path or relative to given user's home
+			dir = args[1]
+			if !strings.HasPrefix(dir, "/") {
+				dir = homedir
+				if filepath.Base(homedir) != "geneos" {
+					dir = filepath.Join(homedir, dir)
+				}
 			}
 		}
-	}
-
-	// dir must first not exist (or be empty) and then be createable
-	if _, err := statFile(LOCAL, dir); err == nil {
-		// check empty
-		dirs, err := readDir(LOCAL, dir)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		if len(dirs) != 0 {
-			logError.Fatalln("directory exists and is not empty")
-		}
 	} else {
-		// need to create out own, chown base directory only
-		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
-			logError.Fatalln(err)
+		if remote == LOCAL {
+			u, _ := user.Current()
+			username = u.Username
+			homedir = u.HomeDir
+		} else {
+			r := loadRemoteConfig(remote)
+			username = r.Username
+			homedir = r.ITRSHome
 		}
-	}
-	if err = chown(LOCAL, dir, int(uid), int(gid)); err != nil {
-		logError.Fatalln(err)
-	}
-	c["ITRSHome"] = dir
-	c["DefaultUser"] = username
-	if err = writeConfigFile(LOCAL, globalConfig, c); err != nil {
-		logError.Fatalln("cannot write global config", err)
-	}
-	// if everything else worked, remove any existing user config
-	_ = removeFile(LOCAL, filepath.Join(u.HomeDir, ".config", "geneos.json"))
-
-	// create directories
-	for _, d := range initDirs {
-		dir := filepath.Join(c["ITRSHome"], d)
-		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
-			logError.Fatalln(err)
+		switch len(args) {
+		case 0: // default home + geneos
+			dir = homedir
+			if filepath.Base(homedir) != "geneos" {
+				dir = filepath.Join(homedir, "geneos")
+			}
+		case 1: // home = abs path
+			dir, _ = filepath.Abs(args[0])
+		default:
+			logError.Fatalln("too many args")
 		}
-	}
-	err = filepath.WalkDir(c["ITRSHome"], func(path string, dir fs.DirEntry, err error) error {
-		if err == nil {
-			err = chown(LOCAL, path, int(uid), int(gid))
-		}
-		return err
-	})
-	return
-}
-
-func initAsUser(args []string) (err error) {
-	c := make(GlobalSettings)
-	// normal user
-	var dir string
-	u, _ := user.Current()
-	switch len(args) {
-	case 0: // default home + geneos
-		dir = u.HomeDir
-		if filepath.Base(u.HomeDir) != "geneos" {
-			dir = filepath.Join(u.HomeDir, "geneos")
-		}
-	case 1: // home = abs path
-		dir, _ = filepath.Abs(args[0])
-	default:
-		logError.Fatalln("too many args")
 	}
 
 	// dir must first not exist (or be empty) and then be createable
-	if _, err = statFile(LOCAL, dir); err == nil {
+	if _, err := statFile(remote, dir); err == nil {
 		// check empty
-		dirs, err := readDir(LOCAL, dir)
+		dirs, err := readDir(remote, dir)
 		if err != nil {
 			logError.Fatalln(err)
 		}
-		// ignore dot files
 		for _, entry := range dirs {
 			if !strings.HasPrefix(entry.Name(), ".") {
 				logError.Fatalf("target directory %q exists and is not empty", dir)
@@ -474,27 +468,32 @@ func initAsUser(args []string) (err error) {
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
+		if err = mkdirAll(remote, dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
 
-	userConfDir, err := os.UserConfigDir()
-	if err != nil {
-		logError.Fatalln("no user config directory")
-	}
-	userConfFile := filepath.Join(userConfDir, "geneos.json")
-	c["ITRSHome"] = dir
-	c["DefaultUser"] = u.Username
-	if err = writeConfigFile(LOCAL, userConfFile, c); err != nil {
-		return
-	}
-	// create directories
-	for _, d := range initDirs {
-		dir := filepath.Join(c["ITRSHome"], d)
-		if err = mkdirAll(LOCAL, dir, 0775); err != nil {
+	if superuser {
+		if err = chown(LOCAL, dir, int(uid), int(gid)); err != nil {
 			logError.Fatalln(err)
 		}
+	}
+
+	// create directories
+	for _, d := range initDirs {
+		dir := filepath.Join(dir, d)
+		if err = mkdirAll(remote, dir, 0775); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+
+	if superuser {
+		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
+			if err == nil {
+				err = chown(LOCAL, path, int(uid), int(gid))
+			}
+			return err
+		})
 	}
 	return
 }
@@ -871,9 +870,9 @@ func deleteInstance(c Instances, params []string) (err error) {
 }
 
 func initFlag(command string, args []string) []string {
-	initFlags.Parse(args)
+	initFlagSet.Parse(args)
 	checkHelpFlag(command)
-	return initFlags.Args()
+	return initFlagSet.Args()
 }
 
 func deleteFlag(command string, args []string) []string {

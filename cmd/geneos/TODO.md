@@ -30,4 +30,6 @@
   * reset configs / clean etc.
 * Redo template support, primarily for SANs but also gateways
   * to document changes
+* Add post naming flags, duplicate init flags for add san
+
 

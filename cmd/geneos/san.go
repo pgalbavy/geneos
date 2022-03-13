@@ -121,9 +121,6 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		createInstanceCert(&n)
 	}
 
-	// writeFile(n.Location(), x, []byte(SanTemplate), 0664)
-	// XXX this needs to use new filesystem saved templates
-
 	return n.Rebuild()
 }
 
