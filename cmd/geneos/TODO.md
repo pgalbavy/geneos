@@ -32,5 +32,5 @@
   * to document changes
 * Add post naming flags, duplicate init flags for add san
 * Stopping a remote (also for disable, delete, rename etc.) also means stopping all instances on it
-
+* Update docs to include configuration file rebuilds, gateway includes etc.
 

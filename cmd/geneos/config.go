@@ -61,6 +61,14 @@ entry for 'var', e.g.
 To remove an environment variable prefix the name with a hyphen '-', e.g.
 
 	geneos set netprobe localhost Env=-JAVA_HOME
+
+To add an include file to an auto-generated gateway use a similar syntax to the above, but in the form:
+
+	geneos set gateway gateway1 Includes=100:path/to/include.xml
+	geneos set gateway gateway1 Includes=-100
+
+Then rebuild the configuration as required.
+
 `}
 
 	commands["rename"] = Command{
