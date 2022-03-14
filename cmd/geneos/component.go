@@ -104,7 +104,7 @@ type InstanceBase struct {
 	RemoteRoot string `json:"-"`
 
 	// Rebuild options; never / always / initial - default diff for gateway and san
-	ConfigRebuild string
+	ConfigRebuild string `default:"initial" json:",omitempty"`
 
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`
