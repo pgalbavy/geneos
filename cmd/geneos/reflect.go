@@ -103,6 +103,62 @@ func setFieldSlice(c interface{}, k string, v []string) (err error) {
 	return
 }
 
+func setStructMap(c interface{}, field string, k string, v string) (err error) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+
+	if fv.Kind() != reflect.Struct {
+		return fmt.Errorf("not a struct - cannot set map field")
+	}
+
+	fm := fv.FieldByName(field)
+	if fm.Kind() != reflect.Map {
+		return fmt.Errorf("not a map - cannot set key")
+	}
+
+	// initialise and set back into struct
+	if fm.IsNil() {
+		fm = reflect.MakeMap(reflect.MapOf(fm.Type().Key(), fm.Type().Elem()))
+		fv.FieldByName(field).Set(fm)
+	}
+
+	var key reflect.Value
+
+	switch fm.Type().Key().Kind() {
+	case reflect.Int:
+		i, _ := strconv.Atoi(k)
+		key = reflect.ValueOf(i)
+	case reflect.String:
+		key = reflect.ValueOf(k)
+	default:
+		return fmt.Errorf("cannot use %q as a key: %w", k, ErrInvalidArgs)
+	}
+
+	if fm.IsValid() && !fm.IsNil() {
+		var val reflect.Value
+		if v == "" {
+			val = reflect.ValueOf(nil)
+		} else {
+			switch fm.Type().Elem().Kind() {
+			case reflect.String:
+				val = reflect.ValueOf(v)
+			case reflect.Int:
+				i, _ := strconv.Atoi(v)
+				val = reflect.ValueOf(i)
+			default:
+				return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
+			}
+		}
+
+		fm.SetMapIndex(key, val)
+	} else {
+		return fmt.Errorf("cannot set %q: %w (isValid=%v, isNil=%v, canset=%v, type=%v)", k, ErrInvalidArgs, fm.IsValid(), fm.IsNil(), fm.CanSet(), fm.Type())
+	}
+	return
+}
+
 // a template function to support "{{join .X .Y}}"
 var textJoinFuncs = template.FuncMap{"join": filepath.Join}
 
