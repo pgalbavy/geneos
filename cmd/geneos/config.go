@@ -521,6 +521,9 @@ func commandRebuild(ct Component, args []string, params []string) (err error) {
 
 func rebuildInstance(c Instances, params []string) (err error) {
 	if err = c.Rebuild(rebuildForced); err != nil {
+		if err == ErrNoAction {
+			err = nil
+		}
 		return
 	}
 	log.Printf("%s %s@%s configuration rebuilt", c.Type(), c.Name(), c.Location())

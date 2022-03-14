@@ -125,7 +125,7 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 
 func (g Gateways) Rebuild(initial bool) error {
 	if !initial && g.ConfigRebuild != "always" {
-		return nil
+		return ErrNoAction
 	}
 	return writeConfig(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }

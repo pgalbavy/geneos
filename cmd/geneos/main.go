@@ -40,6 +40,7 @@ var (
 	ErrProcExists   = errors.New("process exists")
 	ErrDisabled     = errors.New("disabled")
 	ErrNotFound     = fs.ErrNotExist
+	ErrNoAction     = errors.New("no action taken")
 )
 
 // simple check for root
