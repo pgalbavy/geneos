@@ -95,7 +95,7 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 }
 
 func (l Licds) Rebuild(initial bool) error {
-	return nil
+	return ErrNotSupported
 }
 
 func (c Licds) Command() (args, env []string) {

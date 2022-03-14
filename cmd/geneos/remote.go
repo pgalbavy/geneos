@@ -197,7 +197,7 @@ func (c Remotes) Reload(params []string) (err error) {
 }
 
 func (r Remotes) Rebuild(initial bool) error {
-	return nil
+	return ErrNotSupported
 }
 
 func (r *Remotes) getOSReleaseEnv() (err error) {

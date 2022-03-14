@@ -95,7 +95,7 @@ func (n Netprobes) Add(username string, params []string, tmpl string) (err error
 }
 
 func (n Netprobes) Rebuild(initial bool) error {
-	return nil
+	return ErrNotSupported
 }
 
 func (c Netprobes) Command() (args, env []string) {

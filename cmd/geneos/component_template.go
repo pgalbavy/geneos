@@ -152,5 +152,5 @@ func (c Names) Reload(params []string) (err error) {
 }
 
 func (c Names) Rebuild(initial bool) error {
-	return nil
+	return ErrNotSupported
 }

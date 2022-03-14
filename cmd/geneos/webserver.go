@@ -131,7 +131,7 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 }
 
 func (w Webservers) Rebuild(initial bool) error {
-	return nil
+	return ErrNotSupported
 }
 
 func (c Webservers) Command() (args, env []string) {

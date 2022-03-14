@@ -217,7 +217,7 @@ func (ct Component) New(name string) (c Instances) {
 func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range ct.instanceMatches(name) {
-			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
+			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) && !errors.Is(err, ErrNotSupported) {
 				log.Println(c.Type(), c.Name(), err)
 			}
 		}
