@@ -111,6 +111,8 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&g)
+		// if we have certs then connect to Licd securely
+		g.GateLicS = "true"
 	}
 
 	return g.Rebuild()

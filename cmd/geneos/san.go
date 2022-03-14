@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 const San Component = "san"
@@ -113,6 +115,59 @@ func (n Sans) Prefix(field string) string {
 func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.SanPort = nextPort(n.Location(), GlobalConfig["SanPortRange"])
 	n.SanUser = username
+
+	// support same flags as for init, but skip imports if already done this once
+	if !initFlagSet.Parsed() {
+		if err = initFlagSet.Parse(params); err != nil {
+			log.Fatalln(err)
+		}
+
+		if initFlags.GatewayTmpl != "" {
+			tmpl := readSourceBytes(initFlags.GatewayTmpl)
+			if err = writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
+				log.Fatalln(err)
+			}
+		}
+
+		if initFlags.SanTmpl != "" {
+			tmpl := readSourceBytes(initFlags.SanTmpl)
+			if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+				log.Fatalln(err)
+			}
+		}
+
+		// both options can import arbitrary PEM files, fix this
+		if initFlags.SigningCert != "" {
+			TLSImport(initFlags.SigningCert)
+		}
+
+		if initFlags.SigningKey != "" {
+			TLSImport(initFlags.SigningKey)
+		}
+	}
+
+	if initFlags.SAN != "" {
+		n.Gateways = make(map[string]SanGateway)
+		gws := strings.Split(initFlags.SAN, ",")
+		secure := "false"
+		// even though secure is updated by Rebuild() we need it for default port
+		if n.SanCert != "" && n.SanKey != "" {
+			secure = "true"
+		}
+		for _, gw := range gws {
+			port := 7039
+			p := strings.Split(gw, ":")
+			if len(p) > 1 {
+				port, err = strconv.Atoi(p[1])
+				if err != nil {
+					log.Fatalln(err)
+				}
+			} else if secure == "true" {
+				port = 7038
+			}
+			n.Gateways[p[0]] = SanGateway{Port: port, Secure: secure}
+		}
+	}
 
 	writeInstanceConfig(n)
 

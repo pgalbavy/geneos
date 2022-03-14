@@ -103,9 +103,7 @@ func (r Remotes) RemoteName() RemoteName {
 }
 
 //
-// 'geneos add remote NAME [SSH-URL]'
-//
-// XXX re=use common code with init
+// 'geneos add remote NAME [SSH-URL] [init opts]'
 //
 func (r Remotes) Add(username string, params []string, tmpl string) (err error) {
 	if len(params) == 0 {
@@ -124,8 +122,6 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	if err = initFlagSet.Parse(params); err != nil {
 		log.Fatalln(err)
 	}
-
-	log.Println("add flags:", initFlags)
 
 	u, err := url.Parse(remurl)
 	if err != nil {

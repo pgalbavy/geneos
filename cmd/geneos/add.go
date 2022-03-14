@@ -31,7 +31,7 @@ Gateways are given a minimal configuration file.
 
 FLAGS:
 	-t FILE	- specifiy a template file to use instead of the embedded ones
-	Also accepts the same flags as 'init' for remotes
+	Also accepts the same flags as 'init' for remote sans
 `}
 
 	addFlags = flag.NewFlagSet("add", flag.ExitOnError)

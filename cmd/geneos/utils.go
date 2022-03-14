@@ -371,7 +371,7 @@ func reservedName(in string) (ok bool) {
 }
 
 // spaces are valid - dumb, but valid - for now
-var validStringRE = regexp.MustCompile(`^\w[@\w -]*$`)
+var validStringRE = regexp.MustCompile(`^\w[@\.\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //
