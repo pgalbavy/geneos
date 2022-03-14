@@ -105,6 +105,7 @@ func (g Gateways) Prefix(field string) string {
 func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
 	g.GatePort = nextPort(g.Location(), GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
+	g.ConfigRebuild = "initial"
 
 	writeInstanceConfig(g)
 
@@ -115,11 +116,14 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 		g.GateLicS = "true"
 	}
 
-	return g.Rebuild()
+	return g.Rebuild(true)
 }
 
-func (g Gateways) Rebuild() error {
-	return writeTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate)
+func (g Gateways) Rebuild(initial bool) error {
+	if !initial && g.ConfigRebuild != "always" {
+		return nil
+	}
+	return writeConfig(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }
 
 func (c Gateways) Command() (args, env []string) {

@@ -92,15 +92,25 @@ against.`}
 
 	commands["rebuild"] = Command{
 		Function:    commandRebuild,
-		ParseFlags:  defaultFlag,
+		ParseFlags:  rebuildFlag,
 		ParseArgs:   defaultArgs,
-		CommandLine: `geneos rebuild [TYPE] {NAME...]`,
+		CommandLine: `geneos rebuild [-n] [TYPE] {NAME...]`,
 		Summary:     `Rebuild instance configuration files`,
-		Description: `Rebuild instance configuration files based on current templates and instance configuration values`,
+		Description: `Rebuild instance configuration files based on current templates and instance configuration values
+		
+FLAGS:
+
+	-n	No restart of instances`,
 	}
+
+	rebuildFlags = flag.NewFlagSet("rebuild", flag.ExitOnError)
+	rebuildFlags.BoolVar(&rebuildNoRestart, "n", false, "Do not restart instances after rebuild")
 }
 
 var deleteForced bool
+
+var rebuildFlags *flag.FlagSet
+var rebuildNoRestart bool
 
 var globalConfig = "/etc/geneos/geneos.json"
 
@@ -495,8 +505,17 @@ func commandRebuild(ct Component, args []string, params []string) (err error) {
 }
 
 func rebuildInstance(c Instances, params []string) (err error) {
-	if err = c.Rebuild(); err != nil {
+	if err = c.Rebuild(false); err != nil {
+		return
+	}
+	if rebuildNoRestart {
 		return
 	}
 	return restartInstance(c, params)
+}
+
+func rebuildFlag(command string, args []string) []string {
+	rebuildFlags.Parse(args)
+	checkHelpFlag(command)
+	return rebuildFlags.Args()
 }

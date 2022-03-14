@@ -151,6 +151,6 @@ func (c Names) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (c Names) Rebuild() error {
+func (c Names) Rebuild(initial bool) error {
 	return nil
 }

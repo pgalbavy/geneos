@@ -84,7 +84,7 @@ type Instances interface {
 	Command() ([]string, []string)
 	Clean(bool, []string) error
 	Reload(params []string) (err error)
-	Rebuild() error
+	Rebuild(bool) error
 }
 
 // The Common type is the common data shared by all component types
@@ -102,6 +102,9 @@ type InstanceBase struct {
 	// The RemoteRoot directory of the Geneos installation. Used in template
 	// default settings for component types
 	RemoteRoot string `json:"-"`
+
+	// Rebuild options; never / always / initial - default diff for gateway and san
+	ConfigRebuild string
 
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`

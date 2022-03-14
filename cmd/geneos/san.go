@@ -115,6 +115,7 @@ func (n Sans) Prefix(field string) string {
 func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.SanPort = nextPort(n.Location(), GlobalConfig["SanPortRange"])
 	n.SanUser = username
+	n.ConfigRebuild = "always"
 
 	// support same flags as for init, but skip imports if already done this once
 	if !initFlagSet.Parsed() {
@@ -176,13 +177,17 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		createInstanceCert(&n)
 	}
 
-	return n.Rebuild()
+	return n.Rebuild(true)
 }
 
 // rebuild the netprobe.setup.xml file
 //
 // we do a dance if there is a change in TLS setup and we use default ports
-func (s Sans) Rebuild() error {
+func (s Sans) Rebuild(initial bool) error {
+	if !initial && s.ConfigRebuild != "always" {
+		return nil
+	}
+
 	// recheck check certs/keys
 	cert := getString(s, s.Prefix("Cert"))
 	key := getString(s, s.Prefix("Key"))
@@ -202,7 +207,7 @@ func (s Sans) Rebuild() error {
 		s.Gateways[gw] = g
 	}
 	writeInstanceConfig(s)
-	return writeTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate)
+	return writeConfig(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
 }
 
 func (c Sans) Command() (args, env []string) {

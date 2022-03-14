@@ -130,7 +130,7 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 	return
 }
 
-func (w Webservers) Rebuild() error {
+func (w Webservers) Rebuild(initial bool) error {
 	return nil
 }
 

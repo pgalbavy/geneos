@@ -97,6 +97,7 @@ behaviour.
 Future version may support selecting a base other than 'active_prod'.
 
 FLAGS:
+	-b BASE - override the base link name, default active_prod
 	-r REMOTE - update remote. default is local. all means all remotes and local.
 
 `}

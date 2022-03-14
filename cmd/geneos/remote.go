@@ -196,7 +196,7 @@ func (c Remotes) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (r Remotes) Rebuild() error {
+func (r Remotes) Rebuild(initial bool) error {
 	return nil
 }
 

@@ -94,7 +94,7 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	return nil
 }
 
-func (l Licds) Rebuild() error {
+func (l Licds) Rebuild(initial bool) error {
 	return nil
 }
 

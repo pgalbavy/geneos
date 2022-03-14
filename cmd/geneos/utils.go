@@ -510,12 +510,17 @@ func readSourceBytes(source string) (b []byte) {
 // load templates from TYPE/templates/[tmpl]* and parse it using the intance data
 // write it out to a single file. If tmpl is empty, load all files
 //
-func writeTemplate(c Instances, path string, tmpl string) (err error) {
+func writeConfig(c Instances, path string, name string, defaultTemplate []byte) (err error) {
 	var out io.WriteCloser
+	var t *template.Template
 
-	t, err := template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*"))
+	t, err = template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*"))
 	if err != nil {
-		logError.Fatalln("parse", err)
+		// if there are no templates, use internal ?
+		t, err = template.New(name).Parse(string(defaultTemplate))
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	out, err = createFile(c.Location(), path, 0660)
@@ -524,7 +529,7 @@ func writeTemplate(c Instances, path string, tmpl string) (err error) {
 	}
 	defer out.Close()
 
-	if err = t.ExecuteTemplate(out, tmpl, c); err != nil {
+	if err = t.ExecuteTemplate(out, name, c); err != nil {
 		logError.Fatalln("exec", err)
 	}
 
