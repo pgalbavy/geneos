@@ -209,7 +209,7 @@ func (ct Component) New(name string) (c Instances) {
 
 // given a component type and a slice of args, call the function for each arg
 //
-// rely on NewComponent() checking the component type and returning a slice
+// rely on New() checking the component type and returning a slice
 // of all matching components for a single name in an arg (e.g all instances
 // called 'thisserver')
 //
