@@ -494,7 +494,18 @@ func sliceAtoi(s []string) (n []int) {
 
 // given a component type and a key/value pair, return matching
 // instances
+//
+// also check if "Parent" is of the required type, then that also matches
+//
 func matchComponents(remote RemoteName, ct Component, k, v string) (insts []Instances) {
+	// also check for any other component types that have this as a parent, recurse
+	for _, c := range components {
+		if ct == c.ParentType {
+			logDebug.Println("also matching", c.ComponentType.String())
+			insts = append(insts, matchComponents(remote, c.ComponentType, k, v)...)
+		}
+	}
+
 	for _, i := range ct.instances(remote) {
 		if v == getString(i, i.Prefix(k)) {
 			if err := loadConfig(i); err != nil {
