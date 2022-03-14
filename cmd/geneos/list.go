@@ -67,6 +67,28 @@ func flagsList(command string, args []string) []string {
 }
 
 func commandLS(ct Component, args []string, params []string) (err error) {
+	if ct == Remote {
+		switch {
+		case listJSON:
+			jsonEncoder = json.NewEncoder(log.Writer())
+			if listJSONIndent {
+				jsonEncoder.SetIndent("", "    ")
+			}
+			err = ct.loopCommand(lsInstanceJSONRemotes, args, params)
+		case listCSV:
+			csvWriter = csv.NewWriter(log.Writer())
+			csvWriter.Write([]string{"Type", "Name", "Disabled", "Hostname", "Port", "ITRSHome"})
+			err = ct.loopCommand(lsInstanceCSVRemotes, args, params)
+			csvWriter.Flush()
+		default:
+			lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
+			fmt.Fprintf(lsTabWriter, "Type\tName\tHostname:Port\tITRSHome\n")
+			err = ct.loopCommand(lsInstancePlainRemotes, args, params)
+			lsTabWriter.Flush()
+		}
+		return
+	}
+
 	switch {
 	case listJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -88,6 +110,15 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 	return
 }
 
+func lsInstancePlainRemotes(c Instances, params []string) (err error) {
+	var suffix string
+	if Disabled(c) {
+		suffix = "*"
+	}
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome"))
+	return
+}
+
 func lsInstancePlain(c Instances, params []string) (err error) {
 	var suffix string
 	if Disabled(c) {
@@ -106,6 +137,15 @@ func lsInstanceCSV(c Instances, params []string) (err error) {
 	return
 }
 
+func lsInstanceCSVRemotes(c Instances, params []string) (err error) {
+	var dis string = "N"
+	if Disabled(c) {
+		dis = "Y"
+	}
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, getString(c, "Hostname"), fmt.Sprint(getInt(c, "Port")), getString(c, "ITRSHome")})
+	return
+}
+
 type lsType struct {
 	Type     string
 	Name     string
@@ -114,12 +154,30 @@ type lsType struct {
 	Home     string
 }
 
+type lsTypeRemotes struct {
+	Type     string
+	Name     string
+	Disabled string
+	Hostname string
+	Port     int64
+	ITRSHome string
+}
+
 func lsInstanceJSON(c Instances, params []string) (err error) {
 	var dis string = "N"
 	if Disabled(c) {
 		dis = "Y"
 	}
 	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
+	return
+}
+
+func lsInstanceJSONRemotes(c Instances, params []string) (err error) {
+	var dis string = "N"
+	if Disabled(c) {
+		dis = "Y"
+	}
+	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome")})
 	return
 }
 
