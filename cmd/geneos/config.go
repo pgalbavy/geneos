@@ -94,23 +94,25 @@ against.`}
 		Function:    commandRebuild,
 		ParseFlags:  rebuildFlag,
 		ParseArgs:   defaultArgs,
-		CommandLine: `geneos rebuild [-n] [TYPE] {NAME...]`,
+		CommandLine: `geneos rebuild [-f] [-n] [TYPE] {NAME...]`,
 		Summary:     `Rebuild instance configuration files`,
 		Description: `Rebuild instance configuration files based on current templates and instance configuration values
 		
 FLAGS:
 
+	-f	Force rebuild for instances marked 'initial' even if configuration is not 'always' - 'never' is never rebuilt
 	-n	No restart of instances`,
 	}
 
 	rebuildFlags = flag.NewFlagSet("rebuild", flag.ExitOnError)
+	rebuildFlags.BoolVar(&rebuildForced, "f", false, "Force rebuild")
 	rebuildFlags.BoolVar(&rebuildNoRestart, "n", false, "Do not restart instances after rebuild")
 }
 
 var deleteForced bool
 
 var rebuildFlags *flag.FlagSet
-var rebuildNoRestart bool
+var rebuildForced, rebuildNoRestart bool
 
 var globalConfig = "/etc/geneos/geneos.json"
 
@@ -275,7 +277,20 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 		// loop through all provided instances, set the parameter(s)
 		for _, c := range instances {
 			switch k {
-			case "Env", "Attributes", "Gateways", "Variables":
+			// make this list dynamic
+			case "Includes":
+				var remove bool
+				e := strings.SplitN(v, ":", 2)
+				if strings.HasPrefix(e[0], "-") {
+					e[0] = strings.TrimPrefix(e[0], "-")
+					remove = true
+				}
+				if remove {
+					err = setStructMap(c, "Includes", e[0], "")
+				} else {
+					err = setStructMap(c, "Includes", e[0], e[1])
+				}
+			case "Env", "Types":
 				var remove bool
 				slice := getSliceStrings(c, k)
 				e := strings.SplitN(v, "=", 2)
@@ -505,9 +520,10 @@ func commandRebuild(ct Component, args []string, params []string) (err error) {
 }
 
 func rebuildInstance(c Instances, params []string) (err error) {
-	if err = c.Rebuild(false); err != nil {
+	if err = c.Rebuild(rebuildForced); err != nil {
 		return
 	}
+	log.Printf("%s %s@%s configuration rebuilt", c.Type(), c.Name(), c.Location())
 	if rebuildNoRestart {
 		return
 	}

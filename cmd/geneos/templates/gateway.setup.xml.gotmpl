@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <gateway compatibility="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://schema.itrsgroup.com/GA5.10.1-211027/gateway.xsd">
+	{{if .Includes -}}<includes>
+		<priority>1</priority>
+		{{range $key, $value := .Includes -}}
+		<include>
+			<priority>{{$key}}</priority>
+			<required>true</required>
+			<location>{{$value}}</location>
+		</include>
+		{{end -}}
+    </includes>{{- end}}
 	<authentication>
 		<authenticateUsers>true</authenticateUsers>
 		<users>
@@ -23,6 +33,18 @@
 	</authentication>
 	<operatingEnvironment>
 		<gatewayName>{{.Name}}</gatewayName>
+		<listenPorts>
+		{{- if .GateCert}}
+			{{if eq .GatePort 7039 -}}
+			<secure>7038</secure>
+			<insecure>7039</insecure>
+			{{- else -}}
+    		<secure>{{.GatePort}}</secure>
+			{{- end}}
+		{{- else}}
+			<insecure>{{.GatePort}}</insecure>
+		{{- end}}
+		</listenPorts>
 		<writeStatsToFile>
 			<filename>{{.GateHome}}/stats.xml</filename>
 			<enablePeriodicWrite>true</enablePeriodicWrite>

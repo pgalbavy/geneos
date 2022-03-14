@@ -30,6 +30,9 @@ type Gateways struct {
 	GateUser  string `json:",omitempty"`
 	GateCert  string `json:",omitempty"`
 	GateKey   string `json:",omitempty"`
+
+	// include files for gateway template - format is priority:path
+	Includes map[int]string
 }
 
 //go:embed templates/gateway.setup.xml.gotmpl
@@ -106,6 +109,7 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 	g.GatePort = nextPort(g.Location(), GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
 	g.ConfigRebuild = "initial"
+	g.Includes = make(map[int]string)
 
 	writeInstanceConfig(g)
 
