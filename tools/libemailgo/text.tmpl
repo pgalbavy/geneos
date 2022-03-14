@@ -9,7 +9,9 @@ This Alert was created at {{._ALERT_CREATED}} and has been fired {{._REPEATCOUNT
 
 The item's XPath is {{._VARIABLEPATH}}
 
+{{if ._THROTTLER}}
 This alert is controlled by throttle: "{{._THROTTLER}}".
+{{end}}
 
 {{else if eq ._ALERT_TYPE "Clear"}}
 Alert "{{._ALERT}}" is being cancelled because Geneos DataItem {{._VARIABLE}} in dataview {{._DATAVIEW}} in Managed Entity {{._MANAGED_ENTITY}} is at {{._SEVERITY}} severity.
@@ -20,7 +22,9 @@ This Alert was created at {{._ALERT_CREATED}} and has been fired {{._REPEATCOUNT
 
 The item's XPath is {{._VARIABLEPATH}}
 
+{{if ._THROTTLER}}
 This alert is controlled by throttle: "{{._THROTTLER}}".
+{{end}}
 
 {{else if eq ._ALERT_TYPE "Suspend"}}
 Alert "{{._ALERT}}" is being suspended because of: "{{._SUSPEND_REASON}}". No notifications will be fired for this alert until it is resumed. If the alert is cancelled before it is resumed no further notifications will be fired.
@@ -31,7 +35,9 @@ This Alert was created at {{._ALERT_CREATED}} and has been fired {{._REPEATCOUNT
 
 The item's XPath is {{._VARIABLEPATH}}
 
+{{if ._THROTTLER}}
 This alert is controlled by throttle: "{{._THROTTLER}}".
+{{end}}
 
 {{else if eq ._ALERT_TYPE "Resume"}}
 Alert "{{._ALERT}}" is being resumed because of: "{{._RESUME_REASON}}". Geneos DataItem {{._VARIABLE}} in dataview {{._DATAVIEW}} in Managed Entity {{._MANAGED_ENTITY}} is {{._SEVERITY}} severity.
@@ -42,7 +48,9 @@ This Alert was created at {{._ALERT_CREATED}} and has been fired {{._REPEATCOUNT
 
 The item's XPath is {{._VARIABLEPATH}}
 
+{{if ._THROTTLER}}
 This alert is controlled by throttle: "{{._THROTTLER}}".
+{{end}}
 
 {{else if eq ._ALERT_TYPE "Summary"}}
 Summary for alert throttle "{{._THROTTLER}}"
