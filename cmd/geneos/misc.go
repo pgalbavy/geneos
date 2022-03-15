@@ -97,12 +97,13 @@ func checkHelpFlag(command string) {
 	}
 }
 
-func commandHome(ct Component, args []string, params []string) error {
+func commandHome(ctunused Component, args []string, params []string) error {
 	if len(args) == 0 {
 		log.Println(ITRSHome())
 		return nil
 	}
 
+	var ct Component
 	// check if first arg is a type, if not set to None else pop first arg
 	if ct = parseComponentName(args[0]); ct == Unknown {
 		ct = None
