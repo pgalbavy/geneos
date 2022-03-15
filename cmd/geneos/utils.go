@@ -292,6 +292,11 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 	}
 	args = newnames
 
+	// if args is empty, find them all again. ct == None too?
+	if len(args) == 0 {
+		args = ct.instanceNames(ALL)
+	}
+
 	logDebug.Println("ct, args, params", ct, args, params)
 	return
 }
