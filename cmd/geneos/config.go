@@ -314,6 +314,25 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 							log.Fatalln(err)
 						}
 					}
+				case "Attributes":
+					var remove bool
+					e := strings.SplitN(vs, "=", 2)
+					if strings.HasPrefix(e[0], "-") {
+						e[0] = strings.TrimPrefix(e[0], "-")
+						remove = true
+					}
+					// '-name' or 'name=' remove the attribute
+					if remove || len(e) == 1 {
+						err = setStructMap(c, k, e[0], "")
+						if err != nil {
+							log.Fatalln(err)
+						}
+					} else {
+						err = setStructMap(c, k, e[0], e[1])
+						if err != nil {
+							log.Fatalln(err)
+						}
+					}
 				case "Env", "Types":
 					var remove bool
 					slice := getSliceStrings(c, k)
