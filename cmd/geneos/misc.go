@@ -27,6 +27,23 @@ func init() {
 
 	defaultFlags = flag.NewFlagSet("default", flag.ContinueOnError)
 	defaultFlags.BoolVar(&helpFlag, "h", false, helpUsage)
+
+	commands["home"] = Command{
+		Function:    commandHome,
+		ParseFlags:  defaultFlag,
+		ParseArgs:   nil,
+		CommandLine: "geneos home [TYPE] [NAME]",
+		Summary:     `Output the home directory of the installation or the first matching instance`,
+		Description: `Output the home directory of the first matching instance or local
+installation or the remote on stdout. This is intended for scripting,
+e.g.
+
+	cd $(geneos home)
+	cd $(geneos home gateway example1
+		
+Because of the intended use no errors are logged and no output is
+given. This would in the examples above result in the user's home
+directory being selected.`}
 }
 
 var defaultFlags *flag.FlagSet
@@ -78,4 +95,38 @@ func checkHelpFlag(command string) {
 		commandHelp(None, []string{command}, nil)
 		os.Exit(0)
 	}
+}
+
+func commandHome(ct Component, args []string, params []string) error {
+	if len(args) == 0 {
+		log.Println(ITRSHome())
+		return nil
+	}
+
+	// check if first arg is a type, if not set to None else pop first arg
+	if ct = parseComponentName(args[0]); ct == Unknown {
+		ct = None
+	} else {
+		args = args[1:]
+	}
+
+	var i []Instances
+	if len(args) == 0 {
+		i = ct.instances(LOCAL)
+	} else {
+		i = ct.instanceMatches(args[0])
+	}
+
+	if len(i) == 0 {
+		log.Println(ITRSHome())
+		return nil
+	}
+
+	if i[0].Type() == Remote {
+		log.Println(getString(i[0], "ITRSHome"))
+		return nil
+	}
+
+	log.Println(i[0].Home())
+	return nil
 }
