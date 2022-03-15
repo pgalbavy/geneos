@@ -163,7 +163,7 @@ func ITRSHome() string {
 func commandShow(ct Component, names []string, params []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
-	if len(names) == 0 {
+	if len(names) == 0 && ct == None {
 		// special case "config show" for resolved settings
 		printConfigStructJSON(GlobalConfig)
 		return
@@ -171,18 +171,20 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 
 	// read the cofig into a struct then print it out again,
 	// to sanitise the contents - or generate an error
-	switch names[0] {
-	case "global":
-		var c GlobalSettings
-		readConfigFile(LOCAL, globalConfig, &c)
-		printConfigStructJSON(c)
-		return
-	case "user":
-		var c GlobalSettings
-		userConfDir, _ := os.UserConfigDir()
-		readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &c)
-		printConfigStructJSON(c)
-		return
+	if len(names) > 0 {
+		switch names[0] {
+		case "global":
+			var c GlobalSettings
+			readConfigFile(LOCAL, globalConfig, &c)
+			printConfigStructJSON(c)
+			return
+		case "user":
+			var c GlobalSettings
+			userConfDir, _ := os.UserConfigDir()
+			readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &c)
+			printConfigStructJSON(c)
+			return
+		}
 	}
 
 	// loop instances - parse the args again and load/print the config,
@@ -191,7 +193,12 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	for _, name := range names {
 		cs = append(cs, ct.instanceMatches(name)...)
 	}
-	printConfigSliceJSON(cs)
+	if len(cs) > 0 {
+		printConfigSliceJSON(cs)
+		return
+	}
+
+	log.Println("no matches to show")
 
 	return
 }
