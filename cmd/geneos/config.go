@@ -282,68 +282,79 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 		}
 		k, v := s[0], s[1]
 
+		defaults := map[string]string{
+			"Includes": "100",
+			"Gateways": "7039",
+		}
+
 		// loop through all provided instances, set the parameter(s)
 		for _, c := range instances {
-			switch k {
-			// make this list dynamic
-			case "Includes", "Gateways":
-				var remove bool
-				e := strings.SplitN(v, ":", 2)
-				if strings.HasPrefix(e[0], "-") {
-					e[0] = strings.TrimPrefix(e[0], "-")
-					remove = true
-				}
-				if remove {
-					err = setStructMap(c, k, e[0], "")
-					if err != nil {
-						log.Fatalln(err)
+			for _, vs := range strings.Split(v, ",") {
+				switch k {
+				// make this list dynamic
+				case "Includes", "Gateways":
+					var remove bool
+					e := strings.SplitN(vs, ":", 2)
+					if strings.HasPrefix(e[0], "-") {
+						e[0] = strings.TrimPrefix(e[0], "-")
+						remove = true
 					}
-				} else {
-					err = setStructMap(c, k, e[0], e[1])
-					if err != nil {
-						log.Fatalln(err)
-					}
-				}
-			case "Env", "Types":
-				var remove bool
-				slice := getSliceStrings(c, k)
-				e := strings.SplitN(v, "=", 2)
-				if strings.HasPrefix(e[0], "-") {
-					e[0] = strings.TrimPrefix(e[0], "-")
-					remove = true
-				}
-				anchor := "="
-				if remove && strings.HasSuffix(e[0], "*") {
-					// wildcard removal (only)
-					e[0] = strings.TrimSuffix(e[0], "*")
-					anchor = ""
-				}
-				var exists bool
-				// transfer ietms to new slice as removing items in a loop
-				// does random things
-				var newslice []string
-				for _, n := range slice {
-					if strings.HasPrefix(n, e[0]+anchor) {
-						if !remove {
-							// replace with new value
-							newslice = append(newslice, v)
-							exists = true
+					if remove {
+						err = setStructMap(c, k, e[0], "")
+						if err != nil {
+							log.Fatalln(err)
 						}
 					} else {
-						// copy existing
-						newslice = append(newslice, n)
+						val := defaults[k]
+						if len(e) > 1 {
+							val = e[1]
+						}
+						err = setStructMap(c, k, e[0], val)
+						if err != nil {
+							log.Fatalln(err)
+						}
 					}
-				}
-				// add a new item rather than update or remove
-				if !exists && !remove {
-					newslice = append(newslice, v)
-				}
-				if err = setFieldSlice(c, k, newslice); err != nil {
-					return
-				}
-			default:
-				if err = setField(c, k, v); err != nil {
-					return
+				case "Env", "Types":
+					var remove bool
+					slice := getSliceStrings(c, k)
+					e := strings.SplitN(vs, "=", 2)
+					if strings.HasPrefix(e[0], "-") {
+						e[0] = strings.TrimPrefix(e[0], "-")
+						remove = true
+					}
+					anchor := "="
+					if remove && strings.HasSuffix(e[0], "*") {
+						// wildcard removal (only)
+						e[0] = strings.TrimSuffix(e[0], "*")
+						anchor = ""
+					}
+					var exists bool
+					// transfer ietms to new slice as removing items in a loop
+					// does random things
+					var newslice []string
+					for _, n := range slice {
+						if strings.HasPrefix(n, e[0]+anchor) {
+							if !remove {
+								// replace with new value
+								newslice = append(newslice, vs)
+								exists = true
+							}
+						} else {
+							// copy existing
+							newslice = append(newslice, n)
+						}
+					}
+					// add a new item rather than update or remove
+					if !exists && !remove {
+						newslice = append(newslice, vs)
+					}
+					if err = setFieldSlice(c, k, newslice); err != nil {
+						return
+					}
+				default:
+					if err = setField(c, k, vs); err != nil {
+						return
+					}
 				}
 			}
 		}
