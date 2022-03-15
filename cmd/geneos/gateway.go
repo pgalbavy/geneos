@@ -163,6 +163,9 @@ func (c Gateways) Command() (args, env []string) {
 	}
 
 	if c.GateCert != "" {
+		if c.GateLicS == "" || c.GateLicS != "false" {
+			args = append(args, "-licd-secure")
+		}
 		args = append(args, "-ssl-certificate", c.GateCert)
 		chainfile := GeneosPath(c.Location(), "tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
