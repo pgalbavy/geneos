@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime" // placeholder
+	"strings"
 	"time"
 )
 
@@ -87,6 +88,8 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 				fnName = fn.Name()
 			}
 		}
+
+		fnName = strings.TrimPrefix(fnName, "main.")
 
 		line = fmt.Sprintf("%s%s() %s", prefix, fnName, p)
 	case DEBUG:
