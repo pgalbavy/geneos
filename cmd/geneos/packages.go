@@ -322,7 +322,7 @@ func unarchive(remote RemoteName, ct Component, filename string, gz io.Reader) (
 		case tar.TypeReg:
 			// check (and created) containing directories - account for munged tar files
 			dir := filepath.Dir(fullpath)
-			if err = mkdirAll(remote, dir, 0777); err != nil {
+			if err = mkdirAll(remote, dir, 0775); err != nil {
 				return
 			}
 

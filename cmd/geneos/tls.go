@@ -295,7 +295,7 @@ func lsInstanceCertJSON(c Instances, params []string) (err error) {
 func TLSInit() (err error) {
 	tlsPath := filepath.Join(ITRSHome(), "tls")
 	// directory permissions do not need to be restrictive
-	err = mkdirAll(LOCAL, tlsPath, 0777)
+	err = mkdirAll(LOCAL, tlsPath, 0775)
 	if err != nil {
 		logError.Fatalln(err)
 	}

@@ -118,13 +118,6 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 			log.Fatalln(err)
 		}
 
-		if initFlags.GatewayTmpl != "" {
-			tmpl := readSourceBytes(initFlags.GatewayTmpl)
-			if err = writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
-				log.Fatalln(err)
-			}
-		}
-
 		if initFlags.SanTmpl != "" {
 			tmpl := readSourceBytes(initFlags.SanTmpl)
 			if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {

@@ -61,6 +61,7 @@ FLAGS:
 
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
 	initFlagSet.BoolVar(&initFlags.Demo, "d", false, "Perform initialisation steps for a demo setup and start environment")
+	initFlagSet.BoolVar(&initFlags.Templates, "t", false, "Overwrite/create templates from embedded (for version upgrades)")
 	initFlagSet.StringVar(&initFlags.All, "a", "", "Perform initialisation steps using provided license file and start environment")
 	initFlagSet.StringVar(&initFlags.SAN, "S", "", "Create a single SAN connecting to comma seperated list of gateways given, using other config options provided")
 	initFlagSet.StringVar(&initFlags.Name, "n", "", "Use the given name for instances and configurations instead of the hostname")
@@ -73,7 +74,7 @@ FLAGS:
 }
 
 type initFlagsType struct {
-	Demo                    bool
+	Demo, Templates         bool
 	Name                    string
 	All, SAN                string
 	SigningCert, SigningKey string
@@ -95,6 +96,31 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	// none of the arguments can be a reserved type
 	if ct != None {
 		return ErrInvalidArgs
+	}
+
+	// rewrite local templates
+	if initFlags.Templates {
+		gatewayTemplates := GeneosPath(LOCAL, Gateway.String(), "templates")
+		mkdirAll(LOCAL, gatewayTemplates, 0775)
+		tmpl := GatewayTemplate
+		if initFlags.GatewayTmpl != "" {
+			tmpl = readSourceBytes(initFlags.GatewayTmpl)
+		}
+		if err := writeFile(LOCAL, filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
+			log.Fatalln(err)
+		}
+
+		sanTemplates := GeneosPath(LOCAL, San.String(), "templates")
+		mkdirAll(LOCAL, sanTemplates, 0775)
+		tmpl = SanTemplate
+		if initFlags.SanTmpl != "" {
+			tmpl = readSourceBytes(initFlags.SanTmpl)
+		}
+		if err := writeFile(LOCAL, filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
+			log.Fatalln(err)
+		}
+
+		return
 	}
 
 	// cannot pass both flags
@@ -251,14 +277,14 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 
 	if initFlags.GatewayTmpl != "" {
 		tmpl := readSourceBytes(initFlags.GatewayTmpl)
-		if err = writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
+		if err := writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
 	if initFlags.SanTmpl != "" {
 		tmpl := readSourceBytes(initFlags.SanTmpl)
-		if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+		if err := writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
