@@ -9,30 +9,23 @@
                 <requireReverseConnection>true</requireReverseConnection>
                 <probeName>{{.InstanceName}}</probeName>
                 <managedEntities>
-	                <managedEntity>
-	                        <name>{{.InstanceName}}</name>
+                        <managedEntity>
+                                <name>{{.InstanceName}}</name>
                                 {{if .Attributes}}<attributes>
-                                        {{range $key, $value := .Attributes}}
-                                        <attribute name="{{$key}}>{{$value}}</attribute>
+                                        {{range $key, $value := .Attributes -}}<attribute name="{{$key}}">{{$value}}</attribute>
                                         {{end}}
-	                        </attributes>
-                                {{end -}}
+                                </attributes>{{end}}
                                 {{if .Variables}}<variables>
-                                        {{range $key, $value := .Variables}}
-                                        <var name="{{$key}}">
-	                                        <{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
-	                                </var>
-                                        {{end}}
-	                        </variables>
-                                {{end -}}
+                                        {{range $key, $value := .Variables -}}<var name="{{$key}}">
+                                                <{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
+                                        </var>{{end}}
+                                </variables>{{end}}
                                 {{if .Types}}<types>
-                                        {{range .Types}}
-	                                <type>{{.}}</type>
+                                        {{range .Types -}}<type>{{.}}</type>
                                         {{end}}
-	                        </types>
-                                {{- end}}
+                                </types>{{end}}
                         </managedEntity>
-                </managedEntities>			
+                </managedEntities>
                 <gateways>
                         {{- with $data := . }}
                         {{range $key, $value := $data.Gateways -}}<gateway>

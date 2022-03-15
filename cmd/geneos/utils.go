@@ -514,17 +514,14 @@ func writeConfig(c Instances, path string, name string, defaultTemplate []byte) 
 	var out io.WriteCloser
 	var t *template.Template
 
-	t, err = template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*"))
-	if err != nil {
+	if t, err = template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*")); err != nil {
 		// if there are no templates, use internal ?
-		t, err = template.New(name).Parse(string(defaultTemplate))
-		if err != nil {
+		if t, err = template.New(name).Parse(string(defaultTemplate)); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	out, err = createFile(c.Location(), path, 0660)
-	if err != nil {
+	if out, err = createFile(c.Location(), path, 0660); err != nil {
 		log.Fatalln("create", err)
 	}
 	defer out.Close()
