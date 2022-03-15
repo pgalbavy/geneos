@@ -286,7 +286,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 		for _, c := range instances {
 			switch k {
 			// make this list dynamic
-			case "Includes":
+			case "Includes", "Gateways":
 				var remove bool
 				e := strings.SplitN(v, ":", 2)
 				if strings.HasPrefix(e[0], "-") {
@@ -294,9 +294,15 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 					remove = true
 				}
 				if remove {
-					err = setStructMap(c, "Includes", e[0], "")
+					err = setStructMap(c, k, e[0], "")
+					if err != nil {
+						log.Fatalln(err)
+					}
 				} else {
-					err = setStructMap(c, "Includes", e[0], e[1])
+					err = setStructMap(c, k, e[0], e[1])
+					if err != nil {
+						log.Fatalln(err)
+					}
 				}
 			case "Env", "Types":
 				var remove bool
@@ -343,7 +349,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 		}
 	}
 
-	// now loop through the collected results anbd write out
+	// now loop through the collected results and write out
 	for _, c := range instances {
 		if err = writeInstanceConfig(c); err != nil {
 			log.Fatalln(err)

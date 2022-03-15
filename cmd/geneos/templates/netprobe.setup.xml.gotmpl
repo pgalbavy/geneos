@@ -34,16 +34,17 @@
                         </managedEntity>
                 </managedEntities>			
                 <gateways>
-                        {{range $key, $value := .Gateways -}}<gateway>
+                        {{- with $data := . }}
+                        {{range $key, $value := $data.Gateways -}}<gateway>
                                 <hostname>{{$key}}</hostname>
-                                <port>{{$value.Port}}</port>
-                                <secure>{{$value.Secure}}</secure>
+                                <port>{{$value}}</port>
+                                <secure>{{if $data.SanCert}}true{{else}}false{{end}}</secure>
                         </gateway>
                         {{else -}}<gateway>
                                 <hostname>localhost</hostname>
                                 <port>7039</port>
                                 <secure>false</secure>
                         </gateway>
-                {{end -}}</gateways>
+                {{end -}}{{end -}}</gateways>
         </selfAnnounce>
 </netprobe>

@@ -11,11 +11,6 @@ import (
 
 const San Component = "san"
 
-type SanGateway struct {
-	Port   int
-	Secure string
-}
-
 type Sans struct {
 	InstanceBase
 	BinSuffix string `default:"netprobe.linux_64"`
@@ -39,7 +34,7 @@ type Sans struct {
 		Type  string
 		Value string
 	}
-	Gateways map[string]SanGateway
+	Gateways map[string]int
 	Types    []string
 }
 
@@ -148,12 +143,12 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	}
 
 	if initFlags.SAN != "" {
-		n.Gateways = make(map[string]SanGateway)
+		n.Gateways = make(map[string]int)
 		gws := strings.Split(initFlags.SAN, ",")
-		secure := "false"
+		secure := false
 		// even though secure is updated by Rebuild() we need it for default port
 		if n.SanCert != "" && n.SanKey != "" {
-			secure = "true"
+			secure = true
 		}
 		for _, gw := range gws {
 			port := 7039
@@ -163,10 +158,10 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 				if err != nil {
 					log.Fatalln(err)
 				}
-			} else if secure == "true" {
+			} else if secure {
 				port = 7038
 			}
-			n.Gateways[p[0]] = SanGateway{Port: port, Secure: secure}
+			n.Gateways[p[0]] = port
 		}
 	}
 
@@ -191,20 +186,16 @@ func (s Sans) Rebuild(initial bool) error {
 	// recheck check certs/keys
 	cert := getString(s, s.Prefix("Cert"))
 	key := getString(s, s.Prefix("Key"))
+	secure := cert != "" && key != ""
+
 	for gw := range s.Gateways {
-		g := s.Gateways[gw]
-		if cert != "" && key != "" {
-			if g.Secure == "false" && g.Port == 7039 {
-				g.Port = 7038
-			}
-			g.Secure = "true"
-		} else {
-			if g.Secure == "true" && g.Port == 7038 {
-				g.Port = 7038
-			}
-			g.Secure = "false"
+		port := s.Gateways[gw]
+		if secure && port == 7039 {
+			port = 7038
+		} else if !secure && port == 7038 {
+			port = 7039
 		}
-		s.Gateways[gw] = g
+		s.Gateways[gw] = port
 	}
 	writeInstanceConfig(s)
 	return writeConfig(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)

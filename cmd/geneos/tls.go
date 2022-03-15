@@ -97,7 +97,14 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		if err = TLSInit(); err != nil {
 			logError.Fatalln(err)
 		}
-		return ct.loopCommand(TLSNewInstance, args, params)
+
+		if err = ct.loopCommand(TLSNewInstance, args, params); err != nil {
+			log.Fatalln(err)
+		}
+
+		rebuildNoRestart = true
+		return commandRebuild(ct, args, params)
+
 	case "import":
 		return TLSImport(params...)
 	case "ls":
