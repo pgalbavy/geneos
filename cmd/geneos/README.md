@@ -1,23 +1,28 @@
 # `geneos` management program
 
-The `geneos` program will help you manage your Geneos environment, one server at a time. Some of it's features, existing and planned, include:
+The `geneos` program will help you manage your Geneos environment.
 
-* Set-up a new environment with a series of simple commands
-* Remote systems support (very much early testing)
-* Add new instances of common componments with sensible defaults
-* Check the status of components
-* Stop, start, restart components (without minimal delays)
-* Support fo existing gatewayctl/netprobectl/licdctl scripts and their file and configuration layout
-* Convert existing set-ups to JSON based configs with more options
-* Edit individual settings of instances
-* Automatically download and install the latest packages (authentication required, for now)
-* Update running versions - stop, update, start
-* TLS certificate generation and management
+You can:
 
+* Initialise a new installation in one command
+* Adopt an existing installation that uses older tools
+* Manage a group of servers with a single command
+* Manage certificates for TLS connectivity between Geneos components
+* Configure the environment of components without editing files
+* Download and install Geneos software, update components
+* Simple bootstrapping of Self-Announcing Netprobes
+
+The aim is to:
+
+* Keep it simple - "The law of least astonishment"
+* Make your life easier - at least the part managing Geneos
+* Help you use other automation tools with Geneos
 
 ## Getting Started
 
-You can either download a single binary:
+### Download the binary
+
+You can download a pre-built binary version (for Linux on amd64 only):
 
 ```bash
 # edit version to suit - until this is a non pre-release 'latest' will not work
@@ -26,33 +31,77 @@ chmod +x geneos
 sudo mv geneos /usr/local/bin/
 ```
 
-Or build and install from source, if you have Go 1.17+ installed:
+### Build from source
 
-`go install wonderland.org/geneos/cmd/geneos@latest`
+To build from source you have Go 1.17+ installed:
 
-or - if you want the bleeding edge -
+#### One line installation
 
-`go install wonderland.org/geneos/cmd/geneos@HEAD`
+    go install wonderland.org/geneos/cmd/geneos@latest
 
 Make sure that the `geneos` program is in your normal `PATH` - or that $HOME/go/bin is if you used the method above - to make things simpler.
 
-### Existing Installation
+#### Download from github and build manually
 
-If you have an existing Geneos installation that you manage with the legacy `gatewayctl` / `netprobectl` commands then you can try these once you have set the geneos directory:
+Make sure you do not have an existing file or directory called `geneos` and then:
 
-`geneos ls` - list instances
-`geneos ps` - show their running status
-`geneos show` - show the default configuration values
+```bash
+github clone https://github.com/pgalbavy/geneos.git
+cd geneos/cmd/geneos
+go build
+sudo mv geneos /usr/local/bin
+```
+
+### Adopting An Existing Installation
+
+If you have an existing Geneos installation that you manage with the command like `gatewayctl`/`netprobectl`/etc. then you can use `geneos` to manage those once you have configured the path to the Geneos installation.
+
+You can use an environment variable `ITRS_HOME` pointing to the top-level directory of your installation or set the location in the (user or global) configuration file:
+
+    geneos set ITRSHome=/path/to/install
+
+The directory is where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation that follows this pattern then you can create a fresh layout further below.
+
+You can now check your installation with some simple commands:
+
+    geneos ls - list instances
+    geneos ps - show their running status
+    geneos show - show the default configuration values
 
 None of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
 
-Note: You have to set an environment variable `ITRS_HOME` pointing to the top-level directory of an existing installation or set the location in the user or global configuration file:
 
-`geneos set ITRSHome=/path/to/install`
+### New Installation
 
-This is the directory where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation then we initialise one below.
+#### Demo Gateway
 
-## New Installation
+You can set-up a Demo environment like this:
+
+    geneos init -d /path/to/empty/dir
+
+This one line command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Netprobe and Webserver for dashboards. However, no configuration is done to connect these up, that's up to you!
+
+Under-the-hood, the command does exactly this for you:
+
+    geneos init /path/to/empty/dit
+    geneos download 
+    geneos add gateway 'Demo Gateway'
+    geneos add netprobe localhost
+    geneos add webserver demo
+    geneos start
+    geneos ps
+
+#### Self-Announcing Netprobe
+
+You can install a configured and running Self-Announcing Netprobe (SAN) in one line, like this:
+
+    geneos init -S -n SAN123 -c /path/to/signingcertkey \
+      Gateways=gateway1,gateway2 Types=Infrastructure,App1,App2 \
+      Attribuutes=ENVIRONMENT=Prod,LOCATION=London
+
+This example will create a SAN with the name SAN123 connecting to 
+
+#### Another Initial Environment
 
 ```bash
 geneos init
