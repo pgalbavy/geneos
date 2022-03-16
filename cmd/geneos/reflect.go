@@ -174,19 +174,17 @@ func setDefaults(c interface{}) (err error) {
 		sv = sv.Elem()
 	}
 
-	n := sv.NumField()
-
-	for i := 0; i < n; i++ {
-		ft := st.Field(i)
-		fv := sv.Field(i)
+	for _, f := range reflect.VisibleFields(st) {
+		fv := sv.FieldByIndex(f.Index)
 
 		// only set plain strings
 		if !fv.CanSet() {
+			logDebug.Println("cannot set", f.Name)
 			continue
 		}
-		if def, ok := ft.Tag.Lookup("default"); ok {
+		if def, ok := f.Tag.Lookup("default"); ok {
 			// treat all defaults as if they are templates
-			val, err := template.New(ft.Name).Funcs(textJoinFuncs).Parse(def)
+			val, err := template.New(f.Name).Funcs(textJoinFuncs).Parse(def)
 			if err != nil {
 				log.Println("parse error:", def)
 				continue
@@ -195,10 +193,11 @@ func setDefaults(c interface{}) (err error) {
 			if err = val.Execute(&b, c); err != nil {
 				log.Println("cannot convert:", def)
 			}
-			if err = setField(c, ft.Name, b.String()); err != nil {
+			if err = setField(c, f.Name, b.String()); err != nil {
 				return err
 			}
 		}
 	}
+
 	return
 }

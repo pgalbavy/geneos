@@ -105,7 +105,7 @@ type InstanceBase struct {
 
 	// Rebuild options; never / always / initial
 	// defaults are differemt for gateway and san but go with a safe option
-	ConfigRebuild string `default:"never" json:",omitempty"`
+	ConfigRebuild string `default:"never"`
 
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`

@@ -167,7 +167,7 @@ func loadConfig(c Instances) (err error) {
 	j := baseconf + ".json"
 
 	if err = readConfigFile(c.Location(), j, &c); err == nil {
-		// return if NO error, else drop through
+		// return if no error, else drop through
 		return
 	}
 	if err = readRCConfig(c); err != nil {
