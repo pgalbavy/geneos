@@ -31,6 +31,9 @@ type Gateways struct {
 	GateCert  string `json:",omitempty"`
 	GateKey   string `json:",omitempty"`
 
+	// The Gateway configuration name may be diffrent to the instance name
+	GateName string `default:"{{.InstanceName}}"`
+
 	// include files for gateway template - format is priority:path
 	Includes map[int]string
 }
@@ -113,21 +116,32 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 
 	writeInstanceConfig(g)
 
+	// apply any extra args to settings
+	if len(params) > 0 {
+		commandSet(Gateway, []string{g.Name()}, params)
+		loadConfig(&g)
+	}
+
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&g)
 		// if we have certs then connect to Licd securely
 		g.GateLicS = "true"
+		writeInstanceConfig(g)
 	}
 
 	return g.Rebuild(true)
 }
 
 func (g Gateways) Rebuild(initial bool) error {
-	if !initial && g.ConfigRebuild != "always" {
+	if g.ConfigRebuild == "never" {
 		return ErrNoAction
 	}
-	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
+
+	if g.ConfigRebuild == "always" || (initial && g.ConfigRebuild == "initial") {
+		return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
+	}
+	return ErrNoAction
 }
 
 func (c Gateways) Command() (args, env []string) {

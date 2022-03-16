@@ -525,6 +525,8 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 		t = template.Must(template.New(name).Parse(string(defaultTemplate)))
 	}
 
+	// XXX backup old file
+
 	if out, err = createFile(c.Location(), path, 0660); err != nil {
 		log.Printf("Cannot create configurtion file %s:%s", c.Location(), path)
 		return err

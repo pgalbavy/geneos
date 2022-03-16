@@ -34,23 +34,6 @@ type Command struct {
 // The Commands type is a map of command text (as a string) to a Command structure
 type Commands map[string]Command
 
-// loadConfig will load the JSON config file is available, otherwise
-// try to load the "legacy" .rc file and optionally write out a JSON file
-// for later re-use, while renaming .rc file as a backup
-func loadConfig(c Instances) (err error) {
-	baseconf := filepath.Join(c.Home(), c.Type().String())
-	j := baseconf + ".json"
-
-	if err = readConfigFile(c.Location(), j, &c); err == nil {
-		// return if NO error, else drop through
-		return
-	}
-	if err = readRCConfig(c); err != nil {
-		return
-	}
-	return
-}
-
 // buildCmd gathers the path to the binary, arguments and any environment variables
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers
 // will add more details such as working directories, user and group etc.

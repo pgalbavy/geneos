@@ -1,6 +1,10 @@
 package main
 
-import "path/filepath"
+import (
+	"errors"
+	"io/fs"
+	"path/filepath"
+)
 
 func init() {
 	commands["migrate"] = Command{
@@ -35,17 +39,32 @@ func migrateInstance(c Instances, params []string) (err error) {
 	return
 }
 
+// migrate config from .rc to .json, but check first
 func migrateConfig(c Instances) (err error) {
 	baseconf := filepath.Join(c.Home(), c.Type().String())
+
+	// if no .rc, return
+	if _, err = statFile(c.Location(), baseconf+".rc"); errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+
+	// if .json exists, return
+	if _, err = statFile(c.Location(), baseconf+".json"); err == nil {
+		return
+	}
+
+	// write new .json
 	if err = writeInstanceConfig(c); err != nil {
 		logError.Println("failed to wrtite config file:", err)
 		return
 	}
+
+	// back-up .rc
 	if err = renameFile(c.Location(), baseconf+".rc", baseconf+".rc.orig"); err != nil {
 		logError.Println("failed to rename old config:", err)
 	}
-	logDebug.Println(c.Type(), c.Name(), "migrated to JSON config")
 
+	logDebug.Printf("migrated %s %s@%s to JSON config", c.Type(), c.Name(), c.Location())
 	return
 }
 

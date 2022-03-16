@@ -7,18 +7,20 @@
                 <enabled>true</enabled>
                 <retryInterval>60</retryInterval>
                 <requireReverseConnection>true</requireReverseConnection>
-                <probeName>{{.InstanceName}}</probeName>
+                <probeName>{{.SanName}}</probeName>
                 <managedEntities>
                         <managedEntity>
-                                <name>{{.InstanceName}}</name>
+                                <name>{{.SanName}}</name>
                                 {{if .Attributes}}<attributes>
-                                        {{range $key, $value := .Attributes -}}<attribute name="{{$key}}">{{$value}}</attribute>
+                                        {{range $key, $value := .Attributes -}}
+                                        <attribute name="{{$key}}">{{$value}}</attribute>
                                         {{end}}
                                 </attributes>{{end}}
                                 {{if .Variables}}<variables>
                                         {{range $key, $value := .Variables -}}<var name="{{$key}}">
                                                 <{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
-                                        </var>{{end}}
+                                        </var>
+                                        {{end}}
                                 </variables>{{end}}
                                 {{if .Types}}<types>
                                         {{range .Types -}}<type>{{.}}</type>

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 const San Component = "san"
@@ -27,6 +25,9 @@ type Sans struct {
 	SanUser   string `json:",omitempty"`
 	SanCert   string `json:",omitempty"`
 	SanKey    string `json:",omitempty"`
+
+	// The SAN configuration name may be diffrent to the instance name
+	SanName string `default:"{{.InstanceName}}"`
 
 	// These fields are for templating the netprobe.setup.xml file but only as placeholders
 	Attributes map[string]string
@@ -112,11 +113,21 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.SanUser = username
 	n.ConfigRebuild = "always"
 
+	n.Types = []string{}
+	n.Attributes = make(map[string]string)
+	n.Variables = make(map[string]struct {
+		Type  string
+		Value string
+	})
+	n.Gateways = make(map[string]int)
+
 	// support same flags as for init, but skip imports if already done this once
 	if !initFlagSet.Parsed() {
 		if err = initFlagSet.Parse(params); err != nil {
 			log.Fatalln(err)
 		}
+
+		params = initFlagSet.Args()
 
 		if initFlags.SanTmpl != "" {
 			tmpl := readSourceBytes(initFlags.SanTmpl)
@@ -135,45 +146,48 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		}
 	}
 
-	if initFlags.SAN != "" {
-		n.Gateways = make(map[string]int)
-		gws := strings.Split(initFlags.SAN, ",")
-		secure := false
-		// even though secure is updated by Rebuild() we need it for default port
-		if n.SanCert != "" && n.SanKey != "" {
-			secure = true
-		}
-		for _, gw := range gws {
-			port := 7039
-			p := strings.Split(gw, ":")
-			if len(p) > 1 {
-				port, err = strconv.Atoi(p[1])
-				if err != nil {
-					log.Fatalln(err)
-				}
-			} else if secure {
-				port = 7038
-			}
-			n.Gateways[p[0]] = port
-		}
+	if initFlags.Name != "" {
+		n.SanName = initFlags.Name
 	}
 
 	writeInstanceConfig(n)
+
+	names := []string{n.Name()}
+	e := []string{}
+
+	// apply any extra args to settings
+	if len(params) > 0 {
+		commandSet(San, names, params)
+		loadConfig(&n)
+	}
+	params = []string{}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&n)
 	}
 
-	return n.Rebuild(true)
+	n.Rebuild(true)
+
+	if initFlags.StartSAN {
+		commandDownload(Netprobe, e, e)
+		commandStart(San, names, params)
+		commandPS(San, names, params)
+	}
+
+	return nil
 }
 
 // rebuild the netprobe.setup.xml file
 //
 // we do a dance if there is a change in TLS setup and we use default ports
 func (s Sans) Rebuild(initial bool) error {
-	if !initial && s.ConfigRebuild != "always" {
-		return nil
+	if s.ConfigRebuild == "never" {
+		return ErrNoAction
+	}
+
+	if !(s.ConfigRebuild == "always" || (initial && s.ConfigRebuild == "initial")) {
+		return ErrNoAction
 	}
 
 	// recheck check certs/keys

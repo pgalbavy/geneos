@@ -160,6 +160,22 @@ func ITRSHome() string {
 	return home
 }
 
+// loadConfig will load the JSON config file is available, otherwise
+// try to load the "legacy" .rc file
+func loadConfig(c Instances) (err error) {
+	baseconf := filepath.Join(c.Home(), c.Type().String())
+	j := baseconf + ".json"
+
+	if err = readConfigFile(c.Location(), j, &c); err == nil {
+		// return if NO error, else drop through
+		return
+	}
+	if err = readRCConfig(c); err != nil {
+		return
+	}
+	return
+}
+
 func commandShow(ct Component, names []string, params []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
@@ -421,6 +437,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 	return writeConfigFile(LOCAL, filename, "", c)
 }
 
+// check for rc file? migrate?
 func writeInstanceConfig(c Instances) (err error) {
 	err = writeConfigFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".json"), c.Prefix("User"), c)
 	return

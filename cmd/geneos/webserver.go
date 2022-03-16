@@ -104,6 +104,11 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 
 	writeInstanceConfig(w)
 
+	// apply any extra args to settings
+	if len(params) > 0 {
+		commandSet(San, []string{w.Name()}, params)
+	}
+
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&w)

@@ -32,7 +32,7 @@
 		</roles>
 	</authentication>
 	<operatingEnvironment>
-		<gatewayName>{{.Name}}</gatewayName>
+		<gatewayName>{{.GateName}}</gatewayName>
 		<listenPorts>
 		{{- if .GateCert}}
 			{{if eq .GatePort 7039 -}}

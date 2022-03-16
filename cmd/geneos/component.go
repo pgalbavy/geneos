@@ -103,8 +103,9 @@ type InstanceBase struct {
 	// default settings for component types
 	RemoteRoot string `json:"-"`
 
-	// Rebuild options; never / always / initial - default diff for gateway and san
-	ConfigRebuild string `default:"initial" json:",omitempty"`
+	// Rebuild options; never / always / initial
+	// defaults are differemt for gateway and san but go with a safe option
+	ConfigRebuild string `default:"never" json:",omitempty"`
 
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`

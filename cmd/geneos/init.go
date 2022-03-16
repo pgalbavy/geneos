@@ -63,7 +63,7 @@ FLAGS:
 	initFlagSet.BoolVar(&initFlags.Demo, "d", false, "Perform initialisation steps for a demo setup and start environment")
 	initFlagSet.BoolVar(&initFlags.Templates, "t", false, "Overwrite/create templates from embedded (for version upgrades)")
 	initFlagSet.StringVar(&initFlags.All, "a", "", "Perform initialisation steps using provided license file and start environment")
-	initFlagSet.StringVar(&initFlags.SAN, "S", "", "Create a single SAN connecting to comma seperated list of gateways given, using other config options provided")
+	initFlagSet.BoolVar(&initFlags.StartSAN, "S", false, "Create a SAN and start")
 	initFlagSet.StringVar(&initFlags.Name, "n", "", "Use the given name for instances and configurations instead of the hostname")
 	initFlagSet.StringVar(&initFlags.SigningCert, "c", "", "signing certificate file with optional embedded private key")
 	initFlagSet.StringVar(&initFlags.SigningKey, "k", "", "signing private key file")
@@ -74,11 +74,11 @@ FLAGS:
 }
 
 type initFlagsType struct {
-	Demo, Templates         bool
-	Name                    string
-	All, SAN                string
-	SigningCert, SigningKey string
-	GatewayTmpl, SanTmpl    string
+	Demo, StartSAN, Templates bool
+	Name                      string
+	All                       string
+	SigningCert, SigningKey   string
+	GatewayTmpl, SanTmpl      string
 }
 
 var initFlagSet, deleteFlags *flag.FlagSet
@@ -128,14 +128,14 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
-	if err = initGeneos(LOCAL, []string{}, args); err != nil {
+	if err = initGeneos(LOCAL, args); err != nil {
 		log.Fatalln(err)
 	}
 
 	return
 }
 
-func initGeneos(remote RemoteName, args, params []string) (err error) {
+func initGeneos(remote RemoteName, args []string) (err error) {
 	var dir string
 	var uid, gid uint32
 	var username, homedir string
@@ -143,6 +143,22 @@ func initGeneos(remote RemoteName, args, params []string) (err error) {
 	if remote != LOCAL && superuser {
 		err = ErrNotSupported
 		return
+	}
+
+	var i int
+	var a string
+	var params []string
+
+	for i, a = range args {
+		if strings.HasPrefix(a, "-") {
+			params = args[i:]
+			if i > 0 {
+				args = args[:i]
+			} else {
+				args = []string{}
+			}
+			break
+		}
 	}
 
 	if superuser {
@@ -318,12 +334,7 @@ func initGeneos(remote RemoteName, args, params []string) (err error) {
 		return
 	}
 
-	// 'geneos init -s gw1:port1,gw2:port2,... [-s templatefile] certs etc.'
-	// default localhost:7039 (or 7038 if secure)
-	//
-	// chain.pem / geneos.pem/.key
-	//
-	if initFlags.SAN != "" {
+	if initFlags.StartSAN {
 		var sanname string
 		var s []string
 
@@ -336,11 +347,7 @@ func initGeneos(remote RemoteName, args, params []string) (err error) {
 			sanname = sanname + "@" + remote.String()
 		}
 		s = []string{sanname}
-		commandAdd(San, s, e)
-		if len(params) > 0 {
-			commandSet(San, s, params)
-			commandRebuild(San, s, e)
-		}
+		commandAdd(San, s, params)
 		ct, args, params := defaultArgs(r)
 		commandDownload(Netprobe, e, e)
 		commandStart(ct, args, params)

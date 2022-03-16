@@ -85,6 +85,11 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 
 	writeInstanceConfig(l)
 
+	// apply any extra args to settings
+	if len(params) > 0 {
+		commandSet(San, []string{l.Name()}, params)
+	}
+
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&l)
