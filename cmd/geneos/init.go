@@ -183,22 +183,6 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		}
 
 		params = initFlagSet.Args()
-
-		if initFlags.SanTmpl != "" {
-			tmpl := readSourceBytes(initFlags.SanTmpl)
-			if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
-				log.Fatalln(err)
-			}
-		}
-
-		// both options can import arbitrary PEM files, fix this
-		if initFlags.SigningCert != "" {
-			TLSImport(initFlags.SigningCert)
-		}
-
-		if initFlags.SigningKey != "" {
-			TLSImport(initFlags.SigningKey)
-		}
 	}
 
 	if superuser {
