@@ -30,7 +30,7 @@ type RemoteName string
 const LOCAL RemoteName = "local"
 const ALL RemoteName = "all"
 
-var rLOCAL, rALL Remotes
+var rLOCAL, rALL *Remotes
 
 type Remotes struct {
 	sshClient  *ssh.Client
@@ -59,8 +59,8 @@ func init() {
 	RegisterSettings(GlobalSettings{})
 
 	// create placeholder structs
-	rLOCAL = NewRemote(string(LOCAL)).(Remotes)
-	rALL = NewRemote(string(ALL)).(Remotes)
+	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
+	rALL = NewRemote(string(ALL)).(*Remotes)
 }
 
 // interface method set
@@ -240,7 +240,7 @@ func (r *Remotes) getOSReleaseEnv() (err error) {
 
 func loadRemoteConfig(remote RemoteName) (r *Remotes) {
 	if remote == LOCAL {
-		return &rLOCAL
+		return rLOCAL
 	}
 	r = NewRemote(remote.String()).(*Remotes)
 	// no error check, c will be nil on failure
