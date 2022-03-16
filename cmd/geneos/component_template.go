@@ -93,11 +93,14 @@ func (n Names) Add(username string, params []string) (err error) {
 	n.NamePort = nextPort(RunningConfigMap["NamePortRange"])
 	n.NameUser = username
 
-	writeInstanceConfig(n)
+	if err = writeInstanceConfig(n); err != nil {
+		logError.Fatalln(err)
+	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(San, []string{n.Name()}, params)
+		loadConfig(&n)
 	}
 
 	// check tls config, create certs if found

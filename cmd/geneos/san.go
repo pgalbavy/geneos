@@ -150,7 +150,9 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		n.SanName = initFlags.Name
 	}
 
-	writeInstanceConfig(n)
+	if err = writeInstanceConfig(n); err != nil {
+		logError.Fatalln(err)
+	}
 
 	names := []string{n.Name()}
 	e := []string{}

@@ -114,8 +114,9 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 	g.ConfigRebuild = "initial"
 	g.Includes = make(map[int]string)
 
-	writeInstanceConfig(g)
-
+	if err = writeInstanceConfig(g); err != nil {
+		logError.Fatalln(err)
+	}
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(Gateway, []string{g.Name()}, params)

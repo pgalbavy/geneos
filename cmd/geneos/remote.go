@@ -176,9 +176,14 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 		log.Fatalln(err)
 	}
 
-	err = writeInstanceConfig(r)
-	if err != nil {
+	if err = writeInstanceConfig(r); err != nil {
 		logError.Fatalln(err)
+	}
+
+	// apply any extra args to settings
+	if len(params) > 0 {
+		commandSet(Remote, []string{r.Name()}, params)
+		loadConfig(&r)
 	}
 
 	if err = initGeneos(r.RemoteName(), []string{homepath}); err != nil {

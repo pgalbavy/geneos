@@ -325,7 +325,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 					if remove {
 						err = setStructMap(c, k, e[0], "")
 						if err != nil {
-							log.Fatalln(err)
+							logDebug.Printf("%s %s@%s: delete %v[%v] failed, %s", c.Type(), c.Name(), c.Location(), k, e[0], err)
 						}
 					} else {
 						val := defaults[k]
@@ -334,7 +334,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 						}
 						err = setStructMap(c, k, e[0], val)
 						if err != nil {
-							log.Fatalln(err)
+							logDebug.Printf("%s %s@%s: set %v[%v]=%v failed, %s", c.Type(), c.Name(), c.Location(), k, e[0], val, err)
 						}
 					}
 				case "Attributes":
@@ -348,12 +348,12 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 					if remove || len(e) == 1 {
 						err = setStructMap(c, k, e[0], "")
 						if err != nil {
-							log.Fatalln(err)
+							logDebug.Printf("%s %s@%s: delete %v[%v] failed, %s", c.Type(), c.Name(), c.Location(), k, e[0], err)
 						}
 					} else {
 						err = setStructMap(c, k, e[0], e[1])
 						if err != nil {
-							log.Fatalln(err)
+							logDebug.Printf("%s %s@%s: set %v[%v]=%v failed, %s", c.Type(), c.Name(), c.Location(), k, e[0], e[1], err)
 						}
 					}
 				case "Env", "Types":
@@ -391,11 +391,11 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 						newslice = append(newslice, vs)
 					}
 					if err = setFieldSlice(c, k, newslice); err != nil {
-						return
+						logDebug.Printf("%s %s@%s: set %s=%s failed, %s", c.Type(), c.Name(), c.Location(), k, newslice, err)
 					}
 				default:
 					if err = setField(c, k, vs); err != nil {
-						return
+						logDebug.Printf("%s %s@%s: set %s=%s failed, %s", c.Type(), c.Name(), c.Location(), k, vs, err)
 					}
 				}
 			}

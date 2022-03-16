@@ -102,11 +102,14 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 	w.WebsPort = nextPort(w.Location(), GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username
 
-	writeInstanceConfig(w)
+	if err = writeInstanceConfig(w); err != nil {
+		logError.Fatalln(err)
+	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(San, []string{w.Name()}, params)
+		commandSet(Webserver, []string{w.Name()}, params)
+		loadConfig(&w)
 	}
 
 	// check tls config, create certs if found

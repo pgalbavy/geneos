@@ -83,11 +83,14 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	l.LicdPort = nextPort(l.Location(), GlobalConfig["LicdPortRange"])
 	l.LicdUser = username
 
-	writeInstanceConfig(l)
+	if err = writeInstanceConfig(l); err != nil {
+		logError.Fatalln(err)
+	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(San, []string{l.Name()}, params)
+		commandSet(Licd, []string{l.Name()}, params)
+		loadConfig(&l)
 	}
 
 	// check tls config, create certs if found

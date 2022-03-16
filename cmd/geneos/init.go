@@ -14,7 +14,7 @@ func init() {
 		Function:    commandInit,
 		ParseFlags:  initFlag,
 		ParseArgs:   nil,
-		CommandLine: `geneos init [-d] [-a FILE] [-S] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY]`,
+		CommandLine: `geneos init [USERNAME] [DIRECTORY] [-d|-a FILE|-S] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [VARS]`,
 		Summary:     `Initialise a Geneos installation`,
 		Description: `Initialise a Geneos installation by creating the directory hierarchy and
 user configuration file, with the USERNAME and DIRECTORY if supplied.
@@ -44,19 +44,28 @@ only the configuration file for that user is created. e.g.:
 When USERNAME is supplied then the command must either be run with
 superuser privileges or be run by the same user.
 
+Any VARS provided are passed to the 'add' command called for
+components created
+
 FLAGS:
 
-	-d	Initialise a Demo environment
+	-d		Initialise a Demo environment
 	-a LICENSE	Initialise a basic environment an import the give file as a license for licd
-	-S gateway1[:port1][,gateway2[:port2]...]	Initialise a environment with one Self-Announcing Netprobe connecting to one or more gateways with optional port values. If a signing certificate and key are provided then create a cert and connect with TLS. If a SAN template is provided (-s below) then use that to create the configuration. The default template uses the hostname to identify the SAN.
-	-n NAME	use NAME as the default for instances and configurations instead of the hostname
-	-c CERTFILE	Import the CERTFILE as a signing certificate with an optional embedded private key. This also intialises the TLS environment and all instances have certificates created for them
+	-S		Initialise a environment with one Self-Announcing Netprobe.
+			If a signing certificate and key are provided then also
+			create a certificate and connect with TLS. If a SAN
+			template is provided (-s path) then use that to create
+			the configuration. The default template uses the hostname
+			to identify the SAN unless -n NAME is given.
+	-n NAME		Use NAME as the default for instances and configurations instead of the hostname
+	-c CERTFILE	Import the CERTFILE as a signing certificate with an optional embedded private key.
+			This also intialises the TLS environment and all instances have certificates created for them
 	-k KEYFILE	Import the KEYFILE as a signing key. Overrides any embedded key in CERTFILE above
 
-	-g TEMPLATE Import a Gateway template file (local or URL) to replace of built-in default
+	-g TEMPLATE	Import a Gateway template file (local or URL) to replace of built-in default
 	-s TEMPLATE	Import a San template file (local or URL) to replace the built-in default 
 
-	The '-d' and '-a' flags are mutually exclusive.
+	The '-d', '-a' and '-S' flags are mutually exclusive.
 `}
 
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
@@ -176,6 +185,8 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 			}
 		}
 	}
+
+	logDebug.Println("args, params:", args, params)
 
 	if len(params) > 0 {
 		if err = initFlagSet.Parse(params); err != nil {
@@ -347,10 +358,10 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		n := []string{"localhost@" + remote.String()}
 		w := []string{"demo@" + remote.String()}
 		commandDownload(None, e, e)
-		commandAdd(Gateway, g, e)
+		commandAdd(Gateway, g, params)
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
-		commandAdd(Netprobe, n, e)
-		commandAdd(Webserver, w, e)
+		commandAdd(Netprobe, n, params)
+		commandAdd(Webserver, w, params)
 		// call defaultArgs() on an empty list to populate for loopCommand()
 		ct, args, params := defaultArgs(r)
 		commandStart(ct, args, params)
@@ -386,11 +397,11 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		g := []string{initFlags.Name}
 		n := []string{"localhost@" + remote.String()}
 		commandDownload(None, e, e)
-		commandAdd(Licd, g, e)
+		commandAdd(Licd, g, params)
 		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
-		commandAdd(Gateway, g, e)
-		commandAdd(Netprobe, n, e)
-		commandAdd(Webserver, g, e)
+		commandAdd(Gateway, g, params)
+		commandAdd(Netprobe, n, params)
+		commandAdd(Webserver, g, params)
 		// call defaultArgs() on an empty list to populate for loopCommand()
 		ct, args, params := defaultArgs(r)
 		commandStart(ct, args, params)

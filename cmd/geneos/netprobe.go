@@ -83,11 +83,14 @@ func (n Netprobes) Add(username string, params []string, tmpl string) (err error
 	n.NetpPort = nextPort(n.Location(), GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username
 
-	writeInstanceConfig(n)
+	if err = writeInstanceConfig(n); err != nil {
+		logError.Fatalln(err)
+	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(San, []string{n.Name()}, params)
+		commandSet(Netprobe, []string{n.Name()}, params)
+		loadConfig(&n)
 	}
 
 	// check tls config, create certs if found
