@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 // remote support
@@ -29,7 +30,12 @@ type RemoteName string
 const LOCAL RemoteName = "local"
 const ALL RemoteName = "all"
 
+var rLOCAL, rALL Remotes
+
 type Remotes struct {
+	sshClient  *ssh.Client
+	sftpClient *sftp.Client
+
 	InstanceBase
 	HomeDir  string `default:"{{join .RemoteRoot \"remotes\" .InstanceName}}"`
 	Hostname string
@@ -51,6 +57,10 @@ func init() {
 		"remotes",
 	})
 	RegisterSettings(GlobalSettings{})
+
+	// create placeholder structs
+	rLOCAL = NewRemote(string(LOCAL)).(Remotes)
+	rALL = NewRemote(string(ALL)).(Remotes)
 }
 
 // interface method set
@@ -184,15 +194,15 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	return
 }
 
-func (c Remotes) Command() (args, env []string) {
+func (r Remotes) Command() (args, env []string) {
 	return
 }
 
-func (c Remotes) Clean(purge bool, params []string) (err error) {
+func (r Remotes) Clean(purge bool, params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (c Remotes) Reload(params []string) (err error) {
+func (r Remotes) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
@@ -228,13 +238,13 @@ func (r *Remotes) getOSReleaseEnv() (err error) {
 	return
 }
 
-func loadRemoteConfig(remote RemoteName) (c *Remotes) {
-	c = NewRemote(remote.String()).(*Remotes)
+func loadRemoteConfig(remote RemoteName) (r *Remotes) {
 	if remote == LOCAL {
-		return
+		return &rLOCAL
 	}
+	r = NewRemote(remote.String()).(*Remotes)
 	// no error check, c will be nil on failure
-	loadConfig(c)
+	loadConfig(r)
 	return
 }
 

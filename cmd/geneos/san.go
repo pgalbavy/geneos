@@ -193,7 +193,7 @@ func (s Sans) Rebuild(initial bool) error {
 	if err := writeInstanceConfig(s); err != nil {
 		log.Fatalln(err)
 	}
-	return writeConfig(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
+	return createConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
 }
 
 func (c Sans) Command() (args, env []string) {

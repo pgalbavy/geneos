@@ -127,7 +127,7 @@ func (g Gateways) Rebuild(initial bool) error {
 	if !initial && g.ConfigRebuild != "always" {
 		return ErrNoAction
 	}
-	return writeConfig(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
+	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }
 
 func (c Gateways) Command() (args, env []string) {

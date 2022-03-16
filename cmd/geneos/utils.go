@@ -515,24 +515,25 @@ func readSourceBytes(source string) (b []byte) {
 // load templates from TYPE/templates/[tmpl]* and parse it using the intance data
 // write it out to a single file. If tmpl is empty, load all files
 //
-func writeConfig(c Instances, path string, name string, defaultTemplate []byte) (err error) {
+func createConfigFromTemplate(c Instances, path string, name string, defaultTemplate []byte) (err error) {
 	var out io.WriteCloser
 	var t *template.Template
 
 	if t, err = template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*")); err != nil {
-		// if there are no templates, use internal ?
-		if t, err = template.New(name).Parse(string(defaultTemplate)); err != nil {
-			log.Fatalln(err)
-		}
+		// if there are no templates, use internal as a fallback
+		log.Printf("No templates found in %s, using internal defaults", GeneosPath(c.Location(), c.Type().String(), "templates"))
+		t = template.Must(template.New(name).Parse(string(defaultTemplate)))
 	}
 
 	if out, err = createFile(c.Location(), path, 0660); err != nil {
-		log.Fatalln("create", err)
+		log.Printf("Cannot create configurtion file %s:%s", c.Location(), path)
+		return err
 	}
 	defer out.Close()
 
 	if err = t.ExecuteTemplate(out, name, c); err != nil {
-		logError.Fatalln("exec", err)
+		log.Println("Cannot create configuration from template(s):", err)
+		return err
 	}
 
 	return
