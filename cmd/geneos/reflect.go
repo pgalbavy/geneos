@@ -86,7 +86,7 @@ func setField(c interface{}, k string, v string) (err error) {
 			return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
 		}
 	} else {
-		return fmt.Errorf("cannot set %q: %w (isValid=%v, canset=%v, type=%v)", k, ErrInvalidArgs, fv.IsValid(), fv.CanSet(), fv.Type())
+		return fmt.Errorf("cannot set %q: %w (isValid=%v, canset=%v)", k, ErrInvalidArgs, fv.IsValid(), fv.CanSet())
 	}
 	return
 }
