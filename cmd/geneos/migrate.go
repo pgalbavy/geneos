@@ -50,7 +50,7 @@ func migrateConfig(c Instances) (err error) {
 
 	// if .json exists, return
 	if _, err = statFile(c.Location(), baseconf+".json"); err == nil {
-		return
+		return nil
 	}
 
 	// write new .json

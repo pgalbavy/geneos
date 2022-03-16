@@ -404,6 +404,9 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	// now loop through the collected results and write out
 	for _, c := range instances {
+		if err = migrateConfig(c); err != nil {
+			log.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
+		}
 		if err = writeInstanceConfig(c); err != nil {
 			log.Fatalln(err)
 		}
