@@ -128,14 +128,14 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
-	if err = initGeneos(LOCAL, args); err != nil {
+	if err = initGeneos(LOCAL, []string{}, args); err != nil {
 		log.Fatalln(err)
 	}
 
 	return
 }
 
-func initGeneos(remote RemoteName, args []string) (err error) {
+func initGeneos(remote RemoteName, args, params []string) (err error) {
 	var dir string
 	var uid, gid uint32
 	var username, homedir string
@@ -196,7 +196,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		case 1: // home = abs path
 			dir, _ = filepath.Abs(args[0])
 		default:
-			logError.Fatalln("too many args")
+			logError.Fatalln("too many args:", args, params)
 		}
 	}
 
@@ -325,6 +325,8 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	//
 	if initFlags.SAN != "" {
 		var sanname string
+		var s []string
+
 		if initFlags.Name != "" {
 			sanname = initFlags.Name
 		} else {
@@ -333,7 +335,12 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		if remote != LOCAL {
 			sanname = sanname + "@" + remote.String()
 		}
-		commandAdd(San, []string{sanname}, e)
+		s = []string{sanname}
+		commandAdd(San, s, e)
+		if len(params) > 0 {
+			commandSet(San, s, params)
+			commandRebuild(San, s, e)
+		}
 		ct, args, params := defaultArgs(r)
 		commandDownload(Netprobe, e, e)
 		commandStart(ct, args, params)
