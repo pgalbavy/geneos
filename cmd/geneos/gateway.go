@@ -126,7 +126,9 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&g)
 		// if we have certs then connect to Licd securely
-		g.GateLicS = "true"
+		if g.GateLicS == "" {
+			g.GateLicS = "true"
+		}
 		writeInstanceConfig(g)
 	}
 
@@ -172,10 +174,6 @@ func (c Gateways) Command() (args, env []string) {
 		args = append(args, "-licd-port", fmt.Sprint(c.GateLicP))
 	}
 
-	if c.GateLicS != "" && c.GateLicS != "false" {
-		args = append(args, "-licd-secure")
-	}
-
 	if c.GateCert != "" {
 		if c.GateLicS == "" || c.GateLicS != "false" {
 			args = append(args, "-licd-secure")
@@ -183,6 +181,8 @@ func (c Gateways) Command() (args, env []string) {
 		args = append(args, "-ssl-certificate", c.GateCert)
 		chainfile := GeneosPath(c.Location(), "tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
+	} else if c.GateLicS != "" && c.GateLicS == "true" {
+		args = append(args, "-licd-secure")
 	}
 
 	if c.GateKey != "" {

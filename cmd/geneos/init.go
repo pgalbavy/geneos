@@ -149,6 +149,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	var a string
 	var params []string
 
+	// move all args starting with first flag to params
 	for i, a = range args {
 		if strings.HasPrefix(a, "-") {
 			params = args[i:]
@@ -158,6 +159,45 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 				args = []string{}
 			}
 			break
+		}
+	}
+
+	// move all args to params from first on containing an '='
+	if len(params) == 0 {
+		for i, a = range args {
+			if strings.Contains(a, "=") {
+				params = args[i:]
+				if i > 0 {
+					args = args[:i]
+				} else {
+					args = []string{}
+				}
+				break
+			}
+		}
+	}
+
+	if len(params) > 0 {
+		if err = initFlagSet.Parse(params); err != nil {
+			log.Fatalln(err)
+		}
+
+		params = initFlagSet.Args()
+
+		if initFlags.SanTmpl != "" {
+			tmpl := readSourceBytes(initFlags.SanTmpl)
+			if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+				log.Fatalln(err)
+			}
+		}
+
+		// both options can import arbitrary PEM files, fix this
+		if initFlags.SigningCert != "" {
+			TLSImport(initFlags.SigningCert)
+		}
+
+		if initFlags.SigningKey != "" {
+			TLSImport(initFlags.SigningKey)
 		}
 	}
 
@@ -348,10 +388,6 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		}
 		s = []string{sanname}
 		commandAdd(San, s, params)
-		ct, args, params := defaultArgs(r)
-		commandDownload(Netprobe, e, e)
-		commandStart(ct, args, params)
-		commandPS(ct, args, params)
 		return nil
 	}
 
