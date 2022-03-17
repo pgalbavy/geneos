@@ -182,11 +182,6 @@ func lsInstanceJSONRemotes(c Instances, params []string) (err error) {
 	return
 }
 
-// TODO: CSV and JSON versions for automation
-//
-// list instance processes: type, name, uid, gid, threads, starttime, directory, fds, args (?)
-//
-
 var psTabWriter *tabwriter.Writer
 
 type psType struct {
