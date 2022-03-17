@@ -94,7 +94,7 @@ func findInstanceProc(c Instances) (pid int, uid uint32, gid uint32, mtime int64
 	if err == nil {
 		var s fileStat
 		s, err = statFile(c.Location(), fmt.Sprintf("/proc/%d", pid))
-		return pid, s.uid, s.uid, s.mtime, err
+		return pid, s.uid, s.gid, s.mtime, err
 	}
 	return 0, 0, 0, 0, ErrProcNotExist
 }
