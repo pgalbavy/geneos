@@ -110,21 +110,21 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func lsInstancePlainRemotes(c Instances, params []string) (err error) {
-	var suffix string
-	if Disabled(c) {
-		suffix = "*"
-	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome"))
-	return
-}
-
 func lsInstancePlain(c Instances, params []string) (err error) {
 	var suffix string
 	if Disabled(c) {
 		suffix = "*"
 	}
 	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), c.Home())
+	return
+}
+
+func lsInstancePlainRemotes(c Instances, params []string) (err error) {
+	var suffix string
+	if Disabled(c) {
+		suffix = "*"
+	}
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome"))
 	return
 }
 
