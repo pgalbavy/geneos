@@ -152,7 +152,7 @@ func (c Gateways) Command() (args, env []string) {
 	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
 	//
 	args = []string{
-		/* "-gateway-name",  */ c.Name(),
+		c.Name(),
 		"-resources-dir",
 		filepath.Join(c.GateBins, c.GateBase, "resources"),
 		"-log",
@@ -161,11 +161,14 @@ func (c Gateways) Command() (args, env []string) {
 		"-stats",
 	}
 
-	// only add a port arg is the value is defined - empty means use config file
-	port := c.GatePort
-	if port != 7039 {
-		args = append([]string{"-port", fmt.Sprint(port)}, args...)
+	// check version
+	// "-gateway-name",
+
+	if c.GateName != c.Name() {
+		args = append([]string{c.GateName}, args...)
 	}
+
+	args = append([]string{"-port", fmt.Sprint(c.GatePort)}, args...)
 
 	if c.GateLicH != "" {
 		args = append(args, "-licd-host", c.GateLicH)
