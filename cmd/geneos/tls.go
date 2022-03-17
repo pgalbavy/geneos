@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/csv"
@@ -127,6 +128,7 @@ type lsCertType struct {
 	Issuer      string
 	SubAltNames []string
 	IPs         []net.IP
+	Signature   string
 }
 
 func listCertsCommand(ct Component, args []string, params []string) (err error) {
@@ -150,6 +152,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				rootCert.Issuer.CommonName,
 				nil,
 				nil,
+				fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
 			})
 		}
 		if geneosCert != nil {
@@ -163,6 +166,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				geneosCert.Issuer.CommonName,
 				nil,
 				nil,
+				fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
 			})
 		}
 		err = ct.loopCommand(lsInstanceCertJSON, args, params)
@@ -178,6 +182,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 			"Issuer",
 			"SubjAltNames",
 			"IPs",
+			"Signature",
 		})
 		if rootCert != nil {
 			csvWriter.Write([]string{
@@ -190,6 +195,7 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				rootCert.Issuer.CommonName,
 				"[]",
 				"[]",
+				fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
 			})
 		}
 		if geneosCert != nil {
@@ -203,22 +209,23 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 				geneosCert.Issuer.CommonName,
 				"[]",
 				"[]",
+				fmt.Sprintf("%X", sha1.Sum(geneosCert.Raw)),
 			})
 		}
 		err = ct.loopCommand(lsInstanceCertCSV, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tRemaining\tExpires\tCommonName\tIssuer\tSubjAltNames\tIPs\n")
+		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tRemaining\tExpires\tCommonName\tIssuer\tSubjAltNames\tIPs\tFingerprint\n")
 		if rootCert != nil {
-			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", rootCAFile, LOCAL,
+			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t%X\n", rootCAFile, LOCAL,
 				time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
-				rootCert.Subject.CommonName, rootCert.Issuer.CommonName)
+				rootCert.Subject.CommonName, rootCert.Issuer.CommonName, sha1.Sum(rootCert.Raw))
 		}
 		if geneosCert != nil {
-			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t\n", signingCertFile, LOCAL,
+			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t%X\n", signingCertFile, LOCAL,
 				time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
-				geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName)
+				geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName, sha1.Sum(geneosCert.Raw))
 		}
 		err = ct.loopCommand(lsInstanceCert, args, params)
 		lsTabWriter.Flush()
@@ -252,7 +259,7 @@ func lsInstanceCert(c Instances, params []string) (err error) {
 	if len(cert.IPAddresses) > 0 {
 		fmt.Fprintf(lsTabWriter, "%v", cert.IPAddresses)
 	}
-	fmt.Fprintf(lsTabWriter, "\n")
+	fmt.Fprintf(lsTabWriter, "\t%X\n", sha1.Sum(cert.Raw))
 	return
 }
 
@@ -270,6 +277,7 @@ func lsInstanceCertCSV(c Instances, params []string) (err error) {
 	cols := []string{c.Type().String(), c.Name(), string(c.Location()), until, expires.String(), cert.Subject.CommonName, cert.Issuer.CommonName}
 	cols = append(cols, fmt.Sprintf("%v", cert.DNSNames))
 	cols = append(cols, fmt.Sprintf("%v", cert.IPAddresses))
+	cols = append(cols, fmt.Sprintf("%X", sha1.Sum(cert.Raw)))
 
 	csvWriter.Write(cols)
 	return
@@ -285,7 +293,7 @@ func lsInstanceCertJSON(c Instances, params []string) (err error) {
 		return
 	}
 	jsonEncoder.Encode(lsCertType{c.Type().String(), c.Name(), c.Location(), time.Duration(time.Until(cert.NotAfter).Seconds()),
-		cert.NotAfter, cert.Subject.CommonName, cert.Issuer.CommonName, cert.DNSNames, cert.IPAddresses})
+		cert.NotAfter, cert.Subject.CommonName, cert.Issuer.CommonName, cert.DNSNames, cert.IPAddresses, fmt.Sprintf("%X", sha1.Sum(cert.Raw))})
 	return
 }
 

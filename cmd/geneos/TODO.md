@@ -11,6 +11,7 @@
 * Command line verbosity control - PARTIAL
 * TLS support
   * output chain.pem file / or to stdout for sharing
+  * Generate user certs and output signatures for config 
 * Docker / Compose file build from selection of components
 * check capabilities and not just setuid/root user
 * Run REST commands against gateways
