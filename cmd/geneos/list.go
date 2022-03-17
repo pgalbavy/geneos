@@ -77,12 +77,12 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 			err = ct.loopCommand(lsInstanceJSONRemotes, args, params)
 		case listCSV:
 			csvWriter = csv.NewWriter(log.Writer())
-			csvWriter.Write([]string{"Type", "Name", "Disabled", "Hostname", "Port", "ITRSHome"})
+			csvWriter.Write([]string{"Type", "Name", "Disabled", "Username", "Hostname", "Port", "ITRSHome"})
 			err = ct.loopCommand(lsInstanceCSVRemotes, args, params)
 			csvWriter.Flush()
 		default:
 			lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-			fmt.Fprintf(lsTabWriter, "Type\tName\tHostname:Port\tITRSHome\n")
+			fmt.Fprintf(lsTabWriter, "Type\tName\tUsername\tHostname:Port\tITRSHome\n")
 			err = ct.loopCommand(lsInstancePlainRemotes, args, params)
 			lsTabWriter.Flush()
 		}
@@ -124,7 +124,7 @@ func lsInstancePlainRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome"))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome"))
 	return
 }
 
@@ -142,7 +142,7 @@ func lsInstanceCSVRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, getString(c, "Hostname"), fmt.Sprint(getInt(c, "Port")), getString(c, "ITRSHome")})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, getString(c, "Username"), getString(c, "Hostname"), fmt.Sprint(getInt(c, "Port")), getString(c, "ITRSHome")})
 	return
 }
 
@@ -158,6 +158,7 @@ type lsTypeRemotes struct {
 	Type     string
 	Name     string
 	Disabled string
+	Username string
 	Hostname string
 	Port     int64
 	ITRSHome string
@@ -177,7 +178,7 @@ func lsInstanceJSONRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome")})
+	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome")})
 	return
 }
 
