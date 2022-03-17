@@ -15,9 +15,11 @@ func init() {
 	GlobalConfig = make(GlobalSettings)
 
 	commands["show"] = Command{
-		Function:   commandShow,
-		ParseFlags: defaultFlag,
-		ParseArgs:  defaultArgs,
+		Function:      commandShow,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
 		CommandLine: `geneos show
 	geneos show [global|user]
 	geneos show [TYPE] [NAME...]`,
@@ -40,11 +42,13 @@ Passwords and secrets are redacted in a very simplistic manner simply
 to prevent visibility in casual viewing.`}
 
 	commands["rename"] = Command{
-		Function:    commandRename,
-		ParseFlags:  defaultFlag,
-		ParseArgs:   checkComponentArg,
-		CommandLine: `geneos rename TYPE FROM TO`,
-		Summary:     `Rename an instance`,
+		Function:      commandRename,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: true,
+		CommandLine:   `geneos rename TYPE FROM TO`,
+		Summary:       `Rename an instance`,
 		Description: `Rename an instance. TYPE is requied to resolve any ambiguities if two instances
 share the same name. No configuration changes outside the instance JSON config file. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
@@ -52,11 +56,13 @@ The instance is stopped and restarted after the instance directory and configura
 It is an error to try to rename an instance to one that already exists with the same name.`}
 
 	commands["delete"] = Command{
-		Function:    commandDelete,
-		ParseFlags:  deleteFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: `geneos delete [TYPE] [NAME...]`,
-		Summary:     `Delete an instance. Instance must be stopped.`,
+		Function:      commandDelete,
+		ParseFlags:    deleteFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   `geneos delete [TYPE] [NAME...]`,
+		Summary:       `Delete an instance. Instance must be stopped.`,
 		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
 accidental deletion. The instance directory is removed without being backed-up. The user running
 the command must have the appropriate permissions and a partial deletion cannot be protected
@@ -67,11 +73,13 @@ against.`}
 	deleteFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["rebuild"] = Command{
-		Function:    commandRebuild,
-		ParseFlags:  rebuildFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: `geneos rebuild [-f] [-n] [TYPE] {NAME...]`,
-		Summary:     `Rebuild instance configuration files`,
+		Function:      commandRebuild,
+		ParseFlags:    rebuildFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   `geneos rebuild [-f] [-n] [TYPE] {NAME...]`,
+		Summary:       `Rebuild instance configuration files`,
 		Description: `Rebuild instance configuration files based on current templates and instance configuration values
 		
 FLAGS:

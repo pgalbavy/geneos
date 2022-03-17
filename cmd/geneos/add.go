@@ -18,11 +18,13 @@ import (
 
 func init() {
 	commands["add"] = Command{
-		Function:    commandAdd,
-		ParseFlags:  flagsAdd,
-		ParseArgs:   parseArgsNoWildcard,
-		CommandLine: "geneos add [-t FILE] TYPE NAME",
-		Summary:     `Add a new instance`,
+		Function:      commandAdd,
+		ParseFlags:    flagsAdd,
+		ParseArgs:     defaultArgs,
+		Wildcard:      false,
+		ComponentOnly: false,
+		CommandLine:   "geneos add [-t FILE] TYPE NAME",
+		Summary:       `Add a new instance`,
 		Description: `Add a new instance called NAME with the TYPE supplied. The details will depends on the
 TYPE. Currently the listening port is selected automatically and other options are defaulted. If
 these need to be changed before starting, see the edit command.
@@ -39,11 +41,13 @@ FLAGS:
 	addFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["import"] = Command{
-		Function:    commandImport,
-		ParseFlags:  defaultFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos import [TYPE] NAME [NAME...] [DEST=]SOURCE [[DEST=]SOURCE...]",
-		Summary:     `Import file(s) to an instance.`,
+		Function:      commandImport,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: true,
+		CommandLine:   "geneos import [TYPE] NAME [NAME...] [DEST=]SOURCE [[DEST=]SOURCE...]",
+		Summary:       `Import file(s) to an instance.`,
 		Description: `Import file(s) to the instance directory. This can be used to add
 configuration or license files or scripts for gateways and netprobes
 to run. The SOURCE can be a local path or a url or a '-' for stdin. DEST

@@ -16,11 +16,13 @@ import (
 
 func init() {
 	commands["logs"] = Command{
-		Function:    commandLogs,
-		ParseFlags:  logsFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos logs [FLAGS] [TYPE] [NAME...]",
-		Summary:     `Show log(s) for instances.`,
+		Function:      commandLogs,
+		ParseFlags:    logsFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos logs [FLAGS] [TYPE] [NAME...]",
+		Summary:       `Show log(s) for instances.`,
 		Description: `Show log(s) for instances.
 
 FLAGS:

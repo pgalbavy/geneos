@@ -14,11 +14,13 @@ import (
 
 func init() {
 	commands["start"] = Command{
-		Function:    commandStart,
-		ParseFlags:  startFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: `geneos start [-l] [TYPE] [NAME...]`,
-		Summary:     `Start one or more instances.`,
+		Function:      commandStart,
+		ParseFlags:    startFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   `geneos start [-l] [TYPE] [NAME...]`,
+		Summary:       `Start one or more instances.`,
 		Description: `Start one or more matching instances. All instances are run in the background and
 STDOUT and STDERR are redirected to a '.txt' file in the instance directory.
 
@@ -31,11 +33,13 @@ FLAGS:
 	startFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["stop"] = Command{
-		Function:    commandStop,
-		ParseFlags:  stopFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: `geneos stop [-f] [TYPE] [NAME...]`,
-		Summary:     `Stop one or more instances`,
+		Function:      commandStop,
+		ParseFlags:    stopFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   `geneos stop [-f] [TYPE] [NAME...]`,
+		Summary:       `Stop one or more instances`,
 		Description: `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and
 if the instance is still running after a few seconds then a SIGKILL is sent. If the -f flag
 is given the instance(s) are immediately terminated with a SIGKILL.
@@ -50,11 +54,13 @@ FLAGS:
 	stopFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["restart"] = Command{
-		Function:    commandRestart,
-		ParseFlags:  restartFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos restart [-l] [TYPE] [NAME...]",
-		Summary:     `Restart one or more instances.`,
+		Function:      commandRestart,
+		ParseFlags:    restartFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos restart [-l] [TYPE] [NAME...]",
+		Summary:       `Restart one or more instances.`,
 		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.
 
 FLAGS:
@@ -68,20 +74,24 @@ FLAGS:
 	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	commands["disable"] = Command{
-		Function:    commandDisable,
-		ParseFlags:  defaultFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos disable [TYPE] [NAME...]",
-		Summary:     `Disable (and stop) one or more instances.`,
-		Description: `Mark any matching instances as disabled. The instances are also stopped.`}
+		Function:      commandDisable,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos disable [TYPE] [NAME...]",
+		Summary:       `Disable (and stop) one or more instances.`,
+		Description:   `Mark any matching instances as disabled. The instances are also stopped.`}
 
 	commands["enable"] = Command{
-		Function:    commandEneable,
-		ParseFlags:  enableFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos enable [TYPE] [NAME...]",
-		Summary:     `Enable one or more instances. Only previously disabled instances are started.`,
-		Description: `Mark any matcing instances as enabled and if this changes status then start the instance.`}
+		Function:      commandEneable,
+		ParseFlags:    enableFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos enable [TYPE] [NAME...]",
+		Summary:       `Enable one or more instances. Only previously disabled instances are started.`,
+		Description:   `Mark any matcing instances as enabled and if this changes status then start the instance.`}
 
 	enableFlags = flag.NewFlagSet("enable", flag.ExitOnError)
 	enableFlags.BoolVar(&enableNoStart, "n", false, "Do not auto-start enabled instances")

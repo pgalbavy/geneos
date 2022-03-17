@@ -12,31 +12,37 @@ import (
 
 func init() {
 	commands["ls"] = Command{
-		Function:    commandLS,
-		ParseFlags:  flagsList,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos ls [-c|-j] [TYPE] [NAME...]",
-		Summary:     `List instances, optionally in CSV or JSON format.`,
+		Function:      commandLS,
+		ParseFlags:    flagsList,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos ls [-c|-j] [TYPE] [NAME...]",
+		Summary:       `List instances, optionally in CSV or JSON format.`,
 		Description: `List the matching instances and their component type.
 	
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
 	commands["ps"] = Command{
-		Function:    commandPS,
-		ParseFlags:  flagsList,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos ps [-c|-j] [TYPE] [NAMES...]",
-		Summary:     `List process information for instances, optionally in CSV or JSON format.`,
+		Function:      commandPS,
+		ParseFlags:    flagsList,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos ps [-c|-j] [TYPE] [NAMES...]",
+		Summary:       `List process information for instances, optionally in CSV or JSON format.`,
 		Description: `Show the status of the matching instances.
 
 Future versions will support CSV or JSON output formats for automation and monitoring.`}
 
 	commands["command"] = Command{
-		Function:    commandCommand,
-		ParseFlags:  nil,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos command [TYPE] [NAME...]",
-		Summary:     `Show command arguments and environment for instances.`,
+		Function:      commandCommand,
+		ParseFlags:    nil,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos command [TYPE] [NAME...]",
+		Summary:       `Show command arguments and environment for instances.`,
 		Description: `Show the full command line for the matching instances along with any environment variables
 explicitly set for execution.
 

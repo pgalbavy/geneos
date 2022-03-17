@@ -363,7 +363,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		commandAdd(Netprobe, n, params)
 		commandAdd(Webserver, w, params)
 		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(r)
+		ct, args, params := defaultArgs(r, true, false)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return
@@ -403,7 +403,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		commandAdd(Netprobe, n, params)
 		commandAdd(Webserver, g, params)
 		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(r)
+		ct, args, params := defaultArgs(r, true, false)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return nil

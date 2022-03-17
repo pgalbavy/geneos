@@ -21,11 +21,13 @@ import (
 
 func init() {
 	commands["extract"] = Command{
-		Function:    commandExtract,
-		ParseFlags:  flagsExtract,
-		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos extract [-r REMOTE] [TYPE] | FILE [FILE...]",
-		Summary:     `Extract files from downloaded Geneos packages. Intended for sites without Internet access.`,
+		Function:      commandExtract,
+		ParseFlags:    flagsExtract,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: true,
+		CommandLine:   "geneos extract [-r REMOTE] [TYPE] | FILE [FILE...]",
+		Summary:       `Extract files from downloaded Geneos packages. Intended for sites without Internet access.`,
 		Description: `Extracts files from FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
 	geneos-TYPE-VERSION*.tar.gz
@@ -45,11 +47,13 @@ FLAGS:
 	extractFlags.StringVar(&extractRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["download"] = Command{
-		Function:    commandDownload,
-		ParseFlags:  flagsDownload,
-		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos download [-n] [-r REMOTE] [TYPE] [latest|FILTER|URL...]",
-		Summary:     `Download and extract Geneos software archive.`,
+		Function:      commandDownload,
+		ParseFlags:    flagsDownload,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: true,
+		CommandLine:   "geneos download [-n] [-r REMOTE] [TYPE] [latest|FILTER|URL...]",
+		Summary:       `Download and extract Geneos software archive.`,
 		Description: `Download and extract the sources in the packages directory or latest version(s) from
 the official download site. The filename must of of the format:
 
@@ -73,11 +77,13 @@ FLAGS:
 	downloadFlags.StringVar(&downloadRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
 	commands["update"] = Command{
-		Function:    commandUpdate,
-		ParseFlags:  flagsUpdate,
-		ParseArgs:   checkComponentArg,
-		CommandLine: "geneos update [-r REMOTE] [TYPE] VERSION",
-		Summary:     `Update the active version of Geneos software.`,
+		Function:      commandUpdate,
+		ParseFlags:    flagsUpdate,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: true,
+		CommandLine:   "geneos update [-r REMOTE] [TYPE] VERSION",
+		Summary:       `Update the active version of Geneos software.`,
 		Description: `Update the symlink for the default base name of the package used to VERSION. The base directory,
 		for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
 in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not

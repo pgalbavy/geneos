@@ -8,9 +8,11 @@ import (
 
 func init() {
 	commands["edit"] = Command{
-		Function:   commandEdit,
-		ParseFlags: defaultFlag,
-		ParseArgs:  defaultArgs,
+		Function:      commandEdit,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
 		CommandLine: `geneos edit [global|user]
 	geneos edit [TYPE] [NAME...]`,
 		Summary: `Open an editor for instance configuration file.`,

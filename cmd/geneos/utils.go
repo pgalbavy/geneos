@@ -223,7 +223,45 @@ func canControl(c Instances) bool {
 // any args with '=' are treated as parameters
 //
 // a bare argument with a '@' prefix means all instance of type on a remote
-func defaultArgs(rawargs []string) (ct Component, args []string, params []string) {
+func defaultArgs(rawargs []string, wildcard bool, componentOnly bool) (ct Component, args []string, params []string) {
+	if !wildcard {
+		var newnames []string
+
+		if len(rawargs) == 0 {
+			return
+		}
+		if ct = parseComponentName(rawargs[0]); ct == Unknown {
+			return
+		}
+		args = rawargs[1:]
+
+		logDebug.Println("ct, args, params", ct, args, params)
+
+		m := make(map[string]bool, len(args))
+		for i, name := range args {
+			// filter name here
+			if reservedName(name) {
+				logError.Fatalf("%q is reserved instance name", name)
+			}
+			if !validInstanceName(name) {
+				// first invalid name end processing, save the rest as params
+				logDebug.Printf("%q is not a valid instance name, stopped processing args", name)
+				params = args[i:]
+				break
+			}
+			// simply ignore duplicates
+			if m[name] {
+				continue
+			}
+			newnames = append(newnames, name)
+			m[name] = true
+		}
+		args = newnames
+
+		logDebug.Println("params:", params)
+		return
+	}
+
 	var wild bool
 	// work through wildcard options
 	if len(rawargs) == 0 {
@@ -235,6 +273,10 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 		args = rawargs
 	} else {
 		args = rawargs[1:]
+	}
+
+	if componentOnly {
+		return
 	}
 
 	if len(args) == 0 {
@@ -307,60 +349,6 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 	}
 
 	logDebug.Println("ct, args, params", ct, args, params)
-	return
-}
-
-// for commands (like 'add') that don't want to know about existing matches
-func parseArgsNoWildcard(rawargs []string) (ct Component, args []string, params []string) {
-	var newnames []string
-
-	if len(rawargs) == 0 {
-		return
-	}
-	if ct = parseComponentName(rawargs[0]); ct == Unknown {
-		return
-	}
-	args = rawargs[1:]
-
-	logDebug.Println("ct, args, params", ct, args, params)
-
-	m := make(map[string]bool, len(args))
-	for i, name := range args {
-		// filter name here
-		if reservedName(name) {
-			logError.Fatalf("%q is reserved instance name", name)
-		}
-		if !validInstanceName(name) {
-			// first invalid name end processing, save the rest as params
-			logDebug.Printf("%q is not a valid instance name, stopped processing args", name)
-			params = args[i:]
-			break
-		}
-		// simply ignore duplicates
-		if m[name] {
-			continue
-		}
-		newnames = append(newnames, name)
-		m[name] = true
-	}
-	args = newnames
-
-	logDebug.Println("params:", params)
-	return
-}
-
-// no wildcards or parameters, just check the first arg for a valid component type and
-// return the rest as args. the caller has to check component type for validity
-func checkComponentArg(rawargs []string) (ct Component, args []string, params []string) {
-	if len(rawargs) == 0 {
-		ct = None
-	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
-		ct = None
-		args = rawargs
-	} else {
-		args = rawargs[1:]
-	}
-
 	return
 }
 

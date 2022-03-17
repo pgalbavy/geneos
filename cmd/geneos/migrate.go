@@ -8,20 +8,24 @@ import (
 
 func init() {
 	commands["migrate"] = Command{
-		Function:    commandMigrate,
-		ParseFlags:  defaultFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: "geneos migrate [TYPE] [NAME...]",
-		Summary:     `Migrate legacy .rc configuration to .json`,
+		Function:      commandMigrate,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos migrate [TYPE] [NAME...]",
+		Summary:       `Migrate legacy .rc configuration to .json`,
 		Description: `Migrate any legacy .rc configuration files to JSON format and rename the .rc file to
 .rc.orig.`}
 
 	commands["revert"] = Command{
-		Function:    commandRevert,
-		ParseFlags:  defaultFlag,
-		ParseArgs:   defaultArgs,
-		CommandLine: `geneos revert [TYPE] [NAME...]`,
-		Summary:     `Revert migration of .rc files from backups.`,
+		Function:      commandRevert,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   `geneos revert [TYPE] [NAME...]`,
+		Summary:       `Revert migration of .rc files from backups.`,
 		Description: `Revert migration of legacy .rc files to JSON ir the .rc.orig backup file still exists.
 Any changes to the instance configuration since initial migration will be lost as the .rc file
 is never written to.`}

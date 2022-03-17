@@ -19,12 +19,16 @@ type Command struct {
 	// flags and return the unprocessed args. This allows each command to have it's own command line options after
 	// the command name but before all the other arguments and parameters, e.g. "geneos logs -f example"
 	ParseFlags func(string, []string) []string
-	// Optional function to parse arguments. Given the remaining args after ParseFlags is done evaluate if there
+	// Function to parse arguments. Given the remaining args after ParseFlags is done evaluate if there
 	// is a Component and then separate command args from optional parameters. Any args that do not match
 	// instance names are left on the params slice. It is up to the command
-	ParseArgs func([]string) (Component, []string, []string)
+	//
+	// Updated version takes two more args, nowildacrd (bool) and componentonly (bool)
+	ParseArgs func([]string, bool, bool) (Component, []string, []string)
 	// Command Syntax
-	CommandLine string
+	Wildcard      bool
+	ComponentOnly bool
+	CommandLine   string
 	// Short description
 	Summary string
 	// More detailed help

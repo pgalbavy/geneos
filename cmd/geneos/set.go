@@ -12,9 +12,11 @@ import (
 
 func init() {
 	commands["set"] = Command{
-		Function:   commandSet,
-		ParseFlags: defaultFlag,
-		ParseArgs:  defaultArgs,
+		Function:      commandSet,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     defaultArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]
 	geneos set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]`,
 		Summary: `Set runtime, global, user or instance configuration parameters`,
