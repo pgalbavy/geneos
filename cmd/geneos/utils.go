@@ -273,6 +273,8 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 		args = nargs
 	}
 
+	logDebug.Println("ct, args, params", ct, args, params)
+
 	// make sure names/args are unique but retain order
 	// check for reserved names here?
 	// do space exchange inbound here
@@ -300,7 +302,7 @@ func defaultArgs(rawargs []string) (ct Component, args []string, params []string
 	args = newnames
 
 	// if args is empty, find them all again. ct == None too?
-	if len(args) == 0 {
+	if len(args) == 0 && ITRSHome() != "" {
 		args = ct.instanceNames(ALL)
 	}
 
