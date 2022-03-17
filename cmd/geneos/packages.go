@@ -206,11 +206,12 @@ func commandDownload(ct Component, files []string, params []string) (err error) 
 				continue
 			}
 		}
-	} else {
-		if err = downloadComponent(RemoteName(downloadRemote), ct, version); err != nil {
-			logError.Println("location:", downloadRemote, err)
-			return err
-		}
+		return
+	}
+
+	if err = downloadComponent(RemoteName(downloadRemote), ct, version); err != nil {
+		logError.Println("location:", downloadRemote, err)
+		return err
 	}
 	return
 }
@@ -367,14 +368,6 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 	if len(args) > 0 {
 		version = args[0]
 	}
-	if updateRemote == string(ALL) {
-		for _, remote := range allRemotes() {
-			if err = updateToVersion(remote, ct, version, true); err != nil {
-				log.Println("could not update", remote, err)
-			}
-		}
-		return nil
-	}
 	return updateToVersion(RemoteName(updateRemote), ct, version, true)
 }
 
@@ -383,6 +376,16 @@ func updateToVersion(remote RemoteName, ct Component, version string, overwrite 
 	if components[ct].ParentType != None {
 		ct = components[ct].ParentType
 	}
+
+	if remote == ALL {
+		for _, r := range allRemotes() {
+			if err = updateToVersion(r, ct, version, overwrite); err != nil {
+				log.Println("could not update", remote, err)
+			}
+		}
+		return
+	}
+
 	basedir := GeneosPath(remote, "packages", ct.String())
 	basepath := filepath.Join(basedir, updateBase)
 
