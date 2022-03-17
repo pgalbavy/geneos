@@ -125,6 +125,9 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	if strings.HasPrefix(params[0], "ssh://") {
 		remurl = params[0]
 		params = params[1:]
+	} else if strings.HasPrefix(params[0], "/") {
+		remurl = "ssh://" + r.Name() + params[0]
+		params = params[1:]
 	} else {
 		remurl = "ssh://" + r.Name()
 	}
