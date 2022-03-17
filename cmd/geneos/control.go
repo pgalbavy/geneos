@@ -338,7 +338,7 @@ func disableInstance(c Instances, params []string) (err error) {
 		return err
 	}
 	defer f.Close()
-	if err = chown(c.Location(), disablePath, int(uid), int(gid)); err != nil {
+	if err = chown(c.Location(), disablePath, uid, gid); err != nil {
 		removeFile(c.Location(), disablePath)
 	}
 

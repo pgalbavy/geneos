@@ -99,7 +99,7 @@ func findInstanceProc(c Instances) (pid int, uid uint32, gid uint32, mtime int64
 	return 0, 0, 0, 0, ErrProcNotExist
 }
 
-func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
+func getUser(username string) (uid, gid int, gids []int, err error) {
 	uid, gid = math.MaxUint32, math.MaxUint32
 
 	if username == "" {
@@ -108,25 +108,24 @@ func getUser(username string) (uid, gid uint32, gids []uint32, err error) {
 
 	u, err := user.Lookup(username)
 	if err != nil {
-		return
+		return -1, -1, nil, err
 	}
-	ux, err := strconv.ParseInt(u.Uid, 10, 32)
-	if err != nil || ux < 0 || ux > math.MaxUint32 {
-		logError.Fatalln("uid out of range:", u.Uid)
+	uid, err = strconv.Atoi(u.Uid)
+	if err != nil {
+		uid = -1
 	}
-	uid = uint32(ux)
-	gx, err := strconv.ParseInt(u.Gid, 10, 32)
-	if err != nil || gx < 0 || gx > math.MaxUint32 {
-		logError.Fatalln("gid out of range:", u.Gid)
+
+	gid, err = strconv.Atoi(u.Gid)
+	if err != nil {
+		gid = -1
 	}
-	gid = uint32(gx)
 	groups, _ := u.GroupIds()
 	for _, g := range groups {
-		gid, err := strconv.ParseInt(g, 10, 32)
-		if err != nil || gid < 0 || gid > math.MaxUint32 {
-			logError.Fatalln("gid out of range:", g)
+		gid, err := strconv.Atoi(g)
+		if err != nil {
+			gid = -1
 		}
-		gids = append(gids, uint32(gid))
+		gids = append(gids, gid)
 	}
 	return
 }
@@ -142,7 +141,7 @@ func setUser(cmd *exec.Cmd, username string) (err error) {
 	}
 
 	// do not set-up credentials if no-change
-	if os.Getuid() == int(uid) {
+	if os.Getuid() == uid {
 		return nil
 	}
 
@@ -151,10 +150,18 @@ func setUser(cmd *exec.Cmd, username string) (err error) {
 		return ErrPermission
 	}
 
+	// convert gids...
+	var ugids []uint32
+	for _, g := range gids {
+		if g < 0 {
+			continue
+		}
+		ugids = append(ugids, uint32(g))
+	}
 	cred := &syscall.Credential{
 		Uid:         uint32(uid),
 		Gid:         uint32(gid),
-		Groups:      gids,
+		Groups:      ugids,
 		NoSetGroups: false,
 	}
 	sys := &syscall.SysProcAttr{Credential: cred}

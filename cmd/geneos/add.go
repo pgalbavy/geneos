@@ -333,7 +333,7 @@ func importFile(c Instances, source string) (err error) {
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = chown(c.Location(), filepath.Dir(destfile), int(uid), int(gid)); err != nil {
+			if err = chown(c.Location(), filepath.Dir(destfile), uid, gid); err != nil {
 				return err
 			}
 		}
@@ -357,7 +357,7 @@ func importFile(c Instances, source string) (err error) {
 	}
 	defer cf.Close()
 
-	if err = chown(c.Location(), destfile, int(uid), int(gid)); err != nil {
+	if err = chown(c.Location(), destfile, uid, gid); err != nil {
 		removeFile(c.Location(), destfile)
 		if backuppath != "" {
 			if err = renameFile(c.Location(), backuppath, destfile); err != nil {

@@ -146,7 +146,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 
 func initGeneos(remote RemoteName, args []string) (err error) {
 	var dir string
-	var uid, gid uint32
+	var uid, gid int
 	var username, homedir string
 
 	if remote != LOCAL && superuser {
@@ -271,7 +271,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	}
 
 	if superuser {
-		if err = chown(LOCAL, dir, int(uid), int(gid)); err != nil {
+		if err = chown(LOCAL, dir, uid, gid); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -287,7 +287,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	if superuser {
 		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
 			if err == nil {
-				err = chown(LOCAL, path, int(uid), int(gid))
+				err = chown(LOCAL, path, uid, gid)
 			}
 			return err
 		})
