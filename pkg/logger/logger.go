@@ -88,7 +88,6 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 				fnName = fn.Name()
 			}
 		}
-
 		fnName = strings.TrimPrefix(fnName, "main.")
 
 		line = fmt.Sprintf("%s%s() %s", prefix, fnName, p)
@@ -101,6 +100,7 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 				fnName = fn.Name()
 			}
 		}
+		fnName = strings.TrimPrefix(fnName, "main.")
 
 		// filename is either relative (-trimpath) or the basename with a ./ prefix
 		// this lets VSCode make the location clickable
