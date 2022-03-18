@@ -230,9 +230,34 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 	var wild bool
 	var newnames []string
 
+	if cmd.ParseFlags != nil {
+		// loop rawargs and run parseflags every time we see a '-'
+		n := 0
+		for range rawargs {
+			if len(rawargs) < n {
+				break
+			}
+			remains := cmd.ParseFlags(cmd.Name, rawargs[n:])
+			rawargs = append(rawargs[:n], remains...)
+			n++
+		}
+	}
+
 	if len(rawargs) == 0 && !cmd.Wildcard {
 		return
 	}
+
+	// pull out all args containing '=' into params
+	r := rawargs[:0]
+	for _, a := range rawargs {
+		if strings.Contains(a, "=") {
+			params = append(params, a)
+		} else {
+			r = append(r, a)
+		}
+	}
+
+	logDebug.Println("rawargs, params", rawargs, params)
 
 	if !cmd.Wildcard {
 		if ct = parseComponentName(rawargs[0]); ct == Unknown {
@@ -293,7 +318,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		}
 	}
 
-	logDebug.Println("ct, args, params", ct, args, params)
+	logDebug.Println("ct, args", ct, args)
 
 	m := make(map[string]bool, len(args))
 	for i, name := range args {

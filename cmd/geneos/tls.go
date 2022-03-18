@@ -20,9 +20,10 @@ import (
 )
 
 func init() {
-	commands["tls"] = Command{
+	RegsiterCommand(Command{
+		Name:        "tls",
 		Function:    commandTLS,
-		ParseFlags:  flagsTLS,
+		ParseFlags:  TLSFlag,
 		ParseArgs:   TLSArgs,
 		CommandLine: "geneos tls [init|import|new|renew|ls] ...",
 		Summary:     `TLS operations`,
@@ -46,8 +47,8 @@ func init() {
 
 	geneos tls sync
 		copy the current chain.pem to all known remotes
-		this is also done by 'init' if remotes are configured at that point
-`}
+		this is also done by 'init' if remotes are configured at that point`,
+	})
 
 	TLSFlags = flag.NewFlagSet("tls", flag.ExitOnError)
 	// support the same flags as "ls" for lists
@@ -66,7 +67,7 @@ const rootCAFile = "rootCA"
 const signingCertFile = "geneos"
 
 // skip over subcommand, which is required
-func flagsTLS(command string, args []string) (ret []string) {
+func TLSFlag(command string, args []string) (ret []string) {
 	if len(args) == 0 {
 		return
 	}

@@ -12,23 +12,24 @@ import (
 // The Command type contains the standard functions and help text for each command. Each command adds it's
 // own in an init() function to the global commands map
 type Command struct {
+	Name string
 	// The main work function of the command. It accepts a Component (which can be None), a slice of arguments
 	// and a separate clice of "parameters". See ParseArgs() and ParseFlags() to see why these are separate.
 	Function func(Component, []string, []string) error
-	// Optional function to parse any command flags after the command name. Given a slice of arguments process any
+	// Function to parse any command flags after the command name. Given a slice of arguments process any
 	// flags and return the unprocessed args. This allows each command to have it's own command line options after
 	// the command name but before all the other arguments and parameters, e.g. "geneos logs -f example"
+	//
+	// This is now called from inside ParseArgs() below
 	ParseFlags func(string, []string) []string
 	// Function to parse arguments. Given the remaining args after ParseFlags is done evaluate if there
 	// is a Component and then separate command args from optional parameters. Any args that do not match
 	// instance names are left on the params slice. It is up to the command
-	//
-	// Updated version takes two more args, nowildacrd (bool) and componentonly (bool)
-	ParseArgs func(Command, []string) (Component, []string, []string)
-	// Command Syntax
+	ParseArgs     func(Command, []string) (Component, []string, []string)
 	Wildcard      bool
 	ComponentOnly bool
-	CommandLine   string
+	// Command Syntax
+	CommandLine string
 	// Short description
 	Summary string
 	// More detailed help
@@ -37,6 +38,14 @@ type Command struct {
 
 // The Commands type is a map of command text (as a string) to a Command structure
 type Commands map[string]Command
+
+func RegsiterCommand(cmd Command) {
+	if cmd.Name == "" {
+		return
+	}
+
+	commands[cmd.Name] = cmd
+}
 
 // buildCmd gathers the path to the binary, arguments and any environment variables
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers

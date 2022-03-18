@@ -15,7 +15,8 @@ import (
 )
 
 func init() {
-	commands["logs"] = Command{
+	RegsiterCommand(Command{
+		Name:          "logs",
 		Function:      commandLogs,
 		ParseFlags:    logsFlag,
 		ParseArgs:     defaultArgs,
@@ -36,8 +37,8 @@ FLAGS:
 -c and -f cannot be combined
 -n is ignored when -c is given
 
-When more than one instance matches each output block is prefixed by instance details.
-`}
+When more than one instance matches each output block is prefixed by instance details.`,
+	})
 
 	logsFlags = flag.NewFlagSet("logs", flag.ExitOnError)
 	logsFlags.IntVar(&logsLines, "n", 10, "Lines to tail")

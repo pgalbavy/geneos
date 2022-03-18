@@ -11,7 +11,8 @@ import (
 )
 
 func init() {
-	commands["set"] = Command{
+	RegsiterCommand(Command{
+		Name:          "set",
 		Function:      commandSet,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     defaultArgs,
@@ -39,9 +40,8 @@ To add an include file to an auto-generated gateway use a similar syntax to the 
 	geneos set gateway gateway1 Includes=100:path/to/include.xml
 	geneos set gateway gateway1 Includes=-100
 
-Then rebuild the configuration as required.
-
-`}
+Then rebuild the configuration as required.`,
+	})
 }
 
 // components - parse the args again and load/print the config,

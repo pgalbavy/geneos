@@ -13,7 +13,8 @@ import (
 // TODO: Core files and other ulimits
 
 func init() {
-	commands["start"] = Command{
+	RegsiterCommand(Command{
+		Name:          "start",
 		Function:      commandStart,
 		ParseFlags:    startFlag,
 		ParseArgs:     defaultArgs,
@@ -25,14 +26,15 @@ func init() {
 STDOUT and STDERR are redirected to a '.txt' file in the instance directory.
 
 FLAGS:
-	-l - follow logs after starting instances
-`}
+	-l - follow logs after starting instances`,
+	})
 
 	startFlags = flag.NewFlagSet("start", flag.ExitOnError)
 	startFlags.BoolVar(&startLogs, "l", false, "Watch logs after start-up")
 	startFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	commands["stop"] = Command{
+	RegsiterCommand(Command{
+		Name:          "stop",
 		Function:      commandStop,
 		ParseFlags:    stopFlag,
 		ParseArgs:     defaultArgs,
@@ -46,14 +48,15 @@ is given the instance(s) are immediately terminated with a SIGKILL.
 
 
 FLAGS:
-	-f - force stop by sending an immediate SIGKILL
-`}
+	-f - force stop by sending an immediate SIGKILL`,
+	})
 
 	stopFlags = flag.NewFlagSet("stop", flag.ExitOnError)
 	stopFlags.BoolVar(&stopKill, "f", false, "Force stop by sending an immediate SIGKILL")
 	stopFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	commands["restart"] = Command{
+	RegsiterCommand(Command{
+		Name:          "restart",
 		Function:      commandRestart,
 		ParseFlags:    restartFlag,
 		ParseArgs:     defaultArgs,
@@ -64,16 +67,16 @@ FLAGS:
 		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.
 
 FLAGS:
-	-l - follow logs after starting instances
-
-`}
+	-l - follow logs after starting instances`,
+	})
 
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
 	restartFlags.BoolVar(&restartAll, "a", false, "Start all instances, not just those already running")
 	restartFlags.BoolVar(&restartLogs, "l", false, "Watch logs after start-up")
 	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	commands["disable"] = Command{
+	RegsiterCommand(Command{
+		Name:          "disable",
 		Function:      commandDisable,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     defaultArgs,
@@ -81,9 +84,11 @@ FLAGS:
 		ComponentOnly: false,
 		CommandLine:   "geneos disable [TYPE] [NAME...]",
 		Summary:       `Disable (and stop) one or more instances.`,
-		Description:   `Mark any matching instances as disabled. The instances are also stopped.`}
+		Description:   `Mark any matching instances as disabled. The instances are also stopped.`,
+	})
 
-	commands["enable"] = Command{
+	RegsiterCommand(Command{
+		Name:          "enable",
 		Function:      commandEneable,
 		ParseFlags:    enableFlag,
 		ParseArgs:     defaultArgs,
@@ -91,7 +96,8 @@ FLAGS:
 		ComponentOnly: false,
 		CommandLine:   "geneos enable [TYPE] [NAME...]",
 		Summary:       `Enable one or more instances. Only previously disabled instances are started.`,
-		Description:   `Mark any matcing instances as enabled and if this changes status then start the instance.`}
+		Description:   `Mark any matcing instances as enabled and if this changes status then start the instance.`,
+	})
 
 	enableFlags = flag.NewFlagSet("enable", flag.ExitOnError)
 	enableFlags.BoolVar(&enableNoStart, "n", false, "Do not auto-start enabled instances")

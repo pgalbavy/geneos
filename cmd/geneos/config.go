@@ -14,7 +14,8 @@ import (
 func init() {
 	GlobalConfig = make(GlobalSettings)
 
-	commands["show"] = Command{
+	RegsiterCommand(Command{
+		Name:          "show",
 		Function:      commandShow,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     defaultArgs,
@@ -39,9 +40,10 @@ regardless of the instance using a legacy .rc file or a native JSON
 configuration.
 
 Passwords and secrets are redacted in a very simplistic manner simply
-to prevent visibility in casual viewing.`}
+to prevent visibility in casual viewing.`})
 
-	commands["rename"] = Command{
+	RegsiterCommand(Command{
+		Name:          "rename",
 		Function:      commandRename,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     defaultArgs,
@@ -53,9 +55,11 @@ to prevent visibility in casual viewing.`}
 share the same name. No configuration changes outside the instance JSON config file. As
 any existing .rc legacy file is never changed, this will migrate the instance from .rc to JSON.
 The instance is stopped and restarted after the instance directory and configuration are changed.
-It is an error to try to rename an instance to one that already exists with the same name.`}
+It is an error to try to rename an instance to one that already exists with the same name.`,
+	})
 
-	commands["delete"] = Command{
+	RegsiterCommand(Command{
+		Name:          "delete",
 		Function:      commandDelete,
 		ParseFlags:    deleteFlag,
 		ParseArgs:     defaultArgs,
@@ -66,13 +70,15 @@ It is an error to try to rename an instance to one that already exists with the 
 		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
 accidental deletion. The instance directory is removed without being backed-up. The user running
 the command must have the appropriate permissions and a partial deletion cannot be protected
-against.`}
+against.`,
+	})
 
 	deleteFlags = flag.NewFlagSet("delete", flag.ExitOnError)
 	deleteFlags.BoolVar(&deleteForced, "f", false, "Override need to have disabled instances")
 	deleteFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	commands["rebuild"] = Command{
+	RegsiterCommand(Command{
+		Name:          "rebuild",
 		Function:      commandRebuild,
 		ParseFlags:    rebuildFlag,
 		ParseArgs:     defaultArgs,
@@ -86,7 +92,7 @@ FLAGS:
 
 	-f	Force rebuild for instances marked 'initial' even if configuration is not 'always' - 'never' is never rebuilt
 	-n	No restart of instances`,
-	}
+	})
 
 	rebuildFlags = flag.NewFlagSet("rebuild", flag.ExitOnError)
 	rebuildFlags.BoolVar(&rebuildForced, "f", false, "Force rebuild")
@@ -277,11 +283,22 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		return
 	}
 
-	if err = setField(oldconf, "Name", newname); err != nil {
+	// rename fields
+
+	if err = setField(oldconf, "InstanceName", newname); err != nil {
 		// try to recover
 		_ = renameFile(newconf.Location(), newhome, oldhome)
 		return
 	}
+	// update any component name if the same as the instance name
+	if getString(oldconf, oldconf.Prefix("Name")) == oldname {
+		if err = setField(oldconf, oldconf.Prefix("Name"), newname); err != nil {
+			// try to recover
+			_ = renameFile(newconf.Location(), newhome, oldhome)
+			return
+		}
+	}
+
 	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.componentDir(newconf.Location()), newname)); err != nil {
 		// try to recover
 		_ = renameFile(newconf.Location(), newhome, oldhome)

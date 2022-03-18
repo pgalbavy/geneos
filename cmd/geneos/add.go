@@ -17,9 +17,10 @@ import (
 )
 
 func init() {
-	commands["add"] = Command{
+	RegsiterCommand(Command{
+		Name:          "add",
 		Function:      commandAdd,
-		ParseFlags:    flagsAdd,
+		ParseFlags:    addFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      false,
 		ComponentOnly: false,
@@ -34,18 +35,19 @@ Gateways are given a minimal configuration file.
 FLAGS:
 	-t FILE	- specifiy a template file to use instead of the embedded ones
 	Also accepts the same flags as 'init' for remote sans
-`}
+`})
 
 	addFlags = flag.NewFlagSet("add", flag.ExitOnError)
 	addFlags.StringVar(&addTemplateFile, "t", "", "configuration template file to use instead of default")
 	addFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	commands["import"] = Command{
+	RegsiterCommand(Command{
+		Name:          "import",
 		Function:      commandImport,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
-		ComponentOnly: true,
+		ComponentOnly: false,
 		CommandLine:   "geneos import [TYPE] NAME [NAME...] [DEST=]SOURCE [[DEST=]SOURCE...]",
 		Summary:       `Import file(s) to an instance.`,
 		Description: `Import file(s) to the instance directory. This can be used to add
@@ -66,13 +68,13 @@ current directory MUST be prefixed with './'. A file in a directory
 and become paths automatically. Directories are created as required.
 If run as root, directories and files ownership is set to the user in
 the instance configuration or the default user. Currently only one
-file can be imported at a time.`}
+file can be imported at a time.`})
 }
 
 var addFlags *flag.FlagSet
 var addTemplateFile string
 
-func flagsAdd(command string, args []string) []string {
+func addFlag(command string, args []string) []string {
 	addFlags.Parse(args)
 	checkHelpFlag(command)
 	return addFlags.Args()

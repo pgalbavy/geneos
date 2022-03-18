@@ -9,26 +9,31 @@ import (
 )
 
 func init() {
-	commands["version"] = Command{
+	RegsiterCommand(Command{
+		Name:        "version",
 		Function:    commandVersion,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
 		CommandLine: "geneos version",
 		Summary:     `Show version details.`,
-		Description: `Display the current version number: ` + releaseVersion}
+		Description: `Display the current version number: ` + releaseVersion,
+	})
 
-	commands["help"] = Command{
+	RegsiterCommand(Command{
+		Name:        "help",
 		Function:    commandHelp,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
 		CommandLine: "geneos help [COMMAND]",
 		Summary:     `Show help text for command.`,
-		Description: `This command. Shows either a list of available commands or the help for the given COMMAND.`}
+		Description: `This command. Shows either a list of available commands or the help for the given COMMAND.`,
+	})
 
 	defaultFlags = flag.NewFlagSet("default", flag.ContinueOnError)
 	defaultFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	commands["home"] = Command{
+	RegsiterCommand(Command{
+		Name:        "home",
 		Function:    commandHome,
 		ParseFlags:  defaultFlag,
 		ParseArgs:   nil,
@@ -43,7 +48,8 @@ e.g.
 		
 Because of the intended use no errors are logged and no output is
 given. This would in the examples above result in the user's home
-directory being selected.`}
+directory being selected.`,
+	})
 }
 
 var defaultFlags *flag.FlagSet

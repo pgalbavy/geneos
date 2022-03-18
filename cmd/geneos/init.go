@@ -10,7 +10,8 @@ import (
 )
 
 func init() {
-	commands["init"] = Command{
+	RegsiterCommand(Command{
+		Name:        "init",
 		Function:    commandInit,
 		ParseFlags:  initFlag,
 		ParseArgs:   nil,
@@ -65,8 +66,8 @@ FLAGS:
 	-g TEMPLATE	Import a Gateway template file (local or URL) to replace of built-in default
 	-s TEMPLATE	Import a San template file (local or URL) to replace the built-in default 
 
-	The '-d', '-a' and '-S' flags are mutually exclusive.
-`}
+	The '-d', '-a' and '-S' flags are mutually exclusive.`,
+	})
 
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
 	initFlagSet.BoolVar(&initFlags.Demo, "d", false, "Perform initialisation steps for a demo setup and start environment")
@@ -79,7 +80,6 @@ FLAGS:
 	initFlagSet.StringVar(&initFlags.GatewayTmpl, "g", "", "A `gateway` template file")
 	initFlagSet.StringVar(&initFlags.SanTmpl, "s", "", "A `san` template file")
 	initFlagSet.BoolVar(&helpFlag, "h", false, helpUsage)
-
 }
 
 type initFlagsType struct {

@@ -20,9 +20,10 @@ import (
 )
 
 func init() {
-	commands["extract"] = Command{
+	RegsiterCommand(Command{
+		Name:          "extract",
 		Function:      commandExtract,
-		ParseFlags:    flagsExtract,
+		ParseFlags:    extractFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
@@ -40,15 +41,16 @@ directory for that TYPE is extracted, otherwise it is treated as a
 normal file path. This is primarily for extracting to remote locations.
 
 FLAGS:
-	-r REMOTE - extract from local archive to remote. default is local. all means all remotes and local.
-`}
+	-r REMOTE - extract from local archive to remote. default is local. all means all remotes and local.`,
+	})
 
 	extractFlags = flag.NewFlagSet("extract", flag.ExitOnError)
 	extractFlags.StringVar(&extractRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
-	commands["download"] = Command{
+	RegsiterCommand(Command{
+		Name:          "download",
 		Function:      commandDownload,
-		ParseFlags:    flagsDownload,
+		ParseFlags:    downloadFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
@@ -67,18 +69,18 @@ future re-use, especially for remote support.
 
 FLAGS:
 	-n - Do not save download archive
-	-r REMOTE - download and extract from local archive to remote. default is local. all means all remotes and local.
-
-`}
+	-r REMOTE - download and extract from local archive to remote. default is local. all means all remotes and local.`,
+	})
 
 	downloadFlags = flag.NewFlagSet("download", flag.ExitOnError)
 	downloadFlags.BoolVar(&downloadNosave, "n", false, "Do not save download")
 	downloadFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 	downloadFlags.StringVar(&downloadRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
-	commands["update"] = Command{
+	RegsiterCommand(Command{
+		Name:          "update",
 		Function:      commandUpdate,
-		ParseFlags:    flagsUpdate,
+		ParseFlags:    updateFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
@@ -104,9 +106,8 @@ Future version may support selecting a base other than 'active_prod'.
 
 FLAGS:
 	-b BASE - override the base link name, default active_prod
-	-r REMOTE - update remote. default is local. 'all' means all remotes including local.
-
-`}
+	-r REMOTE - update remote. default is local. 'all' means all remotes including local.`,
+	})
 
 	updateFlags = flag.NewFlagSet("update", flag.ExitOnError)
 	updateFlags.StringVar(&updateBase, "b", "active_prod", "Override the base active_prod link name")
@@ -124,19 +125,19 @@ var updateFlags *flag.FlagSet
 var updateBase string
 var updateRemote string
 
-func flagsExtract(command string, args []string) []string {
+func extractFlag(command string, args []string) []string {
 	extractFlags.Parse(args)
 	checkHelpFlag(command)
 	return extractFlags.Args()
 }
 
-func flagsDownload(command string, args []string) []string {
+func downloadFlag(command string, args []string) []string {
 	downloadFlags.Parse(args)
 	checkHelpFlag(command)
 	return downloadFlags.Args()
 }
 
-func flagsUpdate(command string, args []string) []string {
+func updateFlag(command string, args []string) []string {
 	updateFlags.Parse(args)
 	checkHelpFlag(command)
 	return updateFlags.Args()

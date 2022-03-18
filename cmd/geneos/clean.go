@@ -3,7 +3,8 @@ package main
 import "flag"
 
 func init() {
-	commands["clean"] = Command{
+	RegsiterCommand(Command{
+		Name:          "clean",
 		Function:      commandClean,
 		ParseFlags:    cleanFlag,
 		ParseArgs:     defaultArgs,
@@ -18,7 +19,7 @@ FLAGS:
 	     instances the command stopped.
 
 `,
-	}
+	})
 
 	cleanFlags = flag.NewFlagSet("clean", flag.ExitOnError)
 	cleanFlags.BoolVar(&cleanPurge, "p", false, "Purge more files than clean, restarts instances")

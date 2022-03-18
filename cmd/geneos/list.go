@@ -11,9 +11,10 @@ import (
 )
 
 func init() {
-	commands["ls"] = Command{
+	RegsiterCommand(Command{
+		Name:          "ls",
 		Function:      commandLS,
-		ParseFlags:    flagsList,
+		ParseFlags:    listFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
@@ -21,11 +22,13 @@ func init() {
 		Summary:       `List instances, optionally in CSV or JSON format.`,
 		Description: `List the matching instances and their component type.
 	
-Future versions will support CSV or JSON output formats for automation and monitoring.`}
+Future versions will support CSV or JSON output formats for automation and monitoring.`,
+	})
 
-	commands["ps"] = Command{
+	RegsiterCommand(Command{
+		Name:          "ps",
 		Function:      commandPS,
-		ParseFlags:    flagsList,
+		ParseFlags:    listFlag,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
@@ -33,9 +36,11 @@ Future versions will support CSV or JSON output formats for automation and monit
 		Summary:       `List process information for instances, optionally in CSV or JSON format.`,
 		Description: `Show the status of the matching instances.
 
-Future versions will support CSV or JSON output formats for automation and monitoring.`}
+Future versions will support CSV or JSON output formats for automation and monitoring.`,
+	})
 
-	commands["command"] = Command{
+	RegsiterCommand(Command{
+		Name:          "command",
 		Function:      commandCommand,
 		ParseFlags:    nil,
 		ParseArgs:     defaultArgs,
@@ -46,7 +51,8 @@ Future versions will support CSV or JSON output formats for automation and monit
 		Description: `Show the full command line for the matching instances along with any environment variables
 explicitly set for execution.
 
-Future versions will support CSV or JSON output formats for automation and monitoring.`}
+Future versions will support CSV or JSON output formats for automation and monitoring.`,
+	})
 
 	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)
 	listFlags.BoolVar(&listJSON, "j", false, "Output JSON")
@@ -63,7 +69,7 @@ var lsTabWriter *tabwriter.Writer
 var csvWriter *csv.Writer
 var jsonEncoder *json.Encoder
 
-func flagsList(command string, args []string) []string {
+func listFlag(command string, args []string) []string {
 	listFlags.Parse(args)
 	checkHelpFlag(command)
 	if listJSON && listCSV {

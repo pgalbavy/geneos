@@ -7,7 +7,8 @@ import (
 )
 
 func init() {
-	commands["edit"] = Command{
+	RegsiterCommand(Command{
+		Name:          "edit",
 		Function:      commandEdit,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     defaultArgs,
@@ -26,7 +27,8 @@ editor invoked will be the first set of the environment variables VISUAL or EDIT
 
 will open a VS Code editor window for the user configuration file.
 
-See also 'geneos set' and 'geneos show'.`}
+See also 'geneos set' and 'geneos show'.`,
+	})
 }
 
 //
