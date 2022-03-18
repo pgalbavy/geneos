@@ -223,6 +223,9 @@ func canControl(c Instances) bool {
 // any args with '=' are treated as parameters
 //
 // a bare argument with a '@' prefix means all instance of type on a remote
+//
+// XXX consume args, each time a '-' is seen, process flags. stach "params" - all
+// those including an '='
 func defaultArgs(rawargs []string, wildcard bool, componentOnly bool) (ct Component, args []string, params []string) {
 	if !wildcard {
 		var newnames []string

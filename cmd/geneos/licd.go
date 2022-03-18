@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"strconv"
 )
 
 const Licd Component = "licd"
@@ -109,7 +109,7 @@ func (l Licds) Rebuild(initial bool) error {
 func (c Licds) Command() (args, env []string) {
 	args = []string{
 		c.Name(),
-		"-port", fmt.Sprint(c.LicdPort),
+		"-port", strconv.Itoa(c.LicdPort),
 		"-log", getLogfilePath(c),
 	}
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"strconv"
 )
 
 const Netprobe Component = "netprobe"
@@ -110,7 +110,7 @@ func (c Netprobes) Command() (args, env []string) {
 	logFile := getLogfilePath(c)
 	args = []string{
 		c.Name(),
-		"-port", fmt.Sprint(c.NetpPort),
+		"-port", strconv.Itoa(c.NetpPort),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 

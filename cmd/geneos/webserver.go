@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const Webserver Component = "webserver"
@@ -169,7 +169,7 @@ func (c Webservers) Command() (args, env []string) {
 		"-XX:HeapDumpPath=/tmp",
 		"-jar", WebsBase + "/geneos-web-server.jar",
 		"-dir", WebsBase + "/webapps",
-		"-port", fmt.Sprint(c.WebsPort),
+		"-port", strconv.Itoa(c.WebsPort),
 		// "-ssl true",
 		"-maxThreads 254",
 		// "-log", getLogfilePath(c),

@@ -3,8 +3,8 @@ package main
 import (
 	_ "embed"
 	"errors"
-	"fmt"
 	"path/filepath"
+	"strconv"
 )
 
 const San Component = "san"
@@ -217,7 +217,7 @@ func (c Sans) Command() (args, env []string) {
 	args = []string{
 		c.Name(),
 		"-listenip", "none",
-		"-port", fmt.Sprint(c.SanPort),
+		"-port", strconv.Itoa(c.SanPort),
 		"-setup", "netprobe.setup.xml",
 		"-setup-interval", "300",
 	}
