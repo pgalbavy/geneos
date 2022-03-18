@@ -76,12 +76,12 @@ func flagsTLS(command string, args []string) (ret []string) {
 }
 
 // pop subcommand, parse args, put subcommand back onto params?
-func TLSArgs(rawargs []string, wildcard bool, componentOnly bool) (ct Component, args []string, params []string) {
+func TLSArgs(cmd Command, rawargs []string) (ct Component, args []string, params []string) {
 	if len(rawargs) == 0 {
 		logError.Fatalln("tls command requires more arguments - help text here")
 	}
 	subcommand := rawargs[0]
-	ct, args, params = defaultArgs(rawargs[1:], true, false)
+	ct, args, params = defaultArgs(cmd, rawargs[1:])
 	args = append([]string{subcommand}, args...)
 	return
 }

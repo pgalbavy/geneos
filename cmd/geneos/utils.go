@@ -226,8 +226,8 @@ func canControl(c Instances) bool {
 //
 // XXX consume args, each time a '-' is seen, process flags. stach "params" - all
 // those including an '='
-func defaultArgs(rawargs []string, wildcard bool, componentOnly bool) (ct Component, args []string, params []string) {
-	if !wildcard {
+func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, params []string) {
+	if !cmd.Wildcard {
 		var newnames []string
 
 		if len(rawargs) == 0 {
@@ -278,7 +278,7 @@ func defaultArgs(rawargs []string, wildcard bool, componentOnly bool) (ct Compon
 		args = rawargs[1:]
 	}
 
-	if componentOnly {
+	if cmd.ComponentOnly {
 		return
 	}
 

@@ -107,9 +107,7 @@ func main() {
 
 	// parse the rest of the args depending on the command
 	if commands[command].ParseArgs != nil {
-		wildcard := commands[command].Wildcard
-		componentonly := commands[command].ComponentOnly
-		ct, args, params = commands[command].ParseArgs(args, wildcard, componentonly)
+		ct, args, params = commands[command].ParseArgs(commands[command], args)
 	}
 	logDebug.Println("ct", ct, "args", args, "params", params)
 

@@ -24,7 +24,7 @@ type Command struct {
 	// instance names are left on the params slice. It is up to the command
 	//
 	// Updated version takes two more args, nowildacrd (bool) and componentonly (bool)
-	ParseArgs func([]string, bool, bool) (Component, []string, []string)
+	ParseArgs func(Command, []string) (Component, []string, []string)
 	// Command Syntax
 	Wildcard      bool
 	ComponentOnly bool
