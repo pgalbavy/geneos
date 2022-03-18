@@ -227,107 +227,77 @@ func canControl(c Instances) bool {
 // XXX consume args, each time a '-' is seen, process flags. stach "params" - all
 // those including an '='
 func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, params []string) {
-	if !cmd.Wildcard {
-		var newnames []string
+	var wild bool
+	var newnames []string
 
-		if len(rawargs) == 0 {
-			return
-		}
+	if len(rawargs) == 0 && !cmd.Wildcard {
+		return
+	}
+
+	if !cmd.Wildcard {
 		if ct = parseComponentName(rawargs[0]); ct == Unknown {
 			return
 		}
 		args = rawargs[1:]
-
-		logDebug.Println("ct, args, params", ct, args, params)
-
-		m := make(map[string]bool, len(args))
-		for i, name := range args {
-			// filter name here
-			if reservedName(name) {
-				logError.Fatalf("%q is reserved instance name", name)
-			}
-			if !validInstanceName(name) {
-				// first invalid name end processing, save the rest as params
-				logDebug.Printf("%q is not a valid instance name, stopped processing args", name)
-				params = args[i:]
-				break
-			}
-			// simply ignore duplicates
-			if m[name] {
-				continue
-			}
-			newnames = append(newnames, name)
-			m[name] = true
+	} else {
+		// work through wildcard options
+		if len(rawargs) == 0 {
+			// no more arguments? wildcard everything
+			ct = None
+		} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
+			// first arg is not a known type, so treat the rest as instance names
+			ct = None
+			args = rawargs
+		} else {
+			args = rawargs[1:]
 		}
-		args = newnames
 
-		logDebug.Println("params:", params)
-		return
-	}
+		if cmd.ComponentOnly {
+			return
+		}
 
-	var wild bool
-	// work through wildcard options
-	if len(rawargs) == 0 {
-		// no more arguments? wildcard everything
-		ct = None
-	} else if ct = parseComponentName(rawargs[0]); ct == Unknown {
-		// first arg is not a known type, so treat the rest as instance names
-		ct = None
-		args = rawargs
-	} else {
-		args = rawargs[1:]
-	}
-
-	if cmd.ComponentOnly {
-		return
-	}
-
-	if len(args) == 0 {
-		wild = true
-		args = ct.instanceNames(ALL)
-	} else {
-		// expand each arg
-		// if local == "", then all instances on remote (e.g. @remote)
-		// if remote == "all", then check instance on all remotes
-		// @all is not valid - should be no arg
-		var nargs []string
-		for _, arg := range args {
-			local, remote := splitInstanceName(arg)
-			if local == "" {
-				if Remote.exists(remote.String()) {
-					rargs := ct.instanceNames(RemoteName(remote))
-					nargs = append(nargs, rargs...)
-				}
-			} else if remote == ALL {
-				for _, r := range allRemotes() {
-					i := local + "@" + r.String()
-					if ct == None {
-						for _, cr := range RealComponents() {
-							if cr.exists(i) {
-								nargs = append(nargs, i)
-							}
-						}
-					} else if ct.exists(i) {
-						nargs = append(nargs, i)
+		if len(args) == 0 {
+			wild = true
+			args = ct.instanceNames(ALL)
+		} else {
+			// expand each arg
+			// if local == "", then all instances on remote (e.g. @remote)
+			// if remote == "all", then check instance on all remotes
+			// @all is not valid - should be no arg
+			var nargs []string
+			for _, arg := range args {
+				local, remote := splitInstanceName(arg)
+				if local == "" {
+					if Remote.exists(remote.String()) {
+						rargs := ct.instanceNames(RemoteName(remote))
+						nargs = append(nargs, rargs...)
 					}
+				} else if remote == ALL {
+					for _, r := range allRemotes() {
+						i := local + "@" + r.String()
+						if ct == None {
+							for _, cr := range RealComponents() {
+								if cr.exists(i) {
+									nargs = append(nargs, i)
+								}
+							}
+						} else if ct.exists(i) {
+							nargs = append(nargs, i)
+						}
+					}
+				} else {
+					nargs = append(nargs, arg)
 				}
-			} else {
-				nargs = append(nargs, arg)
 			}
+			args = nargs
 		}
-		args = nargs
 	}
 
 	logDebug.Println("ct, args, params", ct, args, params)
 
-	// make sure names/args are unique but retain order
-	// check for reserved names here?
-	// do space exchange inbound here
-	var newnames []string
-
 	m := make(map[string]bool, len(args))
 	for i, name := range args {
-		// filter name here - only if not wildcarded though, as we get those from directory names
+		// filter name here
 		if !wild && reservedName(name) {
 			logError.Fatalf("%q is reserved instance name", name)
 		}
@@ -345,6 +315,10 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		m[name] = true
 	}
 	args = newnames
+
+	if !cmd.Wildcard {
+		return
+	}
 
 	// if args is empty, find them all again. ct == None too?
 	if len(args) == 0 && ITRSHome() != "" {
