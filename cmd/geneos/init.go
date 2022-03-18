@@ -107,6 +107,8 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
+	args = initFlag("init", args)
+
 	// rewrite local templates
 	if initFlags.Templates {
 		gatewayTemplates := GeneosPath(LOCAL, Gateway.String(), "templates")

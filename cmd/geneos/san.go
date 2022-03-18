@@ -122,29 +122,29 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.Gateways = make(map[string]int)
 
 	// support same flags as for init, but skip imports if already done this once
-	if !initFlagSet.Parsed() {
-		if err = initFlagSet.Parse(params); err != nil {
-			log.Fatalln(err)
-		}
+	// if !initFlagSet.Parsed() {
+	// 	if err = initFlagSet.Parse(params); err != nil {
+	// 		log.Fatalln(err)
+	// 	}
 
-		params = initFlagSet.Args()
+	// 	params = initFlagSet.Args()
 
-		if initFlags.SanTmpl != "" {
-			tmpl := readSourceBytes(initFlags.SanTmpl)
-			if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
-				log.Fatalln(err)
-			}
-		}
+	// 	if initFlags.SanTmpl != "" {
+	// 		tmpl := readSourceBytes(initFlags.SanTmpl)
+	// 		if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+	// 			log.Fatalln(err)
+	// 		}
+	// 	}
 
-		// both options can import arbitrary PEM files, fix this
-		if initFlags.SigningCert != "" {
-			TLSImport(initFlags.SigningCert)
-		}
+	// 	// both options can import arbitrary PEM files, fix this
+	// 	if initFlags.SigningCert != "" {
+	// 		TLSImport(initFlags.SigningCert)
+	// 	}
 
-		if initFlags.SigningKey != "" {
-			TLSImport(initFlags.SigningKey)
-		}
-	}
+	// 	if initFlags.SigningKey != "" {
+	// 		TLSImport(initFlags.SigningKey)
+	// 	}
+	// }
 
 	if initFlags.Name != "" {
 		n.SanName = initFlags.Name
@@ -173,8 +173,6 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 
 	if initFlags.StartSAN {
 		commandDownload(Netprobe, e, e)
-		commandStart(San, names, params)
-		commandPS(San, names, params)
 	}
 
 	return nil

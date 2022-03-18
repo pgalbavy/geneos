@@ -1,45 +1,52 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <netprobe
-        compatibility="1"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://schema.itrsgroup.com/GA2011.2-110303/netprobe.xsd">
-        <selfAnnounce>
-                <enabled>true</enabled>
-                <retryInterval>60</retryInterval>
-                <requireReverseConnection>true</requireReverseConnection>
-                <probeName>{{.SanName}}</probeName>
-                <managedEntities>
-                        <managedEntity>
-                                <name>{{.SanName}}</name>
-                                {{if .Attributes}}<attributes>
-                                        {{range $key, $value := .Attributes -}}
-                                        <attribute name="{{$key}}">{{$value}}</attribute>
-                                        {{end}}
-                                </attributes>{{end}}
-                                {{if .Variables}}<variables>
-                                        {{range $key, $value := .Variables -}}<var name="{{$key}}">
-                                                <{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
-                                        </var>
-                                        {{end}}
-                                </variables>{{end}}
-                                {{if .Types}}<types>
-                                        {{range .Types -}}<type>{{.}}</type>
-                                        {{end}}
-                                </types>{{end}}
-                        </managedEntity>
-                </managedEntities>
-                <gateways>
-                        {{- with $data := . }}
-                        {{range $key, $value := $data.Gateways -}}<gateway>
-                                <hostname>{{$key}}</hostname>
-                                <port>{{$value}}</port>
-                                <secure>{{if $data.SanCert}}true{{else}}false{{end}}</secure>
-                        </gateway>
-                        {{else -}}<gateway>
-                                <hostname>localhost</hostname>
-                                <port>7039</port>
-                                <secure>false</secure>
-                        </gateway>
-                {{end -}}{{end -}}</gateways>
-        </selfAnnounce>
+	compatibility="1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="http://schema.itrsgroup.com/GA2011.2-110303/netprobe.xsd">
+	<selfAnnounce>
+		<enabled>true</enabled>
+		<retryInterval>60</retryInterval>
+		<requireReverseConnection>true</requireReverseConnection>
+		<probeName>{{.SanName}}</probeName>
+		<managedEntities>
+			<managedEntity>
+				<name>{{.SanName}}</name>
+				{{if .Attributes -}}
+				<attributes>
+					{{range $key, $value := .Attributes -}}
+					<attribute name="{{$key}}">{{$value}}</attribute>
+					{{end}}
+				</attributes>
+				{{- end}}
+				{{if .Variables -}}
+				<variables>
+					{{range $key, $value := .Variables -}}
+					<var name="{{$key}}">
+						<{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
+					</var>
+					{{end}}
+				</variables>
+				{{- end}}
+				{{if .Types -}}
+				<types>
+					{{range .Types -}}<type>{{.}}</type>
+					{{end}}
+				</types>
+				{{- end}}
+			</managedEntity>
+		</managedEntities>
+		<gateways>
+			{{- with $data := . }}
+			{{range $key, $value := $data.Gateways -}}<gateway>
+				<hostname>{{$key}}</hostname>
+				<port>{{$value}}</port>
+				<secure>{{if $data.SanCert}}true{{else}}false{{end}}</secure>
+			</gateway>
+			{{else -}}<gateway>
+				<hostname>localhost</hostname>
+				<port>7039</port>
+				<secure>false</secure>
+			</gateway>
+		{{end -}}{{end -}}</gateways>
+	</selfAnnounce>
 </netprobe>

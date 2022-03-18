@@ -39,6 +39,7 @@ FLAGS:
 
 	addFlags = flag.NewFlagSet("add", flag.ExitOnError)
 	addFlags.StringVar(&addTemplateFile, "t", "", "configuration template file to use instead of default")
+	addFlags.BoolVar(&addStart, "S", false, "Start new instance(s) after creation")
 	addFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	RegsiterCommand(Command{
@@ -73,6 +74,7 @@ file can be imported at a time.`})
 
 var addFlags *flag.FlagSet
 var addTemplateFile string
+var addStart bool
 
 func addFlag(command string, args []string) []string {
 	addFlags.Parse(args)
@@ -116,6 +118,10 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	// reload config as 'c' is not updated by Add() as an interface value
 	loadConfig(c)
 	log.Printf("new %s %q added, port %d\n", c.Type(), c.Name(), getInt(c, c.Prefix("Port")))
+
+	if addStart {
+		commandStart(c.Type(), []string{name}, []string{})
+	}
 
 	return
 }
