@@ -35,7 +35,5 @@
 * Stopping a remote (also for disable, delete, rename etc.) also means stopping all instances on it
 * Update docs to include configuration file rebuilds, gateway includes etc.
 * Look at 'sudo' support for remotes
-* Review all log.Fatal calls
-* Revisit command line flags, consider https://github.com/spf13/pflag or even https://github.com/spf13/viper / cobra to rebuild it all
-* put parseflags inside parseargs as an option, to consume any args beginning '-'
-* merge parseargs functions with flags, keep common code less duplicated
+* Review all log*.Fatal* calls
+

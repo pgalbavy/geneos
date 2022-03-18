@@ -130,6 +130,11 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 		if g.GateLicS == "" {
 			g.GateLicS = "true"
 		}
+		// special case; if default port is 7039 then change it to 7038
+		if g.GatePort == 7039 {
+			g.GatePort = 7038
+		}
+
 		writeInstanceConfig(g)
 	}
 

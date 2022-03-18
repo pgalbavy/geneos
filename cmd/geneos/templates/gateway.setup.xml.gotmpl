@@ -9,28 +9,32 @@
 			<location>{{$value}}</location>
 		</include>
 		{{end -}}
-    </includes>{{- end}}
+	</includes>{{- end}}
 	<authentication>
 		<authenticateUsers>true</authenticateUsers>
 		<users>
 			<user name="generic">
-				<fullName>Catch All User</fullName>
-				<genericUser>true</genericUser>
-				<allowLogin>true</allowLogin>
-				<allowSystemAuth>true</allowSystemAuth>
-				<roleProperties>
-					<roleProperty>Administrators</roleProperty>
-				</roleProperties>
+	<fullName>Catch All User</fullName>
+	<genericUser>true</genericUser>
+	<allowLogin>true</allowLogin>
+	<allowSystemAuth>true</allowSystemAuth>
+	<roleProperties>
+		<roleProperty>Administrators</roleProperty>
+	</roleProperties>
 			</user>
 		</users>
 		<roles>
 			<role name="Administrators">
-				<roleProperties>
-					<roleProperty>Administrators</roleProperty>
-				</roleProperties>
+	<roleProperties>
+		<roleProperty>Administrators</roleProperty>
+	</roleProperties>
 			</role>
 		</roles>
 	</authentication>
+	<selfAnnouncingProbes>
+		<enabled>true</enabled>
+		<disconnectedProbeTimeout>3600</disconnectedProbeTimeout>
+	</selfAnnouncingProbes>
 	<operatingEnvironment>
 		<gatewayName>{{.GateName}}</gatewayName>
 		<listenPorts>
@@ -39,7 +43,7 @@
 			<secure>7038</secure>
 			<insecure>7039</insecure>
 			{{- else -}}
-    		<secure>{{.GatePort}}</secure>
+			<secure>{{.GatePort}}</secure>
 			{{- end}}
 		{{- else}}
 			<insecure>{{.GatePort}}</insecure>
