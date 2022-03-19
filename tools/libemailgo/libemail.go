@@ -14,13 +14,13 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
-//go:embed text.tmpl
+//go:embed text.gotmpl
 var defTextTemplate string
 
-//go:embed html.tmpl
+//go:embed html.gotmpl
 var defHTMLTemplate string
 
-//go:embed css.tmpl
+//go:embed css.gotmpl
 var defCSSTemplate string
 
 //go:embed logo.png
