@@ -66,9 +66,9 @@ func init() {
 	})
 }
 
-func InitGateway(remote RemoteName) {
+func InitGateway(r *Remotes) {
 	// copy default template to directory
-	if err := writeFile(remote, GeneosPath(remote, Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
+	if err := r.writeFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -106,6 +106,10 @@ func (g Gateways) Home() string {
 
 func (g Gateways) Prefix(field string) string {
 	return "Gate" + field
+}
+
+func (g Gateways) Remote() *Remotes {
+	return g.InstanceRemote
 }
 
 func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
@@ -188,7 +192,7 @@ func (c Gateways) Command() (args, env []string) {
 			args = append(args, "-licd-secure")
 		}
 		args = append(args, "-ssl-certificate", c.GateCert)
-		chainfile := GeneosPath(c.Location(), "tls", "chain.pem")
+		chainfile := c.Remote().GeneosPath("tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
 	} else if c.GateLicS != "" && c.GateLicS == "true" {
 		args = append(args, "-licd-secure")

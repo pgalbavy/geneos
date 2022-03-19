@@ -19,7 +19,7 @@ const (
 type Components struct {
 	// function to call from 'init' and 'add remote' commands to set-up environment
 	// arg is the name of the remote
-	Initialise func(RemoteName)
+	Initialise func(*Remotes)
 
 	// function to create a new instance of component
 	New func(string) Instances
@@ -78,6 +78,7 @@ type Instances interface {
 	Home() string
 	Type() Component
 	Location() RemoteName
+	Remote() *Remotes
 	Prefix(string) string
 
 	Add(string, []string, string) error
@@ -162,23 +163,23 @@ func RegisterSettings(settings GlobalSettings) {
 // Return a slice of all instanceNames for a given Component. No
 // checking is done to validate that the directory is a populated
 // instance.
-func (ct Component) instanceNames(remote RemoteName) (components []string) {
+func (ct Component) InstanceNames(r *Remotes) (components []string) {
 	var files []fs.DirEntry
 
-	if remote == ALL {
-		for _, r := range allRemotes() {
-			components = append(components, ct.instanceNames(r)...)
+	if r == rALL {
+		for _, r := range AllRemotes() {
+			components = append(components, ct.InstanceNames(r)...)
 		}
 		return
 	}
 
 	if ct == None {
 		for _, t := range RealComponents() {
-			d, _ := readDir(remote, t.componentDir(remote))
+			d, _ := r.readDir(t.ComponentDir(r))
 			files = append(files, d...)
 		}
 	} else {
-		files, _ = readDir(remote, ct.componentDir(remote))
+		files, _ = r.readDir(ct.ComponentDir(r))
 	}
 
 	sort.Slice(files, func(i, j int) bool {
@@ -189,7 +190,7 @@ func (ct Component) instanceNames(remote RemoteName) (components []string) {
 			if ct == Remote {
 				components = append(components, file.Name())
 			} else {
-				components = append(components, file.Name()+"@"+remote.String())
+				components = append(components, file.Name()+"@"+r.InstanceName)
 			}
 		}
 	}
@@ -235,6 +236,7 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 func (ct Component) instanceMatches(name string) (c []Instances) {
 	var cs []Component
 	local, remote := splitInstanceName(name)
+	r := GetRemote(remote)
 
 	if ct == None {
 		for _, t := range RealComponents() {
@@ -243,7 +245,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 		return
 	}
 
-	for _, dir := range ct.instanceNames(remote) {
+	for _, dir := range ct.InstanceNames(r) {
 		// for case insensitive match change to EqualFold here
 		ldir, _ := splitInstanceName(dir)
 		if filepath.Base(ldir) == local {
@@ -282,17 +284,24 @@ func (ct Component) componentDir(remote RemoteName) string {
 	}
 }
 
-// return a slice of initialised instances for a given component type
-func (ct Component) instances(remote RemoteName) (confs []Instances) {
+func (ct Component) ComponentDir(r *Remotes) string {
+	if ct == None {
+		logError.Fatalln(ct, ErrNotSupported)
+	}
 	switch ct {
-	case None:
-		for _, ct := range RealComponents() {
-			confs = append(confs, ct.instances(remote)...)
-		}
+	case Remote:
+		return rLOCAL.GeneosPath(ct.String() + "s")
 	default:
-		for _, name := range ct.instanceNames(remote) {
-			confs = append(confs, ct.New(name))
-		}
+		return r.GeneosPath(ct.String(), ct.String()+"s")
+	}
+}
+
+// return a slice of initialised instances for a given component type
+func (ct Component) Instances(r *Remotes) (confs []Instances) {
+	for _, name := range ct.InstanceNames(r) {
+		i := ct.New(name)
+		loadConfig(i)
+		confs = append(confs, i)
 	}
 
 	return

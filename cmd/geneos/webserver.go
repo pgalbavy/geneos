@@ -99,6 +99,10 @@ func (w Webservers) Prefix(field string) string {
 	return "Webs" + field
 }
 
+func (w Webservers) Remote() *Remotes {
+	return w.InstanceRemote
+}
+
 func (w Webservers) Add(username string, params []string, tmpl string) (err error) {
 	w.WebsPort = w.InstanceRemote.nextPort(GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username
@@ -126,7 +130,7 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 		return
 	}
 
-	if err = mkdirAll(w.Location(), filepath.Join(w.Home(), "webapps"), 0775); err != nil {
+	if err = w.Remote().mkdirAll(filepath.Join(w.Home(), "webapps"), 0775); err != nil {
 		return
 	}
 

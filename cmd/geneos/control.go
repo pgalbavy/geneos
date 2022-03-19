@@ -144,7 +144,7 @@ func startInstance(c Instances, params []string) (err error) {
 	}
 
 	binary := getString(c, c.Prefix("Exec"))
-	if _, err = statFile(c.Location(), binary); err != nil {
+	if _, err = c.Remote().statFile(binary); err != nil {
 		return
 	}
 
@@ -163,12 +163,12 @@ func startInstance(c Instances, params []string) (err error) {
 	errfile := filepath.Join(c.Home(), c.Type().String()+".txt")
 
 	if c.Location() != LOCAL {
-		r := loadRemoteConfig(c.Location())
+		r := c.Remote()
 		rUsername := getString(r, "Username")
 		if rUsername != username {
 			log.Fatalf("cannot run remote process as a different user (%q != %q)", rUsername, username)
 		}
-		rem, err := sshOpenRemote(c.Location())
+		rem, err := r.sshOpenRemote()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -348,13 +348,13 @@ func disableInstance(c Instances, params []string) (err error) {
 
 	disablePath := filepath.Join(c.Home(), c.Type().String()+disableExtension)
 
-	f, err := createFile(c.Location(), disablePath, 0664)
+	f, err := c.Remote().createFile(disablePath, 0664)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if err = chown(c.Location(), disablePath, uid, gid); err != nil {
-		removeFile(c.Location(), disablePath)
+	if err = c.Remote().chown(disablePath, uid, gid); err != nil {
+		c.Remote().removeFile(disablePath)
 	}
 
 	return
@@ -373,7 +373,7 @@ func commandEneable(ct Component, args []string, params []string) (err error) {
 }
 
 func enableInstance(c Instances, params []string) (err error) {
-	err = removeFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+disableExtension))
+	err = c.Remote().removeFile(filepath.Join(c.Home(), c.Type().String()+disableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && !enableNoStart {
 		startInstance(c, params)
 	}
@@ -382,7 +382,7 @@ func enableInstance(c Instances, params []string) (err error) {
 
 func Disabled(c Instances) bool {
 	d := filepath.Join(c.Home(), c.Type().String()+disableExtension)
-	if f, err := statFile(c.Location(), d); err == nil && f.st.Mode().IsRegular() {
+	if f, err := c.Remote().statFile(d); err == nil && f.st.Mode().IsRegular() {
 		return true
 	}
 	return false

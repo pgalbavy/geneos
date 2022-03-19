@@ -68,7 +68,7 @@ func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
 // save off extra env too
 // XXX - scan file line by line, protect memory
 func readRCConfig(c Instances) (err error) {
-	rcdata, err := readFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".rc"))
+	rcdata, err := c.Remote().readFile(filepath.Join(c.Home(), c.Type().String()+".rc"))
 	if err != nil {
 		return
 	}

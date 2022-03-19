@@ -52,12 +52,12 @@ func migrateConfig(c Instances) (err error) {
 	baseconf := filepath.Join(c.Home(), c.Type().String())
 
 	// if no .rc, return
-	if _, err = statFile(c.Location(), baseconf+".rc"); errors.Is(err, fs.ErrNotExist) {
+	if _, err = c.Remote().statFile(baseconf + ".rc"); errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
 
 	// if .json exists, return
-	if _, err = statFile(c.Location(), baseconf+".json"); err == nil {
+	if _, err = c.Remote().statFile(baseconf + ".json"); err == nil {
 		return nil
 	}
 
@@ -68,7 +68,7 @@ func migrateConfig(c Instances) (err error) {
 	}
 
 	// back-up .rc
-	if err = renameFile(c.Location(), baseconf+".rc", baseconf+".rc.orig"); err != nil {
+	if err = c.Remote().renameFile(baseconf+".rc", baseconf+".rc.orig"); err != nil {
 		logError.Println("failed to rename old config:", err)
 	}
 
@@ -84,19 +84,19 @@ func revertInstance(c Instances, params []string) (err error) {
 	baseconf := filepath.Join(c.Home(), c.Type().String())
 
 	// if *.rc file exists, remove rc.orig+JSON, continue
-	if _, err := statFile(c.Location(), baseconf+".rc"); err == nil {
+	if _, err := c.Remote().statFile(baseconf + ".rc"); err == nil {
 		// ignore errors
-		if removeFile(c.Location(), baseconf+".rc.orig") == nil || removeFile(c.Location(), baseconf+".json") == nil {
+		if c.Remote().removeFile(baseconf+".rc.orig") == nil || c.Remote().removeFile(baseconf+".json") == nil {
 			logDebug.Println(c.Type(), c.Name(), "removed extra config file(s)")
 		}
 		return err
 	}
 
-	if err = renameFile(c.Location(), baseconf+".rc.orig", baseconf+".rc"); err != nil {
+	if err = c.Remote().renameFile(baseconf+".rc.orig", baseconf+".rc"); err != nil {
 		return
 	}
 
-	if err = removeFile(c.Location(), baseconf+".json"); err != nil {
+	if err = c.Remote().removeFile(baseconf + ".json"); err != nil {
 		return
 	}
 

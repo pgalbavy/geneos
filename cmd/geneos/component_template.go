@@ -90,6 +90,10 @@ func (n Names) Prefix(field string) string {
 	return "Name" + field
 }
 
+func (n Names) Remote() *Remotes {
+	return n.InstanceRemote
+}
+
 func (n Names) Add(username string, params []string) (err error) {
 	n.NamePort = n.InstanceRemote.nextPort(RunningConfigMap["NamePortRange"])
 	n.NameUser = username

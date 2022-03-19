@@ -12,8 +12,6 @@ import (
 )
 
 func init() {
-	GlobalConfig = make(GlobalSettings)
-
 	RegsiterCommand(Command{
 		Name:          "show",
 		Function:      commandShow,
@@ -117,12 +115,12 @@ var GlobalConfig GlobalSettings = make(GlobalSettings)
 // load system config from global and user JSON files and process any
 // environment variables we choose
 func loadSysConfig() {
-	readConfigFile(LOCAL, globalConfig, &GlobalConfig)
+	readLocalConfigFile(globalConfig, &GlobalConfig)
 
 	// root should not have a per-user config, but if sun by sudo the
 	// HOME dir is conserved, so allow for now
 	userConfDir, _ := os.UserConfigDir()
-	err := readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &GlobalConfig)
+	err := readLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &GlobalConfig)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Println(err)
 	}
@@ -144,11 +142,13 @@ func ITRSHome() string {
 
 // loadConfig will load the JSON config file is available, otherwise
 // try to load the "legacy" .rc file
+//
+// support cache?
 func loadConfig(c Instances) (err error) {
 	baseconf := filepath.Join(c.Home(), c.Type().String())
 	j := baseconf + ".json"
 
-	if err = readConfigFile(c.Location(), j, &c); err == nil {
+	if err = c.Remote().readConfigFile(j, &c); err == nil {
 		// return if no error, else drop through
 		return
 	}
@@ -173,13 +173,13 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 		switch names[0] {
 		case "global":
 			var c GlobalSettings
-			readConfigFile(LOCAL, globalConfig, &c)
+			readLocalConfigFile(globalConfig, &c)
 			printConfigStructJSON(c)
 			return
 		case "user":
 			var c GlobalSettings
 			userConfDir, _ := os.UserConfigDir()
-			readConfigFile(LOCAL, filepath.Join(userConfDir, "geneos.json"), &c)
+			readLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
 			printConfigStructJSON(c)
 			return
 		}
@@ -242,8 +242,17 @@ func marshalStruct(s interface{}, prefix string) (j string, err error) {
 	return
 }
 
-func readConfigFile(remote RemoteName, file string, config interface{}) (err error) {
-	jsonFile, err := readFile(remote, file)
+func readLocalConfigFile(file string, config interface{}) (err error) {
+	jsonFile, err := os.ReadFile(file)
+	if err != nil {
+		return
+	}
+	// dec := json.NewDecoder(jsonFile)
+	return json.Unmarshal(jsonFile, &config)
+}
+
+func (r *Remotes) readConfigFile(file string, config interface{}) (err error) {
+	jsonFile, err := r.readFile(file)
 	if err != nil {
 		return
 	}
@@ -278,7 +287,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	oldhome := oldconf.Home()
 	newhome := newconf.Home()
 
-	if err = renameFile(oldconf.Location(), oldhome, newhome); err != nil {
+	if err = oldconf.Remote().renameFile(oldhome, newhome); err != nil {
 		logDebug.Println("rename failed:", oldhome, newhome, err)
 		return
 	}
@@ -287,27 +296,27 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 
 	if err = setField(oldconf, "InstanceName", newname); err != nil {
 		// try to recover
-		_ = renameFile(newconf.Location(), newhome, oldhome)
+		_ = newconf.Remote().renameFile(newhome, oldhome)
 		return
 	}
 	// update any component name if the same as the instance name
 	if getString(oldconf, oldconf.Prefix("Name")) == oldname {
 		if err = setField(oldconf, oldconf.Prefix("Name"), newname); err != nil {
 			// try to recover
-			_ = renameFile(newconf.Location(), newhome, oldhome)
+			_ = newconf.Remote().renameFile(newhome, oldhome)
 			return
 		}
 	}
 
 	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.componentDir(newconf.Location()), newname)); err != nil {
 		// try to recover
-		_ = renameFile(newconf.Location(), newhome, oldhome)
+		_ = newconf.Remote().renameFile(newhome, oldhome)
 		return
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeConfigFile(newconf.Location(), filepath.Join(newhome, ct.String()+".json"), newconf.Prefix("User"), oldconf); err != nil {
-		_ = renameFile(newconf.Location(), newhome, oldhome)
+	if err = newconf.Remote().writeConfigFile(filepath.Join(newhome, ct.String()+".json"), newconf.Prefix("User"), oldconf); err != nil {
+		_ = newconf.Remote().renameFile(newhome, oldhome)
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
@@ -323,14 +332,14 @@ func deleteInstance(c Instances, params []string) (err error) {
 		if components[c.Type()].RealComponent {
 			stopInstance(c, nil)
 		}
-		if err = removeAll(c.Location(), c.Home()); err != nil {
+		if err = c.Remote().removeAll(c.Home()); err != nil {
 			logError.Fatalln(err)
 		}
 		return nil
 	}
 
 	if Disabled(c) {
-		if err = removeAll(c.Location(), c.Home()); err != nil {
+		if err = c.Remote().removeAll(c.Home()); err != nil {
 			logError.Fatalln(err)
 		}
 		return nil

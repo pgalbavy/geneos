@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -28,7 +27,6 @@ func readSSHkeys(homedir string) (signers []ssh.Signer) {
 		key, err := os.ReadFile(path)
 		if err != nil {
 			logDebug.Println(err)
-			continue
 		}
 		signer, err := ssh.ParsePrivateKey(key)
 		if err != nil {
@@ -93,93 +91,49 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 	}
 	client, err = ssh.Dial("tcp", dest, config)
 	if err != nil {
-		logError.Fatalln("unable to connect:", err)
+		logError.Panicln("unable to connect:", err)
 	}
 	return
 }
 
-func sshOpenRemote(remote RemoteName) (client *ssh.Client, err error) {
-	client, ok := remoteSSHClients[remote]
-	if !ok {
-		i, err := Remote.getInstance(remote.String())
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		dest := getString(i, "Hostname") + ":" + fmt.Sprint(getInt(i, "Port"))
-		user := getString(i, "Username")
-		client, err = sshConnect(dest, user)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		logDebug.Println("remote opened", remote, dest, user)
-		remoteSSHClients[remote] = client
-	}
-	return
-}
-
-func (r *Remotes) sshOpenRemote() (client *ssh.Client, err error) {
-	client = r.sshClient
-	if client == nil {
+func (r *Remotes) sshOpenRemote() (s *ssh.Client, err error) {
+	s = r.sshClient
+	if s == nil {
 		dest := r.Hostname + ":" + strconv.Itoa(r.Port)
 		user := getString(r, "Username")
-		client, err = sshConnect(dest, user)
+		s, err = sshConnect(dest, user)
 		if err != nil {
 			logError.Fatalln(err)
 		}
 		logDebug.Println("remote opened", r.InstanceName, dest, user)
-		r.sshClient = client
+		r.sshClient = s
 	}
 	return
 }
 
-func sshCloseRemote(remote RemoteName) {
-	sftpCloseSession(remote)
-	c, ok := remoteSSHClients[remote]
-	if ok {
-		c.Close()
-		delete(remoteSSHClients, remote)
-	}
+func (r *Remotes) sshCloseRemote() {
+	r.sftpCloseSession()
+	r.sshClient.Close()
 }
 
 // succeed or fatal
-func sftpOpenSession(remote RemoteName) (s *sftp.Client) {
-	s, ok := remoteSFTPClients[remote]
-	if !ok {
-		c, err := sshOpenRemote(remote)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		s, err = sftp.NewClient(c)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		logDebug.Println("remote opened", remote)
-		remoteSFTPClients[remote] = s
-	}
-	return
-}
-
-func (r *Remotes) sftpOpenSession() (s *sftp.Client) {
-	s = r.sftpClient
-	if s == nil {
+func (r *Remotes) sftpOpenSession() (f *sftp.Client) {
+	f = r.sftpClient
+	if f == nil {
 		c, err := r.sshOpenRemote()
 		if err != nil {
 			logError.Fatalln(err)
 		}
-		s, err = sftp.NewClient(c)
+		f, err = sftp.NewClient(c)
 		if err != nil {
 			logError.Fatalln(err)
 		}
 		logDebug.Println("remote opened", r.InstanceName)
-		r.sftpClient = s
+		r.sftpClient = f
 	}
 	return
 }
 
-func sftpCloseSession(remote RemoteName) {
-	s, ok := remoteSFTPClients[remote]
-	if ok {
-		s.Close()
-		delete(remoteSFTPClients, remote)
-	}
+func (r *Remotes) sftpCloseSession() {
+	r.sftpClient.Close()
 }

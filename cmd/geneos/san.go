@@ -66,9 +66,9 @@ func init() {
 	})
 }
 
-func InitSan(remote RemoteName) {
+func InitSan(r *Remotes) {
 	// copy default template to directory
-	if err := writeFile(remote, GeneosPath(remote, San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
+	if err := r.writeFile(r.GeneosPath(San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -107,6 +107,10 @@ func (n Sans) Home() string {
 // Prefix() takes the string argument and adds any component type specific prefix
 func (n Sans) Prefix(field string) string {
 	return "San" + field
+}
+
+func (n Sans) Remote() *Remotes {
+	return n.InstanceRemote
 }
 
 func (n Sans) Add(username string, params []string, tmpl string) (err error) {

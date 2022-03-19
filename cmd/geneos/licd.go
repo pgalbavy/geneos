@@ -80,6 +80,10 @@ func (l Licds) Prefix(field string) string {
 	return "Licd" + field
 }
 
+func (l Licds) Remote() *Remotes {
+	return l.InstanceRemote
+}
+
 func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	l.LicdPort = l.InstanceRemote.nextPort(GlobalConfig["LicdPortRange"])
 	l.LicdUser = username

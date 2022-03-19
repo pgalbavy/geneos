@@ -59,7 +59,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	if ct != None && len(args) == 0 {
 		// if all args have no become params (e.g. 'set gateway X=Y') then reprocess args here
-		args = ct.instanceNames(ALL)
+		args = ct.InstanceNames(rALL)
 	} else if len(args) == 0 || args[0] == "user" {
 		userConfDir, _ := os.UserConfigDir()
 		return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
@@ -206,7 +206,7 @@ func setValue(c Instances, k, vs string) (err error) {
 func writeConfigParams(filename string, params []string) (err error) {
 	var c GlobalSettings
 	// ignore err - config may not exist, but that's OK
-	_ = readConfigFile(LOCAL, filename, &c)
+	_ = readLocalConfigFile(filename, &c)
 	// change here
 	if len(c) == 0 {
 		c = make(GlobalSettings)
@@ -223,21 +223,21 @@ func writeConfigParams(filename string, params []string) (err error) {
 
 	// XXX fix permissions assumptions here
 	if filename == globalConfig {
-		return writeConfigFile(LOCAL, filename, "root", c)
+		return rLOCAL.writeConfigFile(filename, "root", c)
 	}
-	return writeConfigFile(LOCAL, filename, "", c)
+	return rLOCAL.writeConfigFile(filename, "", c)
 }
 
 // check for rc file? migrate?
 func writeInstanceConfig(c Instances) (err error) {
-	err = writeConfigFile(c.Location(), filepath.Join(c.Home(), c.Type().String()+".json"), c.Prefix("User"), c)
+	err = c.Remote().writeConfigFile(filepath.Join(c.Home(), c.Type().String()+".json"), c.Prefix("User"), c)
 	return
 }
 
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func writeConfigFile(remote RemoteName, file string, username string, config interface{}) (err error) {
+func (r *Remotes) writeConfigFile(file string, username string, config interface{}) (err error) {
 	j, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
@@ -266,27 +266,26 @@ func writeConfigFile(remote RemoteName, file string, username string, config int
 
 	dir := filepath.Dir(file)
 	// try to ensure directory exists
-	if err = mkdirAll(remote, dir, 0775); err != nil {
+	if err = r.mkdirAll(dir, 0775); err != nil {
 		return
 	}
 	// change final directory ownership
-	_ = chown(remote, dir, uid, gid)
+	_ = r.chown(dir, uid, gid)
 
 	buffer := bytes.NewBuffer(j)
-	f, fn, err := createTempFile(remote, file, 0664)
+	f, fn, err := r.createTempFile(file, 0664)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	if err = chown(remote, fn, uid, gid); err != nil {
-		removeFile(remote, fn)
+	if err = r.chown(fn, uid, gid); err != nil {
+		r.removeFile(fn)
 	}
 
 	if _, err = io.Copy(f, buffer); err != nil {
 		return err
 	}
 
-	return renameFile(remote, fn, file)
-
+	return r.renameFile(fn, file)
 }

@@ -80,6 +80,10 @@ func (n Netprobes) Prefix(field string) string {
 	return "Netp" + field
 }
 
+func (n Netprobes) Remote() *Remotes {
+	return n.InstanceRemote
+}
+
 func (n Netprobes) Add(username string, params []string, tmpl string) (err error) {
 	n.NetpPort = n.InstanceRemote.nextPort(GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username

@@ -111,23 +111,23 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 
 	// rewrite local templates and exit
 	if initFlags.Templates {
-		gatewayTemplates := GeneosPath(LOCAL, Gateway.String(), "templates")
-		mkdirAll(LOCAL, gatewayTemplates, 0775)
+		gatewayTemplates := rLOCAL.GeneosPath(Gateway.String(), "templates")
+		rLOCAL.mkdirAll(gatewayTemplates, 0775)
 		tmpl := GatewayTemplate
 		if initFlags.GatewayTmpl != "" {
 			tmpl = readSourceBytes(initFlags.GatewayTmpl)
 		}
-		if err := writeFile(LOCAL, filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.writeFile(filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 
-		sanTemplates := GeneosPath(LOCAL, San.String(), "templates")
-		mkdirAll(LOCAL, sanTemplates, 0775)
+		sanTemplates := rLOCAL.GeneosPath(San.String(), "templates")
+		rLOCAL.mkdirAll(sanTemplates, 0775)
 		tmpl = SanTemplate
 		if initFlags.SanTmpl != "" {
 			tmpl = readSourceBytes(initFlags.SanTmpl)
 		}
-		if err := writeFile(LOCAL, filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.writeFile(filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 
@@ -139,19 +139,19 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
-	if err = initGeneos(LOCAL, args); err != nil {
+	if err = rLOCAL.initGeneos(args); err != nil {
 		log.Fatalln(err)
 	}
 
 	return
 }
 
-func initGeneos(remote RemoteName, args []string) (err error) {
+func (r *Remotes) initGeneos(args []string) (err error) {
 	var dir string
 	var uid, gid int
 	var username, homedir string
 
-	if remote != LOCAL && superuser {
+	if r != rLOCAL && superuser {
 		err = ErrNotSupported
 		return
 	}
@@ -230,12 +230,11 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 			}
 		}
 	} else {
-		if remote == LOCAL {
+		if r == rLOCAL {
 			u, _ := user.Current()
 			username = u.Username
 			homedir = u.HomeDir
 		} else {
-			r := loadRemoteConfig(remote)
 			username = r.Username
 			homedir = r.ITRSHome
 		}
@@ -253,9 +252,9 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	}
 
 	// dir must first not exist (or be empty) and then be createable
-	if _, err := statFile(remote, dir); err == nil {
+	if _, err := r.statFile(dir); err == nil {
 		// check empty
-		dirs, err := readDir(remote, dir)
+		dirs, err := r.readDir(dir)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -266,13 +265,13 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = mkdirAll(remote, dir, 0775); err != nil {
+		if err = r.mkdirAll(dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
 
 	if superuser {
-		if err = chown(LOCAL, dir, uid, gid); err != nil {
+		if err = rLOCAL.chown(dir, uid, gid); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -280,7 +279,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	// create directories
 	for _, d := range initDirs {
 		dir := filepath.Join(dir, d)
-		if err = mkdirAll(remote, dir, 0775); err != nil {
+		if err = r.mkdirAll(dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -288,24 +287,24 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	if superuser {
 		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
 			if err == nil {
-				err = chown(LOCAL, path, uid, gid)
+				err = rLOCAL.chown(path, uid, gid)
 			}
 			return err
 		})
 	}
 
-	if remote == LOCAL {
+	if r == rLOCAL {
 		c := make(GlobalSettings)
 		c["ITRSHome"] = dir
 		c["DefaultUser"] = username
 
 		if superuser {
-			if err = writeConfigFile(LOCAL, globalConfig, "root", c); err != nil {
+			if err = rLOCAL.writeConfigFile(globalConfig, "root", c); err != nil {
 				logError.Fatalln("cannot write global config", err)
 			}
 
 			// if everything else worked, remove any existing user config
-			_ = removeFile(LOCAL, filepath.Join(dir, ".config", "geneos.json"))
+			_ = r.removeFile(filepath.Join(dir, ".config", "geneos.json"))
 		} else {
 			userConfDir, err := os.UserConfigDir()
 			if err != nil {
@@ -313,7 +312,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 			}
 			userConfFile := filepath.Join(userConfDir, "geneos.json")
 
-			if err = writeConfigFile(LOCAL, userConfFile, username, c); err != nil {
+			if err = rLOCAL.writeConfigFile(userConfFile, username, c); err != nil {
 				return err
 			}
 		}
@@ -323,20 +322,20 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	loadSysConfig()
 	for _, c := range components {
 		if c.Initialise != nil {
-			c.Initialise(LOCAL)
+			c.Initialise(rLOCAL)
 		}
 	}
 
 	if initFlags.GatewayTmpl != "" {
 		tmpl := readSourceBytes(initFlags.GatewayTmpl)
-		if err := writeFile(LOCAL, GeneosPath(LOCAL, Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
 	if initFlags.SanTmpl != "" {
 		tmpl := readSourceBytes(initFlags.SanTmpl)
-		if err := writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
@@ -351,20 +350,20 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 	}
 
 	e := []string{}
-	r := []string{"@" + remote.String()}
+	rem := []string{"@" + r.InstanceName}
 
 	// create a demo environment
 	if initFlags.Demo {
-		g := []string{"Demo Gateway@" + remote.String()}
-		n := []string{"localhost@" + remote.String()}
-		w := []string{"demo@" + remote.String()}
+		g := []string{"Demo Gateway@" + r.InstanceName}
+		n := []string{"localhost@" + r.InstanceName}
+		w := []string{"demo@" + r.InstanceName}
 		commandDownload(None, e, e)
 		commandAdd(Gateway, g, params)
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
 		commandAdd(Netprobe, n, params)
 		commandAdd(Webserver, w, params)
 		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(commands["start"], r)
+		ct, args, params := defaultArgs(commands["start"], rem)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return
@@ -379,8 +378,8 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		} else {
 			sanname, _ = os.Hostname()
 		}
-		if remote != LOCAL {
-			sanname = sanname + "@" + remote.String()
+		if r != rLOCAL {
+			sanname = sanname + "@" + r.InstanceName
 		}
 		s = []string{sanname}
 		commandAdd(San, s, params)
@@ -396,7 +395,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 			}
 		}
 		g := []string{initFlags.Name}
-		n := []string{"localhost@" + remote.String()}
+		n := []string{"localhost@" + r.InstanceName}
 		commandDownload(None, e, e)
 		commandAdd(Licd, g, params)
 		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
@@ -404,7 +403,7 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		commandAdd(Netprobe, n, params)
 		commandAdd(Webserver, g, params)
 		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(commands["start"], r)
+		ct, args, params := defaultArgs(commands["start"], rem)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return nil

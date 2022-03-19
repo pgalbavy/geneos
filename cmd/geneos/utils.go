@@ -37,7 +37,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
-	dirs, _ := globPath(c.Location(), "/proc/[0-9]*")
+	dirs, _ := c.Remote().globPath("/proc/[0-9]*")
 
 	for _, dir := range dirs {
 		p, _ := strconv.Atoi(filepath.Base(dir))
@@ -50,7 +50,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 
 	for _, pid = range pids {
 		var data []byte
-		data, err = readFile(c.Location(), fmt.Sprintf("/proc/%d/cmdline", pid))
+		data, err = c.Remote().readFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 		if err != nil {
 			// process may disappear by this point, ignore error
 			continue
@@ -93,7 +93,7 @@ func findInstanceProc(c Instances) (pid int, uid uint32, gid uint32, mtime int64
 	pid, err = findInstancePID(c)
 	if err == nil {
 		var s fileStat
-		s, err = statFile(c.Location(), fmt.Sprintf("/proc/%d", pid))
+		s, err = c.Remote().statFile(fmt.Sprintf("/proc/%d", pid))
 		return pid, s.uid, s.gid, s.mtime, err
 	}
 	return 0, 0, 0, 0, ErrProcNotExist
@@ -283,7 +283,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 
 		if len(args) == 0 {
 			wild = true
-			args = ct.instanceNames(ALL)
+			args = ct.InstanceNames(rALL)
 		} else {
 			// expand each arg
 			// if local == "", then all instances on remote (e.g. @remote)
@@ -294,7 +294,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 				local, remote := splitInstanceName(arg)
 				if local == "" {
 					if Remote.exists(remote.String()) {
-						rargs := ct.instanceNames(RemoteName(remote))
+						rargs := ct.InstanceNames(GetRemote(remote))
 						nargs = append(nargs, rargs...)
 					}
 				} else if remote == ALL {
@@ -347,7 +347,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 
 	// if args is empty, find them all again. ct == None too?
 	if len(args) == 0 && ITRSHome() != "" {
-		args = ct.instanceNames(ALL)
+		args = ct.InstanceNames(rALL)
 	}
 
 	logDebug.Println("ct, args, params", ct, args, params)
@@ -443,12 +443,12 @@ func deletePaths(c Instances, paths string) (err error) {
 			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
-		m, err := globPath(c.Location(), filepath.Join(c.Home(), p))
+		m, err := c.Remote().globPath(filepath.Join(c.Home(), p))
 		if err != nil {
 			return err
 		}
 		for _, f := range m {
-			if err = removeAll(c.Location(), f); err != nil {
+			if err = c.Remote().removeAll(f); err != nil {
 				logError.Println(err)
 				continue
 			}
@@ -518,15 +518,15 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 	var out io.WriteCloser
 	var t *template.Template
 
-	if t, err = template.ParseGlob(GeneosPath(c.Location(), c.Type().String(), "templates", "*")); err != nil {
+	if t, err = template.ParseGlob(c.Remote().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
 		// if there are no templates, use internal as a fallback
-		log.Printf("No templates found in %s, using internal defaults", GeneosPath(c.Location(), c.Type().String(), "templates"))
+		log.Printf("No templates found in %s, using internal defaults", c.Remote().GeneosPath(c.Type().String(), "templates"))
 		t = template.Must(template.New(name).Parse(string(defaultTemplate)))
 	}
 
 	// XXX backup old file
 
-	if out, err = createFile(c.Location(), path, 0660); err != nil {
+	if out, err = c.Remote().createFile(path, 0660); err != nil {
 		log.Printf("Cannot create configurtion file %s:%s", c.Location(), path)
 		return err
 	}
@@ -547,7 +547,7 @@ func signalInstance(c Instances, signal syscall.Signal) (err error) {
 	}
 
 	if c.Location() != LOCAL {
-		rem, err := sshOpenRemote(c.Location())
+		rem, err := c.Remote().sshOpenRemote()
 		if err != nil {
 			log.Fatalln(err)
 		}

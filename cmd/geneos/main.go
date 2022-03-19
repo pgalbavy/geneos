@@ -96,6 +96,10 @@ func main() {
 
 	loadSysConfig()
 
+	// initialise placeholder structs
+	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
+	rALL = NewRemote(string(ALL)).(*Remotes)
+
 	var command = strings.ToLower(leftargs[0])
 	var ct Component = None
 	var args []string = leftargs[1:]
@@ -163,7 +167,7 @@ You can fix this by doing one of the following:
 
 	$ echo '{ "ITRSHome": "/path/to/geneos" }' >` + globalConfig)
 		}
-		s, err := statFile(LOCAL, ITRSHome())
+		s, err := rLOCAL.statFile(ITRSHome())
 		if err != nil {
 			logError.Fatalf("home directory %q: %s", ITRSHome(), errors.Unwrap(err))
 		}

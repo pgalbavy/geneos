@@ -125,7 +125,7 @@ func outHeader(logfile string) {
 func logTailInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, st, err := statAndOpenFile(c.Location(), logfile)
+	lines, st, err := c.Remote().statAndOpenFile(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			log.Printf("===> %s %s@%s log file not found <===", c.Type(), c.Name(), c.Location())
@@ -236,7 +236,7 @@ func filterOutput(logfile string, reader io.Reader) {
 func logCatInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, _, err := statAndOpenFile(c.Location(), logfile)
+	lines, _, err := c.Remote().statAndOpenFile(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			log.Printf("===> %s %s@%s log file not found <===", c.Type(), c.Name(), c.Location())
@@ -258,7 +258,7 @@ func logFollowInstance(c Instances, params []string) (err error) {
 	}
 	logfile := getLogfilePath(c)
 
-	f, st, err := statAndOpenFile(LOCAL, logfile)
+	f, st, err := rLOCAL.statAndOpenFile(logfile)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return
 	}
