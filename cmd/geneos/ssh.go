@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -116,6 +117,21 @@ func sshOpenRemote(remote RemoteName) (client *ssh.Client, err error) {
 	return
 }
 
+func (r *Remotes) sshOpenRemote() (client *ssh.Client, err error) {
+	client = r.sshClient
+	if client == nil {
+		dest := r.Hostname + ":" + strconv.Itoa(r.Port)
+		user := getString(r, "Username")
+		client, err = sshConnect(dest, user)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		logDebug.Println("remote opened", r.InstanceName, dest, user)
+		r.sshClient = client
+	}
+	return
+}
+
 func sshCloseRemote(remote RemoteName) {
 	sftpCloseSession(remote)
 	c, ok := remoteSSHClients[remote]
@@ -139,6 +155,23 @@ func sftpOpenSession(remote RemoteName) (s *sftp.Client) {
 		}
 		logDebug.Println("remote opened", remote)
 		remoteSFTPClients[remote] = s
+	}
+	return
+}
+
+func (r *Remotes) sftpOpenSession() (s *sftp.Client) {
+	s = r.sftpClient
+	if s == nil {
+		c, err := r.sshOpenRemote()
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		s, err = sftp.NewClient(c)
+		if err != nil {
+			logError.Fatalln(err)
+		}
+		logDebug.Println("remote opened", r.InstanceName)
+		r.sftpClient = s
 	}
 	return
 }

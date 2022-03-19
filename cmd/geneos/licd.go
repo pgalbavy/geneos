@@ -51,8 +51,9 @@ func NewLicd(name string) Instances {
 	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Licd.String()
 	c.InstanceName = local
-	c.InstanceLocation = remote
 	setDefaults(&c)
+	c.InstanceLocation = remote
+	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 
@@ -80,7 +81,7 @@ func (l Licds) Prefix(field string) string {
 }
 
 func (l Licds) Add(username string, params []string, tmpl string) (err error) {
-	l.LicdPort = nextPort(l.Location(), GlobalConfig["LicdPortRange"])
+	l.LicdPort = l.InstanceRemote.nextPort(GlobalConfig["LicdPortRange"])
 	l.LicdUser = username
 
 	if err = writeInstanceConfig(l); err != nil {

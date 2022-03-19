@@ -131,9 +131,9 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 // files, such as gateway setup or netprobe collection agent
 //
 // returns a map
-func getPorts(remote RemoteName) (ports map[int]Component) {
+func (r *Remotes) getPorts() (ports map[int]Component) {
 	ports = make(map[int]Component)
-	for _, c := range None.instances(remote) {
+	for _, c := range None.instances(RemoteName(r.InstanceName)) {
 		if err := loadConfig(c); err != nil {
 			log.Println(c.Type(), c.Name(), "- cannot load configuration")
 			continue
@@ -168,8 +168,8 @@ func getPorts(remote RemoteName) (ports map[int]Component) {
 //
 // not concurrency safe at this time
 //
-func nextPort(remote RemoteName, from string) int {
-	used := getPorts(remote)
+func (r *Remotes) nextPort(from string) int {
+	used := r.getPorts()
 	ps := strings.Split(from, ",")
 	for _, p := range ps {
 		// split on comma or ".."

@@ -97,6 +97,7 @@ type InstanceBase struct {
 	// a server name). This is NOT written to the config file as it
 	// may change if the remote name changes
 	InstanceLocation RemoteName `default:"local" json:"-"`
+	InstanceRemote   *Remotes   `json:"-"`
 	// The Component Type of an instance
 	InstanceType string `json:"-"`
 	// The RemoteRoot directory of the Geneos installation. Used in template

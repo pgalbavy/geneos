@@ -60,8 +60,9 @@ func NewName(name string) Instances {
 	c.RemoteRoot = remoteRoot(remote)
 	c.InstanceType = Name.String()
 	c.InstanceName = local
-	c.InstanceLocation = remote
 	setDefaults(&c)
+	c.InstanceLocation = remote
+	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 
@@ -90,7 +91,7 @@ func (n Names) Prefix(field string) string {
 }
 
 func (n Names) Add(username string, params []string) (err error) {
-	n.NamePort = nextPort(RunningConfigMap["NamePortRange"])
+	n.NamePort = n.InstanceRemote.nextPort(RunningConfigMap["NamePortRange"])
 	n.NameUser = username
 
 	if err = writeInstanceConfig(n); err != nil {

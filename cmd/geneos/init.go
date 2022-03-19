@@ -109,7 +109,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 
 	args = initFlag("init", args)
 
-	// rewrite local templates
+	// rewrite local templates and exit
 	if initFlags.Templates {
 		gatewayTemplates := GeneosPath(LOCAL, Gateway.String(), "templates")
 		mkdirAll(LOCAL, gatewayTemplates, 0775)
@@ -156,11 +156,10 @@ func initGeneos(remote RemoteName, args []string) (err error) {
 		return
 	}
 
+	// move all args starting with first flag to params
 	var i int
 	var a string
 	var params []string
-
-	// move all args starting with first flag to params
 	for i, a = range args {
 		if strings.HasPrefix(a, "-") {
 			params = args[i:]

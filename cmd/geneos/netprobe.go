@@ -51,8 +51,9 @@ func NewNetprobe(name string) Instances {
 	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Netprobe.String()
 	c.InstanceName = local
-	c.InstanceLocation = remote
 	setDefaults(&c)
+	c.InstanceLocation = remote
+	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 
@@ -80,7 +81,7 @@ func (n Netprobes) Prefix(field string) string {
 }
 
 func (n Netprobes) Add(username string, params []string, tmpl string) (err error) {
-	n.NetpPort = nextPort(n.Location(), GlobalConfig["NetprobePortRange"])
+	n.NetpPort = n.InstanceRemote.nextPort(GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username
 
 	if err = writeInstanceConfig(n); err != nil {

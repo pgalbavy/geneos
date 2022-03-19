@@ -131,7 +131,6 @@ func commandStart(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-// XXX remote support required
 func startInstance(c Instances, params []string) (err error) {
 	pid, err := findInstancePID(c)
 	if err == nil {

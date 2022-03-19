@@ -79,8 +79,9 @@ func NewSan(name string) Instances {
 	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = San.String()
 	c.InstanceName = local
-	c.InstanceLocation = remote
 	setDefaults(&c)
+	c.InstanceLocation = remote
+	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 
@@ -109,7 +110,7 @@ func (n Sans) Prefix(field string) string {
 }
 
 func (n Sans) Add(username string, params []string, tmpl string) (err error) {
-	n.SanPort = nextPort(n.Location(), GlobalConfig["SanPortRange"])
+	n.SanPort = n.InstanceRemote.nextPort(GlobalConfig["SanPortRange"])
 	n.SanUser = username
 	n.ConfigRebuild = "always"
 

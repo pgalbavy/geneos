@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"syscall"
-	// text and not html for generating XML!
 )
 
 const Gateway Component = "gateway"
@@ -80,8 +79,9 @@ func NewGateway(name string) Instances {
 	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
-	c.InstanceLocation = remote
 	setDefaults(&c)
+	c.InstanceLocation = remote
+	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 
@@ -109,7 +109,7 @@ func (g Gateways) Prefix(field string) string {
 }
 
 func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
-	g.GatePort = nextPort(g.Location(), GlobalConfig["GatewayPortRange"])
+	g.GatePort = g.InstanceRemote.nextPort(GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
 	g.ConfigRebuild = "initial"
 	g.Includes = make(map[int]string)

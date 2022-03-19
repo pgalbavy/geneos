@@ -55,8 +55,9 @@ func NewWebserver(name string) Instances {
 	c.RemoteRoot = GeneosRoot(remote)
 	c.InstanceType = Webserver.String()
 	c.InstanceName = local
-	c.InstanceLocation = remote
 	setDefaults(&c)
+	c.InstanceLocation = remote
+	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 
@@ -99,7 +100,7 @@ func (w Webservers) Prefix(field string) string {
 }
 
 func (w Webservers) Add(username string, params []string, tmpl string) (err error) {
-	w.WebsPort = nextPort(w.Location(), GlobalConfig["WebserverPortRange"])
+	w.WebsPort = w.InstanceRemote.nextPort(GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username
 
 	if err = writeInstanceConfig(w); err != nil {
