@@ -108,7 +108,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 
 	// check if instance already exists
 	if err == nil {
-		log.Printf("%s %s@%s already exists", c.Type(), c.Name(), c.Location())
+		log.Println(c, "already exists")
 		return
 	}
 
@@ -117,7 +117,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 	// reload config as 'c' is not updated by Add() as an interface value
 	loadConfig(c)
-	log.Printf("new %s %q added, port %d\n", c.Type(), c.Name(), getInt(c, c.Prefix("Port")))
+	log.Printf("new %s added, port %d\n", c, getInt(c, c.Prefix("Port")))
 
 	if addStart {
 		commandStart(c.Type(), []string{name}, []string{})

@@ -249,7 +249,7 @@ func psInstancePlain(c Instances, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	fmt.Fprintf(psTabWriter, "%s:%s@%s\t%d\t%s\t%s\t%s\t%s\n", c.Type(), c.Name(), c.Location(), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home())
+	fmt.Fprintf(psTabWriter, "%s\t%d\t%s\t%s\t%s\t%s\n", c, pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home())
 
 	return
 }
@@ -276,7 +276,7 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 		groupname = g.Name
 	}
 
-	csvWriter.Write([]string{c.Type().String() + ":" + c.Name() + "@" + string(c.Location()), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
+	csvWriter.Write([]string{c.String(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
 
 	return
 }
@@ -313,7 +313,7 @@ func commandCommand(ct Component, args []string, params []string) (err error) {
 }
 
 func commandInstance(c Instances, params []string) (err error) {
-	log.Printf("=== %s %s@%s ===", c.Type(), c.Name(), c.Location())
+	log.Printf("=== %s ===", c)
 	cmd, env := buildCmd(c)
 	if cmd != nil {
 		log.Println("command line:")

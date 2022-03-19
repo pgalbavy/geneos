@@ -84,6 +84,10 @@ func (l Licds) Remote() *Remotes {
 	return l.InstanceRemote
 }
 
+func (l Licds) String() string {
+	return l.Type().String() + ":" + l.InstanceName + "@" + l.Location().String()
+}
+
 func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	l.LicdPort = l.InstanceRemote.nextPort(GlobalConfig["LicdPortRange"])
 	l.LicdUser = username

@@ -556,7 +556,7 @@ func createInstanceCert(c Instances) (err error) {
 		logError.Fatalln(err)
 	}
 
-	log.Printf("certificate created for %s %s@%s (expires %s)", c.Type(), c.Name(), c.Location(), expires)
+	log.Printf("certificate created for %s (expires %s)", c, expires)
 
 	return
 }
@@ -622,7 +622,7 @@ func renewInstanceCert(c Instances) (err error) {
 		}
 	}
 
-	log.Printf("certificate renewed for %s %s@%s (expires %s)", c.Type(), c.Name(), c.Location(), expires)
+	log.Printf("certificate renewed for %s (expires %s)", c, expires)
 
 	return
 }

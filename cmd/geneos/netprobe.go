@@ -84,6 +84,10 @@ func (n Netprobes) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
+func (n Netprobes) String() string {
+	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+}
+
 func (n Netprobes) Add(username string, params []string, tmpl string) (err error) {
 	n.NetpPort = n.InstanceRemote.nextPort(GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username

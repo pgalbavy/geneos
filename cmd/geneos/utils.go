@@ -559,17 +559,17 @@ func signalInstance(c Instances, signal syscall.Signal) (err error) {
 		output, err := sess.CombinedOutput(fmt.Sprintf("kill -s %d %d", signal, pid))
 		sess.Close()
 		if err != nil {
-			log.Fatalf("%s %s@%s FAILED to send %s signal: %s %q", c.Type(), c.Name(), c.Location(), signal, err, output)
+			log.Fatalf("%s FAILED to send %s signal: %s %q", c, signal, err, output)
 		}
-		logDebug.Printf("%s %s@%s sent a %s signal", c.Type(), c.Name(), c.Location(), signal)
+		logDebug.Printf("%s sent a %s signal", c, signal)
 		return nil
 	}
 
 	proc, _ := os.FindProcess(pid)
 	if err = proc.Signal(signal); err != nil && !errors.Is(err, syscall.EEXIST) {
-		log.Printf("%s %s@%s sent a %s signal: %s", c.Type(), c.Name(), c.Location(), signal, err)
+		log.Printf("%s sent a %s signal: %s", c, signal, err)
 		return
 	}
-	logDebug.Printf("%s %s@%s sent a %s signal", c.Type(), c.Name(), c.Location(), signal)
+	logDebug.Printf("%s sent a %s signal", c, signal)
 	return
 }

@@ -296,6 +296,10 @@ func (r Remotes) GeneosPath(paths ...string) string {
 	return filepath.Join(append([]string{r.GeneosRoot()}, paths...)...)
 }
 
+func (r Remotes) String() string {
+	return r.Type().String() + ":" + r.InstanceName + "@" + r.Location().String()
+}
+
 // given an instance name, split on an '@' and return left and right parts, using
 // "local" as a default
 func splitInstanceName(in string) (name string, remote RemoteName) {

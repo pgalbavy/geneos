@@ -112,6 +112,10 @@ func (g Gateways) Remote() *Remotes {
 	return g.InstanceRemote
 }
 
+func (g Gateways) String() string {
+	return g.Type().String() + ":" + g.InstanceName + "@" + g.Location().String()
+}
+
 func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
 	g.GatePort = g.InstanceRemote.nextPort(GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
@@ -224,12 +228,12 @@ func (c Gateways) Clean(purge bool, params []string) (err error) {
 		if stopped {
 			err = startInstance(c, params)
 		}
-		log.Printf("%s %s@%s cleaned fully", c.Type(), c.Name(), c.Location())
+		log.Println(c, "cleaned fully")
 		return
 	}
 	err = deletePaths(c, GlobalConfig["GatewayCleanList"])
 	if err == nil {
-		log.Printf("%s %s@%s cleaned", c.Type(), c.Name(), c.Location())
+		log.Println(c, "cleaned")
 	}
 	return
 }

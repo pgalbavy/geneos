@@ -113,6 +113,10 @@ func (n Sans) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
+func (n Sans) String() string {
+	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+}
+
 func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.SanPort = n.InstanceRemote.nextPort(GlobalConfig["SanPortRange"])
 	n.SanUser = username

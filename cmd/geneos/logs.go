@@ -61,8 +61,8 @@ var watcher *fsnotify.Watcher
 
 // struct to hold logfile details
 type tail struct {
-	f    io.ReadSeekCloser
-	ct   Component
+	f io.ReadSeekCloser
+	//ct   Component
 	name string
 }
 
@@ -118,7 +118,7 @@ func outHeader(logfile string) {
 	if lastout != "" {
 		log.Println()
 	}
-	log.Printf("==> %s:%s %s <==\n", tails[logfile].ct, tails[logfile].name, logfile)
+	log.Printf("==> %s %s <==\n", tails[logfile].name, logfile)
 	lastout = logfile
 }
 
@@ -128,13 +128,13 @@ func logTailInstance(c Instances, params []string) (err error) {
 	lines, st, err := c.Remote().statAndOpenFile(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			log.Printf("===> %s %s@%s log file not found <===", c.Type(), c.Name(), c.Location())
+			log.Printf("===> %s log file not found <===", c)
 			return nil
 		}
 		return
 	}
 	defer lines.Close()
-	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + string(c.Location())}
+	tails[logfile] = &tail{lines, c.String()}
 
 	text, err := tailLines(lines, st, logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
@@ -239,12 +239,12 @@ func logCatInstance(c Instances, params []string) (err error) {
 	lines, _, err := c.Remote().statAndOpenFile(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			log.Printf("===> %s %s@%s log file not found <===", c.Type(), c.Name(), c.Location())
+			log.Printf("===> %s log file not found <===", c)
 			return nil
 		}
 		return
 	}
-	tails[logfile] = &tail{lines, c.Type(), c.Name() + "@" + string(c.Location())}
+	tails[logfile] = &tail{lines, c.String()}
 	defer lines.Close()
 	filterOutput(logfile, lines)
 
@@ -253,7 +253,7 @@ func logCatInstance(c Instances, params []string) (err error) {
 
 func logFollowInstance(c Instances, params []string) (err error) {
 	if c.Location() != LOCAL {
-		log.Printf("===> %s %s@%s -f not supported for remote instances, ignoring <===", c.Type(), c.Name(), c.Location())
+		log.Printf("===> %s -f not supported for remote instances, ignoring <===", c)
 		return
 	}
 	logfile := getLogfilePath(c)
@@ -263,7 +263,7 @@ func logFollowInstance(c Instances, params []string) (err error) {
 		return
 	}
 	// perfectly valid to not have a file to watch at start
-	tails[logfile] = &tail{f, c.Type(), c.Name() + "@" + string(c.Location())}
+	tails[logfile] = &tail{f, c.String()}
 
 	// output up to this point
 	text, _ := tailLines(tails[logfile].f, st, logsLines)

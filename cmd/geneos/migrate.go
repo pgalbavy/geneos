@@ -72,7 +72,7 @@ func migrateConfig(c Instances) (err error) {
 		logError.Println("failed to rename old config:", err)
 	}
 
-	logDebug.Printf("migrated %s %s@%s to JSON config", c.Type(), c.Name(), c.Location())
+	logDebug.Printf("migrated %s to JSON config", c)
 	return
 }
 

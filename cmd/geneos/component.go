@@ -80,6 +80,7 @@ type Instances interface {
 	Location() RemoteName
 	Remote() *Remotes
 	Prefix(string) string
+	String() string
 
 	Add(string, []string, string) error
 	Command() ([]string, []string)

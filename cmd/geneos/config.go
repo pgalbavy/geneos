@@ -365,7 +365,7 @@ func rebuildInstance(c Instances, params []string) (err error) {
 		}
 		return
 	}
-	log.Printf("%s %s@%s configuration rebuilt", c.Type(), c.Name(), c.Location())
+	log.Println(c, "configuration rebuilt")
 	if rebuildNoRestart {
 		return
 	}

@@ -103,6 +103,10 @@ func (w Webservers) Remote() *Remotes {
 	return w.InstanceRemote
 }
 
+func (w Webservers) String() string {
+	return w.Type().String() + ":" + w.InstanceName + "@" + w.Location().String()
+}
+
 func (w Webservers) Add(username string, params []string, tmpl string) (err error) {
 	w.WebsPort = w.InstanceRemote.nextPort(GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username

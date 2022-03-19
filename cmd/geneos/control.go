@@ -134,7 +134,7 @@ func commandStart(ct Component, args []string, params []string) (err error) {
 func startInstance(c Instances, params []string) (err error) {
 	pid, err := findInstancePID(c)
 	if err == nil {
-		log.Printf("%s %s@%s already running with PID %d", c.Type(), c.Name(), c.Location(), pid)
+		log.Println(c, "already running with PID", pid)
 
 		return nil
 	}
@@ -207,7 +207,7 @@ func startInstance(c Instances, params []string) (err error) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Printf("%s %s@%s started with PID %d", c.Type(), c.Name(), c.Location(), pid)
+		log.Println(c, "started with PID", pid)
 		return nil
 	}
 
@@ -236,7 +236,7 @@ func startInstance(c Instances, params []string) (err error) {
 	if err = cmd.Start(); err != nil {
 		return
 	}
-	log.Printf("%s %s@%s started with PID %d", c.Type(), c.Name(), c.Location(), cmd.Process.Pid)
+	log.Println(c, "started with PID", cmd.Process.Pid)
 	if cmd.Process != nil {
 		// detach from control
 		cmd.Process.Release()
@@ -276,7 +276,7 @@ func stopInstance(c Instances, params []string) (err error) {
 
 		_, err = findInstancePID(c)
 		if err == ErrProcNotExist {
-			log.Printf("%s %s@%s stopped", c.Type(), c.Name(), c.Location())
+			log.Println(c, "stopped")
 			return nil
 		}
 	}
@@ -289,7 +289,7 @@ func stopInstance(c Instances, params []string) (err error) {
 	time.Sleep(250 * time.Millisecond)
 	_, err = findInstancePID(c)
 	if err == ErrProcNotExist {
-		log.Printf("%s %s@%s killed", c.Type(), c.Name(), c.Location())
+		log.Println(c, "killed")
 		return nil
 	}
 	return
