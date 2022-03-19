@@ -71,7 +71,7 @@ func TLSFlag(command string, args []string) (ret []string) {
 	if len(args) == 0 {
 		return
 	}
-	TLSFlags.Parse(args[1:])
+	TLSFlags.Parse(args)
 	checkHelpFlag(command)
 	return append([]string{args[0]}, TLSFlags.Args()...)
 }
