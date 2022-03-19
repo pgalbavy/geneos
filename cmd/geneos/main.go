@@ -188,17 +188,15 @@ You can fix this by doing one of the following:
 			GlobalConfig["DefaultUser"] = u.Username
 		}
 
-		//logger.EnableDebugLog()
-
-		c, ok := commands[command]
+		cmd, ok := commands[command]
 		if !ok {
 			logError.Fatalln("unknown command", command)
 		}
 
 		// the command has to understand ct == None/Unknown
-		if err = c.Function(ct, args, params); err != nil {
+		if err = cmd.Function(ct, args, params); err != nil {
 			if err == ErrInvalidArgs {
-				logError.Fatalf("Usage: %q", c.CommandLine)
+				logError.Fatalf("Usage: %q", cmd.CommandLine)
 			}
 			logError.Fatalln(err)
 		}

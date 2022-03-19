@@ -205,7 +205,7 @@ func (ct Component) New(name string) (c Instances) {
 
 	cm, ok := components[ct]
 	if !ok || cm.New == nil {
-		logError.Fatalln(ct, ErrNotSupported)
+		log.Fatalln(ct, ErrNotSupported)
 	}
 	return cm.New(name)
 }
@@ -298,6 +298,12 @@ func (ct Component) ComponentDir(r *Remotes) string {
 
 // return a slice of initialised instances for a given component type
 func (ct Component) Instances(r *Remotes) (confs []Instances) {
+	if ct == None {
+		for _, c := range RealComponents() {
+			confs = append(confs, c.Instances(r)...)
+		}
+		return
+	}
 	for _, name := range ct.InstanceNames(r) {
 		i := ct.New(name)
 		loadConfig(i)
