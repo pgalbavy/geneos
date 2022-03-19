@@ -143,12 +143,12 @@ func GoSendMail(n C.int, args **C.char) C.int {
 		return 1
 	}
 
+	// The subject follows the same rules as the original SendMail function
+	subject := defaultSubject[_SUBJECT]
+
 	// there is a default template that contains embedded tests for which type of
 	// alert, if any. This can be overridden with a template file or a template string
 	//
-	// The subject follows the same rules as the origina SendMail function
-	subject := defaultSubject[_SUBJECT]
-
 	// first grab a suitable Subject if this is an Alert, overridden below if
 	// a template file or string is specified
 	if _, ok := conf["_ALERT"]; ok {
@@ -165,6 +165,17 @@ func GoSendMail(n C.int, args **C.char) C.int {
 			subject = getWithDefault("_SUMMARY_SUBJECT", conf, defaultSubject[_SUMMARY_SUBJECT])
 		default:
 			subject = getWithDefault("_SUBJECT", conf, defaultSubject[_SUBJECT])
+		}
+	}
+
+	// run the subject through text template to allow variable subjects
+	subjtmpl := template.New("subject")
+	subjtmpl, err = subjtmpl.Parse(subject)
+	if err == nil {
+		var subjbuf bytes.Buffer
+		err = subjtmpl.Execute(&subjbuf, conf)
+		if err == nil {
+			subject = subjbuf.String()
 		}
 	}
 
