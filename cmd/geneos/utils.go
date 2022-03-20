@@ -298,8 +298,8 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 						nargs = append(nargs, rargs...)
 					}
 				} else if remote == ALL {
-					for _, r := range allRemotes() {
-						i := local + "@" + r.String()
+					for _, r := range AllRemotes() {
+						i := local + "@" + r.InstanceName
 						if ct == None {
 							for _, cr := range RealComponents() {
 								if cr.exists(i) {

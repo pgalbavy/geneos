@@ -32,6 +32,7 @@ const ALL RemoteName = "all"
 
 var rLOCAL, rALL *Remotes
 
+// cache instances of remotes as they get used frequently
 var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
 
 type Remotes struct {
@@ -69,18 +70,18 @@ func NewRemote(name string) Instances {
 	if remote != LOCAL {
 		logError.Fatalln("remote remotes not suported")
 	}
-	// Bootstrap
 	r, ok := remotes[RemoteName(local)]
 	if ok {
 		return r
 	}
+	// Bootstrap
 	c := &Remotes{}
+	c.InstanceRemote = rLOCAL
 	c.RemoteRoot = ITRSHome()
 	c.InstanceType = Remote.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
-	c.InstanceRemote = rLOCAL
+	c.InstanceLocation = LOCAL
 	// fill this in directly as there is no config file to load
 	if c.RemoteName() == LOCAL {
 		c.getOSReleaseEnv()
@@ -255,43 +256,26 @@ func (r *Remotes) getOSReleaseEnv() (err error) {
 	return
 }
 
-func loadRemoteConfig(remote RemoteName) (r *Remotes) {
-	if remote == LOCAL {
+func GetRemote(remote RemoteName) (r *Remotes) {
+	switch remote {
+	case LOCAL:
 		return rLOCAL
+	case ALL:
+		return rALL
+	default:
+		i := NewRemote(string(remote))
+		loadConfig(i)
+		return i.(*Remotes)
 	}
-	r = NewRemote(remote.String()).(*Remotes)
-	// no error check, c will be nil on failure
-	loadConfig(r)
-	return
 }
 
 // Return the base directory for the remote, inc LOCAL
-func GeneosRoot(remote RemoteName) string {
-	switch remote {
-	case LOCAL:
-		return ITRSHome()
-	default:
-		i := loadRemoteConfig(remote)
-		if i == nil {
-			return ""
-		}
-		if err := loadConfig(i); err != nil {
-			logError.Fatalf("cannot open remote %q configuration file", remote)
-		}
-		return getString(i, "ITRSHome")
-	}
-}
-
 func (r Remotes) GeneosRoot() string {
 	return r.ITRSHome
 }
 
 // return an absolute path anchored in the root directory of the remote
 // this can also be LOCAL
-func GeneosPath(remote RemoteName, paths ...string) string {
-	return filepath.Join(append([]string{GeneosRoot(remote)}, paths...)...)
-}
-
 func (r Remotes) GeneosPath(paths ...string) string {
 	return filepath.Join(append([]string{r.GeneosRoot()}, paths...)...)
 }
@@ -310,28 +294,6 @@ func splitInstanceName(in string) (name string, remote RemoteName) {
 		remote = RemoteName(parts[1])
 	}
 	return
-}
-
-// return a list of all remote names include LOCAL
-func allRemotes() (remotes []RemoteName) {
-	remotes = []RemoteName{LOCAL}
-	for _, r := range Remote.InstanceNames(rLOCAL) {
-		remotes = append(remotes, RemoteName(r))
-	}
-	return
-}
-
-func GetRemote(remote RemoteName) (r *Remotes) {
-	switch remote {
-	case LOCAL:
-		return rLOCAL
-	case ALL:
-		return rALL
-	default:
-		i := NewRemote(string(remote))
-		loadConfig(i)
-		return i.(*Remotes)
-	}
 }
 
 func AllRemotes() (remotes []*Remotes) {

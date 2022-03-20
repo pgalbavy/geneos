@@ -509,8 +509,7 @@ func createInstanceCert(c Instances) (err error) {
 
 	host, _ := os.Hostname()
 	if c.Location() != LOCAL {
-		r := loadRemoteConfig(c.Location())
-		host = getString(r, "Hostname")
+		host = getString(c.Remote(), "Hostname")
 	}
 
 	serial, err := rand.Prime(rand.Reader, 64)
@@ -569,8 +568,7 @@ func renewInstanceCert(c Instances) (err error) {
 
 	host, _ := os.Hostname()
 	if c.Location() != LOCAL {
-		r := loadRemoteConfig(c.Location())
-		host = getString(r, "Hostname")
+		host = getString(c.Remote(), "Hostname")
 	}
 
 	serial, err := rand.Prime(rand.Reader, 64)

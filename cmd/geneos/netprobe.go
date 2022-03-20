@@ -48,12 +48,12 @@ func init() {
 func NewNetprobe(name string) Instances {
 	local, remote := splitInstanceName(name)
 	c := &Netprobes{}
-	c.RemoteRoot = GeneosRoot(remote)
+	c.InstanceRemote = GetRemote(remote)
+	c.RemoteRoot = c.Remote().GeneosRoot()
 	c.InstanceType = Netprobe.String()
 	c.InstanceName = local
 	setDefaults(&c)
 	c.InstanceLocation = remote
-	c.InstanceRemote = loadRemoteConfig(remote)
 	return c
 }
 

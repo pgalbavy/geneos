@@ -100,6 +100,8 @@ func main() {
 	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
 	rALL = NewRemote(string(ALL)).(*Remotes)
 
+	//	log.Printf("%#v", rLOCAL)
+
 	var command = strings.ToLower(leftargs[0])
 	var ct Component = None
 	var args []string = leftargs[1:]

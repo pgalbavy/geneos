@@ -320,6 +320,11 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 
 	// now reload config, after init
 	loadSysConfig()
+
+	// also recreate rLOCAL to load ITRSHome and others
+	delete(remotes, LOCAL)
+	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
+
 	for _, c := range components {
 		if c.Initialise != nil {
 			c.Initialise(rLOCAL)

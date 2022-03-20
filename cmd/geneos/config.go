@@ -122,7 +122,7 @@ func loadSysConfig() {
 	userConfDir, _ := os.UserConfigDir()
 	err := readLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &GlobalConfig)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		log.Println(err)
+		log.Println("reading user configuration:", err)
 	}
 
 	// setting the environment variable - to match legacy programs - overrides
@@ -308,7 +308,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		}
 	}
 
-	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.componentDir(newconf.Location()), newname)); err != nil {
+	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.ComponentDir(newconf.Remote()), newname)); err != nil {
 		// try to recover
 		_ = newconf.Remote().renameFile(newhome, oldhome)
 		return

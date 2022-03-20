@@ -273,18 +273,6 @@ func (ct Component) getInstance(name string) (c Instances, err error) {
 
 // Return the base directory for a Component
 // ct cannot be None
-func (ct Component) componentDir(remote RemoteName) string {
-	if ct == None {
-		logError.Fatalln(ct, ErrNotSupported)
-	}
-	switch ct {
-	case Remote:
-		return GeneosPath(LOCAL, ct.String()+"s")
-	default:
-		return GeneosPath(remote, ct.String(), ct.String()+"s")
-	}
-}
-
 func (ct Component) ComponentDir(r *Remotes) string {
 	if ct == None {
 		logError.Fatalln(ct, ErrNotSupported)
