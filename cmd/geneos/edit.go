@@ -71,7 +71,7 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	var cs []string
 	for _, name := range args {
 		for _, c := range ct.instanceMatches(name) {
-			if c.Location() != LOCAL {
+			if c.Remote() != rLOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}
 			// this wil lfail if not migrated

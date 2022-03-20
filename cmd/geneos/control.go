@@ -162,7 +162,7 @@ func startInstance(c Instances, params []string) (err error) {
 	username := getString(c, c.Prefix("User"))
 	errfile := filepath.Join(c.Home(), c.Type().String()+".txt")
 
-	if c.Location() != LOCAL {
+	if c.Remote() != rLOCAL {
 		r := c.Remote()
 		rUsername := getString(r, "Username")
 		if rUsername != username {

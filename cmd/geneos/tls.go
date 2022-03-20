@@ -510,7 +510,7 @@ func createInstanceCert(c Instances) (err error) {
 	}
 
 	host, _ := os.Hostname()
-	if c.Location() != LOCAL {
+	if c.Remote() != rLOCAL {
 		host = getString(c.Remote(), "Hostname")
 	}
 
@@ -569,7 +569,7 @@ func renewInstanceCert(c Instances) (err error) {
 	tlsDir := filepath.Join(ITRSHome(), "tls")
 
 	host, _ := os.Hostname()
-	if c.Location() != LOCAL {
+	if c.Remote() != rLOCAL {
 		host = getString(c.Remote(), "Hostname")
 	}
 

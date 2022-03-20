@@ -252,7 +252,7 @@ func logCatInstance(c Instances, params []string) (err error) {
 }
 
 func logFollowInstance(c Instances, params []string) (err error) {
-	if c.Location() != LOCAL {
+	if c.Remote() != rLOCAL {
 		log.Printf("===> %s -f not supported for remote instances, ignoring <===", c)
 		return
 	}

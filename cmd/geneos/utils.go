@@ -527,7 +527,7 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 	// XXX backup old file
 
 	if out, err = c.Remote().createFile(path, 0660); err != nil {
-		log.Printf("Cannot create configurtion file %s:%s", c.Location(), path)
+		log.Printf("Cannot create configurtion file for %s %s", c, path)
 		return err
 	}
 	defer out.Close()
@@ -546,7 +546,7 @@ func signalInstance(c Instances, signal syscall.Signal) (err error) {
 		return ErrProcNotExist
 	}
 
-	if c.Location() != LOCAL {
+	if c.Remote() != rLOCAL {
 		rem, err := c.Remote().sshOpenRemote()
 		if err != nil {
 			log.Fatalln(err)
