@@ -82,6 +82,10 @@ type Instances interface {
 	Prefix(string) string
 	String() string
 
+	Load() error
+	Unload() error
+	Loaded() bool
+
 	Add(string, []string, string) error
 	Command() ([]string, []string)
 	Clean(bool, []string) error
@@ -109,6 +113,9 @@ type InstanceBase struct {
 	// Rebuild options; never / always / initial
 	// defaults are differemt for gateway and san but go with a safe option
 	ConfigRebuild string `default:"never"`
+
+	// set to true when config successfully loaded
+	ConfigLoaded bool `json:"-"`
 
 	// Env is a slice of environment variables, as "KEY=VALUE", for the instance
 	Env []string `json:",omitempty"`
@@ -231,13 +238,12 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 
 // construct and return a slice of a/all component types that have
 // a matching name
-// if ct == None, check all real types
-//
-// change - loadconfig too
 func (ct Component) instanceMatches(name string) (c []Instances) {
 	var cs []Component
-	local, remote := splitInstanceName(name)
-	r := GetRemote(remote)
+	local, r := SplitInstanceName(name)
+	if !r.Loaded() {
+		return
+	}
 
 	if ct == None {
 		for _, t := range RealComponents() {
@@ -248,7 +254,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 
 	for _, dir := range ct.InstanceNames(r) {
 		// for case insensitive match change to EqualFold here
-		ldir, _ := splitInstanceName(dir)
+		ldir, _ := SplitInstanceName(dir)
 		if filepath.Base(ldir) == local {
 			cs = append(cs, ct)
 		}

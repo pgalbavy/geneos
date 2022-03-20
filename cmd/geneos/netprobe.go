@@ -46,14 +46,14 @@ func init() {
 }
 
 func NewNetprobe(name string) Instances {
-	local, remote := splitInstanceName(name)
+	local, r := SplitInstanceName(name)
 	c := &Netprobes{}
-	c.InstanceRemote = GetRemote(remote)
-	c.RemoteRoot = c.Remote().GeneosRoot()
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Netprobe.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
+	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
 
@@ -86,6 +86,24 @@ func (n Netprobes) Remote() *Remotes {
 
 func (n Netprobes) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+}
+
+func (n Netprobes) Load() (err error) {
+	if n.ConfigLoaded {
+		return
+	}
+	err = loadConfig(n)
+	n.ConfigLoaded = err == nil
+	return
+}
+
+func (n Netprobes) Unload() (err error) {
+	n.ConfigLoaded = false
+	return
+}
+
+func (n Netprobes) Loaded() bool {
+	return n.ConfigLoaded
 }
 
 func (n Netprobes) Add(username string, params []string, tmpl string) (err error) {

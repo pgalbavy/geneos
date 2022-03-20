@@ -6,10 +6,28 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"text/template"
 )
 
 // reflect methods to get and set struct fields
+
+func getBool(c interface{}, name string) bool {
+	v := reflect.ValueOf(c)
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return false
+	}
+
+	v = v.FieldByName(name)
+	if v.IsValid() && v.Kind() == reflect.Bool {
+		return v.Bool()
+	}
+	return false
+}
 
 func getInt(c interface{}, name string) int64 {
 	v := reflect.ValueOf(c)
@@ -82,6 +100,12 @@ func setField(c interface{}, k string, v string) (err error) {
 		case reflect.Int:
 			i, _ := strconv.Atoi(v)
 			fv.SetInt(int64(i))
+		case reflect.Bool:
+			if v == "1" || strings.EqualFold(v, "true") {
+				fv.SetBool(true)
+			} else {
+				fv.SetBool(false)
+			}
 		default:
 			return fmt.Errorf("cannot set %q to a %T: %w", k, v, ErrInvalidArgs)
 		}

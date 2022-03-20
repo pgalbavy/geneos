@@ -98,6 +98,24 @@ func (n Names) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }
 
+func (n Names) Load() (err error) {
+	if n.ConfigLoaded {
+		return
+	}
+	err = loadConfig(n)
+	n.ConfigLoaded = err == nil
+	return
+}
+
+func (n Names) Unload() (err error) {
+	n.ConfigLoaded = false
+	return
+}
+
+func (n Names) Loaded() bool {
+	return n.ConfigLoaded
+}
+
 func (n Names) Add(username string, params []string) (err error) {
 	n.NamePort = n.InstanceRemote.nextPort(RunningConfigMap["NamePortRange"])
 	n.NameUser = username

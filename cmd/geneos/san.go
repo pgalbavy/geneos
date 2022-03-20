@@ -74,14 +74,14 @@ func InitSan(r *Remotes) {
 }
 
 func NewSan(name string) Instances {
-	local, remote := splitInstanceName(name)
+	local, r := SplitInstanceName(name)
 	c := &Sans{}
-	c.InstanceRemote = GetRemote(remote)
-	c.RemoteRoot = c.Remote().GeneosRoot()
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = San.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
+	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
 
@@ -117,6 +117,24 @@ func (n Sans) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }
 
+func (s Sans) Load() (err error) {
+	if s.ConfigLoaded {
+		return
+	}
+	err = loadConfig(s)
+	s.ConfigLoaded = err == nil
+	return
+}
+
+func (s Sans) Unload() (err error) {
+	s.ConfigLoaded = false
+	return
+}
+
+func (s Sans) Loaded() bool {
+	return s.ConfigLoaded
+}
+
 func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	n.SanPort = n.InstanceRemote.nextPort(GlobalConfig["SanPortRange"])
 	n.SanUser = username
@@ -129,31 +147,6 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		Value string
 	})
 	n.Gateways = make(map[string]int)
-
-	// support same flags as for init, but skip imports if already done this once
-	// if !initFlagSet.Parsed() {
-	// 	if err = initFlagSet.Parse(params); err != nil {
-	// 		log.Fatalln(err)
-	// 	}
-
-	// 	params = initFlagSet.Args()
-
-	// 	if initFlags.SanTmpl != "" {
-	// 		tmpl := readSourceBytes(initFlags.SanTmpl)
-	// 		if err = writeFile(LOCAL, GeneosPath(LOCAL, San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
-	// 			log.Fatalln(err)
-	// 		}
-	// 	}
-
-	// 	// both options can import arbitrary PEM files, fix this
-	// 	if initFlags.SigningCert != "" {
-	// 		TLSImport(initFlags.SigningCert)
-	// 	}
-
-	// 	if initFlags.SigningKey != "" {
-	// 		TLSImport(initFlags.SigningKey)
-	// 	}
-	// }
 
 	if initFlags.Name != "" {
 		n.SanName = initFlags.Name
@@ -171,7 +164,6 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 		commandSet(San, names, params)
 		loadConfig(&n)
 	}
-	params = []string{}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
@@ -200,21 +192,23 @@ func (s Sans) Rebuild(initial bool) error {
 	}
 
 	// recheck check certs/keys
-	cert := getString(s, s.Prefix("Cert"))
-	key := getString(s, s.Prefix("Key"))
-	secure := cert != "" && key != ""
-
+	var changed bool
+	secure := s.SanCert != "" && s.SanKey != ""
 	for gw := range s.Gateways {
 		port := s.Gateways[gw]
 		if secure && port == 7039 {
 			port = 7038
+			changed = true
 		} else if !secure && port == 7038 {
 			port = 7039
+			changed = true
 		}
 		s.Gateways[gw] = port
 	}
-	if err := writeInstanceConfig(s); err != nil {
-		log.Fatalln(err)
+	if changed {
+		if err := writeInstanceConfig(s); err != nil {
+			log.Fatalln(err)
+		}
 	}
 	return createConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
 }

@@ -290,24 +290,32 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 			// if remote == "all", then check instance on all remotes
 			// @all is not valid - should be no arg
 			var nargs []string
+			wild = true
 			for _, arg := range args {
-				local, remote := splitInstanceName(arg)
+				local, r := SplitInstanceName(arg)
+				logDebug.Println(arg, local, r.InstanceName)
+				if !r.Loaded() {
+					logDebug.Println(arg, "not found")
+					continue
+				}
 				if local == "" {
-					if Remote.exists(remote.String()) {
-						rargs := ct.InstanceNames(GetRemote(remote))
+					if r.Loaded() {
+						rargs := ct.InstanceNames(r)
 						nargs = append(nargs, rargs...)
 					}
-				} else if remote == ALL {
-					for _, r := range AllRemotes() {
-						i := local + "@" + r.InstanceName
+				} else if r == rALL {
+					for _, rem := range AllRemotes() {
+						name := local + "@" + rem.InstanceName
 						if ct == None {
 							for _, cr := range RealComponents() {
-								if cr.exists(i) {
-									nargs = append(nargs, i)
+								if i, err := cr.getInstance(name); err == nil && i.Loaded() {
+									nargs = append(nargs, name)
 								}
 							}
-						} else if ct.exists(i) {
-							nargs = append(nargs, i)
+						} else if i, err := ct.getInstance(name); err == nil && i.Loaded() {
+							nargs = append(nargs, name)
+						} else {
+							logDebug.Println(arg, "not found")
 						}
 					}
 				} else {
@@ -346,7 +354,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 	}
 
 	// if args is empty, find them all again. ct == None too?
-	if len(args) == 0 && ITRSHome() != "" {
+	if len(args) == 0 && ITRSHome() != "" && !wild {
 		args = ct.InstanceNames(rALL)
 	}
 

@@ -46,14 +46,14 @@ func init() {
 }
 
 func NewLicd(name string) Instances {
-	local, remote := splitInstanceName(name)
+	local, r := SplitInstanceName(name)
 	c := &Licds{}
-	c.InstanceRemote = GetRemote(remote)
-	c.RemoteRoot = c.Remote().GeneosRoot()
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Licd.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
+	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
 
@@ -86,6 +86,24 @@ func (l Licds) Remote() *Remotes {
 
 func (l Licds) String() string {
 	return l.Type().String() + ":" + l.InstanceName + "@" + l.Location().String()
+}
+
+func (l Licds) Load() (err error) {
+	if l.ConfigLoaded {
+		return
+	}
+	err = loadConfig(l)
+	l.ConfigLoaded = err == nil
+	return
+}
+
+func (l Licds) Unload() (err error) {
+	l.ConfigLoaded = false
+	return
+}
+
+func (l Licds) Loaded() bool {
+	return l.ConfigLoaded
 }
 
 func (l Licds) Add(username string, params []string, tmpl string) (err error) {

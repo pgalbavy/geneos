@@ -74,14 +74,14 @@ func InitGateway(r *Remotes) {
 }
 
 func NewGateway(name string) Instances {
-	local, remote := splitInstanceName(name)
+	local, r := SplitInstanceName(name)
 	c := &Gateways{}
-	c.InstanceRemote = GetRemote(remote)
-	c.RemoteRoot = c.Remote().GeneosRoot()
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
+	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
 
@@ -116,6 +116,24 @@ func (g Gateways) String() string {
 	return g.Type().String() + ":" + g.InstanceName + "@" + g.Location().String()
 }
 
+func (g Gateways) Load() (err error) {
+	if g.ConfigLoaded {
+		return
+	}
+	err = loadConfig(g)
+	g.ConfigLoaded = err == nil
+	return
+}
+
+func (g Gateways) Unload() (err error) {
+	g.ConfigLoaded = false
+	return
+}
+
+func (g Gateways) Loaded() bool {
+	return g.ConfigLoaded
+}
+
 func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
 	g.GatePort = g.InstanceRemote.nextPort(GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
@@ -134,16 +152,6 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
 		createInstanceCert(&g)
-		// if we have certs then connect to Licd securely
-		if g.GateLicS == "" {
-			g.GateLicS = "true"
-		}
-		// special case; if default port is 7039 then change it to 7038
-		if g.GatePort == 7039 {
-			g.GatePort = 7038
-		}
-
-		writeInstanceConfig(g)
 	}
 
 	return g.Rebuild(true)
@@ -154,10 +162,37 @@ func (g Gateways) Rebuild(initial bool) error {
 		return ErrNoAction
 	}
 
-	if g.ConfigRebuild == "always" || (initial && g.ConfigRebuild == "initial") {
-		return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
+	if !(g.ConfigRebuild == "always" || (initial && g.ConfigRebuild == "initial")) {
+		return ErrNoAction
 	}
-	return ErrNoAction
+
+	// recheck check certs/keys
+	var changed bool
+	secure := g.GateCert != "" && g.GateKey != ""
+
+	// if we have certs then connect to Licd securely
+	if secure && g.GateLicS != "true" {
+		g.GateLicS = "true"
+		changed = true
+	} else if !secure && g.GateLicS == "true" {
+		g.GateLicS = "false"
+		changed = true
+	}
+
+	if secure && g.GatePort == 7039 {
+		g.GatePort = 7038
+		changed = true
+	} else if !secure && g.GatePort == 7038 {
+		g.GatePort = 7039
+		changed = true
+	}
+
+	if changed {
+		if err := writeInstanceConfig(g); err != nil {
+			log.Fatalln(err)
+		}
+	}
+	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }
 
 func (c Gateways) Command() (args, env []string) {

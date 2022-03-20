@@ -50,14 +50,14 @@ func init() {
 }
 
 func NewWebserver(name string) Instances {
-	local, remote := splitInstanceName(name)
+	local, r := SplitInstanceName(name)
 	c := &Webservers{}
-	c.InstanceRemote = GetRemote(remote)
-	c.RemoteRoot = c.Remote().GeneosRoot()
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Webserver.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
+	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
 
@@ -105,6 +105,24 @@ func (w Webservers) Remote() *Remotes {
 
 func (w Webservers) String() string {
 	return w.Type().String() + ":" + w.InstanceName + "@" + w.Location().String()
+}
+
+func (w Webservers) Load() (err error) {
+	if w.ConfigLoaded {
+		return
+	}
+	err = loadConfig(w)
+	w.ConfigLoaded = err == nil
+	return
+}
+
+func (w Webservers) Unload() (err error) {
+	w.ConfigLoaded = false
+	return
+}
+
+func (w Webservers) Loaded() bool {
+	return w.ConfigLoaded
 }
 
 func (w Webservers) Add(username string, params []string, tmpl string) (err error) {

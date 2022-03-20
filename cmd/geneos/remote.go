@@ -86,6 +86,10 @@ func NewRemote(name string) Instances {
 	if c.RemoteName() == LOCAL {
 		c.getOSReleaseEnv()
 	}
+	// these are pseudo remotes and always exist
+	if c.InstanceName == string(LOCAL) || c.InstanceName == string(ALL) {
+		c.ConfigLoaded = true
+	}
 	remotes[RemoteName(local)] = c
 	return c
 }
@@ -112,6 +116,27 @@ func (r Remotes) Home() string {
 
 func (remote RemoteName) String() string {
 	return string(remote)
+}
+
+func (r Remotes) Load() (err error) {
+	if r.ConfigLoaded {
+		return
+	}
+	err = loadConfig(r)
+	r.ConfigLoaded = err == nil
+	return
+}
+
+func (r Remotes) Unload() (err error) {
+	if &r == rLOCAL || &r == rALL {
+		return ErrInvalidArgs
+	}
+	r.ConfigLoaded = false
+	return
+}
+
+func (r Remotes) Loaded() bool {
+	return r.ConfigLoaded
 }
 
 func (r Remotes) RemoteName() RemoteName {
@@ -292,6 +317,16 @@ func splitInstanceName(in string) (name string, remote RemoteName) {
 	name = parts[0]
 	if len(parts) > 1 {
 		remote = RemoteName(parts[1])
+	}
+	return
+}
+
+func SplitInstanceName(in string) (name string, r *Remotes) {
+	r = rALL
+	parts := strings.SplitN(in, "@", 2)
+	name = parts[0]
+	if len(parts) > 1 {
+		r = GetRemote(RemoteName(parts[1]))
 	}
 	return
 }

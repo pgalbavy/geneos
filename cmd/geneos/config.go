@@ -150,11 +150,14 @@ func loadConfig(c Instances) (err error) {
 
 	if err = c.Remote().readConfigFile(j, &c); err == nil {
 		// return if no error, else drop through
+		setField(c, "ConfigLoaded", "true")
 		return
 	}
 	if err = readRCConfig(c); err != nil {
+		setField(c, "ConfigLoaded", "false")
 		return
 	}
+	setField(c, "ConfigLoaded", "true")
 	return
 }
 

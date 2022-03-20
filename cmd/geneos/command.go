@@ -93,7 +93,6 @@ func readRCConfig(c Instances) (err error) {
 	}
 
 	var env []string
-	// log.Printf("defaults: %+v\n", c)
 	for k, v := range confs {
 		switch k {
 		case "BinSuffix":
