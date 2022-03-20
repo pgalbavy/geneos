@@ -21,12 +21,14 @@ import (
 
 func init() {
 	RegsiterCommand(Command{
-		Name:        "tls",
-		Function:    commandTLS,
-		ParseFlags:  TLSFlag,
-		ParseArgs:   TLSArgs,
-		CommandLine: "geneos tls [init|import|new|renew|ls] ...",
-		Summary:     `TLS operations`,
+		Name:          "tls",
+		Function:      commandTLS,
+		ParseFlags:    TLSFlag,
+		ParseArgs:     TLSArgs,
+		Wildcard:      true,
+		ComponentOnly: false,
+		CommandLine:   "geneos tls [init|import|new|renew|ls] ...",
+		Summary:       `TLS operations`,
 		Description: `TLS operations. The following subcommands are supported:
 
 	geneos tls init
