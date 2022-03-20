@@ -106,6 +106,8 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 
 	c, err := ct.getInstance(name)
 
+	logDebug.Printf("%#v", c)
+
 	// check if instance already exists
 	if err == nil {
 		log.Println(c, "already exists")

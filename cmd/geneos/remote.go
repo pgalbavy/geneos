@@ -321,8 +321,8 @@ func splitInstanceName(in string) (name string, remote RemoteName) {
 	return
 }
 
-func SplitInstanceName(in string) (name string, r *Remotes) {
-	r = rALL
+func SplitInstanceName(in string, defaultRemote *Remotes) (name string, r *Remotes) {
+	r = defaultRemote
 	parts := strings.SplitN(in, "@", 2)
 	name = parts[0]
 	if len(parts) > 1 {

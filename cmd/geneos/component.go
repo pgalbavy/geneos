@@ -240,7 +240,7 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 // a matching name
 func (ct Component) instanceMatches(name string) (c []Instances) {
 	var cs []Component
-	local, r := SplitInstanceName(name)
+	local, r := SplitInstanceName(name, rALL)
 	if !r.Loaded() {
 		return
 	}
@@ -254,7 +254,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 
 	for _, dir := range ct.InstanceNames(r) {
 		// for case insensitive match change to EqualFold here
-		ldir, _ := SplitInstanceName(dir)
+		ldir, _ := SplitInstanceName(dir, rALL)
 		if filepath.Base(ldir) == local {
 			cs = append(cs, ct)
 		}

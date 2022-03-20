@@ -74,7 +74,7 @@ func InitSan(r *Remotes) {
 }
 
 func NewSan(name string) Instances {
-	local, r := SplitInstanceName(name)
+	local, r := SplitInstanceName(name, rLOCAL)
 	c := &Sans{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
