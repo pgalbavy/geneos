@@ -848,7 +848,7 @@ func (r *Remotes) writeKey(path string, key *rsa.PrivateKey) (err error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
 
-	err = r.writeFile(path, keyPEM, 0640)
+	err = r.writeFile(path, keyPEM, 0400)
 	if err != nil {
 		logError.Fatalln(err)
 	}

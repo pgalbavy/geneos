@@ -308,6 +308,10 @@ func (ct Component) Instances(r *Remotes) (confs []Instances) {
 	return
 }
 
+func InstanceFile(c Instances, extension string) (path string) {
+	return filepath.Join(c.Home(), c.Type().String()+"."+extension)
+}
+
 func (ct Component) exists(name string) bool {
 	if name == LOCAL.String() {
 		return true

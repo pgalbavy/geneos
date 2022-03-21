@@ -157,8 +157,7 @@ func ITRSHome() string {
 //
 // support cache?
 func loadConfig(c Instances) (err error) {
-	baseconf := filepath.Join(c.Home(), c.Type().String())
-	j := baseconf + ".json"
+	j := InstanceFile(c, "json")
 
 	if err = c.Remote().readConfigFile(j, &c); err == nil {
 		// return if no error, else drop through

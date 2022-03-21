@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -161,7 +160,7 @@ func startInstance(c Instances, params []string) (err error) {
 
 	// set underlying user for child proc
 	username := getString(c, c.Prefix("User"))
-	errfile := filepath.Join(c.Home(), c.Type().String()+".txt")
+	errfile := InstanceFile(c, "txt")
 
 	if c.Remote() != rLOCAL {
 		r := c.Remote()
@@ -347,7 +346,7 @@ func disableInstance(c Instances, params []string) (err error) {
 		return
 	}
 
-	disablePath := filepath.Join(c.Home(), c.Type().String()+disableExtension)
+	disablePath := InstanceFile(c, disableExtension)
 
 	f, err := c.Remote().createFile(disablePath, 0664)
 	if err != nil {
@@ -374,7 +373,7 @@ func commandEneable(ct Component, args []string, params []string) (err error) {
 }
 
 func enableInstance(c Instances, params []string) (err error) {
-	err = c.Remote().removeFile(filepath.Join(c.Home(), c.Type().String()+disableExtension))
+	err = c.Remote().removeFile(InstanceFile(c, disableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && !enableNoStart {
 		startInstance(c, params)
 	}
@@ -382,7 +381,7 @@ func enableInstance(c Instances, params []string) (err error) {
 }
 
 func Disabled(c Instances) bool {
-	d := filepath.Join(c.Home(), c.Type().String()+disableExtension)
+	d := InstanceFile(c, disableExtension)
 	if f, err := c.Remote().statFile(d); err == nil && f.st.Mode().IsRegular() {
 		return true
 	}

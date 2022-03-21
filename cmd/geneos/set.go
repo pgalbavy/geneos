@@ -230,7 +230,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 
 // check for rc file? migrate?
 func writeInstanceConfig(c Instances) (err error) {
-	err = c.Remote().writeConfigFile(filepath.Join(c.Home(), c.Type().String()+".json"), c.Prefix("User"), c)
+	err = c.Remote().writeConfigFile(InstanceFile(c, "json"), c.Prefix("User"), c)
 	return
 }
 

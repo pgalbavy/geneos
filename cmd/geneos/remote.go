@@ -196,9 +196,11 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	}
 	r.Username = username
 
-	// default to remote user's home dir?
+	// default to remote user's home dir, not local
 	homepath := ITRSHome()
 	if u.Path != "" {
+		// XXX check and adopt local setting for remote user and/or remote global settings
+		// - only if ssh URL does not contain explicit path
 		homepath = u.Path
 	}
 	r.ITRSHome = homepath
