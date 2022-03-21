@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -487,9 +488,11 @@ func TLSSync() (err error) {
 	return
 }
 
-// import intermediate (signing) cert and key from files
-// loop through args and decode pem, check type and import - filename to
-// be decided (CN.pem etc.)
+// import root and signing certs
+//
+// a root cert is one where subject == issuer
+//
+// no support for instance certs (yet)
 func TLSImport(sources ...string) (err error) {
 	logDebug.Println(sources)
 	tlsPath := filepath.Join(ITRSHome(), "tls")
@@ -497,12 +500,20 @@ func TLSImport(sources ...string) (err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// save certs and keys into memory, then check certs for root / etc.
+	// and then validate private keys against certs before saving
+	// nything to disk
+	var certs []*x509.Certificate
+	var keys []*rsa.PrivateKey
+
 	for _, source := range sources {
 		logDebug.Println("importing", source)
 		f := readSourceBytes(source)
 		if len(f) == 0 {
 			logError.Fatalln("read failed:", source)
 		}
+
 		for {
 			block, rest := pem.Decode(f)
 			if block == nil {
@@ -514,27 +525,68 @@ func TLSImport(sources ...string) (err error) {
 				if err != nil {
 					logError.Fatalln(err)
 				}
-				if err = rLOCAL.writeCert(filepath.Join(tlsPath, signingCertFile+".pem"), cert); err != nil {
-					log.Fatalln(err)
-				}
-				log.Printf("imported certificate %q to %q", source, filepath.Join(tlsPath, signingCertFile+".pem"))
+				certs = append(certs, cert)
 			case "RSA PRIVATE KEY":
 				key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 				if err != nil {
 					logError.Fatalln(err)
 				}
-				if err = rLOCAL.writeKey(filepath.Join(tlsPath, signingCertFile+".key"), key); err != nil {
-					log.Fatalln(err)
+				if err = key.Validate(); err != nil {
+					log.Fatalln("invalid key:", err)
 				}
-				log.Printf("imported RSA private key %q to %q", source, filepath.Join(tlsPath, signingCertFile+".pem"))
+				keys = append(keys, key)
 			default:
 				logError.Fatalln("unknown PEM type:", block.Type)
 			}
-
 			f = rest
 		}
 	}
+
+	var title, prefix string
+	for _, cert := range certs {
+		if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
+			// root cert
+			title = "root"
+			prefix = rootCAFile
+		} else {
+			// signing cert
+			title = "signing"
+			prefix = signingCertFile
+		}
+		i, err := matchKey(cert, keys)
+		if err != nil {
+			logDebug.Println("cert: no matching key found, ignoring", cert.Subject.String())
+			continue
+		}
+
+		// pull out the matching key, write files
+		key := keys[i]
+		if len(keys) > i {
+			keys = append(keys[:i], keys[i+1:]...)
+		} else {
+			keys = keys[:i]
+		}
+
+		if err = rLOCAL.writeCert(filepath.Join(tlsPath, prefix+".pem"), cert); err != nil {
+			log.Fatalln(err)
+		}
+		log.Printf("imported %s certificate to %q", title, filepath.Join(tlsPath, prefix+".pem"))
+		if err = rLOCAL.writeKey(filepath.Join(tlsPath, prefix+".key"), key); err != nil {
+			log.Fatalln(err)
+		}
+		log.Printf("imported %s RSA private key to %q", title, filepath.Join(tlsPath, prefix+".pem"))
+	}
+
 	return
+}
+
+func matchKey(cert *x509.Certificate, keys []*rsa.PrivateKey) (index int, err error) {
+	for i, key := range keys {
+		if key.PublicKey.Equal(cert.PublicKey) {
+			return i, nil
+		}
+	}
+	return -1, ErrNotFound
 }
 
 func newRootCA(dir string) (cert *x509.Certificate, err error) {
