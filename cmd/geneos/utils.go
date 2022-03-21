@@ -349,7 +349,9 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 	logDebug.Println("ct, args", ct, args)
 
 	m := make(map[string]bool, len(args))
-	for i, name := range args {
+	// traditional loop because we can't modify args in a loop to skip
+	for i := 0; i < len(args); i++ {
+		name := args[i]
 		// filter name here
 		if !wild && reservedName(name) {
 			logError.Fatalf("%q is reserved instance name", name)
@@ -357,9 +359,6 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		// move unknown args to params
 		if !validInstanceName(name) {
 			params = append(params, name)
-			if len(args) > i {
-				args = append(args[:i], args[i+1:]...)
-			}
 			continue
 		}
 		// ignore duplicates (not params above)
