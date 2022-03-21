@@ -150,42 +150,20 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	var dir string
 	var uid, gid int
 	var username, homedir string
+	var params []string
 
 	if r != rLOCAL && superuser {
 		err = ErrNotSupported
 		return
 	}
 
-	// move all args starting with first flag to params
-	var i int
-	var a string
-	var params []string
-	for i, a = range args {
-		if strings.HasPrefix(a, "-") {
-			params = args[i:]
-			if i > 0 {
-				args = args[:i]
-			} else {
-				args = []string{}
-			}
-			break
-		}
-	}
-
-	// move all args to params from first on containing an '='
-	if len(params) == 0 {
-		for i, a = range args {
-			if strings.Contains(a, "=") {
-				params = args[i:]
-				if i > 0 {
-					args = args[:i]
-				} else {
-					args = []string{}
-				}
-				break
-			}
-		}
-	}
+	// re-run defaultArgs?
+	_, args, params = defaultArgs(Command{
+		Name:          "init",
+		Wildcard:      false,
+		ComponentOnly: false,
+		ParseFlags:    initFlag,
+	}, args)
 
 	logDebug.Println("args, params:", args, params)
 
@@ -245,7 +223,10 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 				dir = filepath.Join(homedir, "geneos")
 			}
 		case 1: // home = abs path
-			dir, _ = filepath.Abs(args[0])
+			if !filepath.IsAbs(args[0]) {
+				log.Fatalln("Home directory must be absolute path:", args[0])
+			}
+			dir = filepath.Clean(args[0])
 		default:
 			logError.Fatalln("too many args:", args, params)
 		}
