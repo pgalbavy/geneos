@@ -112,6 +112,18 @@ type GlobalSettings map[Global]string
 
 var GlobalConfig GlobalSettings = make(GlobalSettings)
 
+func deleteFlag(command string, args []string) []string {
+	deleteFlags.Parse(args)
+	checkHelpFlag(command)
+	return deleteFlags.Args()
+}
+
+func rebuildFlag(command string, args []string) []string {
+	rebuildFlags.Parse(args)
+	checkHelpFlag(command)
+	return rebuildFlags.Args()
+}
+
 // load system config from global and user JSON files and process any
 // environment variables we choose
 func loadSysConfig() {
@@ -338,6 +350,7 @@ func deleteInstance(c Instances, params []string) (err error) {
 		if err = c.Remote().removeAll(c.Home()); err != nil {
 			logError.Fatalln(err)
 		}
+		log.Println(c, "deleted")
 		return nil
 	}
 
@@ -345,16 +358,11 @@ func deleteInstance(c Instances, params []string) (err error) {
 		if err = c.Remote().removeAll(c.Home()); err != nil {
 			logError.Fatalln(err)
 		}
+		log.Println(c, "deleted")
 		return nil
 	}
-	log.Println(c.Type(), c.Name(), "must be disabled before delete")
+	log.Println(c, "must be disabled before delete")
 	return nil
-}
-
-func deleteFlag(command string, args []string) []string {
-	deleteFlags.Parse(args)
-	checkHelpFlag(command)
-	return deleteFlags.Args()
 }
 
 func commandRebuild(ct Component, args []string, params []string) (err error) {
@@ -373,10 +381,4 @@ func rebuildInstance(c Instances, params []string) (err error) {
 		return
 	}
 	return restartInstance(c, params)
-}
-
-func rebuildFlag(command string, args []string) []string {
-	rebuildFlags.Parse(args)
-	checkHelpFlag(command)
-	return rebuildFlags.Args()
 }
