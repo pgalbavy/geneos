@@ -335,6 +335,9 @@ func SplitInstanceName(in string, defaultRemote *Remotes) (name string, r *Remot
 
 func AllRemotes() (remotes []*Remotes) {
 	remotes = []*Remotes{rLOCAL}
+	if superuser {
+		return
+	}
 	for _, r := range Remote.Instances(rLOCAL) {
 		remotes = append(remotes, r.(*Remotes))
 	}
