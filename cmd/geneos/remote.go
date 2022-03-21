@@ -549,7 +549,6 @@ func (r *Remotes) readDir(name string) (dirs []os.DirEntry, err error) {
 	default:
 		s := r.sftpOpenSession()
 		f, err := s.ReadDir(name)
-		logDebug.Println(name, f)
 		if err != nil {
 			return nil, err
 		}

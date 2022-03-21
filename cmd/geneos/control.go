@@ -132,6 +132,7 @@ func commandStart(ct Component, args []string, params []string) (err error) {
 }
 
 func startInstance(c Instances, params []string) (err error) {
+	logDebug.Println(c, params)
 	pid, err := findInstancePID(c)
 	if err == nil {
 		log.Println(c, "already running with PID", pid)
@@ -145,7 +146,7 @@ func startInstance(c Instances, params []string) (err error) {
 
 	binary := getString(c, c.Prefix("Exec"))
 	if _, err = c.Remote().statFile(binary); err != nil {
-		return
+		return fmt.Errorf("%q %w", binary, err)
 	}
 
 	cmd, env := buildCmd(c)

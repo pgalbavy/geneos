@@ -282,28 +282,41 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		}
 
 		if len(args) == 0 {
+			// no args means all instances
 			wild = true
 			args = ct.InstanceNames(rALL)
 		} else {
-			// expand each arg
+			// expand each arg and save results to a new slice
 			// if local == "", then all instances on remote (e.g. @remote)
-			// if remote == "all", then check instance on all remotes
+			// if remote == "all" (or none given), then check instance on all remotes
 			// @all is not valid - should be no arg
 			var nargs []string
 			for _, arg := range args {
-				local, r := SplitInstanceName(arg, rALL)
-				logDebug.Println(arg, local, r.InstanceName)
-				if !r.Loaded() {
-					logDebug.Println(arg, "not found")
+				// check if not valid first and leave unchanged, skip
+				if !(strings.HasPrefix(arg, "@") || validInstanceName(arg)) {
+					logDebug.Println("leaving unchanged:", arg)
+					nargs = append(nargs, arg)
 					continue
 				}
+				local, r := SplitInstanceName(arg, rALL)
+				if !r.Loaded() {
+					logDebug.Println(arg, "- remote not found")
+					// we have tried to match something and it may result in an empty list
+					// so don't re-process
+					wild = true
+					continue
+				}
+
+				logDebug.Println("split", arg, "into:", local, r.InstanceName)
 				if local == "" {
+					// only a '@remote' in arg
 					if r.Loaded() {
 						rargs := ct.InstanceNames(r)
 						nargs = append(nargs, rargs...)
 						wild = true
 					}
 				} else if r == rALL {
+					// no '@remote' in arg
 					for _, rem := range AllRemotes() {
 						name := local + "@" + rem.InstanceName
 						if ct == None {
@@ -317,12 +330,16 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 							nargs = append(nargs, name)
 							wild = true
 						} else {
+							// move the unknown unchanged - file or url - arg so it can later be pushed to params
+							// do not set 'wild' though?
 							logDebug.Println(arg, "not found")
+							nargs = append(nargs, arg)
 						}
 					}
 				} else {
+					// save unchanged arg, may be param
 					nargs = append(nargs, arg)
-					wild = true
+					// wild = true
 				}
 			}
 			args = nargs
@@ -337,13 +354,15 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		if !wild && reservedName(name) {
 			logError.Fatalf("%q is reserved instance name", name)
 		}
+		// move unknown args to params
 		if !validInstanceName(name) {
-			// first invalid name end processing, save the rest as params
-			logDebug.Printf("%q is not a valid instance name, stopped processing args", name)
-			params = args[i:]
-			break
+			params = append(params, name)
+			if len(args) > i {
+				args = append(args[:i], args[i+1:]...)
+			}
+			continue
 		}
-		// simply ignore duplicates
+		// ignore duplicates (not params above)
 		if m[name] {
 			continue
 		}

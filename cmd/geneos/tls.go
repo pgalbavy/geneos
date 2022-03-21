@@ -49,11 +49,22 @@ func init() {
 
 	geneos tls sync
 		copy the current chain.pem to all known remotes
-		this is also done by 'init' if remotes are configured at that point`,
+		this is also done by 'init' if remotes are configured at that point
+		
+FLAGS:
+	For 'tls ls':
+
+	-a	List all certs, not just instance certs
+	-l	Long list format
+	-c	CSV Output
+	-j	JSON Output
+	-i	Indent JSON Output
+`,
 	})
 
 	TLSFlags = flag.NewFlagSet("tls", flag.ExitOnError)
 	// support the same flags as "ls" for lists
+	TLSFlags.BoolVar(&TLSlistAll, "a", false, "Show all certs, including global and signing certs")
 	TLSFlags.BoolVar(&TLSlistJSON, "j", false, "Output JSON")
 	TLSFlags.BoolVar(&TLSlistLong, "l", false, "Long output")
 	TLSFlags.BoolVar(&TLSlistJSONIndent, "i", false, "Indent / pretty print JSON")
@@ -62,7 +73,7 @@ func init() {
 }
 
 var TLSFlags *flag.FlagSet
-var TLSlistJSON, TLSlistJSONIndent, TLSlistLong bool
+var TLSlistAll, TLSlistJSON, TLSlistJSONIndent, TLSlistLong bool
 var TLSlistCSV bool
 
 const rootCAFile = "rootCA"
@@ -75,7 +86,7 @@ func TLSFlag(command string, args []string) (ret []string) {
 	}
 	TLSFlags.Parse(args)
 	checkHelpFlag(command)
-	return append([]string{args[0]}, TLSFlags.Args()...)
+	return TLSFlags.Args()
 }
 
 // pop subcommand, parse args, put subcommand back onto params?
@@ -112,7 +123,11 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 	case "import":
 		return TLSImport(params...)
 	case "ls":
-		return listCertsCommand(ct, args, params)
+		if TLSlistLong {
+			return listCertsLongCommand(ct, args, params)
+		} else {
+			return listCertsCommand(ct, args, params)
+		}
 	case "sync":
 		return TLSSync()
 	case "renew":
@@ -122,6 +137,15 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 }
 
 type lsCertType struct {
+	Type       string
+	Name       string
+	Location   RemoteName
+	Remaining  time.Duration
+	Expires    time.Time
+	CommonName string
+}
+
+type lsCertLongType struct {
 	Type        string
 	Name        string
 	Location    RemoteName
@@ -144,33 +168,123 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 		if TLSlistJSONIndent {
 			jsonEncoder.SetIndent("", "    ")
 		}
-		if rootCert != nil {
-			jsonEncoder.Encode(lsCertType{
-				"global",
-				rootCAFile,
-				LOCAL,
-				time.Duration(time.Until(rootCert.NotAfter).Seconds()),
-				rootCert.NotAfter,
-				rootCert.Subject.CommonName,
-				rootCert.Issuer.CommonName,
-				nil,
-				nil,
-				fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
-			})
+		if TLSlistAll {
+			if rootCert != nil {
+				jsonEncoder.Encode(lsCertType{
+					"global",
+					rootCAFile,
+					LOCAL,
+					time.Duration(time.Until(rootCert.NotAfter).Seconds()),
+					rootCert.NotAfter,
+					rootCert.Subject.CommonName,
+				})
+			}
+			if geneosCert != nil {
+				jsonEncoder.Encode(lsCertType{
+					"global",
+					signingCertFile,
+					LOCAL,
+					time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
+					geneosCert.NotAfter,
+					geneosCert.Subject.CommonName,
+				})
+			}
 		}
-		if geneosCert != nil {
-			jsonEncoder.Encode(lsCertType{
-				"global",
-				signingCertFile,
-				LOCAL,
-				time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
-				geneosCert.NotAfter,
-				geneosCert.Subject.CommonName,
-				geneosCert.Issuer.CommonName,
-				nil,
-				nil,
-				fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
-			})
+		err = ct.loopCommand(lsInstanceCertJSON, args, params)
+	case TLSlistCSV:
+		csvWriter = csv.NewWriter(log.Writer())
+		csvWriter.Write([]string{
+			"Type",
+			"Name",
+			"Location",
+			"Remaining",
+			"Expires",
+			"CommonName",
+		})
+		if TLSlistAll {
+			if rootCert != nil {
+				csvWriter.Write([]string{
+					"global",
+					rootCAFile,
+					string(LOCAL),
+					fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
+					rootCert.NotAfter.String(),
+					rootCert.Subject.CommonName,
+				})
+			}
+			if geneosCert != nil {
+				csvWriter.Write([]string{
+					"global",
+					signingCertFile,
+					string(LOCAL),
+					fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
+					geneosCert.NotAfter.String(),
+					geneosCert.Subject.CommonName,
+				})
+			}
+		}
+		err = ct.loopCommand(lsInstanceCertCSV, args, params)
+		csvWriter.Flush()
+	default:
+		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
+		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tRemaining\tExpires\tCommonName\n")
+		if TLSlistAll {
+			if rootCert != nil {
+				fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\n", rootCAFile, LOCAL,
+					time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
+					rootCert.Subject.CommonName)
+			}
+			if geneosCert != nil {
+				fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\n", signingCertFile, LOCAL,
+					time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
+					geneosCert.Subject.CommonName)
+			}
+		}
+		err = ct.loopCommand(lsInstanceCert, args, params)
+		lsTabWriter.Flush()
+	}
+	return
+}
+
+func listCertsLongCommand(ct Component, args []string, params []string) (err error) {
+	rootCert, _ := readRootCert()
+	geneosCert, _ := readSigningCert()
+
+	switch {
+	case TLSlistJSON:
+		jsonEncoder = json.NewEncoder(log.Writer())
+		if TLSlistJSONIndent {
+			jsonEncoder.SetIndent("", "    ")
+		}
+		if TLSlistAll {
+			if rootCert != nil {
+				jsonEncoder.Encode(lsCertLongType{
+					"global",
+					rootCAFile,
+					LOCAL,
+					time.Duration(time.Until(rootCert.NotAfter).Seconds()),
+					rootCert.NotAfter,
+					rootCert.Subject.CommonName,
+					rootCert.Issuer.CommonName,
+					nil,
+					nil,
+					fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
+				})
+			}
+			if geneosCert != nil {
+				jsonEncoder.Encode(lsCertLongType{
+					"global",
+					signingCertFile,
+					LOCAL,
+					time.Duration(time.Until(geneosCert.NotAfter).Seconds()),
+					geneosCert.NotAfter,
+					geneosCert.Subject.CommonName,
+					geneosCert.Issuer.CommonName,
+					nil,
+					nil,
+					fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
+				})
+			}
 		}
 		err = ct.loopCommand(lsInstanceCertJSON, args, params)
 	case TLSlistCSV:
@@ -187,48 +301,52 @@ func listCertsCommand(ct Component, args []string, params []string) (err error) 
 			"IPs",
 			"Signature",
 		})
-		if rootCert != nil {
-			csvWriter.Write([]string{
-				"global",
-				rootCAFile,
-				string(LOCAL),
-				fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
-				rootCert.NotAfter.String(),
-				rootCert.Subject.CommonName,
-				rootCert.Issuer.CommonName,
-				"[]",
-				"[]",
-				fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
-			})
-		}
-		if geneosCert != nil {
-			csvWriter.Write([]string{
-				"global",
-				signingCertFile,
-				string(LOCAL),
-				fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
-				geneosCert.NotAfter.String(),
-				geneosCert.Subject.CommonName,
-				geneosCert.Issuer.CommonName,
-				"[]",
-				"[]",
-				fmt.Sprintf("%X", sha1.Sum(geneosCert.Raw)),
-			})
+		if TLSlistAll {
+			if rootCert != nil {
+				csvWriter.Write([]string{
+					"global",
+					rootCAFile,
+					string(LOCAL),
+					fmt.Sprintf("%0f", time.Until(rootCert.NotAfter).Seconds()),
+					rootCert.NotAfter.String(),
+					rootCert.Subject.CommonName,
+					rootCert.Issuer.CommonName,
+					"[]",
+					"[]",
+					fmt.Sprintf("%X", sha1.Sum(rootCert.Raw)),
+				})
+			}
+			if geneosCert != nil {
+				csvWriter.Write([]string{
+					"global",
+					signingCertFile,
+					string(LOCAL),
+					fmt.Sprintf("%0f", time.Until(geneosCert.NotAfter).Seconds()),
+					geneosCert.NotAfter.String(),
+					geneosCert.Subject.CommonName,
+					geneosCert.Issuer.CommonName,
+					"[]",
+					"[]",
+					fmt.Sprintf("%X", sha1.Sum(geneosCert.Raw)),
+				})
+			}
 		}
 		err = ct.loopCommand(lsInstanceCertCSV, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tRemaining\tExpires\tCommonName\tIssuer\tSubjAltNames\tIPs\tFingerprint\n")
-		if rootCert != nil {
-			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t%X\n", rootCAFile, LOCAL,
-				time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
-				rootCert.Subject.CommonName, rootCert.Issuer.CommonName, sha1.Sum(rootCert.Raw))
-		}
-		if geneosCert != nil {
-			fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t%X\n", signingCertFile, LOCAL,
-				time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
-				geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName, sha1.Sum(geneosCert.Raw))
+		if TLSlistAll {
+			if rootCert != nil {
+				fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t%X\n", rootCAFile, LOCAL,
+					time.Until(rootCert.NotAfter).Seconds(), rootCert.NotAfter,
+					rootCert.Subject.CommonName, rootCert.Issuer.CommonName, sha1.Sum(rootCert.Raw))
+			}
+			if geneosCert != nil {
+				fmt.Fprintf(lsTabWriter, "global\t%s\t%s\t%.f\t%q\t%q\t%q\t\t\t%X\n", signingCertFile, LOCAL,
+					time.Until(geneosCert.NotAfter).Seconds(), geneosCert.NotAfter,
+					geneosCert.Subject.CommonName, geneosCert.Issuer.CommonName, sha1.Sum(geneosCert.Raw))
+			}
 		}
 		err = ct.loopCommand(lsInstanceCert, args, params)
 		lsTabWriter.Flush()
@@ -254,15 +372,20 @@ func lsInstanceCert(c Instances, params []string) (err error) {
 		return
 	}
 	expires := cert.NotAfter
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%.f\t%q\t%q\t%q\t", c.Type(), c.Name(), c.Location(), time.Until(expires).Seconds(), expires, cert.Subject.CommonName, cert.Issuer.CommonName)
-	if len(cert.DNSNames) > 0 {
-		fmt.Fprintf(lsTabWriter, "%v", cert.DNSNames)
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%.f\t%q\t%q\t", c.Type(), c.Name(), c.Location(), time.Until(expires).Seconds(), expires, cert.Subject.CommonName)
+
+	if TLSlistLong {
+		fmt.Fprintf(lsTabWriter, "%q\t", cert.Issuer.CommonName)
+		if len(cert.DNSNames) > 0 {
+			fmt.Fprintf(lsTabWriter, "%v", cert.DNSNames)
+		}
+		fmt.Fprintf(lsTabWriter, "\t")
+		if len(cert.IPAddresses) > 0 {
+			fmt.Fprintf(lsTabWriter, "%v", cert.IPAddresses)
+		}
+		fmt.Fprintf(lsTabWriter, "\t%X", sha1.Sum(cert.Raw))
 	}
-	fmt.Fprintf(lsTabWriter, "\t")
-	if len(cert.IPAddresses) > 0 {
-		fmt.Fprintf(lsTabWriter, "%v", cert.IPAddresses)
-	}
-	fmt.Fprintf(lsTabWriter, "\t%X\n", sha1.Sum(cert.Raw))
+	fmt.Fprint(lsTabWriter, "\n")
 	return
 }
 
@@ -277,10 +400,13 @@ func lsInstanceCertCSV(c Instances, params []string) (err error) {
 	}
 	expires := cert.NotAfter
 	until := fmt.Sprintf("%0f", time.Until(expires).Seconds())
-	cols := []string{c.Type().String(), c.Name(), string(c.Location()), until, expires.String(), cert.Subject.CommonName, cert.Issuer.CommonName}
-	cols = append(cols, fmt.Sprintf("%v", cert.DNSNames))
-	cols = append(cols, fmt.Sprintf("%v", cert.IPAddresses))
-	cols = append(cols, fmt.Sprintf("%X", sha1.Sum(cert.Raw)))
+	cols := []string{c.Type().String(), c.Name(), string(c.Location()), until, expires.String(), cert.Subject.CommonName}
+	if TLSlistLong {
+		cols = append(cols, cert.Issuer.CommonName)
+		cols = append(cols, fmt.Sprintf("%v", cert.DNSNames))
+		cols = append(cols, fmt.Sprintf("%v", cert.IPAddresses))
+		cols = append(cols, fmt.Sprintf("%X", sha1.Sum(cert.Raw)))
+	}
 
 	csvWriter.Write(cols)
 	return
@@ -295,8 +421,13 @@ func lsInstanceCertJSON(c Instances, params []string) (err error) {
 	if err != nil {
 		return
 	}
-	jsonEncoder.Encode(lsCertType{c.Type().String(), c.Name(), c.Location(), time.Duration(time.Until(cert.NotAfter).Seconds()),
-		cert.NotAfter, cert.Subject.CommonName, cert.Issuer.CommonName, cert.DNSNames, cert.IPAddresses, fmt.Sprintf("%X", sha1.Sum(cert.Raw))})
+	if TLSlistLong {
+		jsonEncoder.Encode(lsCertLongType{c.Type().String(), c.Name(), c.Location(), time.Duration(time.Until(cert.NotAfter).Seconds()),
+			cert.NotAfter, cert.Subject.CommonName, cert.Issuer.CommonName, cert.DNSNames, cert.IPAddresses, fmt.Sprintf("%X", sha1.Sum(cert.Raw))})
+	} else {
+		jsonEncoder.Encode(lsCertType{c.Type().String(), c.Name(), c.Location(), time.Duration(time.Until(cert.NotAfter).Seconds()),
+			cert.NotAfter, cert.Subject.CommonName})
+	}
 	return
 }
 
@@ -370,7 +501,7 @@ func TLSImport(sources ...string) (err error) {
 		logDebug.Println("importing", source)
 		f := readSourceBytes(source)
 		if len(f) == 0 {
-			logError.Fatalln("read faile:", source)
+			logError.Fatalln("read failed:", source)
 		}
 		for {
 			block, rest := pem.Decode(f)
@@ -601,10 +732,8 @@ func renewInstanceCert(c Instances) (err error) {
 		logError.Fatalln(err)
 	}
 
-	existingKey, err := readInstanceKey(c)
-	if err != nil {
-		logError.Fatalln(err)
-	}
+	// read existing key or create a new one
+	existingKey, _ := readInstanceKey(c)
 	cert, key, err := createCert(&template, intrCert, intrKey, existingKey)
 	if err != nil {
 		logError.Fatalln(err)
