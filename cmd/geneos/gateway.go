@@ -33,6 +33,7 @@ type Gateways struct {
 	GateUser  string `json:",omitempty"`
 	GateCert  string `json:",omitempty"`
 	GateKey   string `json:",omitempty"`
+	GateAES   string `json:",omitempty"`
 
 	// The Gateway configuration name may be diffrent to the instance name
 	GateName string `default:"{{.InstanceName}}"`
@@ -246,6 +247,10 @@ func (c Gateways) Command() (args, env []string) {
 		args = append(args, "-ssl-certificate-key", c.GateKey)
 	}
 
+	// if c.GateAES != "" {
+	// 	args = append(args, "-key-file", c.GateAES)
+	// }
+
 	return
 }
 
@@ -304,5 +309,5 @@ func createAESKeyFile(c Instances) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
+	setField(c, c.Prefix("AES"), c.Type().String()+".aes")
 }
