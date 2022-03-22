@@ -159,6 +159,8 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 				return !strings.Contains(v.Name(), "web-server")
 			case FA2:
 				return !strings.Contains(v.Name(), "fixanalyser2-netprobe")
+			case FileAgent:
+				return !strings.Contains(v.Name(), "file-agent")
 			default:
 				return !strings.Contains(v.Name(), ct.String())
 			}
@@ -269,7 +271,7 @@ func (ct Component) DownloadComponent(r *Remotes, version string) (err error) {
 }
 
 // how to split an archive name into type and version
-var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|\w+)-([\w\.-]+?)[\.-]?linux`)
+var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|file-agent|\w+)-([\w\.-]+?)[\.-]?linux`)
 
 func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalVersion string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
@@ -291,7 +293,7 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 	basedir := r.GeneosPath("packages", ct.String(), version)
 	logDebug.Println(basedir)
 	if _, err = r.statFile(basedir); err == nil {
-		return // "", fmt.Errorf("%s: %w", basedir, fs.ErrExist)
+		return
 	}
 	if err = r.mkdirAll(basedir, 0775); err != nil {
 		return
@@ -323,6 +325,8 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 			name = hdr.Name
 		case FA2:
 			name = strings.TrimPrefix(hdr.Name, "fix-analyser2/")
+		case FileAgent:
+			name = strings.TrimPrefix(hdr.Name, "agent/")
 		default:
 			name = strings.TrimPrefix(hdr.Name, ct.String()+"/")
 		}
