@@ -16,10 +16,6 @@ import (
 
 const userSSHdir = ".ssh"
 
-// cache SSH connections
-var remoteSSHClients = make(map[RemoteName]*ssh.Client)
-var remoteSFTPClients = make(map[RemoteName]*sftp.Client)
-
 // load all the known private keys with no passphrase
 func readSSHkeys(homedir string) (signers []ssh.Signer) {
 	for _, keyfile := range strings.Split(GlobalConfig["PrivateKeys"], ",") {
@@ -89,11 +85,7 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 		HostKeyCallback: khCallback,
 		Timeout:         5 * time.Second,
 	}
-	client, err = ssh.Dial("tcp", dest, config)
-	if err != nil {
-		logError.Panicln("unable to connect:", err)
-	}
-	return
+	return ssh.Dial("tcp", dest, config)
 }
 
 func (r *Remotes) sshOpenRemote() (s *ssh.Client, err error) {
@@ -103,7 +95,7 @@ func (r *Remotes) sshOpenRemote() (s *ssh.Client, err error) {
 		user := getString(r, "Username")
 		s, err = sshConnect(dest, user)
 		if err != nil {
-			logError.Fatalln(err)
+			return
 		}
 		logDebug.Println("remote opened", r.InstanceName, dest, user)
 		r.sshClient = s
@@ -117,16 +109,15 @@ func (r *Remotes) sshCloseRemote() {
 }
 
 // succeed or fatal
-func (r *Remotes) sftpOpenSession() (f *sftp.Client) {
+func (r *Remotes) sftpOpenSession() (f *sftp.Client, err error) {
 	f = r.sftpClient
 	if f == nil {
-		c, err := r.sshOpenRemote()
-		if err != nil {
-			logError.Fatalln(err)
+		var c *ssh.Client
+		if c, err = r.sshOpenRemote(); err != nil {
+			return
 		}
-		f, err = sftp.NewClient(c)
-		if err != nil {
-			logError.Fatalln(err)
+		if f, err = sftp.NewClient(c); err != nil {
+			return
 		}
 		logDebug.Println("remote opened", r.InstanceName)
 		r.sftpClient = f

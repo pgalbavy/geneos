@@ -159,7 +159,9 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 		createInstanceCert(&g)
 	}
 
-	createAESKeyFile(&g)
+	if err = createAESKeyFile(&g); err != nil {
+		log.Fatalln(err)
+	}
 	return g.Rebuild(true)
 }
 
@@ -289,25 +291,25 @@ func (c Gateways) Reload(params []string) (err error) {
 
 // create a gateway key file for secure passwrods as per
 // https://docs.itrsgroup.com/docs/geneos/4.8.0/Gateway_Reference_Guide/gateway_secure_passwords.htm
-func createAESKeyFile(c Instances) {
+func createAESKeyFile(c Instances) (err error) {
 	rp := make([]byte, 20)
-	// iv := make([]byte, 10)
 	salt := make([]byte, 10)
-	_, err := rand.Read(rp)
-	if err != nil {
-		log.Fatalln(err)
+	if _, err = rand.Read(rp); err != nil {
+		return
 	}
-	_, err = rand.Read(salt)
-	if err != nil {
-		log.Fatalln(err)
+	if _, err = rand.Read(salt); err != nil {
+		return
 	}
+
 	md := pbkdf2.Key(rp, salt, 10000, 48, sha1.New)
 	key := md[:32]
 	iv := md[32:]
-	keyfile := fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)
-	err = c.Remote().writeFile(InstanceFile(c, "aes"), []byte(keyfile), 0400)
-	if err != nil {
-		log.Fatalln(err)
+
+	if err = c.Remote().writeFile(InstanceFile(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0400); err != nil {
+		return
 	}
-	setField(c, c.Prefix("AES"), c.Type().String()+".aes")
+	if err = setField(c, c.Prefix("AES"), c.Type().String()+".aes"); err != nil {
+		return
+	}
+	return
 }

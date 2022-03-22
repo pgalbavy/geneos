@@ -346,12 +346,15 @@ func AllRemotes() (remotes []*Remotes) {
 
 // shim methods that test remote and direct to ssh / sftp / os
 
-func (r *Remotes) symlink(oldname, newname string) error {
+func (r *Remotes) symlink(oldname, newname string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Symlink(oldname, newname)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		return s.Symlink(oldname, newname)
 	}
 }
@@ -361,27 +364,36 @@ func (r *Remotes) readlink(file string) (link string, err error) {
 	case string(LOCAL):
 		return os.Readlink(file)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		return s.ReadLink(file)
 	}
 }
 
-func (r *Remotes) mkdirAll(path string, perm os.FileMode) error {
+func (r *Remotes) mkdirAll(path string, perm os.FileMode) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.MkdirAll(path, perm)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		return s.MkdirAll(path)
 	}
 }
 
-func (r *Remotes) chown(name string, uid, gid int) error {
+func (r *Remotes) chown(name string, uid, gid int) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Chown(name, uid, gid)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		return s.Chown(name, uid, gid)
 	}
 }
@@ -400,7 +412,10 @@ func (r *Remotes) createFile(path string, perms fs.FileMode) (out io.WriteCloser
 		}
 	default:
 		var cf *sftp.File
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		cf, err = s.Create(path)
 		if err != nil {
 			return
@@ -413,12 +428,15 @@ func (r *Remotes) createFile(path string, perms fs.FileMode) (out io.WriteCloser
 	return
 }
 
-func (r *Remotes) removeFile(name string) error {
+func (r *Remotes) removeFile(name string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Remove(name)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		return s.Remove(name)
 	}
 }
@@ -428,7 +446,10 @@ func (r *Remotes) removeAll(name string) (err error) {
 	case string(LOCAL):
 		return os.RemoveAll(name)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 
 		// walk, reverse order by prepending and remove
 		files := []string{}
@@ -449,12 +470,15 @@ func (r *Remotes) removeAll(name string) (err error) {
 	}
 }
 
-func (r *Remotes) renameFile(oldpath, newpath string) error {
+func (r *Remotes) renameFile(oldpath, newpath string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Rename(oldpath, newpath)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		// use PosixRename to overwrite oldpath
 		return s.PosixRename(oldpath, newpath)
 	}
@@ -480,7 +504,10 @@ func (r *Remotes) statFile(name string) (s fileStat, err error) {
 		s.gid = s.st.Sys().(*syscall.Stat_t).Gid
 		s.mtime = s.st.Sys().(*syscall.Stat_t).Mtim.Sec
 	default:
-		sf := r.sftpOpenSession()
+		var sf *sftp.Client
+		if sf, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		s.st, err = sf.Stat(name)
 		if err != nil {
 			return
@@ -492,12 +519,15 @@ func (r *Remotes) statFile(name string) (s fileStat, err error) {
 	return
 }
 
-func (r *Remotes) globPath(pattern string) ([]string, error) {
+func (r *Remotes) globPath(pattern string) (paths []string, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return filepath.Glob(pattern)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		return s.Glob(pattern)
 	}
 }
@@ -507,7 +537,10 @@ func (r *Remotes) writeFile(path string, b []byte, perm os.FileMode) (err error)
 	case string(LOCAL):
 		return os.WriteFile(path, b, perm)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		var f *sftp.File
 		f, err = s.Create(path)
 		if err != nil {
@@ -520,12 +553,15 @@ func (r *Remotes) writeFile(path string, b []byte, perm os.FileMode) (err error)
 	}
 }
 
-func (r *Remotes) readFile(name string) ([]byte, error) {
+func (r *Remotes) readFile(name string) (b []byte, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.ReadFile(name)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		f, err := s.Open(name)
 		if err != nil {
 			// logError.Fatalln(err)
@@ -552,7 +588,10 @@ func (r *Remotes) readDir(name string) (dirs []os.DirEntry, err error) {
 	case string(LOCAL):
 		return os.ReadDir(name)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		f, err := s.ReadDir(name)
 		if err != nil {
 			return nil, err
@@ -573,7 +612,10 @@ func (r *Remotes) statAndOpenFile(name string) (f io.ReadSeekCloser, st fileStat
 	case string(LOCAL):
 		f, err = os.Open(name)
 	default:
-		s := r.sftpOpenSession()
+		var s *sftp.Client
+		if s, err = r.sftpOpenSession(); err != nil {
+			return
+		}
 		f, err = s.Open(name)
 	}
 	return
