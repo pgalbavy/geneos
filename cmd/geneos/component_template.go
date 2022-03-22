@@ -38,12 +38,12 @@ type Names struct {
 }
 
 func init() {
-	RegisterComponent(&Components{
+	RegisterComponent(Components{
 		New:              NewName,
-		ComponentType:    name,
+		ComponentType:    Name,
 		ParentType:       None,
 		ComponentMatches: []string{"words", "to", "match"},
-		IncludeInLoops:   true,
+		RealComponent:    true,
 		DownloadBase:     "Name+Whatever",
 	})
 	RegisterDirs([]string{
@@ -55,14 +55,14 @@ func init() {
 }
 
 func NewName(name string) Instances {
-	local, remote := splitInstanceName(name)
+	local, r := SplitInstanceName(name, rLOCAL)
 	c := &Names{}
-	c.RemoteRoot = remoteRoot(remote)
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Name.String()
 	c.InstanceName = local
 	setDefaults(&c)
-	c.InstanceLocation = remote
-	c.InstanceRemote = loadRemoteConfig(remote)
+	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
 
@@ -77,7 +77,7 @@ func (n Names) Name() string {
 	return n.InstanceName
 }
 
-func (n Names) Location() string {
+func (n Names) Location() RemoteName {
 	return n.InstanceLocation
 }
 
@@ -116,8 +116,8 @@ func (n Names) Loaded() bool {
 	return n.ConfigLoaded
 }
 
-func (n Names) Add(username string, params []string) (err error) {
-	n.NamePort = n.InstanceRemote.nextPort(RunningConfigMap["NamePortRange"])
+func (n Names) Add(username string, params []string, tmpl string) (err error) {
+	n.NamePort = n.InstanceRemote.nextPort(GlobalConfig["NamePortRange"])
 	n.NameUser = username
 
 	if err = writeInstanceConfig(n); err != nil {
@@ -132,7 +132,7 @@ func (n Names) Add(username string, params []string) (err error) {
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(n)
+		createInstanceCert(&n)
 	}
 
 	// default config XML etc.
@@ -143,7 +143,7 @@ func (c Names) Command() (args, env []string) {
 	logFile := getLogfilePath(c)
 	args = []string{
 		c.Name(),
-		"-port", fmt.Sprintf(c.NamePort),
+		"-port", strconv.Itoa(c.NamePort),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
@@ -170,16 +170,16 @@ func (c Names) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = removePathList(c, RunningConfigMap["NameCleanList"]); err != nil {
+		if err = deletePaths(c, GlobalConfig["NameCleanList"]); err != nil {
 			return err
 		}
-		err = removePathList(c, RunningConfigMap["NamePurgeList"])
+		err = deletePaths(c, GlobalConfig["NamePurgeList"])
 		if stopped {
 			err = startInstance(c, params)
 		}
 		return
 	}
-	return removePathList(c, RunningConfigMap["NameCleanList"])
+	return deletePaths(c, GlobalConfig["NameCleanList"])
 }
 
 func (c Names) Reload(params []string) (err error) {

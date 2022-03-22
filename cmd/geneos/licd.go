@@ -152,7 +152,6 @@ func (c Licds) Command() (args, env []string) {
 }
 
 func (c Licds) Clean(purge bool, params []string) (err error) {
-	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)

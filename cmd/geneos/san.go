@@ -238,7 +238,6 @@ func (c Sans) Command() (args, env []string) {
 }
 
 func (c Sans) Clean(purge bool, params []string) (err error) {
-	logDebug.Println(c.Type(), c.Name(), "clean")
 	if purge {
 		var stopped bool = true
 		err = stopInstance(c, params)

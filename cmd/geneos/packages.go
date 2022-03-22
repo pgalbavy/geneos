@@ -153,12 +153,14 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 		// archive directory is local?
 		archiveDir := rLOCAL.GeneosPath("packages", "archives")
 		archiveFile := rLOCAL.LatestMatch(archiveDir, func(v os.DirEntry) bool {
+			logDebug.Println(v.Name(), ct.String())
 			switch ct {
-			default:
-				logDebug.Println(v.Name(), ct.String())
-				return !strings.Contains(v.Name(), ct.String())
 			case Webserver:
 				return !strings.Contains(v.Name(), "web-server")
+			case FA2:
+				return !strings.Contains(v.Name(), "fixanalyser2-netprobe")
+			default:
+				return !strings.Contains(v.Name(), ct.String())
 			}
 		})
 		gz, _, err := rLOCAL.statAndOpenFile(filepath.Join(archiveDir, archiveFile))
@@ -267,7 +269,7 @@ func (ct Component) DownloadComponent(r *Remotes, version string) (err error) {
 }
 
 // how to split an archive name into type and version
-var archiveRE = regexp.MustCompile(`^geneos-(web-server|\w+)-([\w\.-]+?)[\.-]?linux`)
+var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|\w+)-([\w\.-]+?)[\.-]?linux`)
 
 func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalVersion string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
@@ -319,6 +321,8 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 		switch ct {
 		case Webserver:
 			name = hdr.Name
+		case FA2:
+			name = strings.TrimPrefix(hdr.Name, "fix-analyser2/")
 		default:
 			name = strings.TrimPrefix(hdr.Name, ct.String()+"/")
 		}
