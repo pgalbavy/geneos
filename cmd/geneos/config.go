@@ -266,8 +266,8 @@ func readLocalConfigFile(file string, config interface{}) (err error) {
 }
 
 func (r *Remotes) readConfigFile(file string, config interface{}) (err error) {
-	jsonFile, err := r.readFile(file)
-	if err != nil {
+	var jsonFile []byte
+	if jsonFile, err = r.readFile(file); err != nil {
 		return
 	}
 	// dec := json.NewDecoder(jsonFile)

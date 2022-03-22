@@ -128,16 +128,19 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-// get all used ports in config files.
+// get all used ports in config files on a specific remote
 // this will not work for ports assigned in component config
 // files, such as gateway setup or netprobe collection agent
 //
 // returns a map
 func (r *Remotes) getPorts() (ports map[int]Component) {
+	if r == rALL {
+		log.Fatalln("getports() call with all remotes")
+	}
 	ports = make(map[int]Component)
 	for _, c := range None.Instances(r) {
-		if err := loadConfig(c); err != nil {
-			log.Println(c.Type(), c.Name(), "- cannot load configuration")
+		if !getBool(c, "ConfigLoaded") {
+			log.Println("cannot load configuration for", c)
 			continue
 		}
 		if port := getInt(c, c.Prefix("Port")); port != 0 {

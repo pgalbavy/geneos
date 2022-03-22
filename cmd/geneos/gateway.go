@@ -187,11 +187,22 @@ func (g Gateways) Rebuild(initial bool) error {
 		changed = true
 	}
 
+	// use getPorts() to check valid change, else go up one
+	ports := g.Remote().getPorts()
+	nextport := g.Remote().nextPort(GlobalConfig["GatewayPortRange"])
 	if secure && g.GatePort == 7039 {
-		g.GatePort = 7038
+		if _, ok := ports[7038]; !ok {
+			g.GatePort = 7038
+		} else {
+			g.GatePort = nextport
+		}
 		changed = true
 	} else if !secure && g.GatePort == 7038 {
-		g.GatePort = 7039
+		if _, ok := ports[7039]; !ok {
+			g.GatePort = 7039
+		} else {
+			g.GatePort = nextport
+		}
 		changed = true
 	}
 
