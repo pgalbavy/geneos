@@ -128,6 +128,45 @@ You still have to configure the Gateway to connect to the Netprobe, but all thre
 
 This program has been written in such a way that is *should* be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
 
+## Instance Settings
+
+### `Env=` parameters
+
+All instances support customer environment variables being set or unset. This is done through the `set` command below, alongside the standard configuration parameters for ech instance type.
+
+To set an environment variable use this syntax:
+
+    geneos set netprobe example1 Env=PATH_TO_SOMETHING=/this/way
+
+If an entry already exists it is overwritten.
+
+To remove an entry, prefix the name with a minus (`-`) sign, e.g.
+
+    geneos set netprobe examples1 Env=-PATH_TO_SOMETHING
+
+You can also remove multiple entries with a very simply wildcard syntax `NAME*` - this is only supported as the last character of the name and will remove all entries that start with `NAME` in this case.
+
+You can specify multiple entries by comma seperating them:
+
+    geneos set netprobe example1 Env=JAVA_HOME=/path,ORACLE_HOME=/path2
+
+Note that this means you cannot insert commas into values as there is no supported escape mecahnism. For this you must edit the instance configuration file directly, which you can also do with the command `edit`.
+
+Finally, if your environment variable value contains spaces then use quotes as appropriate to your shell to prevent those spaces being processed. In bash you can do any of these to achieve the same result:
+
+    geneos set netprobe example1 Env=MYVAR="a string with spaces"
+    geneos set netprobe example1 Env="MYVAR=a string with spaces"
+    geneos set netprobe example1 "Env=MYVAR=a string with spaces"
+
+You can review the environment for any instance using the `show` command:
+
+    geneos show netprobe example1
+  
+A more human readable output is available from the `command` command:
+
+    geneos command netprobe example1
+
+There are similar meta-parameters available for some specific component types. These are documented below.
 
 ## Component Types
 
@@ -148,17 +187,54 @@ Each component type is described below along with specific component options.
 
 ### Type `gateway`
 
+* Gateway general
+* Gateway templates
+When creating a new Gateway instance a default `gateway.setup.xml` file is created from the template(s) installed in the `gateway/templates` directory. By default this file is only created once but can be re-created using the `rebuild` command with the `-f` option if required. In turn this can also be protected against by setting the Gateway configuration setting `ConfigRebuild` to `never`.
+* Gateway variables for templates
+Gateways support the setting of Include file parameters for use in templated configurations. These are set similarly to the general `Env=` parameters above but follow a slighty different syntax:
+  `geneos gateway set example2 Includes=100:/path/to/include`
+The setting value is `priority:path` and path can be a realtive or absolute path or a URL. In the case of a URL the source is NOT downloaded but instead the URL is inserted as-is in the templates.
+As for `Env=` entries can be removed with a minus (`-`) prefix but no wilcarding is allowed. Comma seperated lists work as normal.
+
+
 ### Type `netprobe`
+
+* Netprobe general
 
 ### Type `licd`
 
+
 ### Type `webserver`
+
+* Webserver general
+* Java considerations
+* Configuration templates - TBD
 
 ### Type `san`
 
+* San general
+* San templates
+* San variables for templates
+As for Gateways, Sans get a default confiuration file when they are created. By default this is from the template(s) in `san/templates`. Unlike for the Gateway these configuration files are rebuilt by the `rebuild` command by default. This allows the administrator to maintain Sans using only command line tools and avoimd having to edit XML directly.
+To aid this, Sans support the following parameters, similar to `Env=` above:
+  * Attributes
+  Attribute follow the same KEY=VALUE settings and `Env` above
+  * Gateways
+  Gateways are configured using the syntax `hostname:port`
+  * Types
+  Types are a simple list of comma seperated names for Types. They can be removes using a minux (`-`) as for `Env` but do not allow wildcards
+  * Variables
+  Variables are not yet supported from the command line but can be set by editing the San instance configuration file. This is because Variables have a type as well as a name and a value, so this need more work.
+* Selecting the underlying Netprobe type (For Fix Analyser 2 below)
+A San instance will normally be built to use the general purpose Netprobe package. To use an alternative package, such as the Fix Analyser 2 Netprobe, add the instance with the special format name `fa2:example[@REMOTE]` - this configures the instance to use the `fa2` as the underlying package. Any future special purpose Netprobes can also be supported in this way.
+
 ### Type `fa2`
 
+* Fix Analyser 2 general
+
 ### Type `fileagent`
+
+* File Agent general
 
 ## Remote Management
 
@@ -241,6 +317,12 @@ The `NAME` is of the format `INSTANCE@REMOTE` where either is optional. In gener
 
 There is a special format for adding Sans in the form `TYPE:NAME@REMOTE` where `TYPE` can be used to select the underlying Netprobe type. This format is still accepted for all other commands but the `TYPE` is completely ignored.
 
+#### File and URLs
+
+In general all source file references support URLs, e.g. imported certificate and keys, license files, importing general files.
+
+The primary exception is for Gateway include files used in templated configurations. If these are given as URLs then they are used in the configuration as URLs.
+
 #### Global Commands
 
 * `geneos version`
@@ -260,8 +342,17 @@ Show log(s) for matching instances. Flags allow for follow etc.
 
 #### Environment Commands
 
-* `geneos init [-d|-a LICENSE] [-c CERT] [-k KEY] [USERNAME] [PATH]`
-Initialise the environment. 
+* `geneos init [-T|-S|-D|-A LICENSE] [-c CERT] [-k KEY] [-n NAME] [USERNAME] [PATH] [PARAMS]`
+Initialise the environment. This command creates a directory hierarchy and optionally downloads and extracts Geneos software packages and also optionally creates instances and starts them.
+  * `-T` Rebuild the default templates using the embedded files. This is primarily to update tempates when new versions of this program are release or if they have become corrupted
+  * `-S` Build and start a San. See the `-n` option below. Takes all the same PARAMS as for adding a San to specify template settings.
+  * `-D` Build and start a demo environment
+  * `-A LICENSE` Build and start an `all` environment
+  * `-c CERT` and `-k KEY` Import certificates and keys during initialisation. See `geneos tls import` for more details. When a valid signing certificate and key are imported then all subsequent new instances will have individual certificates and keys created.
+  * `-n NAME` Use the `NAME` for instances instead of the default hostname. This is especially usefult for Sans and Gateways as the templates use this name to fill in various confiruation item defaults
+  * `-s FILE` A San template file to use instead of the embedded one
+  * `-g FILE` A Gateway template file to use instead of the embedded one
+Only one of the `-t`, `-S`, `-d` or `-a` options are valid and only the `-t` option can be used for multiple calls to this command.
 
 * `geneos tls ...`
 TLS operations. See below.
@@ -272,6 +363,13 @@ The instance specific `show` command is described below.
 
 * `geneos set [global|user] KEY=VALUE...`
 Set a program-wide configuration option. The default is to update the `user` configuration file. If `global` is given then the user has to have appropriate privileges to write to the global config file (`/etc/geneos/geneos.json`). Multiple KEY=VALUE pairs can be given but only fields that are recognised are updated.
+
+* `geneos home [TYPE] [NAME]`
+The `home` command outputs the home directory of the first matching instance, or `ITRSHome` if there is no match or no options passed to the command. This is useful for automation and shortcuts, w.g. in bash:
+
+    $ cd $(geneos home netprone example1)
+
+Please note that if `geneos home` returns an empty string because of an error the cd command will take you to your home directory.
 
 #### Package Management Commands
 

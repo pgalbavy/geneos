@@ -10,12 +10,12 @@ func init() {
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos clean [-f] [TYPE] [NAME...]",
+		CommandLine:   "geneos clean [-p] [TYPE] [NAME...]",
 		Summary:       "Clean-up instance directory",
 		Description: `Clean-up instance directories, restarting instances if doing a 'purge' clean.
 
 FLAGS:
-	-p - purge / full clean. Stops and restarts instances. Only restarts those
+	-p - purge (full clean). Stops and restarts instances. Only restarts those
 	     instances the command stopped.
 
 `,

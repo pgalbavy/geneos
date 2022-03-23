@@ -15,7 +15,7 @@ func init() {
 		Function:    commandInit,
 		ParseFlags:  initFlag,
 		ParseArgs:   nil,
-		CommandLine: `geneos init [USERNAME] [DIRECTORY] [-d|-a FILE|-S] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [VARS]`,
+		CommandLine: `geneos init [USERNAME] [DIRECTORY] [-T|-D|-A FILE|-S] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [VARS]`,
 		Summary:     `Initialise a Geneos installation`,
 		Description: `Initialise a Geneos installation by creating the directory hierarchy and
 user configuration file, with the USERNAME and DIRECTORY if supplied.
@@ -50,17 +50,22 @@ components created
 
 FLAGS:
 
-	-d		Initialise a Demo environment
-	-a LICENSE	Initialise a basic environment an import the give file as a license for licd
+	-A LICENSE	Initialise a basic environment an import the give file as a license for licd
+	-D		Initialise a Demo environment
+	-T		Rebuild templates
 	-S		Initialise a environment with one Self-Announcing Netprobe.
 			If a signing certificate and key are provided then also
 			create a certificate and connect with TLS. If a SAN
 			template is provided (-s path) then use that to create
 			the configuration. The default template uses the hostname
 			to identify the SAN unless -n NAME is given.
-	-n NAME		Use NAME as the default for instances and configurations instead of the hostname
-	-c CERTFILE	Import the CERTFILE as a signing certificate with an optional embedded private key.
-			This also intialises the TLS environment and all instances have certificates created for them
+
+	-n NAME		Use NAME as the default for instances and
+			configurations instead of the hostname
+
+	-c CERTFILE	Import the CERTFILE (which can be a URL) with an optional embedded
+			private key. This also intialises the TLS environment and all
+			new instances have certificates created for them.
 	-k KEYFILE	Import the KEYFILE as a signing key. Overrides any embedded key in CERTFILE above
 
 	-g TEMPLATE	Import a Gateway template file (local or URL) to replace of built-in default
@@ -70,10 +75,10 @@ FLAGS:
 	})
 
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
-	initFlagSet.BoolVar(&initFlags.Demo, "d", false, "Perform initialisation steps for a demo setup and start environment")
-	initFlagSet.BoolVar(&initFlags.Templates, "t", false, "Overwrite/create templates from embedded (for version upgrades)")
-	initFlagSet.StringVar(&initFlags.All, "a", "", "Perform initialisation steps using provided license file and start environment")
+	initFlagSet.StringVar(&initFlags.All, "A", "", "Perform initialisation steps using provided license file and start environment")
+	initFlagSet.BoolVar(&initFlags.Demo, "D", false, "Perform initialisation steps for a demo setup and start environment")
 	initFlagSet.BoolVar(&initFlags.StartSAN, "S", false, "Create a SAN and start")
+	initFlagSet.BoolVar(&initFlags.Templates, "T", false, "Overwrite/create templates from embedded (for version upgrades)")
 	initFlagSet.StringVar(&initFlags.Name, "n", "", "Use the given name for instances and configurations instead of the hostname")
 	initFlagSet.StringVar(&initFlags.SigningCert, "c", "", "signing certificate file with optional embedded private key")
 	initFlagSet.StringVar(&initFlags.SigningKey, "k", "", "signing private key file")
