@@ -56,7 +56,7 @@ func init() {
 }
 
 func NewFileAgent(name string) Instances {
-	local, r := SplitInstanceName(name, rLOCAL)
+	_, local, r := SplitInstanceName(name, rLOCAL)
 	c := &FileAgents{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()

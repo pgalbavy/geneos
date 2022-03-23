@@ -323,12 +323,19 @@ func splitInstanceName(in string) (name string, remote RemoteName) {
 	return
 }
 
-func SplitInstanceName(in string, defaultRemote *Remotes) (name string, r *Remotes) {
+// add an optional component type prefix and colon sep
+//
+func SplitInstanceName(in string, defaultRemote *Remotes) (ct Component, name string, r *Remotes) {
 	r = defaultRemote
 	parts := strings.SplitN(in, "@", 2)
 	name = parts[0]
 	if len(parts) > 1 {
 		r = GetRemote(RemoteName(parts[1]))
+	}
+	parts = strings.SplitN(name, ":", 2)
+	if len(parts) > 1 {
+		ct = parseComponentName(parts[0])
+		name = parts[1]
 	}
 	return
 }

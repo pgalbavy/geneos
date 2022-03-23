@@ -46,7 +46,7 @@ func init() {
 }
 
 func NewFA2(name string) Instances {
-	local, r := SplitInstanceName(name, rLOCAL)
+	_, local, r := SplitInstanceName(name, rLOCAL)
 	c := &FA2s{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()

@@ -50,7 +50,7 @@ func init() {
 }
 
 func NewWebserver(name string) Instances {
-	local, r := SplitInstanceName(name, rLOCAL)
+	_, local, r := SplitInstanceName(name, rLOCAL)
 	c := &Webservers{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()

@@ -79,7 +79,7 @@ func InitGateway(r *Remotes) {
 }
 
 func NewGateway(name string) Instances {
-	local, r := SplitInstanceName(name, rLOCAL)
+	_, local, r := SplitInstanceName(name, rLOCAL)
 	c := &Gateways{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()

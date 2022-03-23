@@ -298,7 +298,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 					nargs = append(nargs, arg)
 					continue
 				}
-				local, r := SplitInstanceName(arg, rALL)
+				_, local, r := SplitInstanceName(arg, rALL)
 				if !r.Loaded() {
 					logDebug.Println(arg, "- remote not found")
 					// we have tried to match something and it may result in an empty list
@@ -404,7 +404,7 @@ func reservedName(in string) (ok bool) {
 }
 
 // spaces are valid - dumb, but valid - for now
-var validStringRE = regexp.MustCompile(`^\w[@\.\w -]*$`)
+var validStringRE = regexp.MustCompile(`^\w[:@\.\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //

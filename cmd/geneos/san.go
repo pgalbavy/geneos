@@ -11,9 +11,12 @@ const San Component = "san"
 
 type Sans struct {
 	InstanceBase
-	BinSuffix string `default:"netprobe.linux_64"`
+	// The SanType is used to select the base netprobe type - either Netprobe or FA2
+	SanType string
+
+	BinSuffix string `default:"{{if eq .SanType \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64"`
 	SanHome   string `default:"{{join .RemoteRoot \"san\" \"sans\" .InstanceName}}"`
-	SanBins   string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
+	SanBins   string `default:"{{join .RemoteRoot \"packages\" .SanType}}"`
 	SanBase   string `default:"active_prod"`
 	SanExec   string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
 	SanLogD   string `json:",omitempty"`
@@ -74,12 +77,16 @@ func InitSan(r *Remotes) {
 }
 
 func NewSan(name string) Instances {
-	local, r := SplitInstanceName(name, rLOCAL)
+	ct, local, r := SplitInstanceName(name, rLOCAL)
 	c := &Sans{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = San.String()
 	c.InstanceName = local
+	c.SanType = string(Netprobe)
+	if ct != None {
+		c.SanType = string(ct)
+	}
 	setDefaults(&c)
 	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
@@ -162,6 +169,7 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(San, names, params)
+		// reload after set
 		loadConfig(&n)
 	}
 

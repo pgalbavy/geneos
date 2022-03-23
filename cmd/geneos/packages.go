@@ -84,7 +84,7 @@ FLAGS:
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
-		CommandLine:   "geneos update [-r REMOTE] [TYPE] VERSION",
+		CommandLine:   "geneos update [-b BASE] [-r REMOTE] [TYPE] VERSION",
 		Summary:       `Update the active version of Geneos software.`,
 		Description: `Update the symlink for the default base name of the package used to VERSION. The base directory,
 		for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
