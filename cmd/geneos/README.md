@@ -103,13 +103,18 @@ This example will create a SAN with the name SAN123 connecting to
 
 #### Another Initial Environment
 
+    geneos init -a geneos.lic
+
+does this (where HOSTNAME is, of course, replaced with the hostname of the server)
+
 ```bash
 geneos init
 geneos download latest
-geneos new gateway Gateway1
-geneos new netprobe Netprobe1
-geneos new licd Licd1
-geneos import licd Licd1 geneos.lic
+geneos new gateway HOSTNAME
+geneos new netprobe HOSTNAME
+geneos new licd HOSTNAME
+geneos new webserver HOSTNAME
+geneos import licd HOSTNAME geneos.lic
 geneos start
 ```
 
@@ -123,7 +128,39 @@ You still have to configure the Gateway to connect to the Netprobe, but all thre
 
 This program has been written in such a way that is *should* be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
 
-## Remote Management (NEW!)
+
+## Component Types
+
+The following component types (and their aliases) are supported:
+
+* `any` or empty
+* `gateway`, `gateways`
+* `netprobe`, `netprobes`, `probe` or `probes`
+* `licd` or `licds`
+* `webserver`, `webservers`, `webdashboard`. `dashboards`
+* `san`, `sans`
+* `fa2`, `fixanalyser`, `fix-analyser`
+* `fileagent`, `fileagents`
+
+These names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
+
+Each component type is described below along with specific component options.
+
+### Type `gateway`
+
+### Type `netprobe`
+
+### Type `licd`
+
+### Type `webserver`
+
+### Type `san`
+
+### Type `fa2`
+
+### Type `fileagent`
+
+## Remote Management
 
 The `geneos` command can now transparently manage instances across multiple systems using SSH. Some things works well, some work with minor issues and some features do not work at all.
 
@@ -151,7 +188,7 @@ If not set, USER defaults to the current username. Similarly PORT defaults to 22
 
 There are a number of prerequisites for remote support:
 
-1. Linux on amd64 for all servers
+1. Remote servers must be Linux on amd64
 2. Passwordless SSH access, either via an `ssh-agent` or unprotected private keys
 3. At this time the only private keys supported are those in your `.ssh` directory beginning `id_` - later updates will allow you to set the name of the key to load, but using an agent is recommended.
 4. The remote user must be confiugured to use a `bash` shell or similar. See limitations below.
@@ -164,29 +201,20 @@ The remote connections over SSH mean there are limitations to the features avail
 
 1. No following logs (i.e. the `-f` option). The program is written to use `fsnotify` and that only works on local filesystems and not over sftp. This may be added using a more primitive polling mecahnism later.
 2. Control over instance processes is done via shell commands and little error checking is done, so it is possible to cause damage and/or processes not to to start or stop as expected. Contributions of fixes are welcomed.
-3. All actions are taken as the user given in the SSH URL (which should NEVER be `root`!) and so instances that are meant to run as other users cannot be controlled. Files and directories may not be available if the user does not have suitable permissions.
+3. All actions are taken as the user given in the SSH URL (which should NEVER be `root`) and so instances that are meant to run as other users cannot be controlled. Files and directories may not be available if the user does not have suitable permissions.
+
+
 
 ## Usage
 
-Please note that the full list of commands and parameters is changing all the time. This list below is mostly, but not completely, up-to-date.
+CAUTION: Please note that the full list of commands and parameters is still changing at this time. This list below is mostly, but not completely, up-to-date.
 
 The general syntax is:
 
-`geneos COMMAND [optional component type] [optional names...]`
+`geneos COMMAND [TYPE] [NAMES...]`
 
 There are a number of special cases, these are detailed below.
 
-### Component Types
-
-The following component types (and their aliases) are supported:
-
-* `any` or empty
-* `gateway` or `gateways`
-* `netprobe`, `netprobes`, `probe` or `probes`
-* `licd` or `licds`
-* `webserver`, `webservers`, `webdashboard`. `dashboards`
-
-These names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
 
 ### Commands
 
@@ -196,15 +224,22 @@ These names are also reserved words and you cannot configure or manage component
 
 Where:
 
-* `FLAG` - parsed by the flag package
-* `COMMAND` - one of the configured command verbs
-* `TYPE` - parsed by CompType() where None means no match
-* `NAME` - one or more instance names, matching the validNames() test
-* `PARAM` - everything else, left after the last NAME is found
+* `FLAG` - Both general and command specific flags
+* `COMMAND` - one of the configured commands
+* `TYPE` - the compone type
+* `NAME` - one or more instance names, optionally including the remote server
+* `PARAM` - anything that isn't one of the above
 
-Special case or genearlise some commands - the don't call parseArgs() or whatever. e.g. "geneos set global [PARAM...]"
+In general, with the exception of `TYPE`, all parameters can be in any order as they are filtered into their types for most commands. Some commands require arguments in an exact order. For example, these should be treated the same way:
+
+`geneos ls -c gateway one two three`
+`geneos ls gateway one -c two three`
 
 Reserved instance names are case-insensitive. So, for exmaple, "gateway", "Gateway" and "GATEWAY" are all reserved.
+
+The `NAME` is of the format `INSTANCE@REMOTE` where either is optional. In general commands will wildcard the part not provided. There are special `REMOTE` names `@local` and `@all` - the former is, as the name suggests, the local server and `@all` is the same as not providing a remote name.
+
+There is a special format for adding Sans in the form `TYPE:NAME@REMOTE` where `TYPE` can be used to select the underlying Netprobe type. This format is still accepted for all other commands but the `TYPE` is completely ignored.
 
 #### Global Commands
 
@@ -237,8 +272,8 @@ The instance specific `show` command is described below.
 
 * `geneos set [global|user] KEY=VALUE...`
 Set a program-wide configuration option. The default is to update the `user` configuration file. If `global` is given then the user has to have appropriate privileges to write to the global config file (`/etc/geneos/geneos.json`). Multiple KEY=VALUE pairs can be given but only fields that are recognised are updated.
-The instance specific version of the `set` command is described below.
-#### Package Managemwent Commands
+
+#### Package Management Commands
 
 * `geneos extract [FILE...]`
 Extracts a local release archive into the `packages` directory.
@@ -249,7 +284,7 @@ Download and install a release archive in the `packages` directory.
 * `geneos update [TYPE] [VERSION]`
 Update the component base binary link
 
-#### Instance Control Commands
+#### Control Commands
 
 * `geneos start [-l] [TYPE] [NAME...]`
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
@@ -273,16 +308,21 @@ Remove the `.disable` lock file and start the selected components
 * `geneos clean [-f] [TYPE] [names]`
 Clean up component directory. Optionally 'full' clean, with an instance restart.
 
-#### Instance Configuration Commands
+#### Configuration Commands
 
-* `geneos new [TYPE] name [NAME...]`
-Create a Geneos component configuration.
+* `geneos add [TYPE] NAME [NAME...]`
+Add a new Geneos component configuration.
 
 * `geneos migrate [TYPE] [NAME...]`
 Migrate legacy `.rc` files to `.json` and backup the original file with an `.orig` extension. This backup file can be used by the `revert` command, below, to restore the original `.rc` file(s)
 
 * `geneos revert [TYPE] [NAME...]`
 Revert to the original configuration files, deleting the `.json` files. Note that the `.rc` files are never changed and any configuration changes to the `.json` configuration will not be retained.
+
+* `geneos rebuild [-n] [-f] [TYPE] [NAME...]`
+Rebuild instance configuration, typically used for Self-Announcing Netprobes. By default it restarts any instances where the configuration has changed. Flags are:
+  * `-n` Do not restart instances
+  * `-f` Force rebuild for those instances that are maked `initial` only.
 
 * `geneos command [TYPE] [NAME...]`
 Shows details of the full command used for the component and any extra environment variables found in the configuration.
@@ -316,22 +356,28 @@ The `geneos tls` command provides a number of subcommands to create and manage c
 
 Once enabled then all new instances will also have certificates created and configuration set to use secure (encrypted) connections where possible.
 
+The root and signing certificates are only kept on the local server and the `tls sync` command can be used to copy a `chain.pem` file to remote servers. Keys are never copied to remote servers by any built-in commands.
+
 * `geneos tls init`
-  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populkating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command. Also does a `sync` if remotes are configured.
+  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command. Also does a `sync` if remotes are configured.
 
   Any existing instances have certificates created and their configurations updated to reference them. This means that any legacy `.rc` configurations will be migrated to `.json` files.
 
 * `geneos tls import FILE [FILE...]`
-  Import certificates and keys as specified to the `tls` directory as signing certificate and key. If both are in the same file then they are split into a certificate and key and he key file is permissioned so that it is only accessible to the user running the command. [Note: This is currently untested].
+  Import certificates and keys as specified to the `tls` directory as root or signing certificates and keys. If both certificate and key are in the same file then they are split into a certificate and key and the key file is permissioned so that it is only accessible to the user running the command.
+  Root certificates are identified by the Subject being the same as the Issuer, everything else is treated as a signing key. If multiple certificates of the same type are imported then only the last one is saved. Keys are checked against certificates using the Public Key part of both and only complete pairs are saved.
 
 * `geneos tls new [TYPE] [NAME...]`
-  Create a new certificate for matching instances, siogned using the signing certificate and key. This will NOT overwrite an existing certificate and will re-use the private key if it exists. The default validity period is one year. This cannot currently be changed.
+  Create a new certificate for matching instances, signed using the signing certificate and key. This will NOT overwrite an existing certificate and will re-use the private key if it exists. The default validity period is one year. This cannot currently be changed.
 
 * `geneos tls renew [TYPE] [NAME...]`
-  Renew a certificate for matching instances. This will overwrite an existing certificate regardless of it's current status of validity period. There must already be a private key.
+  Renew a certificate for matching instances. This will overwrite an existing certificate regardless of it's current status of validity period. Any existing provate key will be re-used. `renew` can be used after `import` to create certificates for all instances, but if you already have specfic instance certificates in place you should use `new` above.
+  As for `new` the validity period is a year and cannot be changed at this time.
 
-* `geneos tls ls [-c | -j | -i | -l] [TYPE] [NAME...]`
-  List instance certificate information. Options are the same as for the main `ls` command but the data shown is specific to certificates.
+* `geneos tls ls [-a] [-c|-j] [-i] [-l] [TYPE] [NAME...]`
+  List instance certificate information. Flags are similar as for the main `ls` command but the data shown is specific to certificates. Additional flags are:
+  * `-a` List all certificates. By default the root and signing certificates are not shown
+  * `-l` Long list format, which includes the Subject and Signature. This signature can be used directly in the Geneos Authentication entry for users for non-user authentication using client certificates, e.g. Gateway Sharing and Web Server.
 
 * `geneos tls sync`
   Copies chain.pem to all remotes
