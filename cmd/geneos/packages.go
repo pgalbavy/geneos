@@ -19,6 +19,9 @@ import (
 	"strings"
 )
 
+// how to split an archive name into type and version
+var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|file-agent|\w+)-([\w\.-]+?)[\.-]?linux`)
+
 func init() {
 	RegisterDirs([]string{
 		"packages/downloads",
@@ -90,21 +93,25 @@ FLAGS:
 		ComponentOnly: true,
 		CommandLine:   "geneos update [-b BASE] [-r REMOTE] [TYPE] VERSION",
 		Summary:       `Update the active version of Geneos software.`,
-		Description: `Update the symlink for the default base name of the package used to VERSION. The base directory,
-		for historical reasons, is 'active_prod' and is usally linked to the latest version of a component type
-in the packages directory. VERSION can either be a directory name or the literal 'latest'. If TYPE is not
-supplied, all supported component types are updated to VERSION.
+		Description: `Update the symlink for the default base name of the package used to
+VERSION. The base directory, for historical reasons, is 'active_prod'
+and is usally linked to the latest version of a component type in the
+packages directory. VERSION can either be a directory name or the
+literal 'latest'. If TYPE is not supplied, all supported component
+types are updated to VERSION.
 
-Update will stop all matching instances of the each type before updating the link and starting them up
-again, but only if the instance uses the 'active_prod' basename.
+Update will stop all matching instances of the each type before
+updating the link and starting them up again, but only if the
+instance uses the 'active_prod' basename.
 
 The 'latest' version is based on directory names of the form:
 
 [GA]X.Y.Z
 
-Where X, Y, Z are each ordered in ascending numerical order. If a directory starts 'GA' it will be selected
-over a directory with the same numerical versions. All other directories name formats will result in unexpected
-behaviour.
+Where X, Y, Z are each ordered in ascending numerical order. If a
+directory starts 'GA' it will be selected over a directory with the
+same numerical versions. All other directories name formats will
+result in unexpected behaviour.
 
 Future version may support selecting a base other than 'active_prod'.
 
@@ -121,25 +128,25 @@ FLAGS:
 var extractFlags *flag.FlagSet
 var extractRemote string
 
-var downloadFlags *flag.FlagSet
-var downloadNosave bool
-var downloadRemote string
-
-var updateFlags *flag.FlagSet
-var updateBase string
-var updateRemote string
-
 func extractFlag(command string, args []string) []string {
 	extractFlags.Parse(args)
 	checkHelpFlag(command)
 	return extractFlags.Args()
 }
 
+var downloadFlags *flag.FlagSet
+var downloadNosave bool
+var downloadRemote string
+
 func downloadFlag(command string, args []string) []string {
 	downloadFlags.Parse(args)
 	checkHelpFlag(command)
 	return downloadFlags.Args()
 }
+
+var updateFlags *flag.FlagSet
+var updateBase string
+var updateRemote string
 
 func updateFlag(command string, args []string) []string {
 	updateFlags.Parse(args)
@@ -148,15 +155,25 @@ func updateFlag(command string, args []string) []string {
 }
 
 //
-// if there is no 'active_prod' link then attach it to the latest version
-// installed
+// extract software from archives
 //
-func commandExtract(ct Component, files []string, params []string) (err error) {
+// if given a component type then find the latest version in the downloads
+// directory
+//
+// if given any other args then try to extract them as packages, using the
+// file name to establish the component and version
+//
+// XXX allow override of component and version for arbitrary files?
+//
+func commandExtract(ct Component, args []string, params []string) (err error) {
+	// extract only a specific components package?
+	// in which case this means look in the downloads directory and
+	// not any files on the command line
 	if ct != None {
 		logDebug.Println(ct.String())
 		// archive directory is local only?
 		archiveDir := rLOCAL.GeneosPath("packages", "downloads")
-		archiveFile := rLOCAL.LatestMatch(archiveDir, func(v os.DirEntry) bool {
+		archiveFile := rLOCAL.latestMatch(archiveDir, func(v os.DirEntry) bool {
 			logDebug.Println(v.Name(), ct.String())
 			switch ct {
 			case Webserver:
@@ -175,34 +192,38 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 		}
 		defer gz.Close()
 		r := GetRemote(RemoteName(extractRemote))
-		if _, err = ct.Unarchive(r, archiveFile, gz); err != nil {
+		if _, err = ct.unarchive(r, archiveFile, gz); err != nil {
 			log.Println("location:", extractRemote, err)
 			return err
 		}
 		return nil
 	}
 
-	for _, file := range files {
+	// work through command line args and try to extract them using the naming format
+	// of standard downloads - fix versioning
+	for _, file := range args {
 		filename := filepath.Base(file)
-		gz, _, err := rLOCAL.statAndOpenFile(file)
+		f, _, err := rLOCAL.statAndOpenFile(file)
 		if err != nil {
 			return err
 		}
-		defer gz.Close()
+		defer f.Close()
 
 		if extractRemote == string(ALL) {
 			for _, r := range AllRemotes() {
-				if _, err = ct.Unarchive(r, filename, gz); err != nil {
+				if _, err = ct.unarchive(r, filename, f); err != nil {
 					log.Println("location:", r.InstanceName, err)
 					continue
 				}
 			}
 		} else {
 			r := GetRemote(RemoteName(extractRemote))
-			if _, err = ct.Unarchive(r, filename, gz); err != nil {
+			var finalVersion string
+			if finalVersion, err = ct.unarchive(r, filename, f); err != nil {
 				log.Println("location:", r.InstanceName, err)
 				return err
 			}
+			logDebug.Println("extracted", ct.String(), finalVersion)
 		}
 	}
 
@@ -211,26 +232,24 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 	return ct.UpdateToVersion(r, "latest", false)
 }
 
-func commandDownload(ct Component, files []string, params []string) (err error) {
+func commandDownload(ct Component, args []string, params []string) (err error) {
 	version := "latest"
-	if len(files) > 0 {
-		version = files[0]
+	if len(args) > 0 {
+		version = args[0]
 	}
 
+	var rs []*Remotes
 	if downloadRemote == string(ALL) {
-		for _, r := range AllRemotes() {
-			if err = ct.DownloadComponent(r, version); err != nil {
-				logError.Println("location:", r.InstanceName, err)
-				continue
-			}
-		}
-		return
+		rs = AllRemotes()
+	} else {
+		rs = []*Remotes{GetRemote(RemoteName(downloadRemote))}
 	}
 
-	r := GetRemote(RemoteName(downloadRemote))
-	if err = ct.DownloadComponent(r, version); err != nil {
-		logError.Println("location:", downloadRemote, err)
-		return err
+	for _, r := range rs {
+		if err = ct.DownloadComponent(r, version); err != nil {
+			logError.Println("location:", r.InstanceName, err)
+			continue
+		}
 	}
 	return
 }
@@ -252,16 +271,19 @@ func (ct Component) DownloadComponent(r *Remotes, version string) (err error) {
 		}
 		return nil
 	default:
-		filename, gz, err := ct.DownloadArchive(r, version)
+		if r == rALL {
+			return ErrInvalidArgs
+		}
+		filename, f, err := ct.openArchive(r, version)
 		if err != nil {
 			return err
 		}
-		defer gz.Close()
+		defer f.Close()
 
 		logDebug.Println("downloaded", ct.String(), filename)
 
 		var finalVersion string
-		if finalVersion, err = ct.Unarchive(r, filename, gz); err != nil {
+		if finalVersion, err = ct.unarchive(r, filename, f); err != nil {
 			if errors.Is(err, fs.ErrExist) {
 				return nil
 			}
@@ -274,21 +296,20 @@ func (ct Component) DownloadComponent(r *Remotes, version string) (err error) {
 	}
 }
 
-// how to split an archive name into type and version
-var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|file-agent|\w+)-([\w\.-]+?)[\.-]?linux`)
-
-func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalVersion string, err error) {
+func (ct Component) unarchive(r *Remotes, filename string, gz io.Reader) (version string, err error) {
 	parts := archiveRE.FindStringSubmatch(filename)
 	if len(parts) == 0 {
 		logError.Fatalf("invalid archive name format: %q", filename)
 	}
-	version := parts[2]
-	filect := parseComponentName(parts[1])
+	version = parts[2]
+	// check the component in the filename
+	// special handling for Sans
+	ctFromFile := parseComponentName(parts[1])
 	switch ct {
-	case None, San:
-		ct = filect
-	case filect:
+	case ctFromFile:
 		break
+	case None, San:
+		ct = ctFromFile
 	default:
 		// mismatch
 		logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
@@ -297,6 +318,8 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 	basedir := r.GeneosPath("packages", ct.String(), version)
 	logDebug.Println(basedir)
 	if _, err = r.statFile(basedir); err == nil {
+		// something is already using that dir
+		// XXX - option to delete and overwrite?
 		return
 	}
 	if err = r.mkdirAll(basedir, 0775); err != nil {
@@ -305,9 +328,30 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 
 	t, err := gzip.NewReader(gz)
 	if err != nil {
+		// cannot gunzip file
 		return
 	}
 	defer t.Close()
+
+	var name string
+	var fnname func(string) string
+
+	switch ct {
+	case Webserver:
+		fnname = func(name string) string { return name }
+	case FA2:
+		fnname = func(name string) string {
+			return strings.TrimPrefix(name, "fix-analyser2/")
+		}
+	case FileAgent:
+		fnname = func(name string) string {
+			return strings.TrimPrefix(name, "agent/")
+		}
+	default:
+		fnname = func(name string) string {
+			return strings.TrimPrefix(name, ct.String()+"/")
+		}
+	}
 
 	tr := tar.NewReader(t)
 	for {
@@ -320,25 +364,13 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 		if err != nil {
 			return
 		}
-		// log.Println("file:", hdr.Name, "size", hdr.Size)
 		// strip leading component name (XXX - except webserver)
 		// do not trust tar archives to contain safe paths
-		var name string
-		switch ct {
-		case Webserver:
-			name = hdr.Name
-		case FA2:
-			name = strings.TrimPrefix(hdr.Name, "fix-analyser2/")
-		case FileAgent:
-			name = strings.TrimPrefix(hdr.Name, "agent/")
-		default:
-			name = strings.TrimPrefix(hdr.Name, ct.String()+"/")
-		}
-		if name == "" {
+
+		if name = fnname(hdr.Name); name == "" {
 			continue
 		}
-		name, err = cleanRelativePath(name)
-		if err != nil {
+		if name, err = cleanRelativePath(name); err != nil {
 			logError.Fatalln(err)
 		}
 		fullpath := filepath.Join(basedir, name)
@@ -350,8 +382,8 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 				return
 			}
 
-			out, err := r.createFile(fullpath, hdr.FileInfo().Mode())
-			if err != nil {
+			var out io.WriteCloser
+			if out, err = r.createFile(fullpath, hdr.FileInfo().Mode()); err != nil {
 				return "", err
 			}
 			n, err := io.Copy(out, tr)
@@ -368,6 +400,7 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 			if err = r.mkdirAll(fullpath, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
+
 		case tar.TypeSymlink, tar.TypeGNULongLink:
 			if filepath.IsAbs(hdr.Linkname) {
 				logError.Fatalln("archive contains absolute symlink target")
@@ -377,12 +410,12 @@ func (ct Component) Unarchive(r *Remotes, filename string, gz io.Reader) (finalV
 					logError.Fatalln(err)
 				}
 			}
+
 		default:
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
 	}
 	log.Printf("extracted %q to %q\n", filename, basedir)
-	finalVersion = filepath.Base(basedir)
 	return
 }
 
@@ -425,7 +458,7 @@ func (ct Component) UpdateToVersion(r *Remotes, version string, overwrite bool) 
 	logDebug.Printf("checking and updating %s %s %q to %q", r.InstanceName, ct.String(), updateBase, version)
 
 	if version == "" || version == "latest" {
-		version = r.LatestMatch(basedir, func(d os.DirEntry) bool {
+		version = r.latestMatch(basedir, func(d os.DirEntry) bool {
 			return !d.IsDir()
 		})
 	}
@@ -448,7 +481,7 @@ func (ct Component) UpdateToVersion(r *Remotes, version string, overwrite bool) 
 		return nil
 	}
 	// check remote only
-	insts := ct.MatchComponents(r, "Base", updateBase)
+	insts := ct.matchComponents(r, "Base", updateBase)
 	// stop matching instances
 	for _, i := range insts {
 		stopInstance(i, nil)
@@ -468,7 +501,7 @@ var versRE = regexp.MustCompile(`(\d+(\.\d+){0,2})`)
 
 // given a directory find the "latest" version of the form
 // [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
-func (r *Remotes) LatestMatch(dir string, fn func(os.DirEntry) bool) (latest string) {
+func (r *Remotes) latestMatch(dir string, fn func(os.DirEntry) bool) (latest string) {
 	dirs, err := r.readDir(dir)
 	if err != nil {
 		logError.Fatalln(err)
@@ -525,12 +558,14 @@ func sliceAtoi(s []string) (n []int) {
 //
 // also check if "Parent" is of the required type, then that also matches
 //
-func (ct Component) MatchComponents(r *Remotes, k, v string) (insts []Instances) {
+// not right for FA2 Sans...
+//
+func (ct Component) matchComponents(r *Remotes, k, v string) (insts []Instances) {
 	// also check for any other component types that have this as a parent, recurse
 	for _, c := range components {
 		if ct == c.ParentType {
 			logDebug.Println("also matching", c.ComponentType.String())
-			insts = append(insts, c.ComponentType.MatchComponents(r, k, v)...)
+			insts = append(insts, c.ComponentType.matchComponents(r, k, v)...)
 		}
 	}
 
@@ -572,7 +607,12 @@ type DownloadAuth struct {
 	Password string `json:"password"`
 }
 
-func (ct Component) DownloadArchive(r *Remotes, version string) (filename string, body io.ReadCloser, err error) {
+//
+// locate and open the remote archive using the download conventions
+//
+//
+//
+func (ct Component) openArchive(r *Remotes, version string) (filename string, body io.ReadCloser, err error) {
 	baseurl := GlobalConfig["DownloadURL"]
 	if baseurl == "" {
 		baseurl = defaultURL
