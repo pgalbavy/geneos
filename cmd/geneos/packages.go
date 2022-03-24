@@ -21,7 +21,7 @@ import (
 
 func init() {
 	RegisterDirs([]string{
-		"packages/archives",
+		"packages/downloads",
 	})
 
 	RegsiterCommand(Command{
@@ -40,7 +40,7 @@ func init() {
 The directory for the package is created using the VERSION from the archive
 filename.
 
-If a TYPE is given then the latest version from the packages/archives
+If a TYPE is given then the latest version from the packages/downloads
 directory for that TYPE is extracted, otherwise it is treated as a
 normal file path. This is primarily for extracting to remote locations.
 
@@ -68,7 +68,7 @@ the official download site. The filename must of of the format:
 The TYPE, if supplied, limits the selection of downloaded archive(s). The directory
 for the package is created using the VERSION from the archive filename.
 
-The downloaded file is saved in the packages/archives/ direcvtory for
+The downloaded file is saved in the packages/downloads directory for
 future re-use, especially for remote support.
 
 FLAGS:
@@ -155,7 +155,7 @@ func commandExtract(ct Component, files []string, params []string) (err error) {
 	if ct != None {
 		logDebug.Println(ct.String())
 		// archive directory is local only?
-		archiveDir := rLOCAL.GeneosPath("packages", "archives")
+		archiveDir := rLOCAL.GeneosPath("packages", "downloads")
 		archiveFile := rLOCAL.LatestMatch(archiveDir, func(v os.DirEntry) bool {
 			logDebug.Println(v.Name(), ct.String())
 			switch ct {
@@ -636,7 +636,7 @@ func (ct Component) DownloadArchive(r *Remotes, version string) (filename string
 
 	// check size against downloaded archive and serve local instead, regardless
 	// of -n flag
-	archiveDir := filepath.Join(Geneos(), "packages", "archives")
+	archiveDir := filepath.Join(Geneos(), "packages", "downloads")
 	rLOCAL.mkdirAll(archiveDir, 0775)
 	archivePath := filepath.Join(archiveDir, filename)
 	s, err := rLOCAL.statFile(archivePath)
