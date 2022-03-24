@@ -202,6 +202,9 @@ func setDefaults(c interface{}) (err error) {
 		fv := sv.FieldByIndex(f.Index)
 
 		// only set plain strings
+		if !f.IsExported() {
+			continue
+		}
 		if !fv.CanSet() {
 			logDebug.Println("cannot set", f.Name)
 			continue
