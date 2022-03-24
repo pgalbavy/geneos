@@ -7,7 +7,7 @@ func init() {
 		Name:          "clean",
 		Function:      commandClean,
 		ParseFlags:    cleanFlag,
-		ParseArgs:     defaultArgs,
+		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
 		CommandLine:   "geneos clean [-f] [TYPE] [NAME...]",

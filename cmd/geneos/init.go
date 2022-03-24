@@ -180,16 +180,6 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 
 	logDebug.Println("args, params:", args, params)
 
-	// re-run defaultArgs?
-	// _, args, params = defaultArgs(Command{
-	// 	Name:          "init",
-	// 	Wildcard:      false,
-	// 	ComponentOnly: false,
-	// 	ParseFlags:    initFlag,
-	// }, args)
-
-	// logDebug.Println("args, params:", args, params)
-
 	if len(params) > 0 {
 		if err = initFlagSet.Parse(params); err != nil {
 			log.Fatalln(err)
@@ -375,8 +365,8 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
 		commandAdd(Netprobe, n, params)
 		commandAdd(Webserver, w, params)
-		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(commands["start"], rem)
+		// call parseArgs() on an empty list to populate for loopCommand()
+		ct, args, params := parseArgs(commands["start"], rem)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return
@@ -415,8 +405,8 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		commandAdd(Gateway, g, params)
 		commandAdd(Netprobe, n, params)
 		commandAdd(Webserver, g, params)
-		// call defaultArgs() on an empty list to populate for loopCommand()
-		ct, args, params := defaultArgs(commands["start"], rem)
+		// call parseArgs() on an empty list to populate for loopCommand()
+		ct, args, params := parseArgs(commands["start"], rem)
 		commandStart(ct, args, params)
 		commandPS(ct, args, params)
 		return nil

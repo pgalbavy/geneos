@@ -96,7 +96,7 @@ func TLSArgs(cmd Command, rawargs []string) (ct Component, args []string, params
 		logError.Fatalln("tls command requires more arguments - help text here")
 	}
 	subcommand := rawargs[0]
-	ct, args, params = defaultArgs(cmd, rawargs[1:])
+	ct, args, params = parseArgs(cmd, rawargs[1:])
 	args = append([]string{subcommand}, args...)
 	return
 }

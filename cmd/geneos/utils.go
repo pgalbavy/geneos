@@ -226,7 +226,7 @@ func canControl(c Instances) bool {
 //
 // XXX consume args, each time a '-' is seen, process flags. stach "params" - all
 // those including an '='
-func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, params []string) {
+func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, params []string) {
 	var wild bool
 	var newnames []string
 

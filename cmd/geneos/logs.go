@@ -19,7 +19,7 @@ func init() {
 		Name:          "logs",
 		Function:      commandLogs,
 		ParseFlags:    logsFlag,
-		ParseArgs:     defaultArgs,
+		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
 		CommandLine:   "geneos logs [FLAGS] [TYPE] [NAME...]",

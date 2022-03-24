@@ -15,7 +15,7 @@ func init() {
 		Name:          "set",
 		Function:      commandSet,
 		ParseFlags:    defaultFlag,
-		ParseArgs:     defaultArgs,
+		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
 		CommandLine: `geneos set [global|user] KEY=VALUE [KEY=VALUE...]

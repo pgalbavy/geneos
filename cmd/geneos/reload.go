@@ -5,7 +5,7 @@ func init() {
 		Name:          "reload",
 		Function:      commandReload,
 		ParseFlags:    defaultFlag,
-		ParseArgs:     defaultArgs,
+		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
 

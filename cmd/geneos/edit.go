@@ -11,7 +11,7 @@ func init() {
 		Name:          "edit",
 		Function:      commandEdit,
 		ParseFlags:    defaultFlag,
-		ParseArgs:     defaultArgs,
+		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
 		CommandLine: `geneos edit [global|user]
