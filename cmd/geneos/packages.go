@@ -20,6 +20,10 @@ import (
 )
 
 func init() {
+	RegisterDirs([]string{
+		"packages/archives",
+	})
+
 	RegsiterCommand(Command{
 		Name:          "extract",
 		Function:      commandExtract,

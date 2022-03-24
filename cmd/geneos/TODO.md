@@ -34,3 +34,4 @@
   * first pass review configs
   * second to edit
   * use a REST interface
+* review 'extract' and 'download' and how they behave with remotes

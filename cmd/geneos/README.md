@@ -60,12 +60,11 @@ If you have an existing Geneos installation that you manage with the command lik
 |:----------------------------|
 | `geneos` ignores any changes to the global *ctl.rc files in your existing installation. You **must** check and adjust individual instance settings to duplicate settings. This can sometimes be very simple, for example if your `netprobectl.rc` files contains a line that sets `JAVA_HOME` then you can set this across all the Netprobes using `geneos set netprobe Env=JAVA_HOME=/path/to/java`. More complex changes, such as library paths, will need more careful consideration |
 
-
 You can use an environment variable `ITRS_HOME` pointing to the top-level directory of your installation or set the location in the (user or global) configuration file:
 
     geneos set Geneos=/path/to/install
 
-The directory is where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation that follows this pattern then you can create a fresh layout further below.
+This is the directory is where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation that follows this pattern then you can create a fresh layout further below.
 
 You can now check your installation with some simple commands:
 
