@@ -58,7 +58,7 @@ If you have an existing Geneos installation that you manage with the command lik
 
 You can use an environment variable `ITRS_HOME` pointing to the top-level directory of your installation or set the location in the (user or global) configuration file:
 
-    geneos set ITRSHome=/path/to/install
+    geneos set Geneos=/path/to/install
 
 The directory is where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation that follows this pattern then you can create a fresh layout further below.
 
@@ -258,7 +258,7 @@ A remote is a psuedo-instance and you add and manage it with the normal commands
 
 `ssh://[USER@]HOST[:PORT][/PATH]`
 
-If not set, USER defaults to the current username. Similarly PORT defaults to 22. PATH defaults to the local ITRSHome path. The most basic SSH URL of the form `ssh://hostname` results in a remote accessed as the current user on the default SSH port and rooted in the same directory as the local set-up. Is the remote directory is empty (dot files are ignored) then the standard file layout is created.
+If not set, USER defaults to the current username. Similarly PORT defaults to 22. PATH defaults to the local Geneos path. The most basic SSH URL of the form `ssh://hostname` results in a remote accessed as the current user on the default SSH port and rooted in the same directory as the local set-up. Is the remote directory is empty (dot files are ignored) then the standard file layout is created.
 
 ### How does it work?
 
@@ -365,7 +365,7 @@ The instance specific `show` command is described below.
 Set a program-wide configuration option. The default is to update the `user` configuration file. If `global` is given then the user has to have appropriate privileges to write to the global config file (`/etc/geneos/geneos.json`). Multiple KEY=VALUE pairs can be given but only fields that are recognised are updated.
 
 * `geneos home [TYPE] [NAME]`
-The `home` command outputs the home directory of the first matching instance, or `ITRSHome` if there is no match or no options passed to the command. This is useful for automation and shortcuts, w.g. in bash:
+The `home` command outputs the home directory of the first matching instance, or `Geneos` if there is no match or no options passed to the command. This is useful for automation and shortcuts, w.g. in bash:
 
     $ cd $(geneos home netprone example1)
 
@@ -457,7 +457,7 @@ Once enabled then all new instances will also have certificates created and conf
 The root and signing certificates are only kept on the local server and the `tls sync` command can be used to copy a `chain.pem` file to remote servers. Keys are never copied to remote servers by any built-in commands.
 
 * `geneos tls init`
-  Initialised the TLS environment by creating a `tls` directory in ITRSHome and populating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command. Also does a `sync` if remotes are configured.
+  Initialised the TLS environment by creating a `tls` directory in Geneos and populating it with a new root and intermediate (signing) certificate and keys as well as a `chain.pem` which includes both CA certificates. The keys are only readable by the user running the command. Also does a `sync` if remotes are configured.
 
   Any existing instances have certificates created and their configurations updated to reference them. This means that any legacy `.rc` configurations will be migrated to `.json` files.
 
@@ -489,7 +489,7 @@ The root and signing certificates are only kept on the local server and the `tls
 
 General options are loaded from the global config file first, then the user level one. The current options are:
 
-* `ITRSHome`
+* `Geneos`
 The home directory for all other commands. See [Directory Layout](#directory-layout) below. If set the environment variable ITRS_HOME overrides any settings in the files. This is to maintain backward compatibility with older tools. The default, if not set anywhere else, is the home directory of the user running the command or, if running as root, the home directory of the `geneos` or `itrs` users (in that order). (To be fully implemented)
 
 * `DownloadURL`
@@ -514,7 +514,7 @@ Note that execution mode (e.g. `GateMode`) is not supported and all components r
 
 ## Directory Layout
 
-The ITRSHome setting or the environment variable `ITRS_HOME` points to the base directory for all subsequent operations. The basic layout follows that of the original `gatewayctl` etc. including:
+The Geneos setting or the environment variable `ITRS_HOME` points to the base directory for all subsequent operations. The basic layout follows that of the original `gatewayctl` etc. including:
 
 ```
 packages/

@@ -25,11 +25,12 @@ func init() {
 STDOUT and STDERR are redirected to a '.txt' file in the instance directory.
 
 FLAGS:
-	-l - follow logs after starting instances`,
+
+	-l	Run 'logs -f' after starting instance(s)`,
 	})
 
 	startFlags = flag.NewFlagSet("start", flag.ExitOnError)
-	startFlags.BoolVar(&startLogs, "l", false, "Watch logs after start-up")
+	startFlags.BoolVar(&startLogs, "l", false, "Run 'logs -f' after starting instance(s)")
 	startFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	RegsiterCommand(Command{
@@ -39,7 +40,7 @@ FLAGS:
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   `geneos stop [-f] [TYPE] [NAME...]`,
+		CommandLine:   `geneos stop [-K] [TYPE] [NAME...]`,
 		Summary:       `Stop one or more instances`,
 		Description: `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and
 if the instance is still running after a few seconds then a SIGKILL is sent. If the -f flag
@@ -47,11 +48,12 @@ is given the instance(s) are immediately terminated with a SIGKILL.
 
 
 FLAGS:
-	-f - force stop by sending an immediate SIGKILL`,
+
+	-K - force stop by sending an immediate SIGKILL`,
 	})
 
 	stopFlags = flag.NewFlagSet("stop", flag.ExitOnError)
-	stopFlags.BoolVar(&stopKill, "f", false, "Force stop by sending an immediate SIGKILL")
+	stopFlags.BoolVar(&stopKill, "K", false, "Force stop by sending an immediate SIGKILL")
 	stopFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	RegsiterCommand(Command{
@@ -61,17 +63,21 @@ FLAGS:
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos restart [-l] [TYPE] [NAME...]",
+		CommandLine:   "geneos restart [-a] [-K] [-l] [TYPE] [NAME...]",
 		Summary:       `Restart one or more instances.`,
 		Description: `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.
 
 FLAGS:
-	-l - follow logs after starting instances`,
+
+	-a	Start all matching instances, not just those initially stopped by the command
+	-K  Force stop by sending an immediate SIGKILL
+	-l	Run 'logs -f' after starting instance(s)`,
 	})
 
 	restartFlags = flag.NewFlagSet("restart", flag.ExitOnError)
-	restartFlags.BoolVar(&restartAll, "a", false, "Start all instances, not just those already running")
-	restartFlags.BoolVar(&restartLogs, "l", false, "Watch logs after start-up")
+	restartFlags.BoolVar(&restartAll, "a", false, "Start all matcheing instances, not just those already running")
+	restartFlags.BoolVar(&stopKill, "K", false, "Force stop by sending an immediate SIGKILL")
+	restartFlags.BoolVar(&startLogs, "l", false, "Run 'logs -f' after starting instance(s)")
 	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	RegsiterCommand(Command{
@@ -82,7 +88,7 @@ FLAGS:
 		Wildcard:      true,
 		ComponentOnly: false,
 		CommandLine:   "geneos disable [TYPE] [NAME...]",
-		Summary:       `Disable (and stop) one or more instances.`,
+		Summary:       `Stop and disable matching instances.`,
 		Description:   `Mark any matching instances as disabled. The instances are also stopped.`,
 	})
 
@@ -93,22 +99,23 @@ FLAGS:
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos enable [TYPE] [NAME...]",
+		CommandLine:   "geneos enable [-S] [TYPE] [NAME...]",
 		Summary:       `Enable one or more instances. Only previously disabled instances are started.`,
 		Description:   `Mark any matcing instances as enabled and if this changes status then start the instance.`,
 	})
 
 	enableFlags = flag.NewFlagSet("enable", flag.ExitOnError)
-	enableFlags.BoolVar(&enableNoStart, "n", false, "Do not auto-start enabled instances")
+	enableFlags.BoolVar(&enableStart, "S", false, "Start enabled instances")
 	enableFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
 var stopFlags, startFlags, enableFlags *flag.FlagSet
 var stopKill bool
 var startLogs bool
+
 var restartFlags *flag.FlagSet
-var restartAll, restartLogs bool
-var enableNoStart bool
+var restartAll bool
+var enableStart bool
 
 func startFlag(command string, args []string) []string {
 	startFlags.Parse(args)
@@ -308,7 +315,7 @@ func commandRestart(ct Component, args []string, params []string) (err error) {
 		return
 	}
 
-	if restartLogs {
+	if startLogs {
 		done := make(chan bool)
 		watcher, _ = watchLogs()
 		defer watcher.Close()
@@ -374,7 +381,7 @@ func commandEneable(ct Component, args []string, params []string) (err error) {
 
 func enableInstance(c Instances, params []string) (err error) {
 	err = c.Remote().removeFile(InstanceFile(c, disableExtension))
-	if (err == nil || errors.Is(err, os.ErrNotExist)) && !enableNoStart {
+	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableStart {
 		startInstance(c, params)
 	}
 	return nil

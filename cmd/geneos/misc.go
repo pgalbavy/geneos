@@ -29,27 +29,9 @@ func init() {
 		Description: `This command. Shows either a list of available commands or the help for the given COMMAND.`,
 	})
 
-	defaultFlags = flag.NewFlagSet("default", flag.ContinueOnError)
+	defaultFlags = flag.NewFlagSet("geneos", flag.ExitOnError)
 	defaultFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	RegsiterCommand(Command{
-		Name:        "home",
-		Function:    commandHome,
-		ParseFlags:  defaultFlag,
-		ParseArgs:   nil,
-		CommandLine: "geneos home [TYPE] [NAME]",
-		Summary:     `Output the home directory of the installation or the first matching instance`,
-		Description: `Output the home directory of the first matching instance or local
-installation or the remote on stdout. This is intended for scripting,
-e.g.
-
-	cd $(geneos home)
-	cd $(geneos home gateway example1
-		
-Because of the intended use no errors are logged and no output is
-given. This would in the examples above result in the user's home
-directory being selected.`,
-	})
 }
 
 var defaultFlags *flag.FlagSet
@@ -82,7 +64,7 @@ func commandHelp(comp Component, args []string, params []string) error {
 		return nil
 	}
 	if c, ok := commands[args[0]]; ok {
-		log.Printf("%s:\n\n\t%s\n\n%s", args[0], c.CommandLine, c.Description)
+		log.Printf("\n\t%s\n\n%s", c.CommandLine, c.Description)
 		return nil
 	}
 	return ErrInvalidArgs
@@ -101,39 +83,4 @@ func checkHelpFlag(command string) {
 		commandHelp(None, []string{command}, nil)
 		os.Exit(0)
 	}
-}
-
-func commandHome(ctunused Component, args []string, params []string) error {
-	if len(args) == 0 {
-		log.Println(ITRSHome())
-		return nil
-	}
-
-	var ct Component
-	// check if first arg is a type, if not set to None else pop first arg
-	if ct = parseComponentName(args[0]); ct == Unknown {
-		ct = None
-	} else {
-		args = args[1:]
-	}
-
-	var i []Instances
-	if len(args) == 0 {
-		i = ct.Instances(rLOCAL)
-	} else {
-		i = ct.instanceMatches(args[0])
-	}
-
-	if len(i) == 0 {
-		log.Println(ITRSHome())
-		return nil
-	}
-
-	if i[0].Type() == Remote {
-		log.Println(getString(i[0], "ITRSHome"))
-		return nil
-	}
-
-	log.Println(i[0].Home())
-	return nil
 }

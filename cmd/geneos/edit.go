@@ -17,17 +17,34 @@ func init() {
 		CommandLine: `geneos edit [global|user]
 	geneos edit [TYPE] [NAME...]`,
 		Summary: `Open an editor for instance configuration file.`,
-		Description: `Open an editor for JSON configuration file(s). If the literal word 'global' or 'user' is
-supplied then the respective non-instance specific configuration file is opened, otherwise one
+		Description: `Open an editor for JSON configuration file(s). If the literal 'global' or 'user' is
+supplied then the respective configuration file is opened, otherwise one
 or more configuration files are opened, depending on if TYPE and NAME(s) are supplied. The text
 editor invoked will be the first set of the environment variables VISUAL or EDITOR or the linux
 /usr/bin/editor alternative will be used. e.g.
 
 	VISUAL=code geneos edit user
 
-will open a VS Code editor window for the user configuration file.
+will open a VS Code editor window for the user configuration file.`,
+	})
 
-See also 'geneos set' and 'geneos show'.`,
+	RegsiterCommand(Command{
+		Name:        "home",
+		Function:    commandHome,
+		ParseFlags:  defaultFlag,
+		ParseArgs:   nil,
+		CommandLine: "geneos home [TYPE] [NAME]",
+		Summary:     `Output the home directory of the installation or the first matching instance`,
+		Description: `Output the home directory of the first matching instance or local
+installation or the remote on stdout. This is intended for scripting,
+e.g.
+
+	cd $(geneos home)
+	cd $(geneos home gateway example1)
+		
+Because of the intended use no errors are logged and no other output.
+An error in the examples above result in the user's home
+directory being selected.`,
 	})
 }
 
@@ -94,4 +111,39 @@ func editConfigFiles(editor string, files ...string) (err error) {
 
 	// change file ownerships back here - but to who?
 	return
+}
+
+func commandHome(ctunused Component, args []string, params []string) error {
+	if len(args) == 0 {
+		log.Println(Geneos())
+		return nil
+	}
+
+	var ct Component
+	// check if first arg is a type, if not set to None else pop first arg
+	if ct = parseComponentName(args[0]); ct == Unknown {
+		ct = None
+	} else {
+		args = args[1:]
+	}
+
+	var i []Instances
+	if len(args) == 0 {
+		i = ct.Instances(rLOCAL)
+	} else {
+		i = ct.instanceMatches(args[0])
+	}
+
+	if len(i) == 0 {
+		log.Println(Geneos())
+		return nil
+	}
+
+	if i[0].Type() == Remote {
+		log.Println(getString(i[0], "Geneos"))
+		return nil
+	}
+
+	log.Println(i[0].Home())
+	return nil
 }

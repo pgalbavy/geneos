@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/user"
@@ -15,7 +16,7 @@ func init() {
 		Function:    commandInit,
 		ParseFlags:  initFlag,
 		ParseArgs:   nil,
-		CommandLine: `geneos init [USERNAME] [DIRECTORY] [-T|-D|-A FILE|-S] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [VARS]`,
+		CommandLine: `geneos init [-A FILE|URL|-D|-S|-T] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY] [PARAMS]`,
 		Summary:     `Initialise a Geneos installation`,
 		Description: `Initialise a Geneos installation by creating the directory hierarchy and
 user configuration file, with the USERNAME and DIRECTORY if supplied.
@@ -45,33 +46,33 @@ only the configuration file for that user is created. e.g.:
 When USERNAME is supplied then the command must either be run with
 superuser privileges or be run by the same user.
 
-Any VARS provided are passed to the 'add' command called for
+Any PARAMS provided are passed to the 'add' command called for
 components created
 
 FLAGS:
 
 	-A LICENSE	Initialise a basic environment an import the give file as a license for licd
 	-D		Initialise a Demo environment
-	-T		Rebuild templates
 	-S		Initialise a environment with one Self-Announcing Netprobe.
-			If a signing certificate and key are provided then also
-			create a certificate and connect with TLS. If a SAN
-			template is provided (-s path) then use that to create
-			the configuration. The default template uses the hostname
-			to identify the SAN unless -n NAME is given.
+		If a signing certificate and key are provided then also
+		create a certificate and connect with TLS. If a SAN
+		template is provided (-s path) then use that to create
+		the configuration. The default template uses the hostname
+		to identify the SAN unless -n NAME is given.
+	-T		Rebuild templates
 
 	-n NAME		Use NAME as the default for instances and
 			configurations instead of the hostname
+
+	-g TEMPLATE	Import a Gateway template file (local or URL) to replace of built-in default
+	-s TEMPLATE	Import a San template file (local or URL) to replace the built-in default 
 
 	-c CERTFILE	Import the CERTFILE (which can be a URL) with an optional embedded
 			private key. This also intialises the TLS environment and all
 			new instances have certificates created for them.
 	-k KEYFILE	Import the KEYFILE as a signing key. Overrides any embedded key in CERTFILE above
 
-	-g TEMPLATE	Import a Gateway template file (local or URL) to replace of built-in default
-	-s TEMPLATE	Import a San template file (local or URL) to replace the built-in default 
-
-	The '-d', '-a' and '-S' flags are mutually exclusive.`,
+	The '-A', '-D', '-S' and '-T' flags are mutually exclusive.`,
 	})
 
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
@@ -139,9 +140,22 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return
 	}
 
-	// cannot pass both flags
-	if initFlags.Demo && initFlags.All != "" {
-		return ErrInvalidArgs
+	flagcount := 0
+	if initFlags.Demo {
+		flagcount++
+	}
+	if initFlags.Templates {
+		flagcount++
+	}
+	if initFlags.StartSAN {
+		flagcount++
+	}
+	if initFlags.All != "" {
+		flagcount++
+	}
+
+	if flagcount > 1 {
+		return fmt.Errorf("%w: Only one of -A, -D, -S or -T can be given", ErrInvalidArgs)
 	}
 
 	if err = rLOCAL.initGeneos(args); err != nil {
@@ -219,7 +233,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 			homedir = u.HomeDir
 		} else {
 			username = r.Username
-			homedir = r.ITRSHome
+			homedir = r.Geneos
 		}
 		switch len(args) {
 		case 0: // default home + geneos
@@ -281,7 +295,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 
 	if r == rLOCAL {
 		c := make(GlobalSettings)
-		c["ITRSHome"] = dir
+		c["Geneos"] = dir
 		c["DefaultUser"] = username
 
 		if superuser {
@@ -307,7 +321,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	// now reload config, after init
 	loadSysConfig()
 
-	// also recreate rLOCAL to load ITRSHome and others
+	// also recreate rLOCAL to load Geneos and others
 	delete(remotes, LOCAL)
 	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
 

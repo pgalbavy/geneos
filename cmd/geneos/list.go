@@ -89,7 +89,7 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 			err = ct.loopCommand(lsInstanceJSONRemotes, args, params)
 		case listCSV:
 			csvWriter = csv.NewWriter(log.Writer())
-			csvWriter.Write([]string{"Type", "Name", "Disabled", "Username", "Hostname", "Port", "ITRSHome"})
+			csvWriter.Write([]string{"Type", "Name", "Disabled", "Username", "Hostname", "Port", "Geneos"})
 			err = ct.loopCommand(lsInstanceCSVRemotes, args, params)
 			csvWriter.Flush()
 		default:
@@ -136,7 +136,7 @@ func lsInstancePlainRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome"))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "Geneos"))
 	return
 }
 
@@ -154,7 +154,7 @@ func lsInstanceCSVRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, getString(c, "Username"), getString(c, "Hostname"), fmt.Sprint(getInt(c, "Port")), getString(c, "ITRSHome")})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, getString(c, "Username"), getString(c, "Hostname"), fmt.Sprint(getInt(c, "Port")), getString(c, "Geneos")})
 	return
 }
 
@@ -173,7 +173,7 @@ type lsTypeRemotes struct {
 	Username string
 	Hostname string
 	Port     int64
-	ITRSHome string
+	Geneos   string
 }
 
 func lsInstanceJSON(c Instances, params []string) (err error) {
@@ -190,7 +190,7 @@ func lsInstanceJSONRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "ITRSHome")})
+	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "Geneos")})
 	return
 }
 

@@ -10,19 +10,19 @@ func init() {
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos clean [-p] [TYPE] [NAME...]",
+		CommandLine:   "geneos clean [-f] [TYPE] [NAME...]",
 		Summary:       "Clean-up instance directory",
 		Description: `Clean-up instance directories, restarting instances if doing a 'purge' clean.
 
 FLAGS:
-	-p - purge (full clean). Stops and restarts instances. Only restarts those
+	-full - full clean. Stops and restarts instances. Only restarts those
 	     instances the command stopped.
 
 `,
 	})
 
 	cleanFlags = flag.NewFlagSet("clean", flag.ExitOnError)
-	cleanFlags.BoolVar(&cleanPurge, "p", false, "Purge more files than clean, restarts instances")
+	cleanFlags.BoolVar(&cleanPurge, "f", false, "Perform a full clean. Removes more files than basic clean and restarts instances")
 	cleanFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 

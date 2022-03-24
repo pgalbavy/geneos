@@ -375,7 +375,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 	}
 
 	// if args is empty, find them all again. ct == None too?
-	if len(args) == 0 && ITRSHome() != "" && !wild {
+	if len(args) == 0 && Geneos() != "" && !wild {
 		args = ct.InstanceNames(rALL)
 	}
 

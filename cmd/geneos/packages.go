@@ -632,7 +632,7 @@ func (ct Component) DownloadArchive(r *Remotes, version string) (filename string
 
 	// check size against downloaded archive and serve local instead, regardless
 	// of -n flag
-	archiveDir := filepath.Join(ITRSHome(), "packages", "archives")
+	archiveDir := filepath.Join(Geneos(), "packages", "archives")
 	rLOCAL.mkdirAll(archiveDir, 0775)
 	archivePath := filepath.Join(archiveDir, filename)
 	s, err := rLOCAL.statFile(archivePath)

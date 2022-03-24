@@ -17,6 +17,16 @@ import (
 //go:embed VERSION
 var releaseVersion string
 
+var globalConfig = "/etc/geneos/geneos.json"
+
+var initDirs = []string{}
+
+// new global config
+type Global string
+type GlobalSettings map[Global]string
+
+var GlobalConfig GlobalSettings = make(GlobalSettings)
+
 func init() {
 	if os.Geteuid() == 0 || os.Getuid() == 0 {
 		superuser = true
@@ -111,7 +121,7 @@ func main() {
 	}
 	logDebug.Println("ct", ct, "args", args, "params", params)
 
-	// if command is not an init, set or show then the ITRSHome
+	// if command is not an init, set or show then the Geneos
 	// directory must exist and be accessible to the user
 	switch command {
 	case "help", "version", "init":
@@ -124,10 +134,15 @@ func main() {
 		// 'geneos show [user|global]'
 		if ct == None {
 			// check the unparsed args here
-			if len(leftargs[1:]) == 0 {
-				// output resolved config and exit
-				printConfigStructJSON(GlobalConfig)
-				os.Exit(0)
+			if len(leftargs) > 1 {
+				switch leftargs[1] {
+				case "user", "global":
+					if err := commands[command].Function(ct, leftargs[1:], nil); err != nil {
+						logError.Fatalln(err)
+					}
+					os.Exit(0)
+				default:
+				}
 			}
 		}
 		// some other "show" comnbination
@@ -145,7 +160,7 @@ func main() {
 		fallthrough
 	default:
 		// test home dir, stop if invalid
-		if ITRSHome() == "" {
+		if Geneos() == "" {
 			log.Fatalln(`
 Installation directory is not set.
 
@@ -159,31 +174,31 @@ You can fix this by doing one of the following:
 
 	$ export ITRS_HOME=/path/to/geneos
 
-3. Set the ITRSHome user parameter:
+3. Set the Geneos user parameter:
 
-	$ geneos set user ITRSHome=/path/to/geneos
+	$ geneos set user Geneos=/path/to/geneos
 
-3. Set the ITRSHome parameter in the global configuration file:
+3. Set the Geneos parameter in the global configuration file:
 
-	$ echo '{ "ITRSHome": "/path/to/geneos" }' >` + globalConfig)
+	$ echo '{ "Geneos": "/path/to/geneos" }' >` + globalConfig)
 		}
-		s, err := rLOCAL.statFile(ITRSHome())
+		s, err := rLOCAL.statFile(Geneos())
 		if err != nil {
-			logError.Fatalf("home directory %q: %s", ITRSHome(), errors.Unwrap(err))
+			logError.Fatalf("home directory %q: %s", Geneos(), errors.Unwrap(err))
 		}
 		if !s.st.IsDir() {
-			logError.Fatalln(ITRSHome(), "is not a directory")
+			logError.Fatalln(Geneos(), "is not a directory")
 		}
 
 		// we have a valid home directory, now set default user if
 		// not set elsewhere
 		if GlobalConfig["DefaultUser"] == "" {
 			if s.uid == 0 {
-				logError.Fatalf("home directory %q: owned by root and no default user configured", ITRSHome())
+				logError.Fatalf("home directory %q: owned by root and no default user configured", Geneos())
 			}
 			u, err := user.LookupId(fmt.Sprint(s.uid))
 			if err != nil {
-				logError.Fatalln(ITRSHome(), err)
+				logError.Fatalln(Geneos(), err)
 			}
 			GlobalConfig["DefaultUser"] = u.Username
 		}

@@ -44,7 +44,7 @@ type Remotes struct {
 	Hostname string
 	Port     int `default:"22"`
 	Username string
-	ITRSHome string            `default:"{{.RemoteRoot}}"`
+	Geneos   string            `default:"{{.RemoteRoot}}"`
 	OSInfo   map[string]string `json:",omitempty"`
 }
 
@@ -77,7 +77,7 @@ func NewRemote(name string) Instances {
 	// Bootstrap
 	c := &Remotes{}
 	c.InstanceRemote = rLOCAL
-	c.RemoteRoot = ITRSHome()
+	c.RemoteRoot = Geneos()
 	c.InstanceType = Remote.String()
 	c.InstanceName = local
 	setDefaults(&c)
@@ -197,13 +197,13 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	r.Username = username
 
 	// default to remote user's home dir, not local
-	homepath := ITRSHome()
+	homepath := Geneos()
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
 		homepath = u.Path
 	}
-	r.ITRSHome = homepath
+	r.Geneos = homepath
 
 	err = writeInstanceConfig(r)
 	if err != nil {
@@ -298,7 +298,7 @@ func GetRemote(remote RemoteName) (r *Remotes) {
 
 // Return the base directory for the remote, inc LOCAL
 func (r Remotes) GeneosRoot() string {
-	return r.ITRSHome
+	return r.Geneos
 }
 
 // return an absolute path anchored in the root directory of the remote

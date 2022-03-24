@@ -118,7 +118,6 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 			log.Fatalln(err)
 		}
 
-		rebuildNoRestart = true
 		return commandRebuild(ct, args, params)
 
 	case "import":
@@ -432,11 +431,11 @@ func lsInstanceCertJSON(c Instances, params []string) (err error) {
 	return
 }
 
-// create the tls/ directory in ITRSHome and a CA / DCA as required
+// create the tls/ directory in Geneos and a CA / DCA as required
 //
 // later options to allow import of a DCA
 func TLSInit() (err error) {
-	tlsPath := filepath.Join(ITRSHome(), "tls")
+	tlsPath := filepath.Join(Geneos(), "tls")
 	// directory permissions do not need to be restrictive
 	err = rLOCAL.mkdirAll(tlsPath, 0775)
 	if err != nil {
@@ -495,7 +494,7 @@ func TLSSync() (err error) {
 // no support for instance certs (yet)
 func TLSImport(sources ...string) (err error) {
 	logDebug.Println(sources)
-	tlsPath := filepath.Join(ITRSHome(), "tls")
+	tlsPath := filepath.Join(Geneos(), "tls")
 	err = rLOCAL.mkdirAll(tlsPath, 0755)
 	if err != nil {
 		log.Fatalln(err)
@@ -685,7 +684,7 @@ func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 //
 // skip if certificate exists (no expiry check)
 func createInstanceCert(c Instances) (err error) {
-	tlsDir := filepath.Join(ITRSHome(), "tls")
+	tlsDir := filepath.Join(Geneos(), "tls")
 
 	// skip if we can load an existing certificate
 	if _, err = readInstanceCert(c); err == nil {
@@ -749,7 +748,7 @@ func createInstanceCert(c Instances) (err error) {
 //
 // if private key doesn't exist, do we error?
 func renewInstanceCert(c Instances) (err error) {
-	tlsDir := filepath.Join(ITRSHome(), "tls")
+	tlsDir := filepath.Join(Geneos(), "tls")
 
 	host, _ := os.Hostname()
 	if c.Remote() != rLOCAL {
@@ -902,12 +901,12 @@ func (r *Remotes) readCert(path string) (cert *x509.Certificate, err error) {
 }
 
 func readRootCert() (cert *x509.Certificate, err error) {
-	tlsDir := filepath.Join(ITRSHome(), "tls")
+	tlsDir := filepath.Join(Geneos(), "tls")
 	return rLOCAL.readCert(filepath.Join(tlsDir, rootCAFile+".pem"))
 }
 
 func readSigningCert() (cert *x509.Certificate, err error) {
-	tlsDir := filepath.Join(ITRSHome(), "tls")
+	tlsDir := filepath.Join(Geneos(), "tls")
 	return rLOCAL.readCert(filepath.Join(tlsDir, signingCertFile+".pem"))
 }
 

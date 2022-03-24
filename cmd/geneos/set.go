@@ -221,6 +221,14 @@ func writeConfigParams(filename string, params []string) (err error) {
 		c[Global(k)] = v
 	}
 
+	// fix breaking change
+	if oldhome, ok := c["ITRSHome"]; ok {
+		if newhome, ok := c["Geneos"]; !ok || newhome == "" {
+			c["Geneos"] = oldhome
+		}
+		delete(c, "ITRSHome")
+	}
+
 	// XXX fix permissions assumptions here
 	if filename == globalConfig {
 		return rLOCAL.writeConfigFile(filename, "root", c)

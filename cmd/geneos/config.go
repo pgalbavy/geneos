@@ -63,16 +63,22 @@ It is an error to try to rename an instance to one that already exists with the 
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   `geneos delete [TYPE] [NAME...]`,
+		CommandLine:   `geneos delete [-f] [TYPE] [NAME...]`,
 		Summary:       `Delete an instance. Instance must be stopped.`,
-		Description: `Delete the matching instances. This will only work on instances that are disabled to prevent
-accidental deletion. The instance directory is removed without being backed-up. The user running
-the command must have the appropriate permissions and a partial deletion cannot be protected
-against.`,
+		Description: `Delete the matching instances. This will only work on instances that
+are disabled to prevent accidental deletion. The instance directory
+is removed without being backed-up. The user running the command must
+have the appropriate permissions and a partial deletion cannot be
+protected against.
+
+FLAGS:
+
+	-f	Force deletion of matching instances. Be careful, and instead disable instances
+		and use a normal delete command.`,
 	})
 
 	deleteFlags = flag.NewFlagSet("delete", flag.ExitOnError)
-	deleteFlags.BoolVar(&deleteForced, "f", false, "Override need to have disabled instances")
+	deleteFlags.BoolVar(&deleteForced, "f", false, "Force delete of instances")
 	deleteFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	RegsiterCommand(Command{
@@ -82,35 +88,27 @@ against.`,
 		ParseArgs:     defaultArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   `geneos rebuild [-f] [-n] [TYPE] {NAME...]`,
+		CommandLine:   `geneos rebuild [-f] [-r] [TYPE] {NAME...]`,
 		Summary:       `Rebuild instance configuration files`,
 		Description: `Rebuild instance configuration files based on current templates and instance configuration values
 		
 FLAGS:
 
-	-f	Force rebuild for instances marked 'initial' even if configuration is not 'always' - 'never' is never rebuilt
-	-n	No restart of instances`,
+	-f	Force rebuild for instances marked 'initial' even if configuration is not 'always'
+		- 'never' is never rebuilt
+	-r	restart any of instances where the configuration has changed.
+		This is not normally required as both Sans and Gateways can be set to auto-reload on a time.`,
 	})
 
 	rebuildFlags = flag.NewFlagSet("rebuild", flag.ExitOnError)
 	rebuildFlags.BoolVar(&rebuildForced, "f", false, "Force rebuild")
-	rebuildFlags.BoolVar(&rebuildNoRestart, "n", false, "Do not restart instances after rebuild")
+	rebuildFlags.BoolVar(&rebuildRestart, "r", false, "Restart instances after rebuild")
 }
 
 var deleteForced bool
 
 var rebuildFlags *flag.FlagSet
-var rebuildForced, rebuildNoRestart bool
-
-var globalConfig = "/etc/geneos/geneos.json"
-
-var initDirs = []string{}
-
-// new global config
-type Global string
-type GlobalSettings map[Global]string
-
-var GlobalConfig GlobalSettings = make(GlobalSettings)
+var rebuildForced, rebuildRestart bool
 
 func deleteFlag(command string, args []string) []string {
 	deleteFlags.Parse(args)
@@ -139,15 +137,28 @@ func loadSysConfig() {
 
 	// setting the environment variable - to match legacy programs - overrides
 	// all others
+
+	// fix breaking change
+	if oldhome, ok := GlobalConfig["ITRSHome"]; ok {
+		if newhome, ok := GlobalConfig["Geneos"]; !ok || newhome == "" {
+			GlobalConfig["Geneos"] = oldhome
+		}
+		delete(GlobalConfig, "ITRSHome")
+	}
+
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
-		GlobalConfig["ITRSHome"] = h
+		GlobalConfig["Geneos"] = h
 	}
 }
 
-func ITRSHome() string {
-	home, ok := GlobalConfig["ITRSHome"]
+func Geneos() string {
+	home, ok := GlobalConfig["Geneos"]
 	if !ok {
-		return ""
+		// fallback to support braking change
+		home, ok = GlobalConfig["ITRSHome"]
+		if !ok {
+			return ""
+		}
 	}
 	return home
 }
@@ -376,7 +387,7 @@ func rebuildInstance(c Instances, params []string) (err error) {
 		return
 	}
 	log.Println(c, "configuration rebuilt")
-	if rebuildNoRestart {
+	if !rebuildRestart {
 		return
 	}
 	return restartInstance(c, params)

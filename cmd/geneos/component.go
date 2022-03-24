@@ -41,7 +41,7 @@ func init() {
 	})
 	RegisterSettings(GlobalSettings{
 		// Root directory for all operations
-		"ITRSHome": "",
+		"Geneos": "",
 
 		// Root URL for all downloads of software archives
 		"DownloadURL":  "https://resources.itrsgroup.com/download/latest/",
@@ -54,7 +54,7 @@ func init() {
 		// When running as a normal user this is unused and
 		// we simply test a defined user against the running user
 		//
-		// default is owner of ITRSHome
+		// default is owner of Geneos
 		"DefaultUser": "",
 
 		// Path List sperated additions to the reserved names list, over and above

@@ -25,9 +25,12 @@
   * do both "mv" and "cp" working across remotes - tree walk needed
   * reset configs / clean etc.
 * Redo template support, primarily for SANs but also gateways
-  * to document changes
+  * document changes
 * Stopping a remote (also for disable, delete, rename etc.) also means stopping all instances on it
 * Update docs to include configuration file rebuilds, gateway includes etc.
 * Look at 'sudo' support for remotes
 * Review all log*.Fatal* calls
-
+* web interface
+  * first pass review configs
+  * second to edit
+  * use a REST interface

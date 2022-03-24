@@ -38,7 +38,7 @@ FLAGS:
 `})
 
 	addFlags = flag.NewFlagSet("add", flag.ExitOnError)
-	addFlags.StringVar(&addTemplateFile, "t", "", "configuration template file to use instead of default")
+	addFlags.StringVar(&addTemplateFile, "t", "", "template file to use instead of default")
 	addFlags.BoolVar(&addStart, "S", false, "Start new instance(s) after creation")
 	addFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
