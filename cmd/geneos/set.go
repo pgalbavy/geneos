@@ -134,7 +134,7 @@ func setValue(c Instances, k, vs string) (err error) {
 				val = e[1]
 			} else {
 				// XXX check two values and first is a number
-
+				logDebug.Println("second value missing after ':', using default", val)
 			}
 			err = setStructMap(c, k, e[0], val)
 			if err != nil {
