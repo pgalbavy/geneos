@@ -144,6 +144,8 @@ func main() {
 				default:
 				}
 			}
+			printConfigStructJSON(GlobalConfig)
+			os.Exit(0)
 		}
 		// some other "show" comnbination
 		fallthrough
