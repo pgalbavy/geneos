@@ -91,8 +91,8 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 			if c.Remote() != rLOCAL {
 				logError.Fatalln(ErrNotSupported)
 			}
-			// this wil lfail if not migrated
-			cs = append(cs, InstanceFile(c, ".json"))
+			// this will fail if not migrated
+			cs = append(cs, InstanceFile(c, "json"))
 		}
 	}
 	if len(cs) > 0 {

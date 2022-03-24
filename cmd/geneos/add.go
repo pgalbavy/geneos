@@ -107,7 +107,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	c, err := ct.getInstance(name)
 
 	// check if instance already exists
-	if err == nil {
+	if c.Loaded() {
 		log.Println(c, "already exists")
 		return
 	}

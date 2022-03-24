@@ -299,7 +299,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	}
 	newconf, err := ct.getInstance(newname)
 	if err == nil {
-		return fmt.Errorf("%s %s already exists", ct, newname)
+		return fmt.Errorf("%s already exists", newconf)
 	}
 
 	if _, err = findInstancePID(oldconf); err != ErrProcNotExist {

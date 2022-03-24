@@ -44,6 +44,7 @@ type Remotes struct {
 	Hostname string
 	Port     int `default:"22"`
 	Username string
+	ITRSHome string            `default:"{{.RemoteRoot}}"`
 	Geneos   string            `default:"{{.RemoteRoot}}"`
 	OSInfo   map[string]string `json:",omitempty"`
 }
@@ -123,6 +124,14 @@ func (r *Remotes) Load() (err error) {
 		return
 	}
 	err = loadConfig(r)
+	// convert
+	if err == nil && r.ITRSHome != "" {
+		r.Geneos = r.ITRSHome
+		r.ITRSHome = ""
+		if err = writeInstanceConfig(r); err != nil {
+			log.Printf("%s: cannot write remote configuration file. Contents will be out of sync.", r)
+		}
+	}
 	r.ConfigLoaded = err == nil
 	return
 }
