@@ -281,6 +281,7 @@ func (r *Remotes) readConfigFile(file string, config interface{}) (err error) {
 }
 
 func commandRename(ct Component, args []string, params []string) (err error) {
+	var stopped bool
 	if ct == None || len(args) != 2 {
 		return ErrInvalidArgs
 	}
@@ -301,7 +302,10 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		return fmt.Errorf("%s %s already exists", ct, newname)
 	}
 
-	stopInstance(oldconf, nil)
+	if _, err = findInstancePID(oldconf); err != ErrProcNotExist {
+		stopInstance(oldconf, nil)
+		stopped = true
+	}
 
 	// save for recover, as config gets changed
 	oldhome := oldconf.Home()
@@ -340,7 +344,10 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
-	return startInstance(oldconf, nil)
+	if stopped {
+		return startInstance(oldconf, nil)
+	}
+	return
 }
 
 func commandDelete(ct Component, args []string, params []string) (err error) {

@@ -281,15 +281,13 @@ func stopInstance(c Instances, params []string) (err error) {
 			}
 		}
 
-		_, err = findInstancePID(c)
-		if err == ErrProcNotExist {
+		if _, err = findInstancePID(c); err == ErrProcNotExist {
 			log.Println(c, "stopped")
 			return nil
 		}
 	}
 
-	err = signalInstance(c, syscall.SIGKILL)
-	if err == ErrProcNotExist {
+	if err = signalInstance(c, syscall.SIGKILL); err == ErrProcNotExist {
 		return nil
 	}
 
