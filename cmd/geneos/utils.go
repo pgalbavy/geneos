@@ -247,15 +247,19 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		return
 	}
 
-	// pull out all args containing '=' into params
-	r := rawargs[:0]
+	logDebug.Println("rawargs, params", rawargs, params)
+
+	// filter in place - pull out all args containing '=' into params
+	n := 0
 	for _, a := range rawargs {
 		if strings.Contains(a, "=") {
 			params = append(params, a)
 		} else {
-			r = append(r, a)
+			rawargs[n] = a
+			n++
 		}
 	}
+	rawargs = rawargs[:n]
 
 	logDebug.Println("rawargs, params", rawargs, params)
 
@@ -347,7 +351,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		}
 	}
 
-	logDebug.Println("ct, args", ct, args)
+	logDebug.Println("ct, args, params", ct, args, params)
 
 	m := make(map[string]bool, len(args))
 	// traditional loop because we can't modify args in a loop to skip
@@ -355,7 +359,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 		name := args[i]
 		// filter name here
 		if !wild && reservedName(name) {
-			logError.Fatalf("%q is reserved instance name", name)
+			logError.Fatalf("%q is reserved name", name)
 		}
 		// move unknown args to params
 		if !validInstanceName(name) {

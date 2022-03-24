@@ -150,7 +150,7 @@ func updateFlag(command string, args []string) []string {
 func commandExtract(ct Component, files []string, params []string) (err error) {
 	if ct != None {
 		logDebug.Println(ct.String())
-		// archive directory is local?
+		// archive directory is local only?
 		archiveDir := rLOCAL.GeneosPath("packages", "archives")
 		archiveFile := rLOCAL.LatestMatch(archiveDir, func(v os.DirEntry) bool {
 			logDebug.Println(v.Name(), ct.String())

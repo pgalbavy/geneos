@@ -88,7 +88,9 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 		// loop through all provided instances, set the parameter(s)
 		for _, c := range instances {
 			for _, vs := range strings.Split(v, ",") {
-				setValue(c, k, vs)
+				if err = setValue(c, k, vs); err != nil {
+					log.Printf("%s: cannot set %q", c, k)
+				}
 			}
 		}
 	}
