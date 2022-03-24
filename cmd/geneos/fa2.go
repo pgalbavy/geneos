@@ -60,36 +60,36 @@ func NewFA2(name string) Instances {
 // interface method set
 
 // Return the Component for an Instance
-func (n FA2s) Type() Component {
+func (n *FA2s) Type() Component {
 	return parseComponentName(n.InstanceType)
 }
 
-func (n FA2s) Name() string {
+func (n *FA2s) Name() string {
 	return n.InstanceName
 }
 
-func (n FA2s) Location() RemoteName {
+func (n *FA2s) Location() RemoteName {
 	return n.InstanceLocation
 }
 
-func (n FA2s) Home() string {
+func (n *FA2s) Home() string {
 	return n.FA2Home
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
-func (n FA2s) Prefix(field string) string {
+func (n *FA2s) Prefix(field string) string {
 	return "FA2" + field
 }
 
-func (n FA2s) Remote() *Remotes {
+func (n *FA2s) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
-func (n FA2s) String() string {
+func (n *FA2s) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }
 
-func (n FA2s) Load() (err error) {
+func (n *FA2s) Load() (err error) {
 	if n.ConfigLoaded {
 		return
 	}
@@ -98,16 +98,16 @@ func (n FA2s) Load() (err error) {
 	return
 }
 
-func (n FA2s) Unload() (err error) {
+func (n *FA2s) Unload() (err error) {
 	n.ConfigLoaded = false
 	return
 }
 
-func (n FA2s) Loaded() bool {
+func (n *FA2s) Loaded() bool {
 	return n.ConfigLoaded
 }
 
-func (n FA2s) Add(username string, params []string, tmpl string) (err error) {
+func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
 	n.FA2Port = n.InstanceRemote.nextPort(GlobalConfig["FA2PortRange"])
 	n.FA2User = username
 
@@ -118,41 +118,41 @@ func (n FA2s) Add(username string, params []string, tmpl string) (err error) {
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(San, []string{n.Name()}, params)
-		loadConfig(&n)
+		n.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&n)
+		createInstanceCert(n)
 	}
 
 	// default config XML etc.
 	return nil
 }
 
-func (c FA2s) Command() (args, env []string) {
-	logFile := getLogfilePath(c)
+func (n *FA2s) Command() (args, env []string) {
+	logFile := getLogfilePath(n)
 	args = []string{
-		c.Name(),
-		"-port", strconv.Itoa(c.FA2Port),
+		n.Name(),
+		"-port", strconv.Itoa(n.FA2Port),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if c.FA2Cert != "" {
-		args = append(args, "-secure", "-ssl-certificate", c.FA2Cert)
+	if n.FA2Cert != "" {
+		args = append(args, "-secure", "-ssl-certificate", n.FA2Cert)
 	}
 
-	if c.FA2Key != "" {
-		args = append(args, "-ssl-certificate-key", c.FA2Key)
+	if n.FA2Key != "" {
+		args = append(args, "-ssl-certificate-key", n.FA2Key)
 	}
 
 	return
 }
 
-func (c FA2s) Clean(purge bool, params []string) (err error) {
+func (n *FA2s) Clean(purge bool, params []string) (err error) {
 	if purge {
 		var stopped bool = true
-		err = stopInstance(c, params)
+		err = stopInstance(n, params)
 		if err != nil {
 			if errors.Is(err, ErrProcNotExist) {
 				stopped = false
@@ -160,22 +160,22 @@ func (c FA2s) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = deletePaths(c, GlobalConfig["FA2CleanList"]); err != nil {
+		if err = deletePaths(n, GlobalConfig["FA2CleanList"]); err != nil {
 			return err
 		}
-		err = deletePaths(c, GlobalConfig["FA2PurgeList"])
+		err = deletePaths(n, GlobalConfig["FA2PurgeList"])
 		if stopped {
-			err = startInstance(c, params)
+			err = startInstance(n, params)
 		}
 		return
 	}
-	return deletePaths(c, GlobalConfig["FA2CleanList"])
+	return deletePaths(n, GlobalConfig["FA2CleanList"])
 }
 
-func (c FA2s) Reload(params []string) (err error) {
+func (n *FA2s) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (c FA2s) Rebuild(initial bool) error {
+func (n *FA2s) Rebuild(initial bool) error {
 	return ErrNotSupported
 }

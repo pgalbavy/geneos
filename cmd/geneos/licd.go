@@ -60,35 +60,35 @@ func NewLicd(name string) Instances {
 // interface method set
 
 // Return the Component for an Instance
-func (l Licds) Type() Component {
+func (l *Licds) Type() Component {
 	return parseComponentName(l.InstanceType)
 }
 
-func (l Licds) Name() string {
+func (l *Licds) Name() string {
 	return l.InstanceName
 }
 
-func (l Licds) Location() RemoteName {
+func (l *Licds) Location() RemoteName {
 	return l.InstanceLocation
 }
 
-func (l Licds) Home() string {
+func (l *Licds) Home() string {
 	return l.LicdHome
 }
 
-func (l Licds) Prefix(field string) string {
+func (l *Licds) Prefix(field string) string {
 	return "Licd" + field
 }
 
-func (l Licds) Remote() *Remotes {
+func (l *Licds) Remote() *Remotes {
 	return l.InstanceRemote
 }
 
-func (l Licds) String() string {
+func (l *Licds) String() string {
 	return l.Type().String() + ":" + l.InstanceName + "@" + l.Location().String()
 }
 
-func (l Licds) Load() (err error) {
+func (l *Licds) Load() (err error) {
 	if l.ConfigLoaded {
 		return
 	}
@@ -97,16 +97,16 @@ func (l Licds) Load() (err error) {
 	return
 }
 
-func (l Licds) Unload() (err error) {
+func (l *Licds) Unload() (err error) {
 	l.ConfigLoaded = false
 	return
 }
 
-func (l Licds) Loaded() bool {
+func (l *Licds) Loaded() bool {
 	return l.ConfigLoaded
 }
 
-func (l Licds) Add(username string, params []string, tmpl string) (err error) {
+func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
 	l.LicdPort = l.InstanceRemote.nextPort(GlobalConfig["LicdPortRange"])
 	l.LicdUser = username
 
@@ -117,44 +117,44 @@ func (l Licds) Add(username string, params []string, tmpl string) (err error) {
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(Licd, []string{l.Name()}, params)
-		loadConfig(&l)
+		l.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&l)
+		createInstanceCert(l)
 	}
 
 	// default config XML etc.
 	return nil
 }
 
-func (l Licds) Rebuild(initial bool) error {
+func (l *Licds) Rebuild(initial bool) error {
 	return ErrNotSupported
 }
 
-func (c Licds) Command() (args, env []string) {
+func (l *Licds) Command() (args, env []string) {
 	args = []string{
-		c.Name(),
-		"-port", strconv.Itoa(c.LicdPort),
-		"-log", getLogfilePath(c),
+		l.Name(),
+		"-port", strconv.Itoa(l.LicdPort),
+		"-log", getLogfilePath(l),
 	}
 
-	if c.LicdCert != "" {
-		args = append(args, "-secure", "-ssl-certificate", c.LicdCert)
+	if l.LicdCert != "" {
+		args = append(args, "-secure", "-ssl-certificate", l.LicdCert)
 	}
 
-	if c.LicdKey != "" {
-		args = append(args, "-ssl-certificate-key", c.LicdKey)
+	if l.LicdKey != "" {
+		args = append(args, "-ssl-certificate-key", l.LicdKey)
 	}
 
 	return
 }
 
-func (c Licds) Clean(purge bool, params []string) (err error) {
+func (l *Licds) Clean(purge bool, params []string) (err error) {
 	if purge {
 		var stopped bool = true
-		err = stopInstance(c, params)
+		err = stopInstance(l, params)
 		if err != nil {
 			if errors.Is(err, ErrProcNotExist) {
 				stopped = false
@@ -162,18 +162,18 @@ func (c Licds) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = deletePaths(c, GlobalConfig["LicdCleanList"]); err != nil {
+		if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err != nil {
 			return err
 		}
-		err = deletePaths(c, GlobalConfig["LicdPurgeList"])
+		err = deletePaths(l, GlobalConfig["LicdPurgeList"])
 		if stopped {
-			err = startInstance(c, params)
+			err = startInstance(l, params)
 		}
 		return
 	}
-	return deletePaths(c, GlobalConfig["LicdCleanList"])
+	return deletePaths(l, GlobalConfig["LicdCleanList"])
 }
 
-func (c Licds) Reload(params []string) (err error) {
+func (l *Licds) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

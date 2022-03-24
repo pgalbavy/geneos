@@ -318,6 +318,7 @@ func defaultArgs(cmd Command, rawargs []string) (ct Component, args []string, pa
 				} else if r == rALL {
 					// no '@remote' in arg
 					for _, rem := range AllRemotes() {
+						logDebug.Printf("checking remote %s for %s", rem.InstanceName, local)
 						name := local + "@" + rem.InstanceName
 						if ct == None {
 							for _, cr := range RealComponents() {

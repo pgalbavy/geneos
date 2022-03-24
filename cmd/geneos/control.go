@@ -333,7 +333,7 @@ func restartInstance(c Instances, params []string) (err error) {
 	return
 }
 
-const disableExtension = ".disabled"
+const disableExtension = "disabled"
 
 func commandDisable(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(disableInstance, args, params)

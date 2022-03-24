@@ -22,11 +22,10 @@ func readSSHkeys(homedir string) (signers []ssh.Signer) {
 		path := filepath.Join(homedir, userSSHdir, keyfile)
 		key, err := os.ReadFile(path)
 		if err != nil {
-			logDebug.Println(err)
+			continue
 		}
 		signer, err := ssh.ParsePrivateKey(key)
 		if err != nil {
-			logDebug.Println(err)
 			continue
 		}
 		logDebug.Println("loaded private key from", path)

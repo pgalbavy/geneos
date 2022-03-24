@@ -93,35 +93,35 @@ func NewGateway(name string) Instances {
 // interface method set
 
 // Return the Component for an Instance
-func (g Gateways) Type() Component {
+func (g *Gateways) Type() Component {
 	return parseComponentName(g.InstanceType)
 }
 
-func (g Gateways) Name() string {
+func (g *Gateways) Name() string {
 	return g.InstanceName
 }
 
-func (g Gateways) Location() RemoteName {
+func (g *Gateways) Location() RemoteName {
 	return g.InstanceLocation
 }
 
-func (g Gateways) Home() string {
+func (g *Gateways) Home() string {
 	return g.GateHome
 }
 
-func (g Gateways) Prefix(field string) string {
+func (g *Gateways) Prefix(field string) string {
 	return "Gate" + field
 }
 
-func (g Gateways) Remote() *Remotes {
+func (g *Gateways) Remote() *Remotes {
 	return g.InstanceRemote
 }
 
-func (g Gateways) String() string {
+func (g *Gateways) String() string {
 	return g.Type().String() + ":" + g.InstanceName + "@" + g.Location().String()
 }
 
-func (g Gateways) Load() (err error) {
+func (g *Gateways) Load() (err error) {
 	if g.ConfigLoaded {
 		return
 	}
@@ -130,16 +130,16 @@ func (g Gateways) Load() (err error) {
 	return
 }
 
-func (g Gateways) Unload() (err error) {
+func (g *Gateways) Unload() (err error) {
 	g.ConfigLoaded = false
 	return
 }
 
-func (g Gateways) Loaded() bool {
+func (g *Gateways) Loaded() bool {
 	return g.ConfigLoaded
 }
 
-func (g Gateways) Add(username string, params []string, tmpl string) (err error) {
+func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
 	g.GatePort = g.InstanceRemote.nextPort(GlobalConfig["GatewayPortRange"])
 	g.GateUser = username
 	g.ConfigRebuild = "initial"
@@ -151,21 +151,22 @@ func (g Gateways) Add(username string, params []string, tmpl string) (err error)
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(Gateway, []string{g.Name()}, params)
-		loadConfig(&g)
+		g.Load()
+		//loadConfig(&g)
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&g)
+		createInstanceCert(g)
 	}
 
-	if err = createAESKeyFile(&g); err != nil {
+	if err = createAESKeyFile(g); err != nil {
 		log.Fatalln(err)
 	}
 	return g.Rebuild(true)
 }
 
-func (g Gateways) Rebuild(initial bool) error {
+func (g *Gateways) Rebuild(initial bool) error {
 	if g.ConfigRebuild == "never" {
 		return ErrNoAction
 	}
@@ -214,16 +215,16 @@ func (g Gateways) Rebuild(initial bool) error {
 	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }
 
-func (c Gateways) Command() (args, env []string) {
+func (g *Gateways) Command() (args, env []string) {
 	// get opts from
 	// from https://docs.itrsgroup.com/docs/geneos/5.10.0/Gateway_Reference_Guide/gateway_installation_guide.html#Gateway_command_line_options
 	//
 	args = []string{
-		c.Name(),
+		g.Name(),
 		"-resources-dir",
-		filepath.Join(c.GateBins, c.GateBase, "resources"),
+		filepath.Join(g.GateBins, g.GateBase, "resources"),
 		"-log",
-		getLogfilePath(c),
+		getLogfilePath(g),
 		// enable stats by default
 		"-stats",
 	}
@@ -231,33 +232,33 @@ func (c Gateways) Command() (args, env []string) {
 	// check version
 	// "-gateway-name",
 
-	if c.GateName != c.Name() {
-		args = append([]string{c.GateName}, args...)
+	if g.GateName != g.Name() {
+		args = append([]string{g.GateName}, args...)
 	}
 
-	args = append([]string{"-port", fmt.Sprint(c.GatePort)}, args...)
+	args = append([]string{"-port", fmt.Sprint(g.GatePort)}, args...)
 
-	if c.GateLicH != "" {
-		args = append(args, "-licd-host", c.GateLicH)
+	if g.GateLicH != "" {
+		args = append(args, "-licd-host", g.GateLicH)
 	}
 
-	if c.GateLicP != 0 {
-		args = append(args, "-licd-port", fmt.Sprint(c.GateLicP))
+	if g.GateLicP != 0 {
+		args = append(args, "-licd-port", fmt.Sprint(g.GateLicP))
 	}
 
-	if c.GateCert != "" {
-		if c.GateLicS == "" || c.GateLicS != "false" {
+	if g.GateCert != "" {
+		if g.GateLicS == "" || g.GateLicS != "false" {
 			args = append(args, "-licd-secure")
 		}
-		args = append(args, "-ssl-certificate", c.GateCert)
-		chainfile := c.Remote().GeneosPath("tls", "chain.pem")
+		args = append(args, "-ssl-certificate", g.GateCert)
+		chainfile := g.Remote().GeneosPath("tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
-	} else if c.GateLicS != "" && c.GateLicS == "true" {
+	} else if g.GateLicS != "" && g.GateLicS == "true" {
 		args = append(args, "-licd-secure")
 	}
 
-	if c.GateKey != "" {
-		args = append(args, "-ssl-certificate-key", c.GateKey)
+	if g.GateKey != "" {
+		args = append(args, "-ssl-certificate-key", g.GateKey)
 	}
 
 	// if c.GateAES != "" {
@@ -267,10 +268,10 @@ func (c Gateways) Command() (args, env []string) {
 	return
 }
 
-func (c Gateways) Clean(purge bool, params []string) (err error) {
+func (g *Gateways) Clean(purge bool, params []string) (err error) {
 	if purge {
 		var stopped bool = true
-		err = stopInstance(c, params)
+		err = stopInstance(g, params)
 		if err != nil {
 			if errors.Is(err, ErrProcNotExist) {
 				stopped = false
@@ -278,25 +279,25 @@ func (c Gateways) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = deletePaths(c, GlobalConfig["GatewayCleanList"]); err != nil {
+		if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err != nil {
 			return err
 		}
-		err = deletePaths(c, GlobalConfig["GatewayPurgeList"])
+		err = deletePaths(g, GlobalConfig["GatewayPurgeList"])
 		if stopped {
-			err = startInstance(c, params)
+			err = startInstance(g, params)
 		}
-		log.Println(c, "cleaned fully")
+		log.Println(g, "cleaned fully")
 		return
 	}
-	err = deletePaths(c, GlobalConfig["GatewayCleanList"])
+	err = deletePaths(g, GlobalConfig["GatewayCleanList"])
 	if err == nil {
-		log.Println(c, "cleaned")
+		log.Println(g, "cleaned")
 	}
 	return
 }
 
-func (c Gateways) Reload(params []string) (err error) {
-	return signalInstance(c, syscall.SIGUSR1)
+func (g *Gateways) Reload(params []string) (err error) {
+	return signalInstance(g, syscall.SIGUSR1)
 }
 
 // create a gateway key file for secure passwrods as per

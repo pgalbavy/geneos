@@ -60,35 +60,35 @@ func NewNetprobe(name string) Instances {
 // interface method set
 
 // Return the Component for an Instance
-func (n Netprobes) Type() Component {
+func (n *Netprobes) Type() Component {
 	return parseComponentName(n.InstanceType)
 }
 
-func (n Netprobes) Name() string {
+func (n *Netprobes) Name() string {
 	return n.InstanceName
 }
 
-func (n Netprobes) Location() RemoteName {
+func (n *Netprobes) Location() RemoteName {
 	return n.InstanceLocation
 }
 
-func (n Netprobes) Home() string {
+func (n *Netprobes) Home() string {
 	return n.NetpHome
 }
 
-func (n Netprobes) Prefix(field string) string {
+func (n *Netprobes) Prefix(field string) string {
 	return "Netp" + field
 }
 
-func (n Netprobes) Remote() *Remotes {
+func (n *Netprobes) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
-func (n Netprobes) String() string {
+func (n *Netprobes) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }
 
-func (n Netprobes) Load() (err error) {
+func (n *Netprobes) Load() (err error) {
 	if n.ConfigLoaded {
 		return
 	}
@@ -97,16 +97,16 @@ func (n Netprobes) Load() (err error) {
 	return
 }
 
-func (n Netprobes) Unload() (err error) {
+func (n *Netprobes) Unload() (err error) {
 	n.ConfigLoaded = false
 	return
 }
 
-func (n Netprobes) Loaded() bool {
+func (n *Netprobes) Loaded() bool {
 	return n.ConfigLoaded
 }
 
-func (n Netprobes) Add(username string, params []string, tmpl string) (err error) {
+func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
 	n.NetpPort = n.InstanceRemote.nextPort(GlobalConfig["NetprobePortRange"])
 	n.NetpUser = username
 
@@ -117,45 +117,45 @@ func (n Netprobes) Add(username string, params []string, tmpl string) (err error
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(Netprobe, []string{n.Name()}, params)
-		loadConfig(&n)
+		n.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&n)
+		createInstanceCert(n)
 	}
 
 	// default config XML etc.
 	return nil
 }
 
-func (n Netprobes) Rebuild(initial bool) error {
+func (n *Netprobes) Rebuild(initial bool) error {
 	return ErrNotSupported
 }
 
-func (c Netprobes) Command() (args, env []string) {
-	logFile := getLogfilePath(c)
+func (n *Netprobes) Command() (args, env []string) {
+	logFile := getLogfilePath(n)
 	args = []string{
-		c.Name(),
-		"-port", strconv.Itoa(c.NetpPort),
+		n.Name(),
+		"-port", strconv.Itoa(n.NetpPort),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if c.NetpCert != "" {
-		args = append(args, "-secure", "-ssl-certificate", c.NetpCert)
+	if n.NetpCert != "" {
+		args = append(args, "-secure", "-ssl-certificate", n.NetpCert)
 	}
 
-	if c.NetpKey != "" {
-		args = append(args, "-ssl-certificate-key", c.NetpKey)
+	if n.NetpKey != "" {
+		args = append(args, "-ssl-certificate-key", n.NetpKey)
 	}
 
 	return
 }
 
-func (c Netprobes) Clean(purge bool, params []string) (err error) {
+func (n *Netprobes) Clean(purge bool, params []string) (err error) {
 	if purge {
 		var stopped bool = true
-		err = stopInstance(c, params)
+		err = stopInstance(n, params)
 		if err != nil {
 			if errors.Is(err, ErrProcNotExist) {
 				stopped = false
@@ -163,18 +163,18 @@ func (c Netprobes) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = deletePaths(c, GlobalConfig["NetprobeCleanList"]); err != nil {
+		if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err != nil {
 			return err
 		}
-		err = deletePaths(c, GlobalConfig["NetprobePurgeList"])
+		err = deletePaths(n, GlobalConfig["NetprobePurgeList"])
 		if stopped {
-			err = startInstance(c, params)
+			err = startInstance(n, params)
 		}
 		return
 	}
-	return deletePaths(c, GlobalConfig["NetprobeCleanList"])
+	return deletePaths(n, GlobalConfig["NetprobeCleanList"])
 }
 
-func (c Netprobes) Reload(params []string) (err error) {
+func (n *Netprobes) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

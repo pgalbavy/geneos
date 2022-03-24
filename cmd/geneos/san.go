@@ -95,36 +95,36 @@ func NewSan(name string) Instances {
 // interface method set
 
 // Return the Component for an Instance
-func (n Sans) Type() Component {
-	return parseComponentName(n.InstanceType)
+func (s *Sans) Type() Component {
+	return parseComponentName(s.InstanceType)
 }
 
-func (n Sans) Name() string {
-	return n.InstanceName
+func (s *Sans) Name() string {
+	return s.InstanceName
 }
 
-func (n Sans) Location() RemoteName {
-	return n.InstanceLocation
+func (s *Sans) Location() RemoteName {
+	return s.InstanceLocation
 }
 
-func (n Sans) Home() string {
-	return n.SanHome
+func (s *Sans) Home() string {
+	return s.SanHome
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
-func (n Sans) Prefix(field string) string {
+func (s *Sans) Prefix(field string) string {
 	return "San" + field
 }
 
-func (n Sans) Remote() *Remotes {
-	return n.InstanceRemote
+func (s *Sans) Remote() *Remotes {
+	return s.InstanceRemote
 }
 
-func (n Sans) String() string {
-	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+func (s *Sans) String() string {
+	return s.Type().String() + ":" + s.InstanceName + "@" + s.Location().String()
 }
 
-func (s Sans) Load() (err error) {
+func (s *Sans) Load() (err error) {
 	if s.ConfigLoaded {
 		return
 	}
@@ -133,52 +133,52 @@ func (s Sans) Load() (err error) {
 	return
 }
 
-func (s Sans) Unload() (err error) {
+func (s *Sans) Unload() (err error) {
 	s.ConfigLoaded = false
 	return
 }
 
-func (s Sans) Loaded() bool {
+func (s *Sans) Loaded() bool {
 	return s.ConfigLoaded
 }
 
-func (n Sans) Add(username string, params []string, tmpl string) (err error) {
-	n.SanPort = n.InstanceRemote.nextPort(GlobalConfig["SanPortRange"])
-	n.SanUser = username
-	n.ConfigRebuild = "always"
+func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
+	s.SanPort = s.InstanceRemote.nextPort(GlobalConfig["SanPortRange"])
+	s.SanUser = username
+	s.ConfigRebuild = "always"
 
-	n.Types = []string{}
-	n.Attributes = make(map[string]string)
-	n.Variables = make(map[string]struct {
+	s.Types = []string{}
+	s.Attributes = make(map[string]string)
+	s.Variables = make(map[string]struct {
 		Type  string
 		Value string
 	})
-	n.Gateways = make(map[string]int)
+	s.Gateways = make(map[string]int)
 
 	if initFlags.Name != "" {
-		n.SanName = initFlags.Name
+		s.SanName = initFlags.Name
 	}
 
-	if err = writeInstanceConfig(n); err != nil {
+	if err = writeInstanceConfig(s); err != nil {
 		logError.Fatalln(err)
 	}
 
-	names := []string{n.Name()}
+	names := []string{s.Name()}
 	e := []string{}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(San, names, params)
 		// reload after set
-		loadConfig(&n)
+		s.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&n)
+		createInstanceCert(s)
 	}
 
-	n.Rebuild(true)
+	s.Rebuild(true)
 
 	if initFlags.StartSAN {
 		commandDownload(Netprobe, e, e)
@@ -190,7 +190,7 @@ func (n Sans) Add(username string, params []string, tmpl string) (err error) {
 // rebuild the netprobe.setup.xml file
 //
 // we do a dance if there is a change in TLS setup and we use default ports
-func (s Sans) Rebuild(initial bool) error {
+func (s *Sans) Rebuild(initial bool) error {
 	if s.ConfigRebuild == "never" {
 		return ErrNoAction
 	}
@@ -221,12 +221,12 @@ func (s Sans) Rebuild(initial bool) error {
 	return createConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
 }
 
-func (c Sans) Command() (args, env []string) {
-	logFile := getLogfilePath(c)
+func (s *Sans) Command() (args, env []string) {
+	logFile := getLogfilePath(s)
 	args = []string{
-		c.Name(),
+		s.Name(),
 		"-listenip", "none",
-		"-port", strconv.Itoa(c.SanPort),
+		"-port", strconv.Itoa(s.SanPort),
 		"-setup", "netprobe.setup.xml",
 		"-setup-interval", "300",
 	}
@@ -234,21 +234,21 @@ func (c Sans) Command() (args, env []string) {
 	// add environment variables to use in setup file substitution
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if c.SanCert != "" {
-		args = append(args, "-secure", "-ssl-certificate", c.SanCert)
+	if s.SanCert != "" {
+		args = append(args, "-secure", "-ssl-certificate", s.SanCert)
 	}
 
-	if c.SanKey != "" {
-		args = append(args, "-ssl-certificate-key", c.SanKey)
+	if s.SanKey != "" {
+		args = append(args, "-ssl-certificate-key", s.SanKey)
 	}
 
 	return
 }
 
-func (c Sans) Clean(purge bool, params []string) (err error) {
+func (s *Sans) Clean(purge bool, params []string) (err error) {
 	if purge {
 		var stopped bool = true
-		err = stopInstance(c, params)
+		err = stopInstance(s, params)
 		if err != nil {
 			if errors.Is(err, ErrProcNotExist) {
 				stopped = false
@@ -256,18 +256,18 @@ func (c Sans) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = deletePaths(c, GlobalConfig["SanCleanList"]); err != nil {
+		if err = deletePaths(s, GlobalConfig["SanCleanList"]); err != nil {
 			return err
 		}
-		err = deletePaths(c, GlobalConfig["SanPurgeList"])
+		err = deletePaths(s, GlobalConfig["SanPurgeList"])
 		if stopped {
-			err = startInstance(c, params)
+			err = startInstance(s, params)
 		}
 		return
 	}
-	return deletePaths(c, GlobalConfig["SanCleanList"])
+	return deletePaths(s, GlobalConfig["SanCleanList"])
 }
 
-func (c Sans) Reload(params []string) (err error) {
+func (s *Sans) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

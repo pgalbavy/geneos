@@ -116,7 +116,8 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		log.Fatalln(err)
 	}
 	// reload config as 'c' is not updated by Add() as an interface value
-	loadConfig(c)
+	c.Unload()
+	c.Load()
 	log.Printf("new %s added, port %d\n", c, getInt(c, c.Prefix("Port")))
 
 	if addStart {

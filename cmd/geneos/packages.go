@@ -532,7 +532,7 @@ func (ct Component) MatchComponents(r *Remotes, k, v string) (insts []Instances)
 
 	for _, i := range ct.Instances(r) {
 		if v == getString(i, i.Prefix(k)) {
-			if err := loadConfig(i); err != nil {
+			if err := i.Load(); err != nil {
 				log.Println(i.Type(), i.Name(), "cannot load config")
 			}
 			insts = append(insts, i)

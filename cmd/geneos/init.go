@@ -12,12 +12,14 @@ import (
 
 func init() {
 	RegsiterCommand(Command{
-		Name:        "init",
-		Function:    commandInit,
-		ParseFlags:  initFlag,
-		ParseArgs:   nil,
-		CommandLine: `geneos init [-A FILE|URL|-D|-S|-T] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY] [PARAMS]`,
-		Summary:     `Initialise a Geneos installation`,
+		Name:          "init",
+		Function:      commandInit,
+		ParseFlags:    initFlag,
+		ParseArgs:     nil,
+		Wildcard:      false,
+		ComponentOnly: false,
+		CommandLine:   `geneos init [-A FILE|URL|-D|-S|-T] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY] [PARAMS]`,
+		Summary:       `Initialise a Geneos installation`,
 		Description: `Initialise a Geneos installation by creating the directory hierarchy and
 user configuration file, with the USERNAME and DIRECTORY if supplied.
 DIRECTORY must be an absolute path and this is used to distinguish it
@@ -176,15 +178,17 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		return
 	}
 
-	// re-run defaultArgs?
-	_, args, params = defaultArgs(Command{
-		Name:          "init",
-		Wildcard:      false,
-		ComponentOnly: false,
-		ParseFlags:    initFlag,
-	}, args)
-
 	logDebug.Println("args, params:", args, params)
+
+	// re-run defaultArgs?
+	// _, args, params = defaultArgs(Command{
+	// 	Name:          "init",
+	// 	Wildcard:      false,
+	// 	ComponentOnly: false,
+	// 	ParseFlags:    initFlag,
+	// }, args)
+
+	// logDebug.Println("args, params:", args, params)
 
 	if len(params) > 0 {
 		if err = initFlagSet.Parse(params); err != nil {
@@ -260,6 +264,10 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 		for _, entry := range dirs {
 			if !strings.HasPrefix(entry.Name(), ".") {
+				if r != rLOCAL {
+					logDebug.Println("remote directories exist, ending initialisation")
+					return nil
+				}
 				logError.Fatalf("target directory %q exists and is not empty", dir)
 			}
 		}

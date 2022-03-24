@@ -79,35 +79,35 @@ var webserverFiles = []string{
 // interface method set
 
 // Return the Component for an Instance
-func (w Webservers) Type() Component {
+func (w *Webservers) Type() Component {
 	return parseComponentName(w.InstanceType)
 }
 
-func (w Webservers) Name() string {
+func (w *Webservers) Name() string {
 	return w.InstanceName
 }
 
-func (w Webservers) Location() RemoteName {
+func (w *Webservers) Location() RemoteName {
 	return w.InstanceLocation
 }
 
-func (w Webservers) Home() string {
+func (w *Webservers) Home() string {
 	return w.WebsHome
 }
 
-func (w Webservers) Prefix(field string) string {
+func (w *Webservers) Prefix(field string) string {
 	return "Webs" + field
 }
 
-func (w Webservers) Remote() *Remotes {
+func (w *Webservers) Remote() *Remotes {
 	return w.InstanceRemote
 }
 
-func (w Webservers) String() string {
+func (w *Webservers) String() string {
 	return w.Type().String() + ":" + w.InstanceName + "@" + w.Location().String()
 }
 
-func (w Webservers) Load() (err error) {
+func (w *Webservers) Load() (err error) {
 	if w.ConfigLoaded {
 		return
 	}
@@ -116,16 +116,16 @@ func (w Webservers) Load() (err error) {
 	return
 }
 
-func (w Webservers) Unload() (err error) {
+func (w *Webservers) Unload() (err error) {
 	w.ConfigLoaded = false
 	return
 }
 
-func (w Webservers) Loaded() bool {
+func (w *Webservers) Loaded() bool {
 	return w.ConfigLoaded
 }
 
-func (w Webservers) Add(username string, params []string, tmpl string) (err error) {
+func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
 	w.WebsPort = w.InstanceRemote.nextPort(GlobalConfig["WebserverPortRange"])
 	w.WebsUser = username
 
@@ -136,12 +136,12 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(Webserver, []string{w.Name()}, params)
-		loadConfig(&w)
+		w.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&w)
+		createInstanceCert(w)
 	}
 
 	// copy default configs - use existing import routines?
@@ -165,30 +165,30 @@ func (w Webservers) Add(username string, params []string, tmpl string) (err erro
 	return
 }
 
-func (w Webservers) Rebuild(initial bool) error {
+func (w *Webservers) Rebuild(initial bool) error {
 	return ErrNotSupported
 }
 
-func (c Webservers) Command() (args, env []string) {
-	WebsBase := filepath.Join(c.WebsBins, c.WebsBase)
+func (w *Webservers) Command() (args, env []string) {
+	WebsBase := filepath.Join(w.WebsBins, w.WebsBase)
 	args = []string{
 		// "-Duser.home=" + c.WebsHome,
 		"-XX:+UseConcMarkSweepGC",
-		"-Xmx" + c.WebsXmx,
+		"-Xmx" + w.WebsXmx,
 		"-server",
-		"-Djava.io.tmpdir=" + c.WebsHome + "/webapps",
+		"-Djava.io.tmpdir=" + w.WebsHome + "/webapps",
 		"-Djava.awt.headless=true",
-		"-DsecurityConfig=" + c.WebsHome + "/config/security.xml",
-		"-Dcom.itrsgroup.configuration.file=" + c.WebsHome + "/config/config.xml",
+		"-DsecurityConfig=" + w.WebsHome + "/config/security.xml",
+		"-Dcom.itrsgroup.configuration.file=" + w.WebsHome + "/config/config.xml",
 		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
 		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
-		"-Djava.library.path=" + c.WebsLibs,
-		"-Dlog4j2.configurationFile=file:" + c.WebsHome + "/config/log4j2.properties",
-		"-Dworking.directory=" + c.WebsHome,
+		"-Djava.library.path=" + w.WebsLibs,
+		"-Dlog4j2.configurationFile=file:" + w.WebsHome + "/config/log4j2.properties",
+		"-Dworking.directory=" + w.WebsHome,
 		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
 		// SSO
-		"-Dcom.itrsgroup.sso.config.file=" + c.WebsHome + "/config/sso.properties",
-		"-Djava.security.auth.login.config=" + c.WebsHome + "/config/login.conf",
+		"-Dcom.itrsgroup.sso.config.file=" + w.WebsHome + "/config/sso.properties",
+		"-Djava.security.auth.login.config=" + w.WebsHome + "/config/login.conf",
 		"-Djava.security.krb5.conf=/etc/krb5.conf",
 		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
 		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",
@@ -196,7 +196,7 @@ func (c Webservers) Command() (args, env []string) {
 		"-XX:HeapDumpPath=/tmp",
 		"-jar", WebsBase + "/geneos-web-server.jar",
 		"-dir", WebsBase + "/webapps",
-		"-port", strconv.Itoa(c.WebsPort),
+		"-port", strconv.Itoa(w.WebsPort),
 		// "-ssl true",
 		"-maxThreads 254",
 		// "-log", getLogfilePath(c),
@@ -205,10 +205,10 @@ func (c Webservers) Command() (args, env []string) {
 	return
 }
 
-func (c Webservers) Clean(purge bool, params []string) (err error) {
+func (w *Webservers) Clean(purge bool, params []string) (err error) {
 	if purge {
 		var stopped bool = true
-		err = stopInstance(c, params)
+		err = stopInstance(w, params)
 		if err != nil {
 			if errors.Is(err, ErrProcNotExist) {
 				stopped = false
@@ -216,18 +216,18 @@ func (c Webservers) Clean(purge bool, params []string) (err error) {
 				return err
 			}
 		}
-		if err = deletePaths(c, GlobalConfig["WebserverCleanList"]); err != nil {
+		if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err != nil {
 			return err
 		}
-		err = deletePaths(c, GlobalConfig["WebserverPurgeList"])
+		err = deletePaths(w, GlobalConfig["WebserverPurgeList"])
 		if stopped {
-			err = startInstance(c, params)
+			err = startInstance(w, params)
 		}
 		return
 	}
-	return deletePaths(c, GlobalConfig["WebserverCleanList"])
+	return deletePaths(w, GlobalConfig["WebserverCleanList"])
 }
 
-func (c Webservers) Reload(params []string) (err error) {
+func (w *Webservers) Reload(params []string) (err error) {
 	return ErrNotSupported
 }

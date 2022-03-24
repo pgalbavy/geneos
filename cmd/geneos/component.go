@@ -273,7 +273,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 
 func (ct Component) getInstance(name string) (c Instances, err error) {
 	c = ct.New(name)
-	err = loadConfig(c)
+	err = c.Load()
 	return
 }
 
@@ -301,7 +301,9 @@ func (ct Component) Instances(r *Remotes) (confs []Instances) {
 	}
 	for _, name := range ct.InstanceNames(r) {
 		i := ct.New(name)
-		loadConfig(i)
+		if err := i.Load(); err != nil {
+			log.Fatalln(err)
+		}
 		confs = append(confs, i)
 	}
 

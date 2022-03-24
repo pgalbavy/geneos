@@ -94,23 +94,23 @@ func NewRemote(name string) Instances {
 	return c
 }
 
-func (r Remotes) Type() Component {
+func (r *Remotes) Type() Component {
 	return parseComponentName(r.InstanceType)
 }
 
-func (r Remotes) Name() string {
+func (r *Remotes) Name() string {
 	return r.InstanceName
 }
 
-func (r Remotes) Location() RemoteName {
+func (r *Remotes) Location() RemoteName {
 	return r.InstanceLocation
 }
 
-func (r Remotes) Prefix(field string) string {
+func (r *Remotes) Prefix(field string) string {
 	return field
 }
 
-func (r Remotes) Home() string {
+func (r *Remotes) Home() string {
 	return r.HomeDir
 }
 
@@ -118,7 +118,7 @@ func (remote RemoteName) String() string {
 	return string(remote)
 }
 
-func (r Remotes) Load() (err error) {
+func (r *Remotes) Load() (err error) {
 	if r.ConfigLoaded {
 		return
 	}
@@ -127,30 +127,30 @@ func (r Remotes) Load() (err error) {
 	return
 }
 
-func (r Remotes) Unload() (err error) {
-	if &r == rLOCAL || &r == rALL {
+func (r *Remotes) Unload() (err error) {
+	if r == rLOCAL || r == rALL {
 		return ErrInvalidArgs
 	}
 	r.ConfigLoaded = false
 	return
 }
 
-func (r Remotes) Loaded() bool {
+func (r *Remotes) Loaded() bool {
 	return r.ConfigLoaded
 }
 
-func (r Remotes) RemoteName() RemoteName {
+func (r *Remotes) RemoteName() RemoteName {
 	return RemoteName(r.InstanceName)
 }
 
-func (r Remotes) Remote() *Remotes {
+func (r *Remotes) Remote() *Remotes {
 	return r.InstanceRemote
 }
 
 //
 // 'geneos add remote NAME [SSH-URL] [init opts]'
 //
-func (r Remotes) Add(username string, params []string, tmpl string) (err error) {
+func (r *Remotes) Add(username string, params []string, tmpl string) (err error) {
 	if len(params) == 0 {
 		// default - try ssh to a host with the same name as remote
 		params = []string{"ssh://" + r.Name()}
@@ -196,7 +196,7 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	}
 	r.Username = username
 
-	// default to remote user's home dir, not local
+	// XXX default to remote user's home dir, not local
 	homepath := Geneos()
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
@@ -223,7 +223,7 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(Remote, []string{r.Name()}, params)
-		loadConfig(&r)
+		r.Load()
 	}
 
 	if err = r.initGeneos([]string{homepath}); err != nil {
@@ -232,26 +232,26 @@ func (r Remotes) Add(username string, params []string, tmpl string) (err error) 
 
 	for _, c := range components {
 		if c.Initialise != nil {
-			c.Initialise(&r)
+			c.Initialise(r)
 		}
 	}
 
 	return
 }
 
-func (r Remotes) Command() (args, env []string) {
+func (r *Remotes) Command() (args, env []string) {
 	return
 }
 
-func (r Remotes) Clean(purge bool, params []string) (err error) {
+func (r *Remotes) Clean(purge bool, params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (r Remotes) Reload(params []string) (err error) {
+func (r *Remotes) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (r Remotes) Rebuild(initial bool) error {
+func (r *Remotes) Rebuild(initial bool) error {
 	return ErrNotSupported
 }
 
@@ -291,7 +291,7 @@ func GetRemote(remote RemoteName) (r *Remotes) {
 		return rALL
 	default:
 		i := NewRemote(string(remote))
-		loadConfig(i)
+		i.Load()
 		return i.(*Remotes)
 	}
 }

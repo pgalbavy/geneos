@@ -128,7 +128,7 @@ func (n FileAgents) Add(username string, params []string, tmpl string) (err erro
 	// apply any extra args to settings
 	if len(params) > 0 {
 		commandSet(San, []string{n.Name()}, params)
-		loadConfig(&n)
+		n.Load()
 	}
 
 	// check tls config, create certs if found
