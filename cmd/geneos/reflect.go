@@ -57,7 +57,6 @@ func getString(c interface{}, name string) string {
 	}
 
 	v = v.FieldByName(name)
-
 	if v.IsValid() && v.Kind() == reflect.String {
 		return v.String()
 	}
@@ -76,7 +75,6 @@ func getSliceStrings(c interface{}, name string) (strings []string) {
 	}
 
 	v = v.FieldByName(name)
-
 	if v.Type() != reflect.TypeOf(strings) {
 		return nil
 	}
@@ -201,24 +199,24 @@ func setDefaults(c interface{}) (err error) {
 	for _, f := range reflect.VisibleFields(st) {
 		fv := sv.FieldByIndex(f.Index)
 
-		// only set plain strings
 		if !f.IsExported() {
 			continue
 		}
 		if !fv.CanSet() {
 			logDebug.Println("cannot set", f.Name)
-			continue
+			return err
 		}
 		if def, ok := f.Tag.Lookup("default"); ok {
 			// treat all defaults as if they are templates
 			val, err := template.New(f.Name).Funcs(textJoinFuncs).Parse(def)
 			if err != nil {
-				log.Println("parse error:", def)
-				continue
+				log.Println(c, "setDefaults parse error:", def)
+				return err
 			}
 			var b bytes.Buffer
 			if err = val.Execute(&b, c); err != nil {
-				log.Println("cannot convert:", def)
+				log.Println(c, "cannot set defaults:", def)
+				return err
 			}
 			if err = setField(c, f.Name, b.String()); err != nil {
 				return err

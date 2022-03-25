@@ -87,7 +87,9 @@ func NewSan(name string) Instances {
 	if ct != None {
 		c.SanType = string(ct)
 	}
-	setDefaults(&c)
+	if err := setDefaults(&c); err != nil {
+		log.Fatalln(c, "setDefauls():", err)
+	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }

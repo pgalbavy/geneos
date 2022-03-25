@@ -81,7 +81,9 @@ func NewRemote(name string) Instances {
 	c.RemoteRoot = Geneos()
 	c.InstanceType = Remote.String()
 	c.InstanceName = local
-	setDefaults(&c)
+	if err := setDefaults(&c); err != nil {
+		log.Fatalln(c, "setDefauls():", err)
+	}
 	c.InstanceLocation = LOCAL
 	// fill this in directly as there is no config file to load
 	if c.RemoteName() == LOCAL {

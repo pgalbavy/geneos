@@ -56,7 +56,9 @@ func NewWebserver(name string) Instances {
 	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Webserver.String()
 	c.InstanceName = local
-	setDefaults(&c)
+	if err := setDefaults(&c); err != nil {
+		log.Fatalln(c, "setDefauls():", err)
+	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c
 }
