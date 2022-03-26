@@ -123,7 +123,9 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		rLOCAL.mkdirAll(gatewayTemplates, 0775)
 		tmpl := GatewayTemplate
 		if initFlags.GatewayTmpl != "" {
-			tmpl = readSourceBytes(initFlags.GatewayTmpl)
+			if tmpl, err = readFileOrURL(initFlags.GatewayTmpl); err != nil {
+				return
+			}
 		}
 		if err := rLOCAL.writeFile(filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
@@ -133,7 +135,9 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		rLOCAL.mkdirAll(sanTemplates, 0775)
 		tmpl = SanTemplate
 		if initFlags.SanTmpl != "" {
-			tmpl = readSourceBytes(initFlags.SanTmpl)
+			if tmpl, err = readFileOrURL(initFlags.SanTmpl); err != nil {
+				return
+			}
 		}
 		if err := rLOCAL.writeFile(filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
@@ -182,7 +186,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 
 	if len(params) > 0 {
 		if err = initFlagSet.Parse(params); err != nil {
-			log.Fatalln(err)
+			return
 		}
 
 		params = initFlagSet.Args()
@@ -330,16 +334,22 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	}
 
 	if initFlags.GatewayTmpl != "" {
-		tmpl := readSourceBytes(initFlags.GatewayTmpl)
+		var tmpl []byte
+		if tmpl, err = readFileOrURL(initFlags.GatewayTmpl); err != nil {
+			return
+		}
 		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
 	if initFlags.SanTmpl != "" {
-		tmpl := readSourceBytes(initFlags.SanTmpl)
-		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
-			log.Fatalln(err)
+		var tmpl []byte
+		if tmpl, err = readFileOrURL(initFlags.SanTmpl); err != nil {
+			return
+		}
+		if err = rLOCAL.writeFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+			return
 		}
 	}
 

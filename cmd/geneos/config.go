@@ -168,14 +168,13 @@ func Geneos() string {
 //
 // support cache?
 func loadConfig(c Instances) (err error) {
-	j := InstanceFile(c, "json")
+	j := InstanceFileWithExt(c, "json")
 
 	if err = c.Remote().readConfigFile(j, &c); err == nil {
 		// return if no error, else drop through
 		return
 	}
-	err = readRCConfig(c)
-	return
+	return readRCConfig(c)
 }
 
 func commandShow(ct Component, names []string, params []string) (err error) {
@@ -290,14 +289,14 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	newname := args[1]
 
 	logDebug.Println("rename", ct, oldname, newname)
-	oldconf, err := ct.getInstance(oldname)
+	oldconf, err := ct.loadInstance(oldname)
 	if err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
 	if err = migrateConfig(oldconf); err != nil {
 		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, oldname)
 	}
-	newconf, err := ct.getInstance(newname)
+	newconf, err := ct.loadInstance(newname)
 	if err == nil {
 		return fmt.Errorf("%s already exists", newconf)
 	}
@@ -344,6 +343,7 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
+	oldconf.Unload()
 	if stopped {
 		return startInstance(oldconf, nil)
 	}
@@ -359,21 +359,18 @@ func deleteInstance(c Instances, params []string) (err error) {
 		if components[c.Type()].RealComponent {
 			stopInstance(c, nil)
 		}
+	}
+
+	if deleteForced || Disabled(c) {
 		if err = c.Remote().removeAll(c.Home()); err != nil {
 			logError.Fatalln(err)
 		}
+		c.Unload()
 		log.Println(c, "deleted")
 		return nil
 	}
 
-	if Disabled(c) {
-		if err = c.Remote().removeAll(c.Home()); err != nil {
-			logError.Fatalln(err)
-		}
-		log.Println(c, "deleted")
-		return nil
-	}
-	log.Println(c, "must be disabled before delete")
+	log.Println(c, "must use -f or instance must be be disabled before delete")
 	return nil
 }
 

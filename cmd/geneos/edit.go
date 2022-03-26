@@ -92,7 +92,7 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 				logError.Fatalln(ErrNotSupported)
 			}
 			// this will fail if not migrated
-			cs = append(cs, InstanceFile(c, "json"))
+			cs = append(cs, InstanceFileWithExt(c, "json"))
 		}
 	}
 	if len(cs) > 0 {

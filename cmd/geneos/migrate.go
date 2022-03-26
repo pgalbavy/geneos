@@ -49,12 +49,12 @@ func migrateInstance(c Instances, params []string) (err error) {
 // migrate config from .rc to .json, but check first
 func migrateConfig(c Instances) (err error) {
 	// if no .rc, return
-	if _, err = c.Remote().statFile(InstanceFile(c, "rc")); errors.Is(err, fs.ErrNotExist) {
+	if _, err = c.Remote().statFile(InstanceFileWithExt(c, "rc")); errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
 
 	// if .json exists, return
-	if _, err = c.Remote().statFile(InstanceFile(c, "json")); err == nil {
+	if _, err = c.Remote().statFile(InstanceFileWithExt(c, "json")); err == nil {
 		return nil
 	}
 
@@ -65,7 +65,7 @@ func migrateConfig(c Instances) (err error) {
 	}
 
 	// back-up .rc
-	if err = c.Remote().renameFile(InstanceFile(c, "rc"), InstanceFile(c, "rc.orig")); err != nil {
+	if err = c.Remote().renameFile(InstanceFileWithExt(c, "rc"), InstanceFileWithExt(c, "rc.orig")); err != nil {
 		logError.Println("failed to rename old config:", err)
 	}
 
@@ -79,19 +79,19 @@ func commandRevert(ct Component, names []string, params []string) (err error) {
 
 func revertInstance(c Instances, params []string) (err error) {
 	// if *.rc file exists, remove rc.orig+JSON, continue
-	if _, err := c.Remote().statFile(InstanceFile(c, "rc")); err == nil {
+	if _, err := c.Remote().statFile(InstanceFileWithExt(c, "rc")); err == nil {
 		// ignore errors
-		if c.Remote().removeFile(InstanceFile(c, "rc.orig")) == nil || c.Remote().removeFile(InstanceFile(c, "json")) == nil {
+		if c.Remote().removeFile(InstanceFileWithExt(c, "rc.orig")) == nil || c.Remote().removeFile(InstanceFileWithExt(c, "json")) == nil {
 			logDebug.Println(c.Type(), c.Name(), "removed extra config file(s)")
 		}
 		return err
 	}
 
-	if err = c.Remote().renameFile(InstanceFile(c, "rc.orig"), InstanceFile(c, "rc")); err != nil {
+	if err = c.Remote().renameFile(InstanceFileWithExt(c, "rc.orig"), InstanceFileWithExt(c, "rc")); err != nil {
 		return
 	}
 
-	if err = c.Remote().removeFile(InstanceFile(c, "json")); err != nil {
+	if err = c.Remote().removeFile(InstanceFileWithExt(c, "json")); err != nil {
 		return
 	}
 

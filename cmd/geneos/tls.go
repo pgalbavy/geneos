@@ -497,7 +497,7 @@ func TLSImport(sources ...string) (err error) {
 	tlsPath := filepath.Join(Geneos(), "tls")
 	err = rLOCAL.mkdirAll(tlsPath, 0755)
 	if err != nil {
-		log.Fatalln(err)
+		return
 	}
 
 	// save certs and keys into memory, then check certs for root / etc.
@@ -505,12 +505,14 @@ func TLSImport(sources ...string) (err error) {
 	// nything to disk
 	var certs []*x509.Certificate
 	var keys []*rsa.PrivateKey
+	var f []byte
 
 	for _, source := range sources {
 		logDebug.Println("importing", source)
-		f := readSourceBytes(source)
-		if len(f) == 0 {
-			logError.Fatalln("read failed:", source)
+		if f, err = readFileOrURL(source); err != nil {
+			logError.Println(err)
+			err = nil
+			continue
 		}
 
 		for {

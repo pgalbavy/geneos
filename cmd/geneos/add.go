@@ -104,7 +104,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		username = u.Username
 	}
 
-	c, err := ct.getInstance(name)
+	c, err := ct.loadInstance(name)
 
 	// check if instance already exists
 	if c.Loaded() {
@@ -115,6 +115,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	if err = c.Add(username, params, addTemplateFile); err != nil {
 		log.Fatalln(err)
 	}
+
 	// reload config as 'c' is not updated by Add() as an interface value
 	c.Unload()
 	c.Load()

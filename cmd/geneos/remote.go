@@ -32,9 +32,6 @@ const ALL RemoteName = "all"
 
 var rLOCAL, rALL *Remotes
 
-// cache instances of remotes as they get used frequently
-var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
-
 type Remotes struct {
 	sshClient  *ssh.Client
 	sftpClient *sftp.Client
@@ -65,6 +62,9 @@ func init() {
 }
 
 // interface method set
+
+// cache instances of remotes as they get used frequently
+var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
 
 func NewRemote(name string) Instances {
 	local, remote := splitInstanceName(name)

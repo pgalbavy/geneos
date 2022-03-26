@@ -167,7 +167,7 @@ func startInstance(c Instances, params []string) (err error) {
 
 	// set underlying user for child proc
 	username := getString(c, c.Prefix("User"))
-	errfile := InstanceFile(c, "txt")
+	errfile := InstanceFileWithExt(c, "txt")
 
 	if c.Remote() != rLOCAL {
 		r := c.Remote()
@@ -351,7 +351,7 @@ func disableInstance(c Instances, params []string) (err error) {
 		return
 	}
 
-	disablePath := InstanceFile(c, disableExtension)
+	disablePath := InstanceFileWithExt(c, disableExtension)
 
 	f, err := c.Remote().createFile(disablePath, 0664)
 	if err != nil {
@@ -378,7 +378,7 @@ func commandEneable(ct Component, args []string, params []string) (err error) {
 }
 
 func enableInstance(c Instances, params []string) (err error) {
-	err = c.Remote().removeFile(InstanceFile(c, disableExtension))
+	err = c.Remote().removeFile(InstanceFileWithExt(c, disableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableStart {
 		startInstance(c, params)
 	}
@@ -386,7 +386,7 @@ func enableInstance(c Instances, params []string) (err error) {
 }
 
 func Disabled(c Instances) bool {
-	d := InstanceFile(c, disableExtension)
+	d := InstanceFileWithExt(c, disableExtension)
 	if f, err := c.Remote().statFile(d); err == nil && f.st.Mode().IsRegular() {
 		return true
 	}

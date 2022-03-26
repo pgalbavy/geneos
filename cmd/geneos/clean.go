@@ -15,7 +15,7 @@ func init() {
 		Description: `Clean-up instance directories, restarting instances if doing a 'purge' clean.
 
 FLAGS:
-	-full - full clean. Stops and restarts instances. Only restarts those
+	-f - full clean. Stops and restarts instances. Only restarts those
 	     instances the command stopped.
 
 `,

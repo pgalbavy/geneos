@@ -205,6 +205,26 @@ func (ct Component) InstanceNames(r *Remotes) (components []string) {
 	return
 }
 
+// return a slice of initialised but not loaded instances for a given
+//  component type
+func (ct Component) Instances(r *Remotes) (confs []Instances) {
+	if ct == None {
+		for _, c := range RealComponents() {
+			confs = append(confs, c.Instances(r)...)
+		}
+		return
+	}
+	for _, name := range ct.InstanceNames(r) {
+		i := ct.New(name)
+		if err := i.Load(); err != nil {
+			log.Fatalln(err)
+		}
+		confs = append(confs, i)
+	}
+
+	return
+}
+
 // return a new instance of component ct
 func (ct Component) New(name string) (c Instances) {
 	if ct == None {
@@ -226,12 +246,23 @@ func (ct Component) New(name string) (c Instances) {
 //
 // try to use go routines here - mutexes required
 func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
+	n := 0
 	for _, name := range args {
-		for _, c := range ct.instanceMatches(name) {
+		cs := ct.instanceMatches(name)
+		if len(cs) == 0 {
+			log.Println("no matches for", ct, name)
+			continue
+			// return ErrNotFound
+		}
+		n++
+		for _, c := range cs {
 			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) && !errors.Is(err, ErrNotSupported) {
 				log.Println(c, err)
 			}
 		}
+	}
+	if n == 0 {
+		log.Println("no matches")
 	}
 	return nil
 }
@@ -261,7 +292,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	}
 
 	for _, cm := range cs {
-		i, err := cm.getInstance(name)
+		i, err := cm.loadInstance(name)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -271,7 +302,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	return
 }
 
-func (ct Component) getInstance(name string) (c Instances, err error) {
+func (ct Component) loadInstance(name string) (c Instances, err error) {
 	c = ct.New(name)
 	err = c.Load()
 	return
@@ -291,26 +322,7 @@ func (ct Component) ComponentDir(r *Remotes) string {
 	}
 }
 
-// return a slice of initialised instances for a given component type
-func (ct Component) Instances(r *Remotes) (confs []Instances) {
-	if ct == None {
-		for _, c := range RealComponents() {
-			confs = append(confs, c.Instances(r)...)
-		}
-		return
-	}
-	for _, name := range ct.InstanceNames(r) {
-		i := ct.New(name)
-		if err := i.Load(); err != nil {
-			log.Fatalln(err)
-		}
-		confs = append(confs, i)
-	}
-
-	return
-}
-
-func InstanceFile(c Instances, extension string) (path string) {
+func InstanceFileWithExt(c Instances, extension string) (path string) {
 	return filepath.Join(c.Home(), c.Type().String()+"."+extension)
 }
 
@@ -323,12 +335,12 @@ func (ct Component) exists(name string) bool {
 	// first, does remote exist?
 
 	if remote != LOCAL {
-		_, err := Remote.getInstance(remote.String())
+		_, err := Remote.loadInstance(remote.String())
 		if err != nil {
 			return false
 		}
 	}
 
-	_, err := ct.getInstance(name)
+	_, err := ct.loadInstance(name)
 	return err == nil
 }

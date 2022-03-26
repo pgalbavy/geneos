@@ -231,7 +231,7 @@ func psInstancePlain(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
-	pid, uid, gid, mtime, err := findInstanceProc(c)
+	pid, uid, gid, mtime, err := findInstancePIDInfo(c)
 	if err != nil {
 		return nil
 	}
@@ -258,7 +258,7 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
-	pid, uid, gid, mtime, err := findInstanceProc(c)
+	pid, uid, gid, mtime, err := findInstancePIDInfo(c)
 	if err != nil {
 		return nil
 	}
@@ -285,7 +285,7 @@ func psInstanceJSON(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
-	pid, uid, gid, mtime, err := findInstanceProc(c)
+	pid, uid, gid, mtime, err := findInstancePIDInfo(c)
 	if err != nil {
 		return nil
 	}

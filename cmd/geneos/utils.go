@@ -31,9 +31,10 @@ import (
 // standalone args
 //
 // walk the /proc directory (local or remote) and find the matching pid
-// this is subject to races, but...
+// this is subject to races, but not much we can do
 func findInstancePID(c Instances) (pid int, err error) {
 	var pids []int
+	binsuffix := getString(c, "BinSuffix")
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
@@ -46,12 +47,9 @@ func findInstancePID(c Instances) (pid int, err error) {
 
 	sort.Ints(pids)
 
-	binsuffix := getString(c, "BinSuffix")
-
+	var data []byte
 	for _, pid = range pids {
-		var data []byte
-		data, err = c.Remote().readFile(fmt.Sprintf("/proc/%d/cmdline", pid))
-		if err != nil {
+		if data, err = c.Remote().readFile(fmt.Sprintf("/proc/%d/cmdline", pid)); err != nil {
 			// process may disappear by this point, ignore error
 			continue
 		}
@@ -89,7 +87,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 	return 0, ErrProcNotExist
 }
 
-func findInstanceProc(c Instances) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+func findInstancePIDInfo(c Instances) (pid int, uid uint32, gid uint32, mtime int64, err error) {
 	pid, err = findInstancePID(c)
 	if err == nil {
 		var s fileStat
@@ -319,25 +317,28 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 					}
 				} else if r == rALL {
 					// no '@remote' in arg
+					var matched bool
 					for _, rem := range AllRemotes() {
+						wild = true
 						logDebug.Printf("checking remote %s for %s", rem.InstanceName, local)
 						name := local + "@" + rem.InstanceName
 						if ct == None {
 							for _, cr := range RealComponents() {
-								if i, err := cr.getInstance(name); err == nil && i.Loaded() {
+								if i, err := cr.loadInstance(name); err == nil && i.Loaded() {
 									nargs = append(nargs, name)
-									wild = true
+									matched = true
 								}
 							}
-						} else if i, err := ct.getInstance(name); err == nil && i.Loaded() {
+						} else if i, err := ct.loadInstance(name); err == nil && i.Loaded() {
 							nargs = append(nargs, name)
-							wild = true
-						} else {
-							// move the unknown unchanged - file or url - arg so it can later be pushed to params
-							// do not set 'wild' though?
-							logDebug.Println(arg, "not found")
-							nargs = append(nargs, arg)
+							matched = true
 						}
+					}
+					if !matched && validInstanceName(arg) {
+						// move the unknown unchanged - file or url - arg so it can later be pushed to params
+						// do not set 'wild' though?
+						logDebug.Println(arg, "not found, saving to params")
+						nargs = append(nargs, arg)
 					}
 				} else {
 					// save unchanged arg, may be param
@@ -504,7 +505,7 @@ func getLogfilePath(c Instances) (logfile string) {
 	return
 }
 
-func readSourceBytes(source string) (b []byte) {
+func readFileOrURL(source string) (b []byte, err error) {
 	var from io.ReadCloser
 
 	u, err := url.Parse(source)
@@ -516,11 +517,14 @@ func readSourceBytes(source string) (b []byte) {
 	case u.Scheme == "https" || u.Scheme == "http":
 		resp, err := http.Get(u.String())
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		from = resp.Body
 		defer from.Close()
+		if resp.StatusCode > 299 {
+			return nil, fmt.Errorf("server returned %s for %q", resp.Status, source)
+		}
 
 	case source == "-":
 		from = os.Stdin
@@ -535,11 +539,7 @@ func readSourceBytes(source string) (b []byte) {
 		defer from.Close()
 	}
 
-	b, err = io.ReadAll(from)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return
+	return io.ReadAll(from)
 }
 
 //
@@ -556,7 +556,7 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 		t = template.Must(template.New(name).Parse(string(defaultTemplate)))
 	}
 
-	// XXX backup old file
+	// XXX backup old file - use same scheme as writeConfigFile()
 
 	if out, err = c.Remote().createFile(path, 0660); err != nil {
 		log.Printf("Cannot create configurtion file for %s %s", c, path)
@@ -578,30 +578,31 @@ func signalInstance(c Instances, signal syscall.Signal) (err error) {
 		return ErrProcNotExist
 	}
 
-	if c.Remote() != rLOCAL {
-		rem, err := c.Remote().sshOpenRemote()
-		if err != nil {
-			log.Fatalln(err)
+	if c.Remote() == rLOCAL {
+		proc, _ := os.FindProcess(pid)
+		if err = proc.Signal(signal); err != nil && !errors.Is(err, syscall.EEXIST) {
+			log.Printf("%s FAILED to send a signal %d: %s", c, signal, err)
+			return
 		}
-		sess, err := rem.NewSession()
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		output, err := sess.CombinedOutput(fmt.Sprintf("kill -s %d %d", signal, pid))
-		sess.Close()
-		if err != nil {
-			log.Fatalf("%s FAILED to send %s signal: %s %q", c, signal, err, output)
-		}
-		logDebug.Printf("%s sent a %s signal", c, signal)
+		logDebug.Printf("%s sent a signal %d", c, signal)
 		return nil
 	}
 
-	proc, _ := os.FindProcess(pid)
-	if err = proc.Signal(signal); err != nil && !errors.Is(err, syscall.EEXIST) {
-		log.Printf("%s sent a %s signal: %s", c, signal, err)
+	rem, err := c.Remote().sshOpenRemote()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	sess, err := rem.NewSession()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	output, err := sess.CombinedOutput(fmt.Sprintf("kill -s %d %d", signal, pid))
+	sess.Close()
+	if err != nil {
+		log.Printf("%s FAILED to send signal %d: %s %q", c, signal, err, output)
 		return
 	}
-	logDebug.Printf("%s sent a %s signal", c, signal)
-	return
+	logDebug.Printf("%s sent a signal %d", c, signal)
+	return nil
 }
