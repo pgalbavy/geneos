@@ -318,7 +318,7 @@ func createAESKeyFile(c Instances) (err error) {
 	key := md[:32]
 	iv := md[32:]
 
-	if err = c.Remote().writeFile(InstanceFileWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0400); err != nil {
+	if err = c.Remote().writeFile(InstanceFileWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
 		return
 	}
 	if err = setField(c, c.Prefix("AES"), c.Type().String()+".aes"); err != nil {

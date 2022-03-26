@@ -843,7 +843,7 @@ func writeInstanceKey(c Instances, key *rsa.PrivateKey) (err error) {
 	return writeInstanceConfig(c)
 }
 
-// write a private key as PEM to path. sets file permissions to 0400 (before umask)
+// write a private key as PEM to path. sets file permissions to 0600 (before umask)
 func (r *Remotes) writeKey(path string, key *rsa.PrivateKey) (err error) {
 	logDebug.Println("write key to", path)
 	keyPEM := pem.EncodeToMemory(&pem.Block{
@@ -851,7 +851,7 @@ func (r *Remotes) writeKey(path string, key *rsa.PrivateKey) (err error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
 
-	return r.writeFile(path, keyPEM, 0400)
+	return r.writeFile(path, keyPEM, 0600)
 }
 
 // write cert as PEM to path
