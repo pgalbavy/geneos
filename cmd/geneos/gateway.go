@@ -147,28 +147,34 @@ func (g *Gateways) Add(username string, params []string, tmpl string) (err error
 	g.ConfigRebuild = "initial"
 	g.Includes = make(map[int]string)
 
+	// try to save config early
 	if err = writeInstanceConfig(g); err != nil {
-		logError.Fatalln(err)
+		return
 	}
+
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(Gateway, []string{g.Name()}, params)
+		if err = commandSet(Gateway, []string{g.Name()}, params); err != nil {
+			return
+		}
 		g.Load()
-		//loadConfig(&g)
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(g)
+		if err = createInstanceCert(g); err != nil {
+			return
+		}
 	}
 
 	if err = createAESKeyFile(g); err != nil {
-		log.Fatalln(err)
+		return
 	}
+
 	return g.Rebuild(true)
 }
 
-func (g *Gateways) Rebuild(initial bool) error {
+func (g *Gateways) Rebuild(initial bool) (err error) {
 	if g.ConfigRebuild == "never" {
 		return ErrNoAction
 	}
@@ -210,8 +216,8 @@ func (g *Gateways) Rebuild(initial bool) error {
 	}
 
 	if changed {
-		if err := writeInstanceConfig(g); err != nil {
-			log.Fatalln(err)
+		if err = writeInstanceConfig(g); err != nil {
+			return
 		}
 	}
 	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
@@ -271,31 +277,34 @@ func (g *Gateways) Command() (args, env []string) {
 }
 
 func (g *Gateways) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(g, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
+	var stopped bool = true
+
+	if !purge {
+		if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err == nil {
+			log.Println(g, "cleaned")
 		}
-		if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(g, GlobalConfig["GatewayPurgeList"])
-		if stopped {
-			err = startInstance(g, params)
-		}
-		log.Println(g, "cleaned fully")
 		return
 	}
-	err = deletePaths(g, GlobalConfig["GatewayCleanList"])
-	if err == nil {
-		log.Println(g, "cleaned")
+
+	if err = stopInstance(g, params); err != nil {
+		if errors.Is(err, ErrProcNotExist) {
+			stopped = false
+		} else {
+			return
+		}
+	}
+	if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err != nil {
+		return
+	}
+	if err = deletePaths(g, GlobalConfig["GatewayPurgeList"]); err != nil {
+		return
+	}
+	log.Println(g, "fully cleaned")
+	if stopped {
+		err = startInstance(g, params)
 	}
 	return
+
 }
 
 func (g *Gateways) Reload(params []string) (err error) {

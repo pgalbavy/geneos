@@ -142,8 +142,7 @@ func startInstance(c Instances, params []string) (err error) {
 	pid, err := findInstancePID(c)
 	if err == nil {
 		log.Println(c, "already running with PID", pid)
-
-		return nil
+		return
 	}
 
 	if Disabled(c) {
@@ -161,7 +160,6 @@ func startInstance(c Instances, params []string) (err error) {
 	}
 
 	if !canControl(c) {
-		// fail early
 		return ErrPermission
 	}
 
@@ -173,15 +171,15 @@ func startInstance(c Instances, params []string) (err error) {
 		r := c.Remote()
 		rUsername := getString(r, "Username")
 		if rUsername != username {
-			log.Fatalf("cannot run remote process as a different user (%q != %q)", rUsername, username)
+			return fmt.Errorf("cannot run remote process as a different user (%q != %q)", rUsername, username)
 		}
 		rem, err := r.sshOpenRemote()
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 		sess, err := rem.NewSession()
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 
 		// we have to convert cmd to a string ourselves as we have to quote any args
@@ -194,11 +192,11 @@ func startInstance(c Instances, params []string) (err error) {
 		}
 		pipe, err := sess.StdinPipe()
 		if err != nil {
-			log.Fatalln()
+			return err
 		}
 
 		if err = sess.Shell(); err != nil {
-			log.Fatalln(err)
+			return err
 		}
 		fmt.Fprintln(pipe, "cd", c.Home())
 		for _, e := range env {
@@ -212,7 +210,7 @@ func startInstance(c Instances, params []string) (err error) {
 
 		pid, err := findInstancePID(c)
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 		log.Println(c, "started with PID", pid)
 		return nil

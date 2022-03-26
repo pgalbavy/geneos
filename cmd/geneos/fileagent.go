@@ -129,13 +129,17 @@ func (n FileAgents) Add(username string, params []string, tmpl string) (err erro
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(San, []string{n.Name()}, params)
+		if err = commandSet(San, []string{n.Name()}, params); err != nil {
+			return
+		}
 		n.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(&n)
+		if err = createInstanceCert(&n); err != nil {
+			return
+		}
 	}
 
 	// default config XML etc.

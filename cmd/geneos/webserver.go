@@ -132,18 +132,22 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 	w.WebsUser = username
 
 	if err = writeInstanceConfig(w); err != nil {
-		logError.Fatalln(err)
+		return
 	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(Webserver, []string{w.Name()}, params)
+		if err = commandSet(Webserver, []string{w.Name()}, params); err != nil {
+			return
+		}
 		w.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(w)
+		if err = createInstanceCert(w); err != nil {
+			return
+		}
 	}
 
 	// copy default configs - use existing import routines?
@@ -208,26 +212,31 @@ func (w *Webservers) Command() (args, env []string) {
 }
 
 func (w *Webservers) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(w, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
+	var stopped bool = true
+
+	if !purge {
+		return deletePaths(w, GlobalConfig["WebserverCleanList"])
+	}
+
+	if err = stopInstance(w, params); err != nil {
+		if errors.Is(err, ErrProcNotExist) {
+			stopped = false
+		} else {
+			return
 		}
-		if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(w, GlobalConfig["WebserverPurgeList"])
-		if stopped {
-			err = startInstance(w, params)
-		}
+	}
+
+	if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err != nil {
 		return
 	}
-	return deletePaths(w, GlobalConfig["WebserverCleanList"])
+	if err = deletePaths(w, GlobalConfig["WebserverPurgeList"]); err != nil {
+		return
+	}
+	if stopped {
+		err = startInstance(w, params)
+	}
+	return
+
 }
 
 func (w *Webservers) Reload(params []string) (err error) {

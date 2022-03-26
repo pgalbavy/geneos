@@ -183,10 +183,12 @@ func (ct Component) InstanceNames(r *Remotes) (components []string) {
 
 	if ct == None {
 		for _, t := range RealComponents() {
+			// ignore errors, we only care about any files found
 			d, _ := r.readDir(t.ComponentDir(r))
 			files = append(files, d...)
 		}
 	} else {
+		// ignore errors, we only care about any files found
 		files, _ = r.readDir(ct.ComponentDir(r))
 	}
 
@@ -205,8 +207,7 @@ func (ct Component) InstanceNames(r *Remotes) (components []string) {
 	return
 }
 
-// return a slice of initialised but not loaded instances for a given
-//  component type
+// return a slice instances for a given component type
 func (ct Component) Instances(r *Remotes) (confs []Instances) {
 	if ct == None {
 		for _, c := range RealComponents() {
@@ -215,27 +216,15 @@ func (ct Component) Instances(r *Remotes) (confs []Instances) {
 		return
 	}
 	for _, name := range ct.InstanceNames(r) {
-		i := ct.New(name)
-		if err := i.Load(); err != nil {
-			log.Fatalln(err)
+		i, err := ct.loadInstance(name)
+		if err != nil {
+			// log.Fatalln(err)
+			continue
 		}
 		confs = append(confs, i)
 	}
 
 	return
-}
-
-// return a new instance of component ct
-func (ct Component) New(name string) (c Instances) {
-	if ct == None {
-		logError.Fatalln(ct, ErrNotSupported)
-	}
-
-	cm, ok := components[ct]
-	if !ok || cm.New == nil {
-		log.Fatalln(ct, ErrNotSupported)
-	}
-	return cm.New(name)
 }
 
 // given a component type and a slice of args, call the function for each arg
@@ -302,8 +291,18 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	return
 }
 
+// return an instance of component ct. load the config too.
 func (ct Component) loadInstance(name string) (c Instances, err error) {
-	c = ct.New(name)
+	if ct == None {
+		return nil, ErrInvalidArgs
+	}
+
+	cm, ok := components[ct]
+	if !ok || cm.New == nil {
+		return nil, ErrNotSupported
+	}
+
+	c = cm.New(name)
 	err = c.Load()
 	return
 }
@@ -324,23 +323,4 @@ func (ct Component) ComponentDir(r *Remotes) string {
 
 func InstanceFileWithExt(c Instances, extension string) (path string) {
 	return filepath.Join(c.Home(), c.Type().String()+"."+extension)
-}
-
-func (ct Component) exists(name string) bool {
-	if name == LOCAL.String() {
-		return true
-	}
-
-	_, remote := splitInstanceName(name)
-	// first, does remote exist?
-
-	if remote != LOCAL {
-		_, err := Remote.loadInstance(remote.String())
-		if err != nil {
-			return false
-		}
-	}
-
-	_, err := ct.loadInstance(name)
-	return err == nil
 }

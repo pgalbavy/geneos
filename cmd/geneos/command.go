@@ -64,8 +64,11 @@ func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
 	return
 }
 
-// save off extra env too
-// XXX - scan file line by line, protect memory
+// read an old style .rc file. parameters are one-per-line and are key=value
+// any keys that do not match the component prefix or the special
+// 'BinSuffix' are terated as environment variables
+//
+// No processing of shell variables. should there be?
 func readRCConfig(c Instances) (err error) {
 	rcdata, err := c.Remote().readFile(InstanceFileWithExt(c, "rc"))
 	if err != nil {
@@ -84,7 +87,7 @@ func readRCConfig(c Instances) (err error) {
 		}
 		s := strings.SplitN(line, "=", 2)
 		if len(s) != 2 {
-			return ErrInvalidArgs
+			return fmt.Errorf("invalid line (must be key=value) %q: %w", line, ErrInvalidArgs)
 		}
 		key, value := s[0], s[1]
 		value = strings.Trim(value, "\"")
@@ -93,20 +96,20 @@ func readRCConfig(c Instances) (err error) {
 
 	var env []string
 	for k, v := range confs {
-		switch k {
-		case "BinSuffix":
+		if k == "BinSuffix" {
 			if err = setField(c, k, v); err != nil {
 				return
 			}
-		default:
-			if strings.HasPrefix(k, c.Prefix("")) {
-				if err = setField(c, k, v); err != nil {
-					return
-				}
-			} else {
-				// set env var
-				env = append(env, fmt.Sprintf("%s=%s", k, v))
+			continue
+		}
+		// this doesn't work if Prefix is empty
+		if strings.HasPrefix(k, c.Prefix("")) {
+			if err = setField(c, k, v); err != nil {
+				return
 			}
+		} else {
+			// set env var
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
 

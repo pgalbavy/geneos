@@ -125,9 +125,10 @@ func rebuildFlag(command string, args []string) []string {
 // load system config from global and user JSON files and process any
 // environment variables we choose
 func loadSysConfig() {
+	// a failure is ignored
 	readLocalConfigFile(globalConfig, &GlobalConfig)
 
-	// root should not have a per-user config, but if sun by sudo the
+	// root should not have a per-user config, but if run by sudo the
 	// HOME dir is conserved, so allow for now
 	userConfDir, _ := os.UserConfigDir()
 	err := readLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &GlobalConfig)
@@ -138,7 +139,7 @@ func loadSysConfig() {
 	// setting the environment variable - to match legacy programs - overrides
 	// all others
 
-	// fix breaking change
+	// workaround breaking change
 	if oldhome, ok := GlobalConfig["ITRSHome"]; ok {
 		if newhome, ok := GlobalConfig["Geneos"]; !ok || newhome == "" {
 			GlobalConfig["Geneos"] = oldhome
@@ -146,6 +147,7 @@ func loadSysConfig() {
 		delete(GlobalConfig, "ITRSHome")
 	}
 
+	// env variable overrides all other settings
 	if h, ok := os.LookupEnv("ITRS_HOME"); ok {
 		GlobalConfig["Geneos"] = h
 	}
@@ -177,10 +179,10 @@ func loadConfig(c Instances) (err error) {
 	return readRCConfig(c)
 }
 
-func commandShow(ct Component, names []string, params []string) (err error) {
+func commandShow(ct Component, args []string, params []string) (err error) {
 	// default to combined global + user config
 	// allow overrides to show specific or components
-	if len(names) == 0 && ct == None {
+	if len(args) == 0 && ct == None {
 		// special case "config show" for resolved settings
 		printConfigStructJSON(GlobalConfig)
 		return
@@ -188,8 +190,8 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 
 	// read the cofig into a struct then print it out again,
 	// to sanitise the contents - or generate an error
-	if len(names) > 0 {
-		switch names[0] {
+	if len(args) > 0 {
+		switch args[0] {
 		case "global":
 			var c GlobalSettings
 			readLocalConfigFile(globalConfig, &c)
@@ -207,7 +209,7 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
 	var cs []Instances
-	for _, name := range names {
+	for _, name := range args {
 		cs = append(cs, ct.instanceMatches(name)...)
 	}
 	if len(cs) > 0 {
@@ -220,20 +222,20 @@ func commandShow(ct Component, names []string, params []string) (err error) {
 	return
 }
 
+const jsonIndent = "    "
+
 // given a slice of structs, output as a JSON array of maps
 func printConfigSliceJSON(Slice []Instances) {
 	js := []string{}
 
 	for _, i := range Slice {
-		x, err := marshalStruct(i, "    ")
+		x, err := marshalStruct(i, jsonIndent)
 		if err != nil {
-			// recover later
-			logError.Fatalln(err)
+			continue
 		}
 		js = append(js, x)
-
 	}
-	s := "[\n    " + strings.Join(js, ",\n    ") + "\n]"
+	s := "[\n" + jsonIndent + strings.Join(js, ",\n"+jsonIndent) + "\n]"
 	log.Println(s)
 }
 
@@ -302,8 +304,9 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	}
 
 	if _, err = findInstancePID(oldconf); err != ErrProcNotExist {
-		stopInstance(oldconf, nil)
-		stopped = true
+		if err = stopInstance(oldconf, nil); err == nil {
+			stopped = true
+		}
 	}
 
 	// save for recover, as config gets changed
@@ -357,13 +360,15 @@ func commandDelete(ct Component, args []string, params []string) (err error) {
 func deleteInstance(c Instances, params []string) (err error) {
 	if deleteForced {
 		if components[c.Type()].RealComponent {
-			stopInstance(c, nil)
+			if err = stopInstance(c, nil); err != nil {
+				return
+			}
 		}
 	}
 
 	if deleteForced || Disabled(c) {
 		if err = c.Remote().removeAll(c.Home()); err != nil {
-			logError.Fatalln(err)
+			return
 		}
 		c.Unload()
 		log.Println(c, "deleted")

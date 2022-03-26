@@ -179,17 +179,16 @@ func (r *Remotes) Add(username string, params []string, tmpl string) (err error)
 	}
 
 	if err = initFlagSet.Parse(params); err != nil {
-		log.Fatalln(err)
+		return
 	}
 
 	u, err := url.Parse(remurl)
 	if err != nil {
-		logDebug.Println(err)
 		return
 	}
 
 	if u.Scheme != "ssh" {
-		logError.Fatalln("unsupported scheme (only ssh at the moment):", u.Scheme)
+		return fmt.Errorf("unsupported scheme (only ssh at the moment): %q", u.Scheme)
 	}
 
 	// if no hostname in URL fall back to remote name (e.g. ssh:///path)
@@ -216,29 +215,29 @@ func (r *Remotes) Add(username string, params []string, tmpl string) (err error)
 	}
 	r.Geneos = homepath
 
-	err = writeInstanceConfig(r)
-	if err != nil {
-		logError.Fatalln(err)
+	if err = writeInstanceConfig(r); err != nil {
+		return
 	}
 
 	// once we are bootstrapped, read os-release info and re-write config
-	err = r.getOSReleaseEnv()
-	if err != nil {
-		log.Fatalln(err)
+	if err = r.getOSReleaseEnv(); err != nil {
+		return
 	}
 
 	if err = writeInstanceConfig(r); err != nil {
-		logError.Fatalln(err)
+		return
 	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(Remote, []string{r.Name()}, params)
+		if err = commandSet(Remote, []string{r.Name()}, params); err != nil {
+			return
+		}
 		r.Load()
 	}
 
 	if err = r.initGeneos([]string{homepath}); err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	for _, c := range components {
@@ -270,9 +269,8 @@ func (r *Remotes) getOSReleaseEnv() (err error) {
 	r.OSInfo = make(map[string]string)
 	f, err := r.readFile("/etc/os-release")
 	if err != nil {
-		f, err = r.readFile("/usr/lib/os-release")
-		if err != nil {
-			log.Fatalln("cannot open /etc/os-release or /usr/lib/os-releaae")
+		if f, err = r.readFile("/usr/lib/os-release"); err != nil {
+			return fmt.Errorf("cannot open /etc/os-release or /usr/lib/os-releaae")
 		}
 	}
 
@@ -363,6 +361,8 @@ func AllRemotes() (remotes []*Remotes) {
 }
 
 // shim methods that test remote and direct to ssh / sftp / os
+// at some point this should become interface based to allow other
+// remote protocols cleanly
 
 func (r *Remotes) symlink(oldname, newname string) (err error) {
 	switch r.InstanceName {
@@ -434,8 +434,7 @@ func (r *Remotes) createFile(path string, perms fs.FileMode) (out io.WriteCloser
 		if s, err = r.sftpOpenSession(); err != nil {
 			return
 		}
-		cf, err = s.Create(path)
-		if err != nil {
+		if cf, err = s.Create(path); err != nil {
 			return
 		}
 		out = cf
@@ -470,6 +469,7 @@ func (r *Remotes) removeAll(name string) (err error) {
 		}
 
 		// walk, reverse order by prepending and remove
+		// we could also just reverse sort strings...
 		files := []string{}
 		w := s.Walk(name)
 		for w.Step() {
@@ -480,7 +480,6 @@ func (r *Remotes) removeAll(name string) (err error) {
 		}
 		for _, file := range files {
 			if err = s.Remove(file); err != nil {
-				log.Println("remove failed", err)
 				return
 			}
 		}
@@ -514,8 +513,7 @@ type fileStat struct {
 func (r *Remotes) statFile(name string) (s fileStat, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
-		s.st, err = os.Stat(name)
-		if err != nil {
+		if s.st, err = os.Stat(name); err != nil {
 			return
 		}
 		s.uid = s.st.Sys().(*syscall.Stat_t).Uid
@@ -526,8 +524,7 @@ func (r *Remotes) statFile(name string) (s fileStat, err error) {
 		if sf, err = r.sftpOpenSession(); err != nil {
 			return
 		}
-		s.st, err = sf.Stat(name)
-		if err != nil {
+		if s.st, err = sf.Stat(name); err != nil {
 			return
 		}
 		s.uid = s.st.Sys().(*sftp.FileStat).UID
@@ -560,8 +557,7 @@ func (r *Remotes) writeFile(path string, b []byte, perm os.FileMode) (err error)
 			return
 		}
 		var f *sftp.File
-		f, err = s.Create(path)
-		if err != nil {
+		if f, err = s.Create(path); err != nil {
 			return
 		}
 		defer f.Close()
@@ -582,14 +578,12 @@ func (r *Remotes) readFile(name string) (b []byte, err error) {
 		}
 		f, err := s.Open(name)
 		if err != nil {
-			// logError.Fatalln(err)
 			return nil, err
 		}
 		defer f.Close()
 
 		st, err := f.Stat()
 		if err != nil {
-			// logError.Fatalln(err)
 			return nil, err
 		}
 		// force a block read as /proc doesn't give sizes

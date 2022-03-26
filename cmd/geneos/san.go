@@ -162,7 +162,7 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 	}
 
 	if err = writeInstanceConfig(s); err != nil {
-		logError.Fatalln(err)
+		return
 	}
 
 	names := []string{s.Name()}
@@ -170,14 +170,17 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(San, names, params)
-		// reload after set
+		if err = commandSet(San, names, params); err != nil {
+			return
+		}
 		s.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(s)
+		if err = createInstanceCert(s); err != nil {
+			return
+		}
 	}
 
 	s.Rebuild(true)
@@ -217,7 +220,7 @@ func (s *Sans) Rebuild(initial bool) error {
 	}
 	if changed {
 		if err := writeInstanceConfig(s); err != nil {
-			log.Fatalln(err)
+			return err
 		}
 	}
 	return createConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
@@ -248,26 +251,30 @@ func (s *Sans) Command() (args, env []string) {
 }
 
 func (s *Sans) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(s, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
+	var stopped bool = true
+
+	if !purge {
+		return deletePaths(s, GlobalConfig["SanCleanList"])
+	}
+
+	if err = stopInstance(s, params); err != nil {
+		if errors.Is(err, ErrProcNotExist) {
+			stopped = false
+		} else {
+			return
 		}
-		if err = deletePaths(s, GlobalConfig["SanCleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(s, GlobalConfig["SanPurgeList"])
-		if stopped {
-			err = startInstance(s, params)
-		}
+	}
+	if err = deletePaths(s, GlobalConfig["SanCleanList"]); err != nil {
 		return
 	}
-	return deletePaths(s, GlobalConfig["SanCleanList"])
+	if err = deletePaths(s, GlobalConfig["SanPurgeList"]); err != nil {
+		return
+	}
+	if stopped {
+		err = startInstance(s, params)
+	}
+	return
+
 }
 
 func (s *Sans) Reload(params []string) (err error) {

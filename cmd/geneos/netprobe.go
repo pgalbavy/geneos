@@ -113,18 +113,22 @@ func (n *Netprobes) Add(username string, params []string, tmpl string) (err erro
 	n.NetpUser = username
 
 	if err = writeInstanceConfig(n); err != nil {
-		logError.Fatalln(err)
+		return
 	}
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(Netprobe, []string{n.Name()}, params)
+		if err = commandSet(Netprobe, []string{n.Name()}, params); err != nil {
+			return
+		}
 		n.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(n)
+		if err = createInstanceCert(n); err != nil {
+			return
+		}
 	}
 
 	// default config XML etc.
@@ -155,26 +159,31 @@ func (n *Netprobes) Command() (args, env []string) {
 }
 
 func (n *Netprobes) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(n, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
+	var stopped bool = true
+
+	if !purge {
+		return deletePaths(n, GlobalConfig["NetprobeCleanList"])
+	}
+
+	if err = stopInstance(n, params); err != nil {
+		if errors.Is(err, ErrProcNotExist) {
+			stopped = false
+		} else {
+			return
 		}
-		if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(n, GlobalConfig["NetprobePurgeList"])
-		if stopped {
-			err = startInstance(n, params)
-		}
+	}
+
+	if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err != nil {
 		return
 	}
-	return deletePaths(n, GlobalConfig["NetprobeCleanList"])
+	if err = deletePaths(n, GlobalConfig["NetprobePurgeList"]); err != nil {
+		return
+	}
+	if stopped {
+		err = startInstance(n, params)
+	}
+	return
+
 }
 
 func (n *Netprobes) Reload(params []string) (err error) {

@@ -118,13 +118,17 @@ func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
 
 	// apply any extra args to settings
 	if len(params) > 0 {
-		commandSet(Licd, []string{l.Name()}, params)
+		if err = commandSet(Licd, []string{l.Name()}, params); err != nil {
+			return
+		}
 		l.Load()
 	}
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		createInstanceCert(l)
+		if err = createInstanceCert(l); err != nil {
+			return
+		}
 	}
 
 	// default config XML etc.
@@ -154,26 +158,30 @@ func (l *Licds) Command() (args, env []string) {
 }
 
 func (l *Licds) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(l, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
+	var stopped bool = true
+
+	if !purge {
+		return deletePaths(l, GlobalConfig["LicdCleanList"])
+	}
+
+	if err = stopInstance(l, params); err != nil {
+		if errors.Is(err, ErrProcNotExist) {
+			stopped = false
+		} else {
+			return
 		}
-		if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(l, GlobalConfig["LicdPurgeList"])
-		if stopped {
-			err = startInstance(l, params)
-		}
+	}
+
+	if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err != nil {
 		return
 	}
-	return deletePaths(l, GlobalConfig["LicdCleanList"])
+	if err = deletePaths(l, GlobalConfig["LicdPurgeList"]); err != nil {
+		return
+	}
+	if stopped {
+		err = startInstance(l, params)
+	}
+	return
 }
 
 func (l *Licds) Reload(params []string) (err error) {

@@ -70,12 +70,10 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	// to sanitise the contents - or generate an error
 	switch args[0] {
 	case "global":
-		editConfigFiles(editor, globalConfig)
-		return
+		return editConfigFiles(editor, globalConfig)
 	case "user":
 		userConfDir, _ := os.UserConfigDir()
-		editConfigFiles(editor, filepath.Join(userConfDir, "geneos.json"))
-		return
+		return editConfigFiles(editor, filepath.Join(userConfDir, "geneos.json"))
 	}
 
 	// instance config files ?
@@ -89,10 +87,17 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	for _, name := range args {
 		for _, c := range ct.instanceMatches(name) {
 			if c.Remote() != rLOCAL {
-				logError.Fatalln(ErrNotSupported)
+				logError.Println("remote edit of", c, ErrNotSupported)
+				continue
 			}
-			// this will fail if not migrated
-			cs = append(cs, InstanceFileWithExt(c, "json"))
+			if _, err = rLOCAL.statFile(InstanceFileWithExt(c, "rc")); err == nil {
+				cs = append(cs, InstanceFileWithExt(c, "rc"))
+			} else if _, err = c.Remote().statFile(InstanceFileWithExt(c, "json")); err == nil {
+				cs = append(cs, InstanceFileWithExt(c, "json"))
+			} else {
+				logError.Println("no configuration file found for", c)
+				continue
+			}
 		}
 	}
 	if len(cs) > 0 {
@@ -107,10 +112,7 @@ func editConfigFiles(editor string, files ...string) (err error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-
-	// change file ownerships back here - but to who?
-	return
+	return cmd.Run()
 }
 
 func commandHome(ctunused Component, args []string, params []string) error {
