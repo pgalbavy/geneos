@@ -291,14 +291,14 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	newname := args[1]
 
 	logDebug.Println("rename", ct, oldname, newname)
-	oldconf, err := ct.loadInstance(oldname)
+	oldconf, err := ct.GetInstance(oldname)
 	if err != nil {
 		return fmt.Errorf("%s %s not found", ct, oldname)
 	}
 	if err = migrateConfig(oldconf); err != nil {
 		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, oldname)
 	}
-	newconf, err := ct.loadInstance(newname)
+	newconf, err := ct.GetInstance(newname)
 	if err == nil {
 		return fmt.Errorf("%s already exists", newconf)
 	}

@@ -39,7 +39,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewFileAgent,
 		ComponentType:    FileAgent,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"fileagent", "fileagents", "file-agent"},
 		RealComponent:    true,
 		DownloadBase:     "Fix+Analyser+File+Agent",

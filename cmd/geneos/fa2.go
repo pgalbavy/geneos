@@ -29,7 +29,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewFA2,
 		ComponentType:    FA2,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"fa2", "fixanalyser", "fixanalyzer", "fixanalyser2-netprobe"},
 		RealComponent:    true,
 		DownloadBase:     "Fix+Analyser+2+Netprobe",

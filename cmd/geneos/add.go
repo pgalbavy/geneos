@@ -104,7 +104,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		username = u.Username
 	}
 
-	c, err := ct.loadInstance(name)
+	c, err := ct.GetInstance(name)
 
 	// check if instance already exists
 	if c.Loaded() {
@@ -138,7 +138,7 @@ func (r *Remotes) getPorts() (ports map[int]Component) {
 		log.Fatalln("getports() call with all remotes")
 	}
 	ports = make(map[int]Component)
-	for _, c := range None.Instances(r) {
+	for _, c := range None.GetInstancesForComponent(r) {
 		if !getBool(c, "ConfigLoaded") {
 			log.Println("cannot load configuration for", c)
 			continue

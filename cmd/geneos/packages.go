@@ -430,8 +430,13 @@ func commandUpdate(ct Component, args []string, params []string) (err error) {
 
 // check selected version exists first
 func (ct Component) UpdateToVersion(r *Remotes, version string, overwrite bool) (err error) {
-	if components[ct].ParentType != None {
-		ct = components[ct].ParentType
+	if components[ct].RelatedTypes != nil {
+		for _, rct := range components[ct].RelatedTypes {
+			if err = rct.UpdateToVersion(r, version, overwrite); err != nil {
+				log.Println("could not update", r.InstanceName, err)
+			}
+		}
+		return nil
 	}
 
 	if r == rALL {
@@ -481,7 +486,7 @@ func (ct Component) UpdateToVersion(r *Remotes, version string, overwrite bool) 
 		return nil
 	}
 	// check remote only
-	insts := ct.matchComponents(r, "Base", updateBase)
+	insts := ct.FindInstances(r, "Base", updateBase)
 	// stop matching instances
 	for _, i := range insts {
 		stopInstance(i, nil)
@@ -560,20 +565,26 @@ func sliceAtoi(s []string) (n []int) {
 //
 // not right for FA2 Sans...
 //
-func (ct Component) matchComponents(r *Remotes, k, v string) (insts []Instances) {
-	// also check for any other component types that have this as a parent, recurse
-	for _, c := range components {
-		if ct == c.ParentType {
-			logDebug.Println("also matching", c.ComponentType.String())
-			insts = append(insts, c.ComponentType.matchComponents(r, k, v)...)
+func (ct Component) FindInstances(r *Remotes, k, v string) (insts []Instances) {
+	if ct == None {
+		for _, rct := range RealComponents() {
+			insts = append(insts, rct.FindInstances(r, k, v)...)
 		}
+		return
 	}
 
-	for _, i := range ct.Instances(r) {
+	// also check for any other component types that have re;lated types
+	for _, rcm := range components[ct].RelatedTypes {
+		logDebug.Println(ct, "also matching", rcm)
+		insts = append(insts, rcm.FindInstances(r, k, v)...)
+	}
+
+	for _, i := range ct.GetInstancesForComponent(r) {
+		if !getBool(i, "ConfigLoaded") {
+			log.Println("cannot load configuration for", i)
+			continue
+		}
 		if v == getString(i, i.Prefix(k)) {
-			if err := i.Load(); err != nil {
-				log.Println(i.Type(), i.Name(), "cannot load config")
-			}
 			insts = append(insts, i)
 		}
 	}

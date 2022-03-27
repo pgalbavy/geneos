@@ -25,7 +25,7 @@ type Components struct {
 	New func(string) Instances
 
 	ComponentType    Component
-	ParentType       Component
+	RelatedTypes     []Component
 	ComponentMatches []string
 	RealComponent    bool
 	DownloadBase     string
@@ -34,7 +34,7 @@ type Components struct {
 func init() {
 	RegisterComponent(Components{
 		ComponentType:    None,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"", "all", "any"},
 		RealComponent:    false,
 		DownloadBase:     "",
@@ -208,17 +208,16 @@ func (ct Component) InstanceNames(r *Remotes) (components []string) {
 }
 
 // return a slice instances for a given component type
-func (ct Component) Instances(r *Remotes) (confs []Instances) {
+func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
 	if ct == None {
 		for _, c := range RealComponents() {
-			confs = append(confs, c.Instances(r)...)
+			confs = append(confs, c.GetInstancesForComponent(r)...)
 		}
 		return
 	}
 	for _, name := range ct.InstanceNames(r) {
-		i, err := ct.loadInstance(name)
+		i, err := ct.GetInstance(name)
 		if err != nil {
-			// log.Fatalln(err)
 			continue
 		}
 		confs = append(confs, i)
@@ -281,7 +280,7 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	}
 
 	for _, cm := range cs {
-		i, err := cm.loadInstance(name)
+		i, err := cm.GetInstance(name)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -291,8 +290,8 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 	return
 }
 
-// return an instance of component ct. load the config too.
-func (ct Component) loadInstance(name string) (c Instances, err error) {
+// return an instance of component ct. loads the config.
+func (ct Component) GetInstance(name string) (c Instances, err error) {
 	if ct == None {
 		return nil, ErrInvalidArgs
 	}

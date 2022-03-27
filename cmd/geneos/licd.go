@@ -29,7 +29,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewLicd,
 		ComponentType:    Licd,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"licd", "licds"},
 		RealComponent:    true,
 		DownloadBase:     "Licence+Daemon",

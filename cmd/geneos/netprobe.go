@@ -29,7 +29,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewNetprobe,
 		ComponentType:    Netprobe,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 		RealComponent:    true,
 		DownloadBase:     "Netprobe",

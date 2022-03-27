@@ -33,7 +33,7 @@ func init() {
 	RegisterComponent(Components{
 		New:              NewWebserver,
 		ComponentType:    Webserver,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
 		RealComponent:    true,
 		DownloadBase:     "Web+Dashboard",

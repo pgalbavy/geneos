@@ -354,7 +354,7 @@ func AllRemotes() (remotes []*Remotes) {
 	if superuser {
 		return
 	}
-	for _, r := range Remote.Instances(rLOCAL) {
+	for _, r := range Remote.GetInstancesForComponent(rLOCAL) {
 		remotes = append(remotes, r.(*Remotes))
 	}
 	return

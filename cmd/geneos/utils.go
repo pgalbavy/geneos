@@ -324,12 +324,12 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 						name := local + "@" + rem.InstanceName
 						if ct == None {
 							for _, cr := range RealComponents() {
-								if i, err := cr.loadInstance(name); err == nil && i.Loaded() {
+								if i, err := cr.GetInstance(name); err == nil && i.Loaded() {
 									nargs = append(nargs, name)
 									matched = true
 								}
 							}
-						} else if i, err := ct.loadInstance(name); err == nil && i.Loaded() {
+						} else if i, err := ct.GetInstance(name); err == nil && i.Loaded() {
 							nargs = append(nargs, name)
 							matched = true
 						}

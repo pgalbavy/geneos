@@ -52,7 +52,7 @@ func init() {
 		Initialise:       InitSan,
 		New:              NewSan,
 		ComponentType:    San,
-		ParentType:       Netprobe,
+		RelatedTypes:     []Component{Netprobe, FA2},
 		ComponentMatches: []string{"san", "sans"},
 		RealComponent:    true,
 		DownloadBase:     "Netprobe",

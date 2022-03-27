@@ -52,7 +52,7 @@ func init() {
 		Initialise:       InitGateway,
 		New:              NewGateway,
 		ComponentType:    Gateway,
-		ParentType:       None,
+		RelatedTypes:     nil,
 		ComponentMatches: []string{"gateway", "gateways"},
 		RealComponent:    true,
 		DownloadBase:     "Gateway+2",
