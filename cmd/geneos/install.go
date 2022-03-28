@@ -64,14 +64,12 @@ applies when using -U.
 
 
 FLAGS:
-	-b BASE	The name of the package base version symlink, default active_prod
-	-l	Local archives only, don't try to download from official site
-	-n	Do not save a copy of downloads in packages/downloads
-	-r REMOTE - install from local archive to remote. default is local. all means all remotes and local
-	-U	Update base symlink, stopping and starting only running instances that use it
-	-T TYPE	Override component type in archive name
-	-V VERSION	Override version in archive name
-	`,
+	-b BASE		The name of the package base version symlink, default active_prod
+	-l		Local archives only, don't try to download from official site
+	-n		Do not save a copy of downloads in packages/downloads
+	-r REMOTE	install from local archive to remote. default is local. all means all remotes and local
+	-U		Update base symlink, stopping and starting only running instances that use it
+	-T TYPE:VERSION	Override type and version for non-standard named archives`,
 	})
 
 	installFlags = flag.NewFlagSet("install", flag.ExitOnError)
@@ -82,8 +80,7 @@ FLAGS:
 	installFlags.StringVar(&installRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
 
 	installFlags.BoolVar(&installUpdate, "U", false, "Update the base directory symlink")
-	installFlags.StringVar(&installTypeOverride, "T", "", "Override the component type in the archive file name")
-	installFlags.StringVar(&installVersionOverride, "V", "", "Override the version number in the archive file name")
+	installFlags.StringVar(&installOverride, "T", "", "Override (set) the TYPE:VERSION for archive files with non-standard names")
 
 	installFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
@@ -131,7 +128,7 @@ FLAGS:
 var installFlags *flag.FlagSet
 var installLocal, installNoSave, installUpdate bool
 var installRemote, installBase string
-var installTypeOverride, installVersionOverride string
+var installOverride string
 
 func installFlag(command string, args []string) []string {
 	installFlags.Parse(args)
@@ -667,7 +664,7 @@ func (ct Component) openArchive(r *Remotes, version string) (filename string, bo
 func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reader, overwrite bool) (err error) {
 	var version string
 
-	if !(installTypeOverride != "" && installVersionOverride != "") {
+	if installOverride == "" {
 		parts := archiveRE.FindStringSubmatch(filename)
 		if len(parts) == 0 {
 			return fmt.Errorf("%q: %w", filename, ErrInvalidArgs)
@@ -685,18 +682,19 @@ func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reade
 			// mismatch
 			logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
 		}
-	}
-
-	if installTypeOverride != "" {
-		ct = parseComponentName(installTypeOverride)
-		if ct == Unknown {
-			return fmt.Errorf("no component type %q: %w", installTypeOverride, ErrInvalidArgs)
+	} else {
+		s := strings.SplitN(installOverride, ":", 2)
+		if len(s) != 2 {
+			err = fmt.Errorf("type/version override must be in the form TYPE:VERSION (%w)", ErrInvalidArgs)
+			return
 		}
-	}
-	if installVersionOverride != "" {
-		version = installVersionOverride
+		ct = parseComponentName(s[0])
+		if ct == Unknown {
+			return fmt.Errorf("invalid component type %q (%w)", s[0], ErrInvalidArgs)
+		}
+		version = s[1]
 		if !anchoredVersRE.MatchString(version) {
-			return fmt.Errorf("invalid version %q: %w", installVersionOverride, ErrInvalidArgs)
+			return fmt.Errorf("invalid version %q (%w)", s[1], ErrInvalidArgs)
 		}
 	}
 
