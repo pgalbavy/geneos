@@ -44,9 +44,7 @@ func init() {
 		"Geneos": "",
 
 		// Root URL for all downloads of software archives
-		"DownloadURL":  "https://resources.itrsgroup.com/download/latest/",
-		"DownloadUser": "",
-		"DownloadPass": "",
+		"DownloadURL": "https://resources.itrsgroup.com/download/latest/",
 
 		// Username to start components if not explicitly defined
 		// and we are running with elevated privileges

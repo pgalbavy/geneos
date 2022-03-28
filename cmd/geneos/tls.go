@@ -509,7 +509,7 @@ func TLSImport(sources ...string) (err error) {
 
 	for _, source := range sources {
 		logDebug.Println("importing", source)
-		if f, err = readFileOrURL(source); err != nil {
+		if f, err = readLocalFileOrURL(source); err != nil {
 			logError.Println(err)
 			err = nil
 			continue

@@ -123,7 +123,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		rLOCAL.mkdirAll(gatewayTemplates, 0775)
 		tmpl := GatewayTemplate
 		if initFlags.GatewayTmpl != "" {
-			if tmpl, err = readFileOrURL(initFlags.GatewayTmpl); err != nil {
+			if tmpl, err = readLocalFileOrURL(initFlags.GatewayTmpl); err != nil {
 				return
 			}
 		}
@@ -135,7 +135,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		rLOCAL.mkdirAll(sanTemplates, 0775)
 		tmpl = SanTemplate
 		if initFlags.SanTmpl != "" {
-			if tmpl, err = readFileOrURL(initFlags.SanTmpl); err != nil {
+			if tmpl, err = readLocalFileOrURL(initFlags.SanTmpl); err != nil {
 				return
 			}
 		}
@@ -335,7 +335,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 
 	if initFlags.GatewayTmpl != "" {
 		var tmpl []byte
-		if tmpl, err = readFileOrURL(initFlags.GatewayTmpl); err != nil {
+		if tmpl, err = readLocalFileOrURL(initFlags.GatewayTmpl); err != nil {
 			return
 		}
 		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
@@ -345,7 +345,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 
 	if initFlags.SanTmpl != "" {
 		var tmpl []byte
-		if tmpl, err = readFileOrURL(initFlags.SanTmpl); err != nil {
+		if tmpl, err = readLocalFileOrURL(initFlags.SanTmpl); err != nil {
 			return
 		}
 		if err = rLOCAL.writeFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
@@ -370,7 +370,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		g := []string{"Demo Gateway@" + r.InstanceName}
 		n := []string{"localhost@" + r.InstanceName}
 		w := []string{"demo@" + r.InstanceName}
-		commandDownload(None, e, e)
+		commandInstall(None, e, e)
 		commandAdd(Gateway, g, params)
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
 		commandAdd(Netprobe, n, params)
@@ -409,7 +409,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 		g := []string{initFlags.Name}
 		n := []string{"localhost@" + r.InstanceName}
-		commandDownload(None, e, e)
+		commandInstall(None, e, e)
 		commandAdd(Licd, g, params)
 		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
 		commandAdd(Gateway, g, params)

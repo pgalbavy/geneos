@@ -88,7 +88,7 @@ This one line command will create a directory structure, download software and c
 Under-the-hood, the command does exactly this for you:
 
     geneos init /path/to/empty/dit
-    geneos download 
+    geneos install 
     geneos add gateway 'Demo Gateway'
     geneos add netprobe localhost
     geneos add webserver demo
@@ -113,7 +113,7 @@ does this (where HOSTNAME is, of course, replaced with the hostname of the serve
 
 ```bash
 geneos init
-geneos download latest
+geneos install latest
 geneos new gateway HOSTNAME
 geneos new netprobe HOSTNAME
 geneos new licd HOSTNAME
@@ -347,7 +347,7 @@ Show log(s) for matching instances. Flags allow for follow etc.
 #### Environment Commands
 
 * `geneos init [-T|-S|-D|-A LICENSE] [-c CERT] [-k KEY] [-n NAME] [USERNAME] [PATH] [PARAMS]`
-Initialise the environment. This command creates a directory hierarchy and optionally downloads and extracts Geneos software packages and also optionally creates instances and starts them.
+Initialise the environment. This command creates a directory hierarchy and optionally installs Geneos software packages and also optionally creates instances and starts them.
   * `-T` Rebuild the default templates using the embedded files. This is primarily to update tempates when new versions of this program are release or if they have become corrupted
   * `-S` Build and start a San. See the `-n` option below. Takes all the same PARAMS as for adding a San to specify template settings.
   * `-D` Build and start a demo environment
@@ -377,10 +377,7 @@ Please note that if `geneos home` returns an empty string because of an error th
 
 #### Package Management Commands
 
-* `geneos extract [FILE...]`
-Extracts a local release archive into the `packages` directory.
-
-* `geneos download [TYPE] [lastest|URL...]`
+* `geneos install [FLAGS] [TYPE] [lastest|VERSION|FILE|URL...]`
 Download and install a release archive in the `packages` directory.
 
 * `geneos update [TYPE] [VERSION]`
@@ -499,8 +496,6 @@ The home directory for all other commands. See [Directory Layout](#directory-lay
 * `DownloadURL`
 The base URL for downloads for automating installations. Not yet used.
 If files are locally downloaded then this can either be a `file://` style URL or a directory path.
-
-* `DownloadUser` & `DownloadPass`
 
 * `DefaultUser`
 Principally used when running with elevated priviliedge (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.

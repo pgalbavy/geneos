@@ -186,7 +186,7 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 	s.Rebuild(true)
 
 	if initFlags.StartSAN {
-		commandDownload(Netprobe, e, e)
+		commandInstall(parseComponentName(s.SanType), e, e)
 	}
 
 	return nil

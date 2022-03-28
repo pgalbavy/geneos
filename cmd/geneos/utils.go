@@ -261,6 +261,7 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 
 	if !cmd.Wildcard {
 		if ct = parseComponentName(rawargs[0]); ct == Unknown {
+			args = rawargs
 			return
 		}
 		args = rawargs[1:]
@@ -408,7 +409,7 @@ func reservedName(in string) (ok bool) {
 }
 
 // spaces are valid - dumb, but valid - for now
-var validStringRE = regexp.MustCompile(`^\w[:@\.\w -]*$`)
+var validStringRE = regexp.MustCompile(`^[[:alpha:]][:@\.\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //
@@ -505,9 +506,7 @@ func getLogfilePath(c Instances) (logfile string) {
 	return
 }
 
-func readFileOrURL(source string) (b []byte, err error) {
-	var from io.ReadCloser
-
+func openLocalFileOrURL(source string) (from io.ReadCloser, filename string, err error) {
 	u, err := url.Parse(source)
 	if err != nil {
 		return
@@ -515,30 +514,37 @@ func readFileOrURL(source string) (b []byte, err error) {
 
 	switch {
 	case u.Scheme == "https" || u.Scheme == "http":
-		resp, err := http.Get(u.String())
+		var resp *http.Response
+		resp, err = http.Get(u.String())
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		from = resp.Body
-		defer from.Close()
 		if resp.StatusCode > 299 {
-			return nil, fmt.Errorf("server returned %s for %q", resp.Status, source)
+			return nil, "", fmt.Errorf("server returned %s for %q", resp.Status, source)
 		}
-
+		filename, err = filenameFromHTTPResp(resp, resp.Request.URL)
 	case source == "-":
 		from = os.Stdin
-		source = "STDIN"
-		defer from.Close()
-
+		filename = "STDIN"
 	default:
+		filename = filepath.Base(source)
 		from, err = os.Open(source)
 		if err != nil {
 			return
 		}
-		defer from.Close()
 	}
+	return
+}
 
+func readLocalFileOrURL(source string) (b []byte, err error) {
+	var from io.ReadCloser
+	from, _, err = openLocalFileOrURL(source)
+	if err != nil {
+		return
+	}
+	defer from.Close()
 	return io.ReadAll(from)
 }
 
