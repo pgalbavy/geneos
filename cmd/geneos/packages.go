@@ -413,6 +413,7 @@ func (r *Remotes) latestMatch(dir, filter string, fn func(os.DirEntry) bool) (la
 			dirs = dirs[:len(dirs)-1]
 		}
 	}
+
 	max := make([]int, 3)
 	for _, v := range dirs {
 		if fn(v) {
@@ -426,6 +427,11 @@ func (r *Remotes) latestMatch(dir, filter string, fn func(os.DirEntry) bool) (la
 			continue
 		}
 		s := strings.SplitN(x, ".", 3)
+
+		// make sure we have three levels, fill with 0
+		for len(s) < len(max) {
+			s = append(s, "0")
+		}
 		next := sliceAtoi(s)
 
 	OUTER:
