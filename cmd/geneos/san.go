@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"errors"
 	"path/filepath"
 	"strconv"
 )
@@ -251,25 +250,30 @@ func (s *Sans) Command() (args, env []string) {
 }
 
 func (s *Sans) Clean(purge bool, params []string) (err error) {
-	var stopped bool = true
+	var stopped bool
 
 	if !purge {
-		return deletePaths(s, GlobalConfig["SanCleanList"])
+		if err = deletePaths(s, GlobalConfig["SanCleanList"]); err == nil {
+			log.Println(s, "cleaned")
+		}
+		return
 	}
 
-	if err = stopInstance(s, params); err != nil {
-		if errors.Is(err, ErrProcNotExist) {
-			stopped = false
-		} else {
-			return
-		}
+	if _, err = findInstancePID(s); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(s, params); err != nil {
+		return
+	} else {
+		stopped = true
 	}
+
 	if err = deletePaths(s, GlobalConfig["SanCleanList"]); err != nil {
 		return
 	}
 	if err = deletePaths(s, GlobalConfig["SanPurgeList"]); err != nil {
 		return
 	}
+	log.Println(s, "fully cleaned")
 	if stopped {
 		err = startInstance(s, params)
 	}

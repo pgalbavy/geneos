@@ -41,7 +41,7 @@ func commandMigrate(ct Component, names []string, params []string) (err error) {
 
 func migrateInstance(c Instances, params []string) (err error) {
 	if err = migrateConfig(c); err != nil {
-		log.Println(c.Type(), c.Name(), "cannot migrate configuration", err)
+		log.Println(c, "cannot migrate configuration", err)
 	}
 	return
 }
@@ -82,7 +82,7 @@ func revertInstance(c Instances, params []string) (err error) {
 	if _, err := c.Remote().statFile(InstanceFileWithExt(c, "rc")); err == nil {
 		// ignore errors
 		if c.Remote().removeFile(InstanceFileWithExt(c, "rc.orig")) == nil || c.Remote().removeFile(InstanceFileWithExt(c, "json")) == nil {
-			logDebug.Println(c.Type(), c.Name(), "removed extra config file(s)")
+			logDebug.Println(c, "removed extra config file(s)")
 		}
 		return err
 	}
@@ -95,6 +95,6 @@ func revertInstance(c Instances, params []string) (err error) {
 		return
 	}
 
-	logDebug.Println(c.Type(), c.Name(), "reverted to RC config")
+	logDebug.Println(c, "reverted to RC config")
 	return nil
 }

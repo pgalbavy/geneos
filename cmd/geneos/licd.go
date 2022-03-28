@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"strconv"
 )
 
@@ -135,10 +134,6 @@ func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
 	return nil
 }
 
-func (l *Licds) Rebuild(initial bool) error {
-	return ErrNotSupported
-}
-
 func (l *Licds) Command() (args, env []string) {
 	args = []string{
 		l.Name(),
@@ -158,18 +153,21 @@ func (l *Licds) Command() (args, env []string) {
 }
 
 func (l *Licds) Clean(purge bool, params []string) (err error) {
-	var stopped bool = true
+	var stopped bool
 
 	if !purge {
-		return deletePaths(l, GlobalConfig["LicdCleanList"])
+		if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err == nil {
+			log.Println(l, "cleaned")
+		}
+		return
 	}
 
-	if err = stopInstance(l, params); err != nil {
-		if errors.Is(err, ErrProcNotExist) {
-			stopped = false
-		} else {
-			return
-		}
+	if _, err = findInstancePID(l); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(l, params); err != nil {
+		return
+	} else {
+		stopped = true
 	}
 
 	if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err != nil {
@@ -178,6 +176,7 @@ func (l *Licds) Clean(purge bool, params []string) (err error) {
 	if err = deletePaths(l, GlobalConfig["LicdPurgeList"]); err != nil {
 		return
 	}
+	log.Println(l, "fully cleaned")
 	if stopped {
 		err = startInstance(l, params)
 	}
@@ -185,5 +184,9 @@ func (l *Licds) Clean(purge bool, params []string) (err error) {
 }
 
 func (l *Licds) Reload(params []string) (err error) {
+	return ErrNotSupported
+}
+
+func (l *Licds) Rebuild(initial bool) error {
 	return ErrNotSupported
 }

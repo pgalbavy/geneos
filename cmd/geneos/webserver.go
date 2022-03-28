@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -45,7 +44,7 @@ func init() {
 	RegisterSettings(GlobalSettings{
 		"WebserverPortRange": "8080,8100-",
 		"WebserverCleanList": "*.old",
-		"WebserverPurgeList": "webserver.log:webserver.txt",
+		"WebserverPurgeList": "logs/*.log:webserver.txt",
 	})
 }
 
@@ -212,18 +211,21 @@ func (w *Webservers) Command() (args, env []string) {
 }
 
 func (w *Webservers) Clean(purge bool, params []string) (err error) {
-	var stopped bool = true
+	var stopped bool
 
 	if !purge {
-		return deletePaths(w, GlobalConfig["WebserverCleanList"])
+		if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err == nil {
+			log.Println(w, "cleaned")
+		}
+		return
 	}
 
-	if err = stopInstance(w, params); err != nil {
-		if errors.Is(err, ErrProcNotExist) {
-			stopped = false
-		} else {
-			return
-		}
+	if _, err = findInstancePID(w); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(w, params); err != nil {
+		return
+	} else {
+		stopped = true
 	}
 
 	if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err != nil {
@@ -232,6 +234,7 @@ func (w *Webservers) Clean(purge bool, params []string) (err error) {
 	if err = deletePaths(w, GlobalConfig["WebserverPurgeList"]); err != nil {
 		return
 	}
+	log.Println(w, "fully cleaned")
 	if stopped {
 		err = startInstance(w, params)
 	}

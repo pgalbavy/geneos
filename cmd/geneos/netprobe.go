@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"strconv"
 )
 
@@ -159,18 +158,21 @@ func (n *Netprobes) Command() (args, env []string) {
 }
 
 func (n *Netprobes) Clean(purge bool, params []string) (err error) {
-	var stopped bool = true
+	var stopped bool
 
 	if !purge {
-		return deletePaths(n, GlobalConfig["NetprobeCleanList"])
+		if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err == nil {
+			log.Println(n, "cleaned")
+		}
+		return
 	}
 
-	if err = stopInstance(n, params); err != nil {
-		if errors.Is(err, ErrProcNotExist) {
-			stopped = false
-		} else {
-			return
-		}
+	if _, err = findInstancePID(n); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(n, params); err != nil {
+		return
+	} else {
+		stopped = true
 	}
 
 	if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err != nil {
@@ -179,6 +181,7 @@ func (n *Netprobes) Clean(purge bool, params []string) (err error) {
 	if err = deletePaths(n, GlobalConfig["NetprobePurgeList"]); err != nil {
 		return
 	}
+	log.Println(n, "fully cleaned")
 	if stopped {
 		err = startInstance(n, params)
 	}

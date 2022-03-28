@@ -96,12 +96,7 @@ func commandLogs(ct Component, args []string, params []string) (err error) {
 		done := make(chan bool)
 		watcher, _ = watchLogs()
 		defer watcher.Close()
-		// add logs to watcher
-		// wait for events
-		// track end of each file
-		// support rolling via Rename / Create events
 		err = ct.loopCommand(logFollowInstance, args, params)
-
 		<-done
 	default:
 		err = ct.loopCommand(logTailInstance, args, params)
@@ -125,7 +120,7 @@ func outHeader(logfile string) {
 func logTailInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, st, err := c.Remote().statAndOpenFile(logfile)
+	f, st, err := c.Remote().statAndOpenFile(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			log.Printf("===> %s log file not found <===", c)
@@ -133,10 +128,10 @@ func logTailInstance(c Instances, params []string) (err error) {
 		}
 		return
 	}
-	defer lines.Close()
-	tails[logfile] = &tail{lines, c.String()}
+	defer f.Close()
+	tails[logfile] = &tail{f, c.String()}
 
-	text, err := tailLines(lines, st, logsLines)
+	text, err := tailLines(f, st.st.Size(), logsLines)
 	if err != nil && !errors.Is(err, io.EOF) {
 		log.Println(err)
 	}
@@ -146,7 +141,7 @@ func logTailInstance(c Instances, params []string) (err error) {
 	return nil
 }
 
-func tailLines(f io.ReadSeekCloser, st fileStat, linecount int) (text string, err error) {
+func tailLines(f io.ReadSeekCloser, end int64, linecount int) (text string, err error) {
 	// reasonable guess at bytes per line to use as a multiplier
 	const charsPerLine = 132
 	var chunk int64 = int64(linecount * charsPerLine)
@@ -164,13 +159,13 @@ func tailLines(f io.ReadSeekCloser, st fileStat, linecount int) (text string, er
 	}
 
 	// st, err := f.Stat()
-	if err != nil {
-		return
-	}
-	var end int64
-	if st != (fileStat{}) {
-		end = st.st.Size()
-	}
+	// if err != nil {
+	// 	return
+	// }
+	// var end int64
+	// if st != (fileStat{}) {
+	// 	end = st.st.Size()
+	// }
 
 	for i = 1 + end/chunk; i > 0; i-- {
 		f.Seek((i-1)*chunk, io.SeekStart)
@@ -259,14 +254,18 @@ func logFollowInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
 	f, st, err := rLOCAL.statAndOpenFile(logfile)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			log.Printf("===> %s log file not found <===", c)
+			return nil
+		}
 		return
 	}
 	// perfectly valid to not have a file to watch at start
 	tails[logfile] = &tail{f, c.String()}
 
 	// output up to this point
-	text, _ := tailLines(tails[logfile].f, st, logsLines)
+	text, _ := tailLines(tails[logfile].f, st.st.Size(), logsLines)
 
 	if len(text) != 0 {
 		filterOutput(logfile, strings.NewReader(text+"\n"))

@@ -11,7 +11,6 @@ package main
 //
 
 import (
-	"errors"
 	"strconv"
 )
 
@@ -166,26 +165,34 @@ func (c FileAgents) Command() (args, env []string) {
 }
 
 func (c FileAgents) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(c, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
-		}
-		if err = deletePaths(c, GlobalConfig["FACleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(c, GlobalConfig["FAPurgeList"])
-		if stopped {
-			err = startInstance(c, params)
+	var stopped bool
+
+	if !purge {
+		if err = deletePaths(c, GlobalConfig["FACleanList"]); err == nil {
+			log.Println(c, "cleaned")
 		}
 		return
 	}
-	return deletePaths(c, GlobalConfig["FACleanList"])
+
+	if _, err = findInstancePID(c); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(c, params); err != nil {
+		return
+	} else {
+		stopped = true
+	}
+
+	if err = deletePaths(c, GlobalConfig["FACleanList"]); err != nil {
+		return
+	}
+	if err = deletePaths(c, GlobalConfig["FAPurgeList"]); err != nil {
+		return
+	}
+	log.Println(c, "fully cleaned")
+	if stopped {
+		err = startInstance(c, params)
+	}
+	return
 }
 
 func (c FileAgents) Reload(params []string) (err error) {

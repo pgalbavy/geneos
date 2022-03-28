@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	_ "embed"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"syscall"
@@ -277,22 +276,24 @@ func (g *Gateways) Command() (args, env []string) {
 }
 
 func (g *Gateways) Clean(purge bool, params []string) (err error) {
-	var stopped bool = true
+	var stopped bool
 
 	if !purge {
 		if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err == nil {
 			log.Println(g, "cleaned")
 		}
 		return
+
 	}
 
-	if err = stopInstance(g, params); err != nil {
-		if errors.Is(err, ErrProcNotExist) {
-			stopped = false
-		} else {
-			return
-		}
+	if _, err = findInstancePID(g); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(g, params); err != nil {
+		return
+	} else {
+		stopped = true
 	}
+
 	if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err != nil {
 		return
 	}

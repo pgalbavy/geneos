@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"strconv"
 )
 
@@ -156,26 +155,34 @@ func (n *FA2s) Command() (args, env []string) {
 }
 
 func (n *FA2s) Clean(purge bool, params []string) (err error) {
-	if purge {
-		var stopped bool = true
-		err = stopInstance(n, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
-		}
-		if err = deletePaths(n, GlobalConfig["FA2CleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(n, GlobalConfig["FA2PurgeList"])
-		if stopped {
-			err = startInstance(n, params)
+	var stopped bool
+
+	if !purge {
+		if err = deletePaths(n, GlobalConfig["FA2CleanList"]); err == nil {
+			log.Println(n, "cleaned")
 		}
 		return
 	}
-	return deletePaths(n, GlobalConfig["FA2CleanList"])
+
+	if _, err = findInstancePID(n); err == ErrProcNotExist {
+		stopped = false
+	} else if err = stopInstance(n, params); err != nil {
+		return
+	} else {
+		stopped = true
+	}
+
+	if err = deletePaths(n, GlobalConfig["FA2CleanList"]); err != nil {
+		return
+	}
+	if err = deletePaths(n, GlobalConfig["FA2PurgeList"]); err != nil {
+		return
+	}
+	log.Println(n, "fully cleaned")
+	if stopped {
+		err = startInstance(n, params)
+	}
+	return
 }
 
 func (n *FA2s) Reload(params []string) (err error) {

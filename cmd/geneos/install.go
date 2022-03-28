@@ -67,7 +67,7 @@ FLAGS:
 	-b BASE		The name of the package base version symlink, default active_prod
 	-l		Local archives only, don't try to download from official site
 	-n		Do not save a copy of downloads in packages/downloads
-	-r REMOTE	install from local archive to remote. default is local. all means all remotes and local
+	-r REMOTE	Install to named remote only. Default is to install to all, including local
 	-U		Update base symlink, stopping and starting only running instances that use it
 	-T TYPE:VERSION	Override type and version for non-standard named archives`,
 	})
