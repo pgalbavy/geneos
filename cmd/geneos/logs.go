@@ -255,22 +255,23 @@ func logFollowInstance(c Instances, params []string) (err error) {
 
 	f, st, err := rLOCAL.statAndOpenFile(logfile)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			log.Printf("===> %s log file not found <===", c)
-			return nil
+		if !errors.Is(err, fs.ErrNotExist) {
+			return
 		}
-		return
+		log.Printf("===> %s log file not found <===", c)
 	}
+
 	// perfectly valid to not have a file to watch at start
 	tails[logfile] = &tail{f, c.String()}
 
-	// output up to this point
-	text, _ := tailLines(tails[logfile].f, st.st.Size(), logsLines)
+	if err == nil {
+		// output up to this point
+		text, _ := tailLines(tails[logfile].f, st.st.Size(), logsLines)
 
-	if len(text) != 0 {
-		filterOutput(logfile, strings.NewReader(text+"\n"))
+		if len(text) != 0 {
+			filterOutput(logfile, strings.NewReader(text+"\n"))
+		}
 	}
-
 	logDebug.Println("watching", logfile)
 
 	// add parent directory, to watch for changes
