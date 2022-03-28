@@ -174,7 +174,7 @@ func commandInstall(ct Component, args []string, params []string) (err error) {
 	// overrides do not work in this case as the version and type have to be part of the
 	// archive file name
 	if ct != None {
-		logDebug.Printf("downloading %q version of %s to %s remote(s)", version, ct, installRemote)
+		logDebug.Printf("installing %q version of %s to %s remote(s)", version, ct, installRemote)
 		filename, f, err := ct.openArchive(rLOCAL, version)
 		if err != nil {
 			return err
@@ -594,15 +594,20 @@ func (ct Component) openArchive(r *Remotes, version string) (filename string, bo
 				return !strings.Contains(v.Name(), ct.String())
 			}
 		})
-		var f io.ReadSeekCloser
-		if f, _, err = rLOCAL.statAndOpenFile(filepath.Join(archiveDir, filename)); err == nil {
-			body = f
+		if filename == "" {
+			err = fmt.Errorf("local installation selected but no suitable file found for %s on %s (%w)", ct, r.InstanceName, ErrInvalidArgs)
+			return
 		}
+		var f io.ReadSeekCloser
+		if f, _, err = rLOCAL.statAndOpenFile(filepath.Join(archiveDir, filename)); err != nil {
+			err = fmt.Errorf("local installation selected but no suitable file found for %s on %s (%w)", ct, r.InstanceName, err)
+			return
+		}
+		body = f
 		return
 	}
 
-	filename, resp, err = ct.checkArchive(r, version)
-	if err != nil {
+	if filename, resp, err = ct.checkArchive(r, version); err != nil {
 		return
 	}
 	finalURL = resp.Request.URL.String()
@@ -665,7 +670,7 @@ func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reade
 	if !(installTypeOverride != "" && installVersionOverride != "") {
 		parts := archiveRE.FindStringSubmatch(filename)
 		if len(parts) == 0 {
-			logError.Fatalf("invalid archive name format: %q", filename)
+			return fmt.Errorf("%q: %w", filename, ErrInvalidArgs)
 		}
 		version = parts[2]
 		// check the component in the filename
