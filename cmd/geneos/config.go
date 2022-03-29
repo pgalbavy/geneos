@@ -358,8 +358,8 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	}
 	log.Println(ct, oldname, "renamed to", newname)
 	oldconf.Unload()
-	if err = newconf.Rebuild(false); err == nil {
-
+	if err = newconf.Rebuild(false); err != nil {
+		return
 	}
 	if stopped {
 		return startInstance(newconf, nil)
