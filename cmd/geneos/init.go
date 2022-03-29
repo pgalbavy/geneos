@@ -78,15 +78,27 @@ FLAGS:
 	})
 
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
-	initFlagSet.StringVar(&initFlags.All, "A", "", "Perform initialisation steps using provided license file and start environment")
-	initFlagSet.BoolVar(&initFlags.Demo, "D", false, "Perform initialisation steps for a demo setup and start environment")
-	initFlagSet.BoolVar(&initFlags.StartSAN, "S", false, "Create a SAN and start")
-	initFlagSet.BoolVar(&initFlags.Templates, "T", false, "Overwrite/create templates from embedded (for version upgrades)")
-	initFlagSet.StringVar(&initFlags.Name, "n", "", "Use the given name for instances and configurations instead of the hostname")
-	initFlagSet.StringVar(&initFlags.SigningCert, "c", "", "signing certificate file with optional embedded private key")
-	initFlagSet.StringVar(&initFlags.SigningKey, "k", "", "signing private key file")
-	initFlagSet.StringVar(&initFlags.GatewayTmpl, "g", "", "A `gateway` template file")
-	initFlagSet.StringVar(&initFlags.SanTmpl, "s", "", "A `san` template file")
+	initFlagSet.StringVar(&initFlags.All, "A", "",
+		"Perform initialisation steps using provided license file and start environment")
+	initFlagSet.BoolVar(&initFlags.Demo, "D", false,
+		"Perform initialisation steps for a demo setup and start environment")
+	initFlagSet.BoolVar(&initFlags.StartSAN, "S", false,
+		"Create a SAN and start")
+	initFlagSet.BoolVar(&initFlags.Templates, "T", false,
+		"Overwrite/create templates from embedded (for version upgrades)")
+
+	initFlagSet.StringVar(&initFlags.Name, "n", "",
+		"Use the given name for instances and configurations instead of the hostname")
+
+	initFlagSet.StringVar(&initFlags.SigningCert, "c", "",
+		"signing certificate file with optional embedded private key")
+	initFlagSet.StringVar(&initFlags.SigningKey, "k", "",
+		"signing private key file")
+
+	initFlagSet.StringVar(&initFlags.GatewayTmpl, "g", "",
+		"A `gateway` template file")
+	initFlagSet.StringVar(&initFlags.SanTmpl, "s", "",
+		"A `san` template file")
 	initFlagSet.BoolVar(&helpFlag, "h", false, helpUsage)
 }
 
@@ -115,6 +127,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
+	// as we don't use parseArgs() we have to consume flags here
 	args = initFlag("init", args)
 
 	// rewrite local templates and exit
@@ -164,14 +177,14 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 		return fmt.Errorf("%w: Only one of -A, -D, -S or -T can be given", ErrInvalidArgs)
 	}
 
-	if err = rLOCAL.initGeneos(args); err != nil {
+	if err = rLOCAL.initGeneos(initFlags, args); err != nil {
 		log.Fatalln(err)
 	}
 
 	return
 }
 
-func (r *Remotes) initGeneos(args []string) (err error) {
+func (r *Remotes) initGeneos(flags initFlagsType, args []string) (err error) {
 	var dir string
 	var uid, gid int
 	var username, homedir string
@@ -182,15 +195,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		return
 	}
 
-	logDebug.Println("args, params:", args, params)
-
-	if len(params) > 0 {
-		if err = initFlagSet.Parse(params); err != nil {
-			return
-		}
-
-		params = initFlagSet.Args()
-	}
+	logDebug.Println("args:", args)
 
 	if superuser {
 		if len(args) == 0 {
@@ -250,6 +255,9 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	}
 
 	// dir must first not exist (or be empty) and then be createable
+	// XXX have an ignore flag?
+	// maybe check that the entire list of registered directories are
+	// either directories or do not exist
 	if _, err := r.statFile(dir); err == nil {
 		// check empty
 		dirs, err := r.readDir(dir)
@@ -333,9 +341,9 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 	}
 
-	if initFlags.GatewayTmpl != "" {
+	if flags.GatewayTmpl != "" {
 		var tmpl []byte
-		if tmpl, err = readLocalFileOrURL(initFlags.GatewayTmpl); err != nil {
+		if tmpl, err = readLocalFileOrURL(flags.GatewayTmpl); err != nil {
 			return
 		}
 		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
@@ -343,9 +351,9 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 	}
 
-	if initFlags.SanTmpl != "" {
+	if flags.SanTmpl != "" {
 		var tmpl []byte
-		if tmpl, err = readLocalFileOrURL(initFlags.SanTmpl); err != nil {
+		if tmpl, err = readLocalFileOrURL(flags.SanTmpl); err != nil {
 			return
 		}
 		if err = rLOCAL.writeFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
@@ -354,26 +362,28 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	}
 
 	// both options can import arbitrary PEM files, fix this
-	if initFlags.SigningCert != "" {
-		TLSImport(initFlags.SigningCert)
+	if flags.SigningCert != "" {
+		TLSImport(flags.SigningCert)
 	}
 
-	if initFlags.SigningKey != "" {
-		TLSImport(initFlags.SigningKey)
+	if flags.SigningKey != "" {
+		TLSImport(flags.SigningKey)
 	}
 
 	e := []string{}
 	rem := []string{"@" + r.InstanceName}
 
 	// create a demo environment
-	if initFlags.Demo {
+	if flags.Demo {
 		g := []string{"Demo Gateway@" + r.InstanceName}
 		n := []string{"localhost@" + r.InstanceName}
 		w := []string{"demo@" + r.InstanceName}
-		commandInstall(None, e, e)
+		commandInstall(Gateway, e, e)
 		commandAdd(Gateway, g, params)
 		commandSet(Gateway, g, []string{"GateOpts=-demo"})
+		commandInstall(Netprobe, e, e)
 		commandAdd(Netprobe, n, params)
+		commandInstall(Webserver, e, e)
 		commandAdd(Webserver, w, params)
 		// call parseArgs() on an empty list to populate for loopCommand()
 		ct, args, params := parseArgs(commands["start"], rem)
@@ -382,12 +392,12 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		return
 	}
 
-	if initFlags.StartSAN {
+	if flags.StartSAN {
 		var sanname string
 		var s []string
 
-		if initFlags.Name != "" {
-			sanname = initFlags.Name
+		if flags.Name != "" {
+			sanname = flags.Name
 		} else {
 			sanname, _ = os.Hostname()
 		}
@@ -395,25 +405,29 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 			sanname = sanname + "@" + r.InstanceName
 		}
 		s = []string{sanname}
+		// Add will also install the right package
 		commandAdd(San, s, params)
 		return nil
 	}
 
 	// create a basic environment with license file
-	if initFlags.All != "" {
-		if initFlags.Name == "" {
-			initFlags.Name, err = os.Hostname()
+	if flags.All != "" {
+		if flags.Name == "" {
+			flags.Name, err = os.Hostname()
 			if err != nil {
 				return err
 			}
 		}
-		g := []string{initFlags.Name}
+		g := []string{flags.Name}
 		n := []string{"localhost@" + r.InstanceName}
-		commandInstall(None, e, e)
+		commandInstall(Licd, e, e)
 		commandAdd(Licd, g, params)
-		commandImport(Licd, g, []string{"geneos.lic=" + initFlags.All})
+		commandImport(Licd, g, []string{"geneos.lic=" + flags.All})
+		commandInstall(Gateway, e, e)
 		commandAdd(Gateway, g, params)
+		commandInstall(Netprobe, e, e)
 		commandAdd(Netprobe, n, params)
+		commandInstall(Webserver, e, e)
 		commandAdd(Webserver, g, params)
 		// call parseArgs() on an empty list to populate for loopCommand()
 		ct, args, params := parseArgs(commands["start"], rem)

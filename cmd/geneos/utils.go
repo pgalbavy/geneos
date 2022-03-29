@@ -409,7 +409,9 @@ func reservedName(in string) (ok bool) {
 }
 
 // spaces are valid - dumb, but valid - for now
-var validStringRE = regexp.MustCompile(`^[[:alpha:]][:@\.\w -]*$`)
+// if the name starts with  number then the next character cannot be a number or '.'
+// to help distinguish from versions
+var validStringRE = regexp.MustCompile(`^\w[\w-]+[:@\.\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //

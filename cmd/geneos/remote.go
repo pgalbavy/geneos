@@ -236,7 +236,9 @@ func (r *Remotes) Add(username string, params []string, tmpl string) (err error)
 		r.Load()
 	}
 
-	if err = r.initGeneos([]string{homepath}); err != nil {
+	// initialise the remote directory structure, but perhaps ignore errors
+	// as we may simply be adding an existing installation
+	if err = r.initGeneos(initFlags, []string{homepath}); err != nil {
 		return err
 	}
 

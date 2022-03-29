@@ -182,7 +182,8 @@ You can fix this by doing one of the following:
 
 3. Set the Geneos parameter in the global configuration file:
 
-	$ echo '{ "Geneos": "/path/to/geneos" }' >` + globalConfig)
+	$ echo '{ "Geneos": "/path/to/geneos" }' >` + globalConfig + `
+`)
 		}
 		s, err := rLOCAL.statFile(Geneos())
 		if err != nil {
