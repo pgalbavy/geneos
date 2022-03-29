@@ -305,6 +305,8 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 
 	if _, err = findInstancePID(oldconf); err != ErrProcNotExist {
 		if err = stopInstance(oldconf, nil); err == nil {
+			// cannot use defer startInstance() here as we have
+			// not yet created the new instance
 			stopped = true
 		}
 	}
@@ -330,6 +332,9 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 		if err = setField(oldconf, oldconf.Prefix("Name"), newname); err != nil {
 			// try to recover
 			_ = newconf.Remote().renameFile(newhome, oldhome)
+			if stopped {
+				return startInstance(oldconf, nil)
+			}
 			return
 		}
 	}
@@ -337,18 +342,27 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.ComponentDir(newconf.Remote()), newname)); err != nil {
 		// try to recover
 		_ = newconf.Remote().renameFile(newhome, oldhome)
+		if stopped {
+			return startInstance(oldconf, nil)
+		}
 		return
 	}
 
 	// config changes don't matter until writing config succeeds
 	if err = newconf.Remote().writeConfigFile(filepath.Join(newhome, ct.String()+".json"), newconf.Prefix("User"), oldconf); err != nil {
 		_ = newconf.Remote().renameFile(newhome, oldhome)
+		if stopped {
+			return startInstance(oldconf, nil)
+		}
 		return
 	}
 	log.Println(ct, oldname, "renamed to", newname)
 	oldconf.Unload()
+	if err = newconf.Rebuild(false); err == nil {
+
+	}
 	if stopped {
-		return startInstance(oldconf, nil)
+		return startInstance(newconf, nil)
 	}
 	return
 }
