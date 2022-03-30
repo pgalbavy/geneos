@@ -19,7 +19,9 @@ var releaseVersion string
 
 var globalConfig = "/etc/geneos/geneos.json"
 
-var initDirs = []string{}
+type ComponentDirs map[Component][]string
+
+var initDirs ComponentDirs = make(ComponentDirs)
 
 // new global config
 type Global string
@@ -135,14 +137,11 @@ func main() {
 		if ct == None {
 			// check the unparsed args here
 			if len(leftargs) > 1 {
-				switch leftargs[1] {
-				case "user", "global":
-					if err := commands[command].Function(ct, leftargs[1:], nil); err != nil {
-						logError.Fatalln(err)
-					}
-					os.Exit(0)
-				default:
+				if err := commands[command].Function(ct, leftargs[1:], nil); err != nil {
+					logError.Fatalln(err)
 				}
+				os.Exit(0)
+
 			}
 			printConfigStructJSON(GlobalConfig)
 			os.Exit(0)

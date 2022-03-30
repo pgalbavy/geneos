@@ -56,7 +56,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Gateway+2",
 	})
-	RegisterDirs([]string{
+	Gateway.RegisterDirs([]string{
 		"packages/gateway",
 		"gateway/gateways",
 		"gateway/gateway_shared",
@@ -72,6 +72,7 @@ func init() {
 
 func InitGateway(r *Remotes) {
 	// copy default template to directory
+	Gateway.CheckComponentDirs(r)
 	if err := r.writeFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
 		log.Fatalln(err)
 	}

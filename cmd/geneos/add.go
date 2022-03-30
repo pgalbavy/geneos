@@ -105,8 +105,9 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 
 	c, err := ct.GetInstance(name)
+	ct.CheckComponentDirs(c.Remote())
 
-	// check if instance already exists
+	// check if instance already exists``
 	if c.Loaded() {
 		log.Println(c, "already exists")
 		return
@@ -116,13 +117,14 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		log.Fatalln(err)
 	}
 
-	// reload config as 'c' is not updated by Add() as an interface value
+	// reload config as instance data is not updated by Add() as an interface value
 	c.Unload()
 	c.Load()
-	log.Printf("new %s added, port %d\n", c, getInt(c, c.Prefix("Port")))
+	log.Printf("%s added, port %d\n", c, getInt(c, c.Prefix("Port")))
 
-	if addStart {
-		commandStart(c.Type(), []string{name}, []string{})
+	if addStart || initFlags.StartSAN {
+		startInstance(c, nil)
+		// commandStart(c.Type(), []string{name}, []string{})
 	}
 
 	return

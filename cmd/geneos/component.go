@@ -155,8 +155,21 @@ func RegisterComponent(c Components) {
 
 // register directories that need to be created in the
 // root of the install (by init)
-func RegisterDirs(dirs []string) {
-	initDirs = append(initDirs, dirs...)
+func (ct Component) RegisterDirs(dirs []string) {
+	initDirs[ct] = dirs
+}
+
+func (ct Component) CheckComponentDirs(r *Remotes) (err error) {
+	if r == rALL {
+		logError.Fatalln(ErrInvalidArgs)
+	}
+	for _, d := range initDirs[ct] {
+		dir := filepath.Join(r.Geneos, d)
+		if err = r.mkdirAll(dir, 0775); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+	return
 }
 
 // register setting with their defaults
@@ -248,7 +261,7 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 		}
 	}
 	if n == 0 {
-		log.Println("no matches")
+		return ErrNotFound
 	}
 	return nil
 }
@@ -300,6 +313,9 @@ func (ct Component) GetInstance(name string) (c Instances, err error) {
 	}
 
 	c = cm.New(name)
+	if c == nil {
+		return nil, ErrInvalidArgs
+	}
 	err = c.Load()
 	return
 }

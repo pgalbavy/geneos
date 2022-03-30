@@ -260,6 +260,10 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 	logDebug.Println("rawargs, params", rawargs, params)
 
 	if !cmd.Wildcard {
+		if len(rawargs) == 0 {
+			ct = None
+			return
+		}
 		if ct = parseComponentName(rawargs[0]); ct == Unknown {
 			args = rawargs
 			return

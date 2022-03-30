@@ -33,7 +33,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Netprobe",
 	})
-	RegisterDirs([]string{
+	Netprobe.RegisterDirs([]string{
 		"packages/netprobe",
 		"netprobe/netprobes",
 	})

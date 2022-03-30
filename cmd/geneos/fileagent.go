@@ -43,7 +43,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Fix+Analyser+File+Agent",
 	})
-	RegisterDirs([]string{
+	FileAgent.RegisterDirs([]string{
 		"packages/fileagent",
 		"fileagent/fileagents",
 	})

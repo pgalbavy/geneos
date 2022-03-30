@@ -33,7 +33,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Fix+Analyser+2+Netprobe",
 	})
-	RegisterDirs([]string{
+	FA2.RegisterDirs([]string{
 		"packages/fa2",
 		"fa2/fa2s",
 	})

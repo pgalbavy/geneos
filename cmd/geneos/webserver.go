@@ -37,7 +37,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Web+Dashboard",
 	})
-	RegisterDirs([]string{
+	Webserver.RegisterDirs([]string{
 		"packages/webserver",
 		"webserver/webservers",
 	})

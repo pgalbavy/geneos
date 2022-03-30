@@ -56,7 +56,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Netprobe",
 	})
-	RegisterDirs([]string{
+	San.RegisterDirs([]string{
 		"packages/netprobe",
 		"san/sans",
 		"san/templates",
@@ -70,6 +70,7 @@ func init() {
 
 func InitSan(r *Remotes) {
 	// copy default template to directory
+	San.CheckComponentDirs(r)
 	if err := r.writeFile(r.GeneosPath(San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
 		log.Fatalln(err)
 	}

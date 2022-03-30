@@ -41,7 +41,7 @@ type Remotes struct {
 	Hostname string
 	Port     int `default:"22"`
 	Username string
-	ITRSHome string            `default:"{{.RemoteRoot}}"`
+	ITRSHome string
 	Geneos   string            `default:"{{.RemoteRoot}}"`
 	OSInfo   map[string]string `json:",omitempty"`
 }
@@ -54,7 +54,7 @@ func init() {
 		RealComponent:    false,
 		DownloadBase:     "",
 	})
-	RegisterDirs([]string{
+	Remote.RegisterDirs([]string{
 		"remotes",
 	})
 	RegisterSettings(GlobalSettings{})
@@ -69,7 +69,8 @@ var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
 func NewRemote(name string) Instances {
 	local, remote := splitInstanceName(name)
 	if remote != LOCAL {
-		logError.Fatalln("remote remotes not suported")
+		logDebug.Println("remote remotes not suported")
+		return nil
 	}
 	r, ok := remotes[RemoteName(local)]
 	if ok {
@@ -207,13 +208,13 @@ func (r *Remotes) Add(username string, params []string, tmpl string) (err error)
 	r.Username = username
 
 	// XXX default to remote user's home dir, not local
-	homepath := Geneos()
+	r.Geneos = Geneos()
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
-		homepath = u.Path
+		r.Geneos = u.Path
 	}
-	r.Geneos = homepath
+	// r.Geneos = homepath
 
 	if err = writeInstanceConfig(r); err != nil {
 		return
@@ -233,12 +234,13 @@ func (r *Remotes) Add(username string, params []string, tmpl string) (err error)
 		if err = commandSet(Remote, []string{r.Name()}, params); err != nil {
 			return
 		}
+		r.Unload()
 		r.Load()
 	}
 
 	// initialise the remote directory structure, but perhaps ignore errors
 	// as we may simply be adding an existing installation
-	if err = r.initGeneos(initFlags, []string{homepath}); err != nil {
+	if err = r.initGeneos([]string{r.Geneos}); err != nil {
 		return err
 	}
 

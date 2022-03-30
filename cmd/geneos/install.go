@@ -22,7 +22,7 @@ import (
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|file-agent|\w+)-([\w\.-]+?)[\.-]?linux`)
 
 func init() {
-	RegisterDirs([]string{
+	None.RegisterDirs([]string{
 		"packages/downloads",
 	})
 
@@ -180,12 +180,14 @@ func commandInstall(ct Component, args []string, params []string) (err error) {
 
 		if r == rALL {
 			for _, r := range AllRemotes() {
+				ct.CheckComponentDirs(r)
 				if err = ct.unarchive(r, filename, installBase, f, installUpdate); err != nil {
 					logError.Println(err)
 					continue
 				}
 			}
 		} else {
+			ct.CheckComponentDirs(r)
 			if err = ct.unarchive(r, filename, installBase, f, installUpdate); err != nil {
 				return err
 			}
@@ -210,6 +212,7 @@ func commandInstall(ct Component, args []string, params []string) (err error) {
 		}
 
 		for _, r := range rs {
+			ct.CheckComponentDirs(r)
 			if err = ct.downloadComponent(r, version, installBase, installUpdate); err != nil {
 				logError.Println(err)
 				continue
@@ -232,6 +235,7 @@ func commandInstall(ct Component, args []string, params []string) (err error) {
 		if installRemote == string(ALL) {
 			for _, r := range AllRemotes() {
 				// what is finalVersion ?
+				ct.CheckComponentDirs(r)
 				if err = ct.unarchive(r, filename, installBase, f, installUpdate); err != nil {
 					logError.Println(err)
 					continue
@@ -239,6 +243,7 @@ func commandInstall(ct Component, args []string, params []string) (err error) {
 			}
 		} else {
 			r := GetRemote(RemoteName(installRemote))
+			ct.CheckComponentDirs(r)
 			if err = ct.unarchive(r, filename, installBase, f, installUpdate); err != nil {
 				return err
 			}

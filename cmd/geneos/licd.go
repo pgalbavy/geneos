@@ -33,7 +33,7 @@ func init() {
 		RealComponent:    true,
 		DownloadBase:     "Licence+Daemon",
 	})
-	RegisterDirs([]string{
+	Licd.RegisterDirs([]string{
 		"packages/licd",
 		"licd/licds",
 	})
