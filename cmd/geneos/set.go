@@ -108,10 +108,21 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 	return
 }
 
+var pluralise = map[string]string{
+	"Gateway":   "s",
+	"Attribute": "s",
+	"Type":      "s",
+	"Include":   "s",
+}
+
 func setValue(c Instances, k, vs string) (err error) {
 	defaults := map[string]string{
 		"Includes": "100",
 		"Gateways": "7039",
+	}
+
+	if pluralise[k] != "" {
+		k = k + pluralise[k]
 	}
 
 	switch k {
