@@ -237,6 +237,11 @@ func startInstance(c Instances, params []string) (err error) {
 	cmd.Stdout = out
 	cmd.Stderr = out
 	cmd.Dir = c.Home()
+	// detach process by creating a session (fixed start + log)
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setsid = true
 
 	if err = cmd.Start(); err != nil {
 		return
