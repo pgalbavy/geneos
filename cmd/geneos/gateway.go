@@ -233,6 +233,8 @@ func (g *Gateways) Command() (args, env []string) {
 		filepath.Join(g.GateBins, g.GateBase, "resources"),
 		"-log",
 		getLogfilePath(g),
+		"-setup",
+		filepath.Join(g.GateHome, "gateway.setup.xml"),
 		// enable stats by default
 		"-stats",
 	}
