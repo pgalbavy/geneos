@@ -538,6 +538,31 @@ func (r *Remotes) statFile(name string) (s fileStat, err error) {
 	return
 }
 
+// lstat() a local or remote file and normalise common values
+func (r *Remotes) lstatFile(name string) (s fileStat, err error) {
+	switch r.InstanceName {
+	case string(LOCAL):
+		if s.st, err = os.Lstat(name); err != nil {
+			return
+		}
+		s.uid = s.st.Sys().(*syscall.Stat_t).Uid
+		s.gid = s.st.Sys().(*syscall.Stat_t).Gid
+		s.mtime = s.st.Sys().(*syscall.Stat_t).Mtim.Sec
+	default:
+		var sf *sftp.Client
+		if sf, err = r.sftpOpenSession(); err != nil {
+			return
+		}
+		if s.st, err = sf.Lstat(name); err != nil {
+			return
+		}
+		s.uid = s.st.Sys().(*sftp.FileStat).UID
+		s.gid = s.st.Sys().(*sftp.FileStat).GID
+		s.mtime = int64(s.st.Sys().(*sftp.FileStat).Mtime)
+	}
+	return
+}
+
 func (r *Remotes) globPath(pattern string) (paths []string, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):

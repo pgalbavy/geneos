@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os/user"
+	"path/filepath"
 	"text/tabwriter"
 	"time"
 )
@@ -110,12 +112,12 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 		err = ct.loopCommand(lsInstanceJSON, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Disabled", "Location", "Home"})
+		csvWriter.Write([]string{"Type", "Name", "Disabled", "Location", "Version", "Home"})
 		err = ct.loopCommand(lsInstanceCSV, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tHome\n")
+		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tVersion\tHome\n")
 		err = ct.loopCommand(lsInstancePlain, args, params)
 		lsTabWriter.Flush()
 	}
@@ -127,7 +129,8 @@ func lsInstancePlain(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), c.Home())
+	base, underlying, _ := componentVersion(c)
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), base, underlying, c.Home())
 	return
 }
 
@@ -145,7 +148,8 @@ func lsInstanceCSV(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
+	base, underlying, _ := componentVersion(c)
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }
 
@@ -163,6 +167,7 @@ type lsType struct {
 	Name     string
 	Disabled string
 	Location string
+	Version  string
 	Home     string
 }
 
@@ -181,7 +186,8 @@ func lsInstanceJSON(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), c.Home()})
+	base, underlying, _ := componentVersion(c)
+	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }
 
@@ -204,6 +210,7 @@ type psType struct {
 	User      string
 	Group     string
 	Starttime string
+	Version   string
 	Home      string
 }
 
@@ -215,12 +222,12 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 		err = ct.loopCommand(psInstanceJSON, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type:Name@Location", "PID", "User", "Group", "Starttime", "Home"})
+		csvWriter.Write([]string{"Type:Name@Location", "PID", "User", "Group", "Starttime", "Version", "Home"})
 		err = ct.loopCommand(psInstanceCSV, args, params)
 		csvWriter.Flush()
 	default:
 		psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(psTabWriter, "Type:Name@Location\tPID\tUser\tGroup\tStarttime\tHome\n")
+		fmt.Fprintf(psTabWriter, "Type:Name@Location\tPID\tUser\tGroup\tStarttime\tVersion\tHome\n")
 		err = ct.loopCommand(psInstancePlain, args, params)
 		psTabWriter.Flush()
 	}
@@ -248,8 +255,8 @@ func psInstancePlain(c Instances, params []string) (err error) {
 	if g, err = user.LookupGroupId(groupname); err == nil {
 		groupname = g.Name
 	}
-
-	fmt.Fprintf(psTabWriter, "%s\t%d\t%s\t%s\t%s\t%s\n", c, pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home())
+	base, underlying, _ := componentVersion(c)
+	fmt.Fprintf(psTabWriter, "%s\t%d\t%s\t%s\t%s\t%s:%s\t%s\n", c, pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), base, underlying, c.Home())
 
 	return
 }
@@ -275,8 +282,8 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 	if g, err = user.LookupGroupId(groupname); err == nil {
 		groupname = g.Name
 	}
-
-	csvWriter.Write([]string{c.String(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
+	base, underlying, _ := componentVersion(c)
+	csvWriter.Write([]string{c.String(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 
 	return
 }
@@ -302,8 +309,8 @@ func psInstanceJSON(c Instances, params []string) (err error) {
 	if g, err = user.LookupGroupId(groupname); err == nil {
 		groupname = g.Name
 	}
-
-	jsonEncoder.Encode(psType{c.Type().String(), c.Name(), string(c.Location()), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), c.Home()})
+	base, underlying, _ := componentVersion(c)
+	jsonEncoder.Encode(psType{c.Type().String(), c.Name(), string(c.Location()), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 
 	return
 }
@@ -324,6 +331,32 @@ func commandInstance(c Instances, params []string) (err error) {
 			log.Println("\t", e)
 		}
 		log.Println()
+	}
+	return
+}
+
+//
+// return the base package name and the version it links to.
+// if not a link, then return the same
+// follow a limited number of links (10?)
+func componentVersion(c Instances) (base string, underlying string, err error) {
+	basedir := getString(c, c.Prefix("Bins"))
+	base = getString(c, c.Prefix("Base"))
+	underlying = base
+	for {
+		basepath := filepath.Join(basedir, underlying)
+		st, err := c.Remote().lstatFile(basepath)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if st.st.Mode()&fs.ModeSymlink != 0 {
+			underlying, err = c.Remote().readlink(basepath)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		} else {
+			break
+		}
 	}
 	return
 }
