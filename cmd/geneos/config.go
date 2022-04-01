@@ -208,6 +208,8 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
+	//
+	// XXX add remote/location as a container
 	var cs []Instances
 	for _, name := range args {
 		cs = append(cs, ct.instanceMatches(name)...)
