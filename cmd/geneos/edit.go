@@ -116,12 +116,12 @@ func editConfigFiles(editor string, files ...string) (err error) {
 }
 
 func commandHome(ctunused Component, args []string, params []string) error {
+	var ct Component
 	if len(args) == 0 {
 		log.Println(Geneos())
 		return nil
 	}
 
-	var ct Component
 	// check if first arg is a type, if not set to None else pop first arg
 	if ct = parseComponentName(args[0]); ct == Unknown {
 		ct = None

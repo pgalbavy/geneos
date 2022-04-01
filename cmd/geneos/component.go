@@ -100,7 +100,7 @@ type InstanceBase struct {
 	// The remote location name (this is a remote component and not
 	// a server name). This is NOT written to the config file as it
 	// may change if the remote name changes
-	InstanceLocation RemoteName `default:"local" json:"-"`
+	InstanceLocation RemoteName `default:"local" json:"Location"`
 	InstanceRemote   *Remotes   `json:"-"`
 	// The Component Type of an instance
 	InstanceType string `json:"-"`
@@ -269,7 +269,6 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 // construct and return a slice of a/all component types that have
 // a matching name
 func (ct Component) instanceMatches(name string) (c []Instances) {
-	var cs []Component
 	_, local, r := SplitInstanceName(name, rALL)
 	if !r.Loaded() {
 		return
@@ -282,20 +281,16 @@ func (ct Component) instanceMatches(name string) (c []Instances) {
 		return
 	}
 
-	for _, dir := range ct.InstanceNames(r) {
+	for _, name := range ct.InstanceNames(r) {
 		// for case insensitive match change to EqualFold here
-		_, ldir, _ := SplitInstanceName(dir, rALL)
+		_, ldir, _ := SplitInstanceName(name, rALL)
 		if filepath.Base(ldir) == local {
-			cs = append(cs, ct)
+			i, err := ct.GetInstance(name)
+			if err != nil {
+				continue
+			}
+			c = append(c, i)
 		}
-	}
-
-	for _, cm := range cs {
-		i, err := cm.GetInstance(name)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		c = append(c, i)
 	}
 
 	return

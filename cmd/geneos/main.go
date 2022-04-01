@@ -141,7 +141,6 @@ func main() {
 					logError.Fatalln(err)
 				}
 				os.Exit(0)
-
 			}
 			printConfigStructJSON(GlobalConfig)
 			os.Exit(0)
