@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 )
 
 func init() {
@@ -184,7 +183,7 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 	// allow overrides to show specific or components
 	if len(args) == 0 && ct == None {
 		// special case "config show" for resolved settings
-		printConfigStructJSON(GlobalConfig)
+		printConfigJSON(GlobalConfig)
 		return
 	}
 
@@ -195,27 +194,31 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 		case "global":
 			var c GlobalSettings
 			readLocalConfigFile(globalConfig, &c)
-			printConfigStructJSON(c)
+			printConfigJSON(c)
 			return
 		case "user":
 			var c GlobalSettings
 			userConfDir, _ := os.UserConfigDir()
 			readLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
-			printConfigStructJSON(c)
+			printConfigJSON(c)
 			return
 		}
 	}
 
+	// need this to process @remote args etc.
+	_, args, _ = parseArgs(commands["show"], args)
+
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
 	//
-	// XXX add remote/location as a container
-	var cs []Instances
+	cs := make(map[RemoteName][]Instances)
 	for _, name := range args {
-		cs = append(cs, ct.instanceMatches(name)...)
+		for _, i := range ct.instanceMatches(name) {
+			cs[i.Remote().RemoteName()] = append(cs[i.Remote().RemoteName()], i)
+		}
 	}
 	if len(cs) > 0 {
-		printConfigSliceJSON(cs)
+		printConfigJSON(cs)
 		return
 	}
 
@@ -224,27 +227,14 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-const jsonIndent = "    "
-
-// given a slice of structs, output as a JSON array of maps
-func printConfigSliceJSON(Slice []Instances) {
-	js := []string{}
-
-	for _, i := range Slice {
-		x, err := marshalStruct(i, jsonIndent)
-		if err != nil {
-			continue
-		}
-		js = append(js, x)
+func printConfigJSON(Config interface{}) (err error) {
+	var buffer []byte
+	if buffer, err = json.MarshalIndent(Config, "", "    "); err != nil {
+		return
 	}
-	s := "[\n" + jsonIndent + strings.Join(js, ",\n"+jsonIndent) + "\n]"
-	log.Println(s)
-}
-
-func printConfigStructJSON(Config interface{}) (err error) {
-	if j, err := marshalStruct(Config, ""); err == nil {
-		log.Printf("%s\n", j)
-	}
+	j := string(buffer)
+	j = opaqueJSONSecrets(j)
+	log.Printf("%s\n", j)
 	return
 }
 
@@ -255,14 +245,11 @@ func printConfigStructJSON(Config interface{}) (err error) {
 var red1 = regexp.MustCompile(`"(.*((?i)pass|password|secret))": "(.*)"`)
 var red2 = regexp.MustCompile(`"(.*((?i)pass|password|secret))=(.*)"`)
 
-func marshalStruct(s interface{}, prefix string) (j string, err error) {
-	if buffer, err := json.MarshalIndent(s, prefix, "    "); err == nil {
-		j = string(buffer)
-	}
+func opaqueJSONSecrets(j string) string {
 	// simple redact - and left field with "Pass" in it gets the right replaced
 	j = red1.ReplaceAllString(j, `"$1": "********"`)
 	j = red2.ReplaceAllString(j, `"$1=********"`)
-	return
+	return j
 }
 
 func readLocalConfigFile(file string, config interface{}) (err error) {

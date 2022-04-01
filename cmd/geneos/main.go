@@ -142,7 +142,7 @@ func main() {
 				}
 				os.Exit(0)
 			}
-			printConfigStructJSON(GlobalConfig)
+			printConfigJSON(GlobalConfig)
 			os.Exit(0)
 		}
 		// some other "show" comnbination
