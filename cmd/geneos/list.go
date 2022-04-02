@@ -222,12 +222,12 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 		err = ct.loopCommand(psInstanceJSON, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type:Name@Location", "PID", "User", "Group", "Starttime", "Version", "Home"})
+		csvWriter.Write([]string{"Type", "Name", "Location", "PID", "User", "Group", "Starttime", "Version", "Home"})
 		err = ct.loopCommand(psInstanceCSV, args, params)
 		csvWriter.Flush()
 	default:
 		psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(psTabWriter, "Type:Name@Location\tPID\tUser\tGroup\tStarttime\tVersion\tHome\n")
+		fmt.Fprintf(psTabWriter, "Type\tName\tLocation\tPID\tUser\tGroup\tStarttime\tVersion\tHome\n")
 		err = ct.loopCommand(psInstancePlain, args, params)
 		psTabWriter.Flush()
 	}
@@ -256,7 +256,7 @@ func psInstancePlain(c Instances, params []string) (err error) {
 		groupname = g.Name
 	}
 	base, underlying, _ := componentVersion(c)
-	fmt.Fprintf(psTabWriter, "%s\t%d\t%s\t%s\t%s\t%s:%s\t%s\n", c, pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), base, underlying, c.Home())
+	fmt.Fprintf(psTabWriter, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s:%s\t%s\n", c.Type(), c.Name(), c.Location(), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), base, underlying, c.Home())
 
 	return
 }
@@ -283,7 +283,7 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 		groupname = g.Name
 	}
 	base, underlying, _ := componentVersion(c)
-	csvWriter.Write([]string{c.String(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), c.Location().String(), fmt.Sprint(pid), username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 
 	return
 }
