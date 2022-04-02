@@ -310,17 +310,17 @@ func GetRemote(remote RemoteName) (r *Remotes) {
 }
 
 // Return the base directory for the remote, inc LOCAL
-func (r Remotes) GeneosRoot() string {
+func (r *Remotes) GeneosRoot() string {
 	return r.Geneos
 }
 
 // return an absolute path anchored in the root directory of the remote
 // this can also be LOCAL
-func (r Remotes) GeneosPath(paths ...string) string {
+func (r *Remotes) GeneosPath(paths ...string) string {
 	return filepath.Join(append([]string{r.GeneosRoot()}, paths...)...)
 }
 
-func (r Remotes) String() string {
+func (r *Remotes) String() string {
 	return r.Type().String() + ":" + r.InstanceName + "@" + r.Location().String()
 }
 
@@ -368,16 +368,16 @@ func AllRemotes() (remotes []*Remotes) {
 // at some point this should become interface based to allow other
 // remote protocols cleanly
 
-func (r *Remotes) symlink(oldname, newname string) (err error) {
+func (r *Remotes) symlink(target, path string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
-		return os.Symlink(oldname, newname)
+		return os.Symlink(target, path)
 	default:
 		var s *sftp.Client
 		if s, err = r.sftpOpenSession(); err != nil {
 			return
 		}
-		return s.Symlink(oldname, newname)
+		return s.Symlink(target, path)
 	}
 }
 
