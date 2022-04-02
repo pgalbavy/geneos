@@ -122,6 +122,10 @@ func (s *Sans) Remote() *Remotes {
 	return s.InstanceRemote
 }
 
+func (s *Sans) Base() *InstanceBase {
+	return &s.InstanceBase
+}
+
 func (s *Sans) String() string {
 	return s.Type().String() + ":" + s.InstanceName + "@" + s.Location().String()
 }

@@ -271,7 +271,7 @@ func (r *Remotes) readConfigFile(file string, config interface{}) (err error) {
 }
 
 func commandRename(ct Component, args []string, params []string) (err error) {
-	var stopped bool
+	var stopped, done bool
 	if ct == None || len(args) != 2 {
 		return ErrInvalidArgs
 	}
@@ -287,7 +287,10 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 	if err = migrateConfig(oldconf); err != nil {
 		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, oldname)
 	}
+
 	newconf, err := ct.GetInstance(newname)
+	newname, _ = splitInstanceName(newname)
+
 	if err == nil {
 		return fmt.Errorf("%s already exists", newconf)
 	}
@@ -297,63 +300,80 @@ func commandRename(ct Component, args []string, params []string) (err error) {
 			// cannot use defer startInstance() here as we have
 			// not yet created the new instance
 			stopped = true
+			defer func() {
+				if !done {
+					startInstance(oldconf, nil)
+				}
+			}()
+		} else {
+			return fmt.Errorf("cannot stop %s", oldname)
 		}
 	}
 
-	// save for recover, as config gets changed
-	oldhome := oldconf.Home()
-	newhome := newconf.Home()
-
-	if err = oldconf.Remote().renameFile(oldhome, newhome); err != nil {
-		logDebug.Println("rename failed:", oldhome, newhome, err)
+	// now a full clean
+	if err = oldconf.Clean(true, []string{}); err != nil {
 		return
 	}
 
-	// rename fields
-
-	if err = setField(oldconf, "InstanceName", newname); err != nil {
-		// try to recover
-		_ = newconf.Remote().renameFile(newhome, oldhome)
+	// move directory
+	if err = copyTree(oldconf.Remote(), oldconf.Home(), newconf.Remote(), newconf.Home()); err != nil {
 		return
 	}
-	// update any component name if the same as the instance name
+
+	// delete one or the other, depending
+	defer func() {
+		if done {
+			// once we are done, try to delete old instance
+			oldold, _ := ct.GetInstance(oldname)
+			logDebug.Println("removing old instance", oldold)
+			oldold.Remote().removeAll(oldold.Home())
+			log.Println(ct, oldold, "moved to", newconf)
+		} else {
+			// remove new instance
+			logDebug.Println("removing new instance", newconf)
+			newconf.Remote().removeAll(newconf.Home())
+		}
+	}()
+
+	// update oldconf here and then write that out as if it were newconf
+	// this gets around the defaults set in newconf being incomplete and wrong
+	if err = changeDirPrefix(oldconf, oldconf.Remote().GeneosRoot(), newconf.Remote().GeneosRoot()); err != nil {
+		return
+	}
+
+	// update *Home manually, as it's not just the prefix
+	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(newconf.Type().ComponentDir(newconf.Remote()), newname)); err != nil {
+		return
+	}
+
+	// after path updates, rename non paths
+	ib := oldconf.Base()
+	ib.InstanceLocation = newconf.Remote().RemoteName()
+	ib.InstanceRemote = newconf.Remote()
+	ib.InstanceName = newname
+
+	// update any component name only if the same as the instance name
 	if getString(oldconf, oldconf.Prefix("Name")) == oldname {
 		if err = setField(oldconf, oldconf.Prefix("Name"), newname); err != nil {
-			// try to recover
-			_ = newconf.Remote().renameFile(newhome, oldhome)
-			if stopped {
-				return startInstance(oldconf, nil)
-			}
 			return
 		}
 	}
 
-	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(ct.ComponentDir(newconf.Remote()), newname)); err != nil {
-		// try to recover
-		_ = newconf.Remote().renameFile(newhome, oldhome)
-		if stopped {
-			return startInstance(oldconf, nil)
-		}
+	// config changes don't matter until writing config succeeds
+	if err = writeInstanceConfig(oldconf); err != nil {
 		return
 	}
 
-	// config changes don't matter until writing config succeeds
-	if err = newconf.Remote().writeConfigFile(filepath.Join(newhome, ct.String()+".json"), newconf.Prefix("User"), oldconf); err != nil {
-		_ = newconf.Remote().renameFile(newhome, oldhome)
-		if stopped {
-			return startInstance(oldconf, nil)
-		}
+	//	oldconf.Unload()
+	if err = oldconf.Rebuild(false); err != nil && err != ErrNotSupported {
 		return
 	}
-	log.Println(ct, oldname, "renamed to", newname)
-	oldconf.Unload()
-	if err = newconf.Rebuild(false); err != nil {
-		return
-	}
+
+	done = true
 	if stopped {
-		return startInstance(newconf, nil)
+		return startInstance(oldconf, nil)
 	}
-	return
+	return nil
 }
 
 func commandDelete(ct Component, args []string, params []string) (err error) {

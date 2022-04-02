@@ -119,6 +119,10 @@ func (g *Gateways) Remote() *Remotes {
 	return g.InstanceRemote
 }
 
+func (g *Gateways) Base() *InstanceBase {
+	return &g.InstanceBase
+}
+
 func (g *Gateways) String() string {
 	return g.Type().String() + ":" + g.InstanceName + "@" + g.Location().String()
 }

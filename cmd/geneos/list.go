@@ -345,14 +345,17 @@ func componentVersion(c Instances) (base string, underlying string, err error) {
 	underlying = base
 	for {
 		basepath := filepath.Join(basedir, underlying)
-		st, err := c.Remote().lstatFile(basepath)
+		var st fileStat
+		st, err = c.Remote().lstatFile(basepath)
 		if err != nil {
-			log.Fatalln(err)
+			underlying = "unknown"
+			return
 		}
 		if st.st.Mode()&fs.ModeSymlink != 0 {
 			underlying, err = c.Remote().readlink(basepath)
 			if err != nil {
-				log.Fatalln(err)
+				underlying = "unknown"
+				return
 			}
 		} else {
 			break

@@ -104,6 +104,10 @@ func (w *Webservers) Remote() *Remotes {
 	return w.InstanceRemote
 }
 
+func (w *Webservers) Base() *InstanceBase {
+	return &w.InstanceBase
+}
+
 func (w *Webservers) String() string {
 	return w.Type().String() + ":" + w.InstanceName + "@" + w.Location().String()
 }

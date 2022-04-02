@@ -85,6 +85,10 @@ func (n *Netprobes) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
+func (n *Netprobes) Base() *InstanceBase {
+	return &n.InstanceBase
+}
+
 func (n *Netprobes) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }

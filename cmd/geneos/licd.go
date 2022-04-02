@@ -85,6 +85,10 @@ func (l *Licds) Remote() *Remotes {
 	return l.InstanceRemote
 }
 
+func (l *Licds) Base() *InstanceBase {
+	return &l.InstanceBase
+}
+
 func (l *Licds) String() string {
 	return l.Type().String() + ":" + l.InstanceName + "@" + l.Location().String()
 }

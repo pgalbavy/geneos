@@ -86,6 +86,10 @@ func (n *FA2s) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
+func (n *FA2s) Base() *InstanceBase {
+	return &n.InstanceBase
+}
+
 func (n *FA2s) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }

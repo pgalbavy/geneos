@@ -77,6 +77,7 @@ type Instances interface {
 	Type() Component
 	Location() RemoteName
 	Remote() *Remotes
+	Base() *InstanceBase
 	Prefix(string) string
 	String() string
 

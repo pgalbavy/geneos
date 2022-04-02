@@ -159,6 +159,10 @@ func (r *Remotes) Remote() *Remotes {
 	return r.InstanceRemote
 }
 
+func (r *Remotes) Base() *InstanceBase {
+	return &r.InstanceBase
+}
+
 //
 // 'geneos add remote NAME [SSH-URL] [init opts]'
 //

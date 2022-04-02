@@ -71,36 +71,40 @@ func NewFileAgent(name string) Instances {
 // interface method set
 
 // Return the Component for an Instance
-func (n FileAgents) Type() Component {
+func (n *FileAgents) Type() Component {
 	return parseComponentName(n.InstanceType)
 }
 
-func (n FileAgents) Name() string {
+func (n *FileAgents) Name() string {
 	return n.InstanceName
 }
 
-func (n FileAgents) Location() RemoteName {
+func (n *FileAgents) Location() RemoteName {
 	return n.InstanceLocation
 }
 
-func (n FileAgents) Home() string {
+func (n *FileAgents) Home() string {
 	return n.FAHome
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
-func (n FileAgents) Prefix(field string) string {
+func (n *FileAgents) Prefix(field string) string {
 	return "FA" + field
 }
 
-func (n FileAgents) Remote() *Remotes {
+func (n *FileAgents) Remote() *Remotes {
 	return n.InstanceRemote
 }
 
-func (n FileAgents) String() string {
+func (n *FileAgents) Base() *InstanceBase {
+	return &n.InstanceBase
+}
+
+func (n *FileAgents) String() string {
 	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
 }
 
-func (n FileAgents) Load() (err error) {
+func (n *FileAgents) Load() (err error) {
 	if n.ConfigLoaded {
 		return
 	}
@@ -109,16 +113,16 @@ func (n FileAgents) Load() (err error) {
 	return
 }
 
-func (n FileAgents) Unload() (err error) {
+func (n *FileAgents) Unload() (err error) {
 	n.ConfigLoaded = false
 	return
 }
 
-func (n FileAgents) Loaded() bool {
+func (n *FileAgents) Loaded() bool {
 	return n.ConfigLoaded
 }
 
-func (n FileAgents) Add(username string, params []string, tmpl string) (err error) {
+func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
 	n.FAPort = n.InstanceRemote.nextPort(GlobalConfig["FAPortRange"])
 	n.FAUser = username
 
@@ -136,7 +140,7 @@ func (n FileAgents) Add(username string, params []string, tmpl string) (err erro
 
 	// check tls config, create certs if found
 	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(&n); err != nil {
+		if err = createInstanceCert(n); err != nil {
 			return
 		}
 	}
@@ -145,7 +149,7 @@ func (n FileAgents) Add(username string, params []string, tmpl string) (err erro
 	return nil
 }
 
-func (c FileAgents) Command() (args, env []string) {
+func (c *FileAgents) Command() (args, env []string) {
 	logFile := getLogfilePath(c)
 	args = []string{
 		c.Name(),
@@ -164,7 +168,7 @@ func (c FileAgents) Command() (args, env []string) {
 	return
 }
 
-func (c FileAgents) Clean(purge bool, params []string) (err error) {
+func (c *FileAgents) Clean(purge bool, params []string) (err error) {
 	var stopped bool
 
 	if !purge {
@@ -195,10 +199,10 @@ func (c FileAgents) Clean(purge bool, params []string) (err error) {
 	return
 }
 
-func (c FileAgents) Reload(params []string) (err error) {
+func (c *FileAgents) Reload(params []string) (err error) {
 	return ErrNotSupported
 }
 
-func (c FileAgents) Rebuild(initial bool) error {
+func (c *FileAgents) Rebuild(initial bool) error {
 	return ErrNotSupported
 }

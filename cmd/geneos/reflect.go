@@ -226,3 +226,46 @@ func setDefaults(c interface{}) (err error) {
 
 	return
 }
+
+// go through a struct and update directory poath prefixes from
+// old to new.
+// XXX may need to ignore specific fields
+func changeDirPrefix(c interface{}, old, new string) (err error) {
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(c)
+	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
+		st = st.Elem()
+		sv = sv.Elem()
+	}
+
+	for _, f := range reflect.VisibleFields(st) {
+		fv := sv.FieldByIndex(f.Index)
+
+		if fv.Kind() != reflect.String {
+			continue
+		}
+
+		if !fv.CanSet() {
+			logDebug.Println("cannot set", f.Name)
+			continue
+		}
+
+		var newpaths []string
+		var haveset bool
+		// deal with colon paths
+		for _, path := range filepath.SplitList(fv.String()) {
+			if strings.HasPrefix(path, old) {
+				haveset = true
+				newpaths = append(newpaths, new+strings.TrimPrefix(path, old))
+			} else {
+				newpaths = append(newpaths, path)
+			}
+		}
+
+		if haveset {
+			fv.SetString(strings.Join(newpaths, string(filepath.ListSeparator)))
+		}
+	}
+
+	return
+}
