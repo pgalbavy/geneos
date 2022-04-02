@@ -66,12 +66,10 @@ func copyDirEntry(fi fs.FileInfo, srcRemote *Remotes, srcPath string, dstRemote 
 			logError.Println(err)
 			return err
 		}
-		logDebug.Println("mkdir", dstPath)
 		if err = dstRemote.mkdirAll(dstPath, ds.st.Mode()); err != nil {
 			return err
 		}
 	case fi.Mode()&fs.ModeSymlink != 0:
-		logDebug.Println("move symlink", srcPath)
 		link, err := srcRemote.readlink(srcPath)
 		if err != nil {
 			return err
@@ -79,22 +77,20 @@ func copyDirEntry(fi fs.FileInfo, srcRemote *Remotes, srcPath string, dstRemote 
 		if err = dstRemote.symlink(link, dstPath); err != nil {
 			return err
 		}
-		logDebug.Println("linked", dstPath, "to", link)
 	default:
 		sf, ss, err := srcRemote.statAndOpenFile(srcPath)
 		if err != nil {
 			return err
 		}
+		defer sf.Close()
 		df, err := dstRemote.createFile(dstPath, ss.st.Mode())
 		if err != nil {
 			return err
 		}
+		defer df.Close()
 		if _, err = io.Copy(df, sf); err != nil {
 			return err
 		}
-		sf.Close()
-		df.Close()
-		logDebug.Println("copied", srcPath, "to", dstPath)
 	}
 	return nil
 }
