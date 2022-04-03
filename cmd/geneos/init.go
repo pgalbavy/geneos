@@ -141,7 +141,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 			}
 		}
 		if err := rLOCAL.writeFile(filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 
 		sanTemplates := rLOCAL.GeneosPath(San.String(), "templates")
@@ -153,7 +153,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 			}
 		}
 		if err := rLOCAL.writeFile(filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 
 		return
@@ -175,7 +175,7 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	}
 
 	if err = rLOCAL.initGeneos(args); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	return
@@ -251,7 +251,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 			}
 		case 1: // home = abs path
 			if !filepath.IsAbs(args[0]) {
-				log.Fatalln("Home directory must be absolute path:", args[0])
+				logError.Fatalln("Home directory must be absolute path:", args[0])
 			}
 			dir = filepath.Clean(args[0])
 		default:
@@ -299,7 +299,9 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	// 	}
 	// }
 
-	None.CheckComponentDirs(rLOCAL)
+	if err = None.makeComponentDirs(rLOCAL); err != nil {
+		return
+	}
 
 	if superuser {
 		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
@@ -325,7 +327,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		} else {
 			userConfDir, err := os.UserConfigDir()
 			if err != nil {
-				log.Fatalln(err)
+				logError.Fatalln(err)
 			}
 			userConfFile := filepath.Join(userConfDir, "geneos.json")
 
@@ -354,7 +356,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 			return
 		}
 		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 
@@ -449,7 +451,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 func initFlag(command string, args []string) []string {
 	initFlagSet.Parse(args)
 	if initFlags.Name != "" && !validInstanceName(initFlags.Name) {
-		log.Fatalln(initFlags.Name, "is not a valid name")
+		logError.Fatalln(initFlags.Name, "is not a valid name")
 	}
 	checkHelpFlag(command)
 	return initFlagSet.Args()

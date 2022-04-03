@@ -52,7 +52,7 @@ func NewLicd(name string) Instances {
 	c.InstanceType = Licd.String()
 	c.InstanceName = local
 	if err := setDefaults(&c); err != nil {
-		log.Fatalln(c, "setDefauls():", err)
+		logError.Fatalln(c, "setDefauls():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c

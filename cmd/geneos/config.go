@@ -196,7 +196,7 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 	//
 	cs := make(map[RemoteName][]Instances)
 	for _, name := range args {
-		for _, i := range ct.instanceMatches(name) {
+		for _, i := range ct.FindInstances(name) {
 			cs[i.Remote().RemoteName()] = append(cs[i.Remote().RemoteName()], i)
 		}
 	}

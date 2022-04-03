@@ -70,9 +70,11 @@ func init() {
 
 func InitSan(r *Remotes) {
 	// copy default template to directory
-	San.CheckComponentDirs(r)
+	if err := San.makeComponentDirs(r); err != nil {
+		logError.Fatalln(err)
+	}
 	if err := r.writeFile(r.GeneosPath(San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 }
 
@@ -88,7 +90,7 @@ func NewSan(name string) Instances {
 		c.SanType = string(ct)
 	}
 	if err := setDefaults(&c); err != nil {
-		log.Fatalln(c, "setDefauls():", err)
+		logError.Fatalln(c, "setDefauls():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
 	return c

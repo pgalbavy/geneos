@@ -85,7 +85,7 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 	// XXX allow for RC files again
 	var cs []string
 	for _, name := range args {
-		for _, c := range ct.instanceMatches(name) {
+		for _, c := range ct.FindInstances(name) {
 			if c.Remote() != rLOCAL {
 				logError.Println("remote edit of", c, ErrNotSupported)
 				continue
@@ -133,7 +133,7 @@ func commandHome(ctunused Component, args []string, params []string) error {
 	if len(args) == 0 {
 		i = ct.GetInstancesForComponent(rLOCAL)
 	} else {
-		i = ct.instanceMatches(args[0])
+		i = ct.FindInstances(args[0])
 	}
 
 	if len(i) == 0 {

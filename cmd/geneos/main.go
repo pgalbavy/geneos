@@ -161,7 +161,7 @@ func main() {
 	default:
 		// test home dir, stop if invalid
 		if Geneos() == "" {
-			log.Fatalln(`
+			logError.Fatalln(`
 Installation directory is not set.
 
 You can fix this by doing one of the following:

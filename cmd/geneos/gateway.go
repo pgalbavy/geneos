@@ -72,9 +72,11 @@ func init() {
 
 func InitGateway(r *Remotes) {
 	// copy default template to directory
-	Gateway.CheckComponentDirs(r)
+	if err := Gateway.makeComponentDirs(r); err != nil {
+		logError.Fatalln(err)
+	}
 	if err := r.writeFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 }
 
@@ -86,7 +88,7 @@ func NewGateway(name string) Instances {
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
 	if err := setDefaults(&c); err != nil {
-		log.Fatalln(c, "setDefauls():", err)
+		logError.Fatalln(c, "setDefauls():", err)
 	}
 	c.InstanceLocation = RemoteName(remote.InstanceName)
 	return c

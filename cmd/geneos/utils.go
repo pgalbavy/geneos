@@ -289,7 +289,7 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 		if len(args) == 0 {
 			// no args means all instances
 			wild = true
-			args = ct.InstanceNames(rALL)
+			args = ct.FindNames(rALL)
 		} else {
 			// expand each arg and save results to a new slice
 			// if local == "", then all instances on remote (e.g. @remote)
@@ -316,7 +316,7 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 				if local == "" {
 					// only a '@remote' in arg
 					if r.Loaded() {
-						rargs := ct.InstanceNames(r)
+						rargs := ct.FindNames(r)
 						nargs = append(nargs, rargs...)
 						wild = true
 					}
@@ -385,7 +385,7 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 
 	// if args is empty, find them all again. ct == None too?
 	if len(args) == 0 && Geneos() != "" && !wild {
-		args = ct.InstanceNames(rALL)
+		args = ct.FindNames(rALL)
 	}
 
 	logDebug.Println("ct, args, params", ct, args, params)
@@ -602,11 +602,11 @@ func signalInstance(c Instances, signal syscall.Signal) (err error) {
 
 	rem, err := c.Remote().sshOpenRemote()
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 	sess, err := rem.NewSession()
 	if err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	output, err := sess.CombinedOutput(fmt.Sprintf("kill -s %d %d", signal, pid))

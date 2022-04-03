@@ -132,6 +132,17 @@ func RealComponents() (cts []Component) {
 	return
 }
 
+// register a component type
+func RegisterComponent(c Components) {
+	components[c.ComponentType] = c
+}
+
+// register directories that need to be created in the
+// root of the install (by init)
+func (ct Component) RegisterDirs(dirs []string) {
+	initDirs[ct] = dirs
+}
+
 func (ct Component) String() (name string) {
 	return string(ct)
 }
@@ -149,25 +160,15 @@ func parseComponentName(component string) Component {
 	return Unknown
 }
 
-// register a component type
-func RegisterComponent(c Components) {
-	components[c.ComponentType] = c
-}
-
-// register directories that need to be created in the
-// root of the install (by init)
-func (ct Component) RegisterDirs(dirs []string) {
-	initDirs[ct] = dirs
-}
-
-func (ct Component) CheckComponentDirs(r *Remotes) (err error) {
+// create any missing component registered directories
+func (ct Component) makeComponentDirs(r *Remotes) (err error) {
 	if r == rALL {
 		logError.Fatalln(ErrInvalidArgs)
 	}
 	for _, d := range initDirs[ct] {
 		dir := filepath.Join(r.Geneos, d)
 		if err = r.mkdirAll(dir, 0775); err != nil {
-			logError.Fatalln(err)
+			return
 		}
 	}
 	return
@@ -180,15 +181,63 @@ func RegisterSettings(settings GlobalSettings) {
 	}
 }
 
+// return a slice instances for a given component type
+func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
+	if ct == None {
+		for _, c := range RealComponents() {
+			confs = append(confs, c.GetInstancesForComponent(r)...)
+		}
+		return
+	}
+	for _, name := range ct.FindNames(r) {
+		i, err := ct.GetInstance(name)
+		if err != nil {
+			continue
+		}
+		confs = append(confs, i)
+	}
+
+	return
+}
+
+// given a component type and a slice of args, call the function for each arg
+//
+// rely on New() checking the component type and returning a slice
+// of all matching components for a single name in an arg (e.g all instances
+// called 'thisserver')
+//
+// try to use go routines here - mutexes required
+func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
+	n := 0
+	for _, name := range args {
+		cs := ct.FindInstances(name)
+		if len(cs) == 0 {
+			log.Println("no matches for", ct, name)
+			continue
+			// return ErrNotFound
+		}
+		n++
+		for _, c := range cs {
+			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) && !errors.Is(err, ErrNotSupported) {
+				log.Println(c, err)
+			}
+		}
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // Return a slice of all instanceNames for a given Component. No
 // checking is done to validate that the directory is a populated
 // instance.
-func (ct Component) InstanceNames(r *Remotes) (components []string) {
+func (ct Component) FindNames(r *Remotes) (components []string) {
 	var files []fs.DirEntry
 
 	if r == rALL {
 		for _, r := range AllRemotes() {
-			components = append(components, ct.InstanceNames(r)...)
+			components = append(components, ct.FindNames(r)...)
 		}
 		return
 	}
@@ -219,84 +268,6 @@ func (ct Component) InstanceNames(r *Remotes) (components []string) {
 	return
 }
 
-// return a slice instances for a given component type
-func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
-	if ct == None {
-		for _, c := range RealComponents() {
-			confs = append(confs, c.GetInstancesForComponent(r)...)
-		}
-		return
-	}
-	for _, name := range ct.InstanceNames(r) {
-		i, err := ct.GetInstance(name)
-		if err != nil {
-			continue
-		}
-		confs = append(confs, i)
-	}
-
-	return
-}
-
-// given a component type and a slice of args, call the function for each arg
-//
-// rely on New() checking the component type and returning a slice
-// of all matching components for a single name in an arg (e.g all instances
-// called 'thisserver')
-//
-// try to use go routines here - mutexes required
-func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
-	n := 0
-	for _, name := range args {
-		cs := ct.instanceMatches(name)
-		if len(cs) == 0 {
-			log.Println("no matches for", ct, name)
-			continue
-			// return ErrNotFound
-		}
-		n++
-		for _, c := range cs {
-			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) && !errors.Is(err, ErrNotSupported) {
-				log.Println(c, err)
-			}
-		}
-	}
-	if n == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
-// construct and return a slice of a/all component types that have
-// a matching name
-func (ct Component) instanceMatches(name string) (c []Instances) {
-	_, local, r := SplitInstanceName(name, rALL)
-	if !r.Loaded() {
-		return
-	}
-
-	if ct == None {
-		for _, t := range RealComponents() {
-			c = append(c, t.instanceMatches(name)...)
-		}
-		return
-	}
-
-	for _, name := range ct.InstanceNames(r) {
-		// for case insensitive match change to EqualFold here
-		_, ldir, _ := SplitInstanceName(name, rALL)
-		if filepath.Base(ldir) == local {
-			i, err := ct.GetInstance(name)
-			if err != nil {
-				continue
-			}
-			c = append(c, i)
-		}
-	}
-
-	return
-}
-
 // return an instance of component ct. loads the config.
 func (ct Component) GetInstance(name string) (c Instances, err error) {
 	if ct == None {
@@ -313,6 +284,48 @@ func (ct Component) GetInstance(name string) (c Instances, err error) {
 		return nil, ErrInvalidArgs
 	}
 	err = c.Load()
+	return
+}
+
+// construct and return a slice of a/all component types that have
+// a matching name
+func (ct Component) FindInstances(name string) (c []Instances) {
+	_, local, r := SplitInstanceName(name, rALL)
+	if !r.Loaded() {
+		return
+	}
+
+	if ct == None {
+		for _, t := range RealComponents() {
+			c = append(c, t.FindInstances(name)...)
+		}
+		return
+	}
+
+	for _, name := range ct.FindNames(r) {
+		// for case insensitive match change to EqualFold here
+		_, ldir, _ := SplitInstanceName(name, rALL)
+		if filepath.Base(ldir) == local {
+			i, err := ct.GetInstance(name)
+			if err != nil {
+				continue
+			}
+			c = append(c, i)
+		}
+	}
+
+	return
+}
+
+// Looks for exactly one matching instance across types and remotes
+// returns Invalid Args if zero of more than 1 match
+func (ct Component) FindInstance(name string) (c Instances, err error) {
+	list := ct.FindInstances(name)
+	if len(list) == 1 {
+		c = list[0]
+		return
+	}
+	err = ErrInvalidArgs
 	return
 }
 

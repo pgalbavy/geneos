@@ -59,7 +59,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	if ct != None && len(args) == 0 {
 		// if all args have no become params (e.g. 'set gateway X=Y') then reprocess args here
-		args = ct.InstanceNames(rALL)
+		args = ct.FindNames(rALL)
 	} else if len(args) == 0 || args[0] == "user" {
 		userConfDir, _ := os.UserConfigDir()
 		return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
@@ -69,7 +69,7 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 
 	// loop through named instances
 	for _, arg := range args {
-		instances = append(instances, ct.instanceMatches(arg)...)
+		instances = append(instances, ct.FindInstances(arg)...)
 	}
 
 	for _, arg := range params {
@@ -98,10 +98,10 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 	// now loop through the collected results and write out
 	for _, c := range instances {
 		if err = migrateConfig(c); err != nil {
-			log.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
+			logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
 		}
 		if err = writeInstanceConfig(c); err != nil {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 	}
 
@@ -208,6 +208,89 @@ func setValue(c Instances, k, vs string) (err error) {
 		if err = setFieldSlice(c, k, newslice); err != nil {
 			logDebug.Printf("%s set %s=%s failed, %s", c, k, newslice, err)
 		}
+	case "Variables", "Variable", "Var":
+		// syntax: "[TYPE:]NAME=VALUE" - TYPE defaults to string
+		// TYPE must match what's in XML, or just pass stright through anyway
+		// lowercase?
+		// NAME use unchanged, case sesitive
+		//
+		// 	<var name="test1">
+		// 		<activeTime>
+		// 			<activeTime ref="activetimename"></activeTime>
+		// 		</activeTime>
+		// 	</var>
+		// 	<var name="test2">
+		// 		<boolean>true</boolean>
+		// 	</var>
+		// 	<var name="test3">
+		// 		<double>0.0</double>
+		// 	</var>
+		// 	<var name="test4">
+		// 		<externalConfigFile>this is a test</externalConfigFile>
+		// 	</var>
+		// 	<var name="test5">
+		// 		<externalPassword>
+		// 			<extPwd>password</extPwd>
+		// 		</externalPassword>
+		// 	</var>
+		// 	<var name="test6">
+		// 		<integer>0</integer>
+		// 	</var>
+		// 	<var name="test7">
+		// 		<ipAddress>
+		// 			<value>0</value>
+		// 			<value>0</value>
+		// 			<value>0</value>
+		// 			<value>0</value>
+		// 		</ipAddress>
+		// 	</var>
+		// 	<var name="test8">
+		// 		<macro>
+		// 			<insecureGatewayPort></insecureGatewayPort>
+		// 		</macro>
+		// 	</var>
+		// 	<var name="test9">
+		// 		<nameValueList>
+		// 			<item>
+		// 				<name>key1</name>
+		// 				<value>value1</value>
+		// 			</item>
+		// 			<item>
+		// 				<name>key2</name>
+		// 				<value>value2</value>
+		// 			</item>
+		// 		</nameValueList>
+		// 	</var>
+		// 	<var name="test10">
+		// 		<plainTextPassword>
+		// 			<plaintext>test</plaintext>
+		// 		</plainTextPassword>
+		// 	</var>
+		// 	<var name="test11">
+		// 		<regex>
+		// 			<regex>aaaaa</regex>
+		// 			<flags>
+		// 				<i>false</i>
+		// 				<s>false</s>
+		// 			</flags>
+		// 		</regex>
+		// 	</var>
+		// 	<var name="test12">
+		// 		<stdAESPassword>
+		// 			<stdAES>password-id-1</stdAES>
+		// 		</stdAESPassword>
+		// 	</var>
+		// 	<var name="test13">
+		// 		<string>sdfsfdsdfdf</string>
+		// 	</var>
+		// 	<var name="test14">
+		// 		<stringList>
+		// 			<string>one</string>
+		// 			<string>two</string>
+		// 		</stringList>
+		// 	</var>
+
+		return ErrNotSupported
 	default:
 		if err = setField(c, k, vs); err != nil {
 			logDebug.Printf("%s set %s=%s failed, %s", c, k, vs, err)

@@ -89,6 +89,7 @@ func addFlag(command string, args []string) []string {
 // remote support would be of the form name@remotename
 //
 func commandAdd(ct Component, args []string, params []string) (err error) {
+	var username string
 	if len(args) == 0 {
 		logError.Fatalln("not enough args")
 	}
@@ -96,7 +97,11 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	// check validty and reserved words here
 	name := args[0]
 
-	var username string
+	_, _, rem := SplitInstanceName(name, rLOCAL)
+	if err = ct.makeComponentDirs(rem); err != nil {
+		return
+	}
+
 	if superuser {
 		username = GlobalConfig["DefaultUser"]
 	} else {
@@ -105,7 +110,9 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 
 	c, err := ct.GetInstance(name)
-	ct.CheckComponentDirs(c.Remote())
+	if err != nil {
+		return
+	}
 
 	// check if instance already exists``
 	if c.Loaded() {
@@ -114,7 +121,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 
 	if err = c.Add(username, params, addTemplateFile); err != nil {
-		log.Fatalln(err)
+		logError.Fatalln(err)
 	}
 
 	// reload config as instance data is not updated by Add() as an interface value
@@ -137,7 +144,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 // returns a map
 func (r *Remotes) getPorts() (ports map[int]Component) {
 	if r == rALL {
-		log.Fatalln("getports() call with all remotes")
+		logError.Fatalln("getports() call with all remotes")
 	}
 	ports = make(map[int]Component)
 	for _, c := range None.GetInstancesForComponent(r) {

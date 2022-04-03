@@ -114,7 +114,7 @@ func commandTLS(ct Component, args []string, params []string) (err error) {
 		}
 
 		if err = ct.loopCommand(TLSNewInstance, args, params); err != nil && err != ErrNotFound {
-			log.Fatalln(err)
+			logError.Fatalln(err)
 		}
 
 		if err = commandRebuild(ct, args, params); err == ErrNotFound {

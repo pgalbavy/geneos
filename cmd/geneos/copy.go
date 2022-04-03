@@ -11,6 +11,25 @@ import (
 	"github.com/pkg/sftp"
 )
 
+//
+// Provide instance mv/cp/clone/etc.
+//
+// Existing is single type, single instance 'mv' between any remotes, self processes args
+//
+// Also need:
+//
+// mv arbitrary types by name to arbitrary remote, e.g. "geneos mv localhost @remote"
+// without needing to name type. Also mv en masse from one remote to another
+//
+//
+// resolve remote location from name, if source is only singular
+//
+// cp "live" and "offline" ? can we cp just the core configs but leave an instance running?
+//
+//
+// clone to distribute across multiple remotes (or just cp?)
+//
+
 func init() {
 	RegsiterCommand(Command{
 		Name:          "mv",
@@ -43,47 +62,53 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 		return ErrInvalidArgs
 	}
 
-	oldname := args[0]
-	newname := args[1]
+	srcname := args[0]
+	dstname := args[1]
 
-	logDebug.Println("mv", ct, oldname, newname)
-	oldconf, err := ct.GetInstance(oldname)
+	logDebug.Println("mv", ct, srcname, dstname)
+	src, err := ct.FindInstance(srcname)
 	if err != nil {
-		return fmt.Errorf("%s %s not found", ct, oldname)
+		return fmt.Errorf("%s %q not matched to exactly one instance", ct, srcname)
 	}
-	if err = migrateConfig(oldconf); err != nil {
-		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, oldname)
+	if err = migrateConfig(src); err != nil {
+		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, srcname)
 	}
 
-	newconf, err := ct.GetInstance(newname)
-	newname, _ = splitInstanceName(newname)
+	// if dstname is just a remote, tack the src prefix on to the start
+	// let fursth calls check for syntax and validity
+	if strings.HasPrefix(dstname, "@") {
+		dstname = src.Name() + dstname
+	}
+
+	dst, err := ct.GetInstance(dstname)
+	dstname, _ = splitInstanceName(dstname)
 
 	if err == nil {
-		return fmt.Errorf("%s already exists", newconf)
+		return fmt.Errorf("%s already exists", dst)
 	}
 
-	if _, err = findInstancePID(oldconf); err != ErrProcNotExist {
-		if err = stopInstance(oldconf, nil); err == nil {
+	if _, err = findInstancePID(src); err != ErrProcNotExist {
+		if err = stopInstance(src, nil); err == nil {
 			// cannot use defer startInstance() here as we have
 			// not yet created the new instance
 			stopped = true
 			defer func() {
 				if !done {
-					startInstance(oldconf, nil)
+					startInstance(src, nil)
 				}
 			}()
 		} else {
-			return fmt.Errorf("cannot stop %s", oldname)
+			return fmt.Errorf("cannot stop %s", srcname)
 		}
 	}
 
 	// now a full clean
-	if err = oldconf.Clean(true, []string{}); err != nil {
+	if err = src.Clean(true, []string{}); err != nil {
 		return
 	}
 
 	// move directory
-	if err = copyTree(oldconf.Remote(), oldconf.Home(), newconf.Remote(), newconf.Home()); err != nil {
+	if err = copyTree(src.Remote(), src.Home(), dst.Remote(), dst.Home()); err != nil {
 		return
 	}
 
@@ -91,54 +116,54 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 	defer func() {
 		if done {
 			// once we are done, try to delete old instance
-			oldold, _ := ct.GetInstance(oldname)
-			logDebug.Println("removing old instance", oldold)
-			oldold.Remote().removeAll(oldold.Home())
-			log.Println(ct, oldold, "moved to", newconf)
+			orig, _ := ct.GetInstance(srcname)
+			logDebug.Println("removing old instance", orig)
+			orig.Remote().removeAll(orig.Home())
+			log.Println(ct, orig, "moved to", dst)
 		} else {
 			// remove new instance
-			logDebug.Println("removing new instance", newconf)
-			newconf.Remote().removeAll(newconf.Home())
+			logDebug.Println("removing new instance", dst)
+			dst.Remote().removeAll(dst.Home())
 		}
 	}()
 
 	// update oldconf here and then write that out as if it were newconf
 	// this gets around the defaults set in newconf being incomplete and wrong
-	if err = changeDirPrefix(oldconf, oldconf.Remote().GeneosRoot(), newconf.Remote().GeneosRoot()); err != nil {
+	if err = changeDirPrefix(src, src.Remote().GeneosRoot(), dst.Remote().GeneosRoot()); err != nil {
 		return
 	}
 
 	// update *Home manually, as it's not just the prefix
-	if err = setField(oldconf, oldconf.Prefix("Home"), filepath.Join(newconf.Type().ComponentDir(newconf.Remote()), newname)); err != nil {
+	if err = setField(src, src.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dst.Remote()), dstname)); err != nil {
 		return
 	}
 
 	// after path updates, rename non paths
-	ib := oldconf.Base()
-	ib.InstanceLocation = newconf.Remote().RemoteName()
-	ib.InstanceRemote = newconf.Remote()
-	ib.InstanceName = newname
+	ib := src.Base()
+	ib.InstanceLocation = dst.Remote().RemoteName()
+	ib.InstanceRemote = dst.Remote()
+	ib.InstanceName = dstname
 
 	// update any component name only if the same as the instance name
-	if getString(oldconf, oldconf.Prefix("Name")) == oldname {
-		if err = setField(oldconf, oldconf.Prefix("Name"), newname); err != nil {
+	if getString(src, src.Prefix("Name")) == srcname {
+		if err = setField(src, src.Prefix("Name"), dstname); err != nil {
 			return
 		}
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeInstanceConfig(oldconf); err != nil {
+	if err = writeInstanceConfig(src); err != nil {
 		return
 	}
 
 	//	oldconf.Unload()
-	if err = oldconf.Rebuild(false); err != nil && err != ErrNotSupported {
+	if err = src.Rebuild(false); err != nil && err != ErrNotSupported {
 		return
 	}
 
 	done = true
 	if stopped {
-		return startInstance(oldconf, nil)
+		return startInstance(src, nil)
 	}
 	return nil
 }
