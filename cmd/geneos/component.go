@@ -209,6 +209,7 @@ func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
 // try to use go routines here - mutexes required
 func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
 	n := 0
+	logDebug.Println("args, params", args, params)
 	for _, name := range args {
 		cs := ct.FindInstances(name)
 		if len(cs) == 0 {
@@ -283,13 +284,15 @@ func (ct Component) GetInstance(name string) (c Instances, err error) {
 	if c == nil {
 		return nil, ErrInvalidArgs
 	}
-	err = c.Load()
+	// err =
+	c.Load()
 	return
 }
 
 // construct and return a slice of a/all component types that have
 // a matching name
 func (ct Component) FindInstances(name string) (c []Instances) {
+	logDebug.Println(name)
 	_, local, r := SplitInstanceName(name, rALL)
 	if !r.Loaded() {
 		return
@@ -314,6 +317,7 @@ func (ct Component) FindInstances(name string) (c []Instances) {
 		}
 	}
 
+	logDebug.Println(c)
 	return
 }
 

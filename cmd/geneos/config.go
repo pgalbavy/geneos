@@ -151,13 +151,26 @@ func Geneos() string {
 // try to load the "legacy" .rc file
 //
 // support cache?
+//
+// error check core values - e.g. Name
 func loadConfig(c Instances) (err error) {
 	j := InstanceFileWithExt(c, "json")
 
-	if err = c.Remote().readConfigFile(j, &c); err == nil {
-		// return if no error, else drop through
-		return
+	var n InstanceBase
+	var jsonFile []byte
+	if jsonFile, err = c.Remote().readConfigFile(j, &n); err == nil {
+		// validate base here
+		if c.Name() != n.InstanceName {
+			logError.Println(c, "inconsistent configuration file contents:", j)
+			return ErrInvalidArgs
+		}
+		//if we validate then Unmarshal same file over existing instance
+		if err = json.Unmarshal(jsonFile, &c); err == nil {
+			// return if no error, else drop through
+			return
+		}
 	}
+
 	return readRCConfig(c)
 }
 
@@ -244,13 +257,12 @@ func readLocalConfigFile(file string, config interface{}) (err error) {
 	return json.Unmarshal(jsonFile, &config)
 }
 
-func (r *Remotes) readConfigFile(file string, config interface{}) (err error) {
-	var jsonFile []byte
+func (r *Remotes) readConfigFile(file string, config interface{}) (jsonFile []byte, err error) {
 	if jsonFile, err = r.readFile(file); err != nil {
 		return
 	}
 	// dec := json.NewDecoder(jsonFile)
-	return json.Unmarshal(jsonFile, &config)
+	return jsonFile, json.Unmarshal(jsonFile, &config)
 }
 
 func commandDelete(ct Component, args []string, params []string) (err error) {
