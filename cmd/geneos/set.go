@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -327,20 +328,20 @@ func writeConfigParams(filename string, params []string) (err error) {
 
 	// XXX fix permissions assumptions here
 	if filename == globalConfig {
-		return rLOCAL.writeConfigFile(filename, "root", c)
+		return rLOCAL.writeConfigFile(filename, "root", 0664, c)
 	}
-	return rLOCAL.writeConfigFile(filename, "", c)
+	return rLOCAL.writeConfigFile(filename, "", 0664, c)
 }
 
 // check for rc file? migrate?
 func writeInstanceConfig(c Instances) (err error) {
-	return c.Remote().writeConfigFile(InstanceFileWithExt(c, "json"), c.Prefix("User"), c)
+	return c.Remote().writeConfigFile(InstanceFileWithExt(c, "json"), c.Prefix("User"), 0664, c)
 }
 
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func (r *Remotes) writeConfigFile(file string, username string, config interface{}) (err error) {
+func (r *Remotes) writeConfigFile(file string, username string, perms fs.FileMode, config interface{}) (err error) {
 	j, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
@@ -376,7 +377,7 @@ func (r *Remotes) writeConfigFile(file string, username string, config interface
 	_ = r.chown(dir, uid, gid)
 
 	buffer := bytes.NewBuffer(j)
-	f, fn, err := r.createTempFile(file, 0664)
+	f, fn, err := r.createTempFile(file, perms)
 	if err != nil {
 		return err
 	}

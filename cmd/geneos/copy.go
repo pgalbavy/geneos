@@ -12,60 +12,108 @@ import (
 )
 
 //
-// Provide instance mv/cp/clone/etc.
+// Provide instance move/copy/clone/etc.
 //
-// Existing is single type, single instance 'mv' between any remotes, self processes args
+// Existing is single type, single instance 'move' between any remotes, self processes args
 //
 // Also need:
 //
-// mv arbitrary types by name to arbitrary remote, e.g. "geneos mv localhost @remote"
-// without needing to name type. Also mv en masse from one remote to another
+// move arbitrary types by name to arbitrary remote, e.g. "geneos move localhost @remote"
+// without needing to name type. Also move en masse from one remote to another
 //
 //
 // resolve remote location from name, if source is only singular
 //
-// cp "live" and "offline" ? can we cp just the core configs but leave an instance running?
+// copy "live" and "offline" ? can we copy just the core configs but leave an instance running?
 //
 //
-// clone to distribute across multiple remotes (or just cp?)
+// clone to distribute across multiple remotes (or just copy?)
 //
 
 func init() {
 	RegsiterCommand(Command{
-		Name:          "mv",
-		Function:      commandMv,
+		Name:          "move",
+		Function:      commandMove,
 		ParseFlags:    defaultFlag,
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
-		CommandLine:   `geneos mv TYPE FROM TO`,
-		Summary:       `Move an instance`,
-		Description: `Move an instance. TYPE is requied to resolve any ambiguities if two
-instances share the same name. No configuration changes are made outside the
-instance JSON config file. As any existing .rc legacy file is never
-changed, this will migrate the instance from .rc to JSON. The
-instance is stopped and restarted after the instance is moved. It is
-an error to try to move an instance to one that already exists with
-the same name.
+		CommandLine:   `geneos move [TYPE] FROM TO`,
+		Summary:       `Move (or rename) instances`,
+		Description: `Move (or rename) instances. As any existing legacy .rc
+file is never changed, this will migrate the instance from .rc to
+JSON. The instance is stopped and restarted after the instance is
+moved. It is an error to try to move an instance to one that already
+exists with the same name.
 
-If the component support Rebuild then this is run after the move but before the restart.
-This allows SANs to be updated as expected.
+If the component support Rebuild then this is run after the move but
+before the restart. This allows SANs to be updated as expected.
 
 Moving across remotes is supported.`,
 	})
 
+	RegsiterCommand(Command{
+		Name:          "copy",
+		Function:      commandCopy,
+		ParseFlags:    defaultFlag,
+		ParseArgs:     parseArgs,
+		Wildcard:      true,
+		ComponentOnly: true,
+		CommandLine:   `geneos copy [TYPE] FROM TO`,
+		Summary:       `Copy instances`,
+		Description: `Copy instances. As any existing legacy .rc file is never changed,
+this will migrate the instance from .rc to JSON. The instance is
+stopped and restarted after the instance is moved. It is an error to
+try to copy an instance to one that already exists with the same
+name.
+
+If the component support Rebuild then this is run after the move but
+before the restart. This allows SANs to be updated as expected.
+
+Moving across remotes is supported.`,
+	})
 }
 
-func commandMv(ct Component, args []string, params []string) (err error) {
-	var stopped, done bool
-	if ct == None || len(args) != 2 {
+// XXX add more wildcard support - src = @remote for all instances, auto
+// component type loops etc.
+func commandMove(ct Component, args []string, params []string) (err error) {
+	if len(args) != 2 {
 		return ErrInvalidArgs
 	}
 
-	srcname := args[0]
-	dstname := args[1]
+	return ct.copyInstance(args[0], args[1], true)
+}
 
-	logDebug.Println("mv", ct, srcname, dstname)
+// XXX use case:
+// gateway standby instance copy
+// distribute common config netprobe across multiple remotes
+// also create remotes as required?
+func commandCopy(ct Component, args []string, params []string) (err error) {
+	if len(args) != 2 {
+		return ErrInvalidArgs
+	}
+
+	return ct.copyInstance(args[0], args[1], false)
+}
+
+func (ct Component) copyInstance(srcname, dstname string, remove bool) (err error) {
+	var stopped, done bool
+	if srcname == dstname {
+		return fmt.Errorf("source and destination must have different names and/or locations")
+	}
+
+	logDebug.Println(ct, srcname, dstname)
+
+	if ct == None {
+		for _, t := range RealComponents() {
+			if err = t.copyInstance(srcname, dstname, remove); err != nil {
+				logDebug.Println(err)
+				continue
+			}
+		}
+		return nil
+	}
+
 	src, err := ct.FindInstance(srcname)
 	if err != nil {
 		return fmt.Errorf("%s %q not matched to exactly one instance", ct, srcname)
@@ -75,7 +123,7 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 	}
 
 	// if dstname is just a remote, tack the src prefix on to the start
-	// let fursth calls check for syntax and validity
+	// let further calls check for syntax and validity
 	if strings.HasPrefix(dstname, "@") {
 		dstname = src.Name() + dstname
 	}
@@ -83,7 +131,7 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 	dst, err := ct.GetInstance(dstname)
 	dstname, _ = splitInstanceName(dstname)
 
-	if err == nil {
+	if dst.Loaded() {
 		return fmt.Errorf("%s already exists", dst)
 	}
 
@@ -115,11 +163,15 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 	// delete one or the other, depending
 	defer func() {
 		if done {
-			// once we are done, try to delete old instance
-			orig, _ := ct.GetInstance(srcname)
-			logDebug.Println("removing old instance", orig)
-			orig.Remote().removeAll(orig.Home())
-			log.Println(ct, orig, "moved to", dst)
+			if remove {
+				// once we are done, try to delete old instance
+				orig, _ := ct.GetInstance(srcname)
+				logDebug.Println("removing old instance", orig)
+				orig.Remote().removeAll(orig.Home())
+				log.Println(ct, srcname, "moved to", dstname)
+			} else {
+				log.Println(ct, srcname, "copied to", dstname)
+			}
 		} else {
 			// remove new instance
 			logDebug.Println("removing new instance", dst)
@@ -130,11 +182,13 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 	// update oldconf here and then write that out as if it were newconf
 	// this gets around the defaults set in newconf being incomplete and wrong
 	if err = changeDirPrefix(src, src.Remote().GeneosRoot(), dst.Remote().GeneosRoot()); err != nil {
+		logDebug.Println(err)
 		return
 	}
 
 	// update *Home manually, as it's not just the prefix
 	if err = setField(src, src.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dst.Remote()), dstname)); err != nil {
+		logDebug.Println(err)
 		return
 	}
 
@@ -147,17 +201,20 @@ func commandMv(ct Component, args []string, params []string) (err error) {
 	// update any component name only if the same as the instance name
 	if getString(src, src.Prefix("Name")) == srcname {
 		if err = setField(src, src.Prefix("Name"), dstname); err != nil {
+			logDebug.Println(err)
 			return
 		}
 	}
 
 	// config changes don't matter until writing config succeeds
 	if err = writeInstanceConfig(src); err != nil {
+		logDebug.Println(err)
 		return
 	}
 
 	//	oldconf.Unload()
-	if err = src.Rebuild(false); err != nil && err != ErrNotSupported {
+	if err = src.Rebuild(false); err != nil && err != ErrNotSupported && err != ErrNoAction {
+		logDebug.Println(err)
 		return
 	}
 

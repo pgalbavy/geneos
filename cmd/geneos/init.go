@@ -318,7 +318,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		c["DefaultUser"] = username
 
 		if superuser {
-			if err = rLOCAL.writeConfigFile(globalConfig, "root", c); err != nil {
+			if err = rLOCAL.writeConfigFile(globalConfig, "root", 0664, c); err != nil {
 				logError.Fatalln("cannot write global config", err)
 			}
 
@@ -331,7 +331,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 			}
 			userConfFile := filepath.Join(userConfDir, "geneos.json")
 
-			if err = rLOCAL.writeConfigFile(userConfFile, username, c); err != nil {
+			if err = rLOCAL.writeConfigFile(userConfFile, username, 0664, c); err != nil {
 				return err
 			}
 		}

@@ -401,9 +401,9 @@ func reservedName(in string) (ok bool) {
 		return true
 	}
 	if GlobalConfig["ReservedNames"] != "" {
-		list := strings.Split(in, string(os.PathListSeparator))
+		list := strings.Split(in, ",")
 		for _, n := range list {
-			if strings.EqualFold(in, n) {
+			if strings.EqualFold(in, strings.TrimSpace(n)) {
 				logDebug.Println("matches a user defined reserved name")
 				return true
 			}

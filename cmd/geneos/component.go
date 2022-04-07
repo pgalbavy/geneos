@@ -292,9 +292,10 @@ func (ct Component) GetInstance(name string) (c Instances, err error) {
 // construct and return a slice of a/all component types that have
 // a matching name
 func (ct Component) FindInstances(name string) (c []Instances) {
-	logDebug.Println(name)
+	logDebug.Println(ct, name)
 	_, local, r := SplitInstanceName(name, rALL)
 	if !r.Loaded() {
+		logDebug.Println("remote", r, "not loaded")
 		return
 	}
 
@@ -306,8 +307,10 @@ func (ct Component) FindInstances(name string) (c []Instances) {
 	}
 
 	for _, name := range ct.FindNames(r) {
+		logDebug.Println(ct, name)
 		// for case insensitive match change to EqualFold here
 		_, ldir, _ := SplitInstanceName(name, rALL)
+		logDebug.Println(ldir, local)
 		if filepath.Base(ldir) == local {
 			i, err := ct.GetInstance(name)
 			if err != nil {

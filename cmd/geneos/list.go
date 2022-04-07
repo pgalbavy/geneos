@@ -100,6 +100,9 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 			err = ct.loopCommand(lsInstancePlainRemotes, args, params)
 			lsTabWriter.Flush()
 		}
+		if err == ErrNotFound {
+			err = nil
+		}
 		return
 	}
 
@@ -120,6 +123,9 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tVersion\tHome\n")
 		err = ct.loopCommand(lsInstancePlain, args, params)
 		lsTabWriter.Flush()
+	}
+	if err == ErrNotFound {
+		err = nil
 	}
 	return
 }
@@ -230,6 +236,9 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 		fmt.Fprintf(psTabWriter, "Type\tName\tLocation\tPID\tUser\tGroup\tStarttime\tVersion\tHome\n")
 		err = ct.loopCommand(psInstancePlain, args, params)
 		psTabWriter.Flush()
+	}
+	if err == ErrNotFound {
+		err = nil
 	}
 	return
 }
