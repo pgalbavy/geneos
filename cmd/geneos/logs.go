@@ -24,12 +24,16 @@ func init() {
 		ComponentOnly: false,
 		CommandLine:   "geneos logs [FLAGS] [TYPE] [NAME...]",
 		Summary:       `Show log(s) for instances.`,
-		Description: `Show log(s) for instances.
+		Description: `Show log(s) for instances. The default is to show the last 10 lines
+for each matching instance. If either -g or -v are given without -f
+to follow live logs, then -c to search the whole log is implied.
+
+Follow (-f) only works for local log files and not for remote instances.
 
 FLAGS:
 	-n NUM		- show last NUM lines, default 10
-	-f		- follow
-	-c		- cat log file(s)
+	-f		- follow in real time
+	-c		- 'cat' whole log file(s)
 	-g STRING	- "grep" STRING (plain, non-regexp)
 	-v STRING	- "grep -v" STRING (plain, non-regexp)
 
@@ -44,7 +48,7 @@ When more than one instance matches each output block is prefixed by instance de
 	logsFlags.IntVar(&logsLines, "n", 10, "Lines to tail")
 	logsFlags.BoolVar(&logsFollow, "f", false, "Follow file")
 	logsFlags.BoolVar(&logsCat, "c", false, "Cat whole file")
-	logsFlags.StringVar(&logsInclude, "g", "", "Match lines with STRING")
+	logsFlags.StringVar(&logsMatchLines, "g", "", "Match lines with STRING")
 	logsFlags.StringVar(&logsExclude, "v", "", "Match lines without STRING")
 	logsFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 }
@@ -52,7 +56,7 @@ When more than one instance matches each output block is prefixed by instance de
 var logsFlags *flag.FlagSet
 var logsFollow, logsCat bool
 var logsLines int
-var logsInclude, logsExclude string
+var logsMatchLines, logsExclude string
 
 // global watcher for logs
 // we need this right now so that logFollowInstance() knows to add files to it
@@ -80,12 +84,17 @@ func logsFlag(command string, args []string) []string {
 
 func commandLogs(ct Component, args []string, params []string) (err error) {
 	// validate options
-	if logsInclude != "" && logsExclude != "" {
+	if logsMatchLines != "" && logsExclude != "" {
 		logError.Fatalln("Only one of -g or -v can be given")
 	}
 
 	if logsCat && logsFollow {
 		logError.Fatalln("Only one of -c or -f can be given")
+	}
+
+	// if we have match or exclude with other defaults, then turn on logcat
+	if (logsMatchLines != "" || logsExclude != "") && !logsFollow {
+		logsCat = true
 	}
 
 	switch {
@@ -201,11 +210,11 @@ func isLineSep(r rune) bool {
 
 func filterOutput(logfile string, reader io.Reader) {
 	switch {
-	case logsInclude != "":
+	case logsMatchLines != "":
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.Contains(line, logsInclude) {
+			if strings.Contains(line, logsMatchLines) {
 				outHeader(logfile)
 				log.Println(line)
 			}
