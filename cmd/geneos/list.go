@@ -20,11 +20,15 @@ func init() {
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos ls [-c|-j] [TYPE] [NAME...]",
+		CommandLine:   "geneos ls [-c|-j [-i]] [TYPE] [NAME...]",
 		Summary:       `List instances, optionally in CSV or JSON format.`,
 		Description: `List the matching instances and their component type.
-	
-Future versions will support CSV or JSON output formats for automation and monitoring.`,
+
+FLAGS:
+	-c	Output CSV format
+	-j	Output JSON format
+	-i	Indent (pretty print) JSON output
+`,
 	})
 
 	RegsiterCommand(Command{
@@ -34,11 +38,15 @@ Future versions will support CSV or JSON output formats for automation and monit
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos ps [-c|-j] [TYPE] [NAMES...]",
+		CommandLine:   "geneos ps [-c|-j [-i]] [TYPE] [NAMES...]",
 		Summary:       `List process information for instances, optionally in CSV or JSON format.`,
 		Description: `Show the status of the matching instances.
 
-Future versions will support CSV or JSON output formats for automation and monitoring.`,
+FLAGS:
+		-c	Output CSV format
+		-j	Output JSON format
+		-i	Indent (pretty print) JSON output
+	`,
 	})
 
 	RegsiterCommand(Command{
@@ -53,7 +61,7 @@ Future versions will support CSV or JSON output formats for automation and monit
 		Description: `Show the full command line for the matching instances along with any environment variables
 explicitly set for execution.
 
-Future versions will support CSV or JSON output formats for automation and monitoring.`,
+Future releases may support CSV or JSON output formats for automation and monitoring.`,
 	})
 
 	listFlags = flag.NewFlagSet("ls", flag.ExitOnError)

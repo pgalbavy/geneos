@@ -33,7 +33,7 @@ these need to be changed before starting, see the edit command.
 Gateways are given a minimal configuration file.
 
 FLAGS:
-	-t FILE	- specifiy a template file to use instead of the embedded ones
+	-t FILE	- specify a template file to use instead of the embedded ones
 	Also accepts the same flags as 'init' for remote sans
 `})
 
@@ -60,7 +60,7 @@ it must be relative and cannot contain '..'. Examples:
 
 	geneos import gateway example1 https://example.com/myfiles/gateway.setup.xml
 	geneos import licd example2 geneos.lic=license.txt
-	geneos import netprobe exampel3 scripts/=myscript.sh
+	geneos import netprobe example3 scripts/=myscript.sh
 	geneos import san localhost ./netprobe.setup.xml
 
 To distinguish SOURCE from an instance name a bare filename in the

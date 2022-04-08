@@ -38,7 +38,7 @@ func init() {
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
-		CommandLine:   `geneos move [TYPE] FROM TO`,
+		CommandLine:   `geneos move [TYPE] SOURCE DESTINATION`,
 		Summary:       `Move (or rename) instances`,
 		Description: `Move (or rename) instances. As any existing legacy .rc
 file is never changed, this will migrate the instance from .rc to
@@ -59,7 +59,7 @@ Moving across remotes is supported.`,
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: true,
-		CommandLine:   `geneos copy [TYPE] FROM TO`,
+		CommandLine:   `geneos copy [TYPE] SOURCE DESTINATION`,
 		Summary:       `Copy instances`,
 		Description: `Copy instances. As any existing legacy .rc file is never changed,
 this will migrate the instance from .rc to JSON. The instance is

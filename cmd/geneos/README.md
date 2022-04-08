@@ -1,5 +1,11 @@
 # `geneos` management program
 
+| :memo: PLEASE NOTE |
+|:--|
+| As with many "spare time" projects, the desire to get v1.0.0 out of the door has left less time to update the documentation. Some of the details below may be out-of-date and apologies for that. |
+| This README has grown it seems more appropriate to split it up into multiple separate documents and to ensure those are in sync with the codebase. I place on making that happen as soon as I can. |
+| For command usage please see the help output for each command for a more up-to-date set of options and flags. The help test tends to be much more closely aligned to the code base. This can be found either with `geneos help COMMAND` or `geneos COMMAND -h` |
+
 The `geneos` program will help you manage your Geneos environment.
 
 You can:
@@ -101,7 +107,7 @@ You can install a configured and running Self-Announcing Netprobe (SAN) in one l
 
     geneos init -S -n SAN123 -c /path/to/signingcertkey \
       Gateways=gateway1,gateway2 Types=Infrastructure,App1,App2 \
-      Attribuutes=ENVIRONMENT=Prod,LOCATION=London
+      Attributes=ENVIRONMENT=Prod,LOCATION=London
 
 This example will create a SAN with the name SAN123 connecting to 
 
@@ -150,11 +156,11 @@ To remove an entry, prefix the name with a minus (`-`) sign, e.g.
 
 You can also remove multiple entries with a very simply wildcard syntax `NAME*` - this is only supported as the last character of the name and will remove all entries that start with `NAME` in this case.
 
-You can specify multiple entries by comma seperating them:
+You can specify multiple entries by comma separating them:
 
     geneos set netprobe example1 Env=JAVA_HOME=/path,ORACLE_HOME=/path2
 
-Note that this means you cannot insert commas into values as there is no supported escape mecahnism. For this you must edit the instance configuration file directly, which you can also do with the command `edit`.
+Note that this means you cannot insert commas into values as there is no supported escape mechanism. For this you must edit the instance configuration file directly, which you can also do with the command `edit`.
 
 Finally, if your environment variable value contains spaces then use quotes as appropriate to your shell to prevent those spaces being processed. In bash you can do any of these to achieve the same result:
 
@@ -197,8 +203,8 @@ When creating a new Gateway instance a default `gateway.setup.xml` file is creat
 * Gateway variables for templates
 Gateways support the setting of Include file parameters for use in templated configurations. These are set similarly to the general `Env=` parameters above but follow a slighty different syntax:
   `geneos gateway set example2 Includes=100:/path/to/include`
-The setting value is `priority:path` and path can be a realtive or absolute path or a URL. In the case of a URL the source is NOT downloaded but instead the URL is inserted as-is in the templates.
-As for `Env=` entries can be removed with a minus (`-`) prefix but no wilcarding is allowed. Comma seperated lists work as normal.
+The setting value is `priority:path` and path can be a relative or absolute path or a URL. In the case of a URL the source is NOT downloaded but instead the URL is inserted as-is in the templates.
+As for `Env=` entries can be removed with a minus (`-`) prefix but no wildcarding is allowed. Comma separated lists work as normal.
 
 
 ### Type `netprobe`
@@ -219,14 +225,14 @@ As for `Env=` entries can be removed with a minus (`-`) prefix but no wilcarding
 * San general
 * San templates
 * San variables for templates
-As for Gateways, Sans get a default confiuration file when they are created. By default this is from the template(s) in `san/templates`. Unlike for the Gateway these configuration files are rebuilt by the `rebuild` command by default. This allows the administrator to maintain Sans using only command line tools and avoimd having to edit XML directly.
+As for Gateways, Sans get a default configuration file when they are created. By default this is from the template(s) in `san/templates`. Unlike for the Gateway these configuration files are rebuilt by the `rebuild` command by default. This allows the administrator to maintain Sans using only command line tools and avoid having to edit XML directly.
 To aid this, Sans support the following parameters, similar to `Env=` above:
   * Attributes
   Attribute follow the same KEY=VALUE settings and `Env` above
   * Gateways
   Gateways are configured using the syntax `hostname:port`
   * Types
-  Types are a simple list of comma seperated names for Types. They can be removes using a minux (`-`) as for `Env` but do not allow wildcards
+  Types are a simple list of comma separated names for Types. They can be removes using a dash (`-`) as for `Env` but do not allow wildcards
   * Variables
   Variables are not yet supported from the command line but can be set by editing the San instance configuration file. This is because Variables have a type as well as a name and a value, so this need more work.
 * Selecting the underlying Netprobe type (For Fix Analyser 2 below)
@@ -256,9 +262,9 @@ $ geneos add gateway newgateway@server2
 $ geneos start
 ```
 
-Command like `ls` and `ps` will works transparently and merge all instances together, showing you where they are runnng (or not).
+Command like `ls` and `ps` will works transparently and merge all instances together, showing you where they are running (or not).
 
-A remote is a psuedo-instance and you add and manage it with the normal commands. At the moment the only supported transport is SSH and the URL is a slightly extended version of the RFC standard to include the Geneos home directory. The format, for the `add` command is:
+A remote is a pseudo-instance and you add and manage it with the normal commands. At the moment the only supported transport is SSH and the URL is a slightly extended version of the RFC standard to include the Geneos home directory. The format, for the `add` command is:
 
 `ssh://[USER@]HOST[:PORT][/PATH]`
 
@@ -269,9 +275,9 @@ If not set, USER defaults to the current username. Similarly PORT defaults to 22
 There are a number of prerequisites for remote support:
 
 1. Remote servers must be Linux on amd64
-2. Passwordless SSH access, either via an `ssh-agent` or unprotected private keys
+2. Password-less SSH access, either via an `ssh-agent` or unprotected private keys
 3. At this time the only private keys supported are those in your `.ssh` directory beginning `id_` - later updates will allow you to set the name of the key to load, but using an agent is recommended.
-4. The remote user must be confiugured to use a `bash` shell or similar. See limitations below.
+4. The remote user must be configured to use a `bash` shell or similar. See limitations below.
 
 If you can log in to a remote Linux server using `ssh user@server` and no be prompted for a password or passphrase then you are set to go. It's beyond the scope of this README to explain how to set-up `ssh-agent` or how to create an unprotected private key file, so please search online.
 
@@ -279,7 +285,7 @@ If you can log in to a remote Linux server using `ssh user@server` and no be pro
 
 The remote connections over SSH mean there are limitations to the features available on remote servers:
 
-1. No following logs (i.e. the `-f` option). The program is written to use `fsnotify` and that only works on local filesystems and not over sftp. This may be added using a more primitive polling mecahnism later.
+1. No following logs (i.e. the `-f` option). The program is written to use `fsnotify` and that only works on local filesystems and not over sftp. This may be added using a more primitive polling mechanism later.
 2. Control over instance processes is done via shell commands and little error checking is done, so it is possible to cause damage and/or processes not to to start or stop as expected. Contributions of fixes are welcomed.
 3. All actions are taken as the user given in the SSH URL (which should NEVER be `root`) and so instances that are meant to run as other users cannot be controlled. Files and directories may not be available if the user does not have suitable permissions.
 
@@ -298,6 +304,42 @@ There are a number of special cases, these are detailed below.
 
 ### Commands
 
+
+The following commands are available (taken from `geneos help`):
+```txt
+  add        Add a new instance
+  clean      Clean-up instance directory
+  command    Show command arguments and environment for instances.
+  copy       Copy instances
+  delete     Delete an instance. Instance must be stopped.
+  disable    Stop and disable matching instances.
+  edit       Open an editor for instance configuration file.
+  enable     Enable one or more instances. Only previously disabled
+             instances are started.
+  help       Show help text for command.
+  home       Output the home directory of the installation or the first matching instance
+  import     Import file(s) to an instance.
+  init       Initialise a Geneos installation
+  install    Install files from downloaded Geneos packages. Intended for 
+             sites without Internet access.
+  logs       Show log(s) for instances.
+  ls         List instances, optionally in CSV or JSON format.
+  migrate    Migrate legacy .rc configuration to .json
+  move       Move (or rename) instances
+  ps         List process information for instances, optionally in CSV or JSON format.
+  rebuild    Rebuild instance configuration files
+  reload     Signal the instance to reload it's configuration, if supported.
+  restart    Restart one or more instances.
+  revert     Revert migration of .rc files from backups.
+  set        Set runtime, global, user or instance configuration parameters
+  show       Show runtime, global, user or instance configuration is JSON format
+  start      Start one or more instances.
+  stop       Stop one or more instances
+  tls        TLS operations
+  update     Update the active version of Geneos software.
+  version    Show version details.
+```
+
 #### General Command Flags & Arguments
 
 `geneos [FLAG...] COMMAND [FLAG...] [TYPE] [NAME...] [PARAM...]`
@@ -306,7 +348,7 @@ Where:
 
 * `FLAG` - Both general and command specific flags
 * `COMMAND` - one of the configured commands
-* `TYPE` - the compone type
+* `TYPE` - the component type
 * `NAME` - one or more instance names, optionally including the remote server
 * `PARAM` - anything that isn't one of the above
 
@@ -315,7 +357,7 @@ In general, with the exception of `TYPE`, all parameters can be in any order as 
 `geneos ls -c gateway one two three`
 `geneos ls gateway one -c two three`
 
-Reserved instance names are case-insensitive. So, for exmaple, "gateway", "Gateway" and "GATEWAY" are all reserved.
+Reserved instance names are case-insensitive. So, for example, "gateway", "Gateway" and "GATEWAY" are all reserved.
 
 The `NAME` is of the format `INSTANCE@REMOTE` where either is optional. In general commands will wildcard the part not provided. There are special `REMOTE` names `@local` and `@all` - the former is, as the name suggests, the local server and `@all` is the same as not providing a remote name.
 
@@ -348,12 +390,12 @@ Show log(s) for matching instances. Flags allow for follow etc.
 
 * `geneos init [-T|-S|-D|-A LICENSE] [-c CERT] [-k KEY] [-n NAME] [USERNAME] [PATH] [PARAMS]`
 Initialise the environment. This command creates a directory hierarchy and optionally installs Geneos software packages and also optionally creates instances and starts them.
-  * `-T` Rebuild the default templates using the embedded files. This is primarily to update tempates when new versions of this program are release or if they have become corrupted
+  * `-T` Rebuild the default templates using the embedded files. This is primarily to update templates when new versions of this program are release or if they have become corrupted
   * `-S` Build and start a San. See the `-n` option below. Takes all the same PARAMS as for adding a San to specify template settings.
   * `-D` Build and start a demo environment
   * `-A LICENSE` Build and start an `all` environment
   * `-c CERT` and `-k KEY` Import certificates and keys during initialisation. See `geneos tls import` for more details. When a valid signing certificate and key are imported then all subsequent new instances will have individual certificates and keys created.
-  * `-n NAME` Use the `NAME` for instances instead of the default hostname. This is especially usefult for Sans and Gateways as the templates use this name to fill in various confiruation item defaults
+  * `-n NAME` Use the `NAME` for instances instead of the default hostname. This is especially useful for Sans and Gateways as the templates use this name to fill in various configuration item defaults
   * `-s FILE` A San template file to use instead of the embedded one
   * `-g FILE` A Gateway template file to use instead of the embedded one
 Only one of the `-t`, `-S`, `-d` or `-a` options are valid and only the `-t` option can be used for multiple calls to this command.
@@ -362,7 +404,7 @@ Only one of the `-t`, `-S`, `-d` or `-a` options are valid and only the `-t` opt
 TLS operations. See below.
 
 * `geneos show [global|user]`
-Show the running configuration or, if `global` or `user` is supplied then the respective on-disk configuration files. Passwords are simplisticly redated.
+Show the running configuration or, if `global` or `user` is supplied then the respective on-disk configuration files. Passwords are simplistically redacted.
 The instance specific `show` command is described below.
 
 * `geneos set [global|user] KEY=VALUE...`
@@ -371,17 +413,17 @@ Set a program-wide configuration option. The default is to update the `user` con
 * `geneos home [TYPE] [NAME]`
 The `home` command outputs the home directory of the first matching instance, or `Geneos` if there is no match or no options passed to the command. This is useful for automation and shortcuts, w.g. in bash:
 
-    $ cd $(geneos home netprone example1)
+    $ cd $(geneos home netprobe example1)
 
 Please note that if `geneos home` returns an empty string because of an error the cd command will take you to your home directory.
 
 #### Package Management Commands
 
-* `geneos install [FLAGS] [TYPE] [lastest|VERSION|FILE|URL...]`
-Download and install a release archive in the `packages` directory.
+* `geneos install [FLAGS] [TYPE] [latest|VERSION|FILE|URL...]`
+Download and install a release archive in the `packages` directory. If a symbolic link for the desired base version already exists it is not updated unless the `-U` flag is given.
 
 * `geneos update [TYPE] [VERSION]`
-Update the component base binary link
+Update the component base binary symlink
 
 #### Control Commands
 
@@ -395,11 +437,11 @@ Like above, but stops the component(s)
 * `geneos restart [-l] [TYPE] [NAME...]`
 Restarts matching geneos components. Each component is stopped and started in sequence. If all components should be down before starting up again then use a combination of `start` and `stop` from above.
 
-* `geneos reload|refresh [TYPE] NAME [NAME...]`
+* `geneos reload [TYPE] NAME [NAME...]`
 Signal the component to reload it's configuration or restart as appropriate.
 
 * `geneos disable [TYPE] [NAME...]`
-Stop and disable the selected compoents by placing a file in wach working directory with a `.disable` extention
+Stop and disable the selected components by placing a file in the working directory with a `.disable` extension
 
 * `geneos enable [TYPE] [NAME...]`
 Remove the `.disable` lock file and start the selected components
@@ -418,25 +460,27 @@ Migrate legacy `.rc` files to `.json` and backup the original file with an `.ori
 * `geneos revert [TYPE] [NAME...]`
 Revert to the original configuration files, deleting the `.json` files. Note that the `.rc` files are never changed and any configuration changes to the `.json` configuration will not be retained.
 
-* `geneos rebuild [-n] [-f] [TYPE] [NAME...]`
+* `geneos rebuild [-n] [-F] [TYPE] [NAME...]`
 Rebuild instance configuration, typically used for Self-Announcing Netprobes. By default it restarts any instances where the configuration has changed. Flags are:
   * `-n` Do not restart instances
-  * `-f` Force rebuild for those instances that are maked `initial` only.
+  * `-f` Force rebuild for those instances that are marked `initial` only.
 
 * `geneos command [TYPE] [NAME...]`
 Shows details of the full command used for the component and any extra environment variables found in the configuration.
 
-* `geneos rename [TYPE] name newname`
-Rename the compoent, but this only affects the container directory, this programs JSON configursation file and does not update the contents of any other files.
+* `geneos move [TYPE] source destination`
+* `geneos copy [TYPE] source destination`
+These commands either move or copy instance(s). If the source and destination are on the same location/remote then `move` acts as a rename. If a destination is given as a bare remote, e.g. `@remotename` then the source instance name is kept. If both source and destination are remotes then all matching instances are moved or copied. If no TYPE is given then all matching instances will be acted on. If the destination is a different location/remote then the port number of the instance(s) may be updated to avoid clashing with existing instances. Because all changes require the writing of a new instance configuration file, all instances are migrated to new JSON configuration files if required.
 
-* `geneos delete component name`
+* `geneos delete [-F] component name`
 Deletes the disabled component given. Only works on components that have been disabled beforehand.
 
-* `geneos edit [user|component] [names]`
+* `geneos edit [user|[TYPE] NAME...]`
 Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
 
 * `geneos import [TYPE] name [file|url|-]`
 Import a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
+
   ```bash
   geneos import gateway Example gateway.setup.xml
   geneos import gateway Example https://server/files/gateway.setup.xml
@@ -446,8 +490,7 @@ Import a file into an instance working directory, from local file, url or stdin 
   cat someoutput | geneos import gateway Example config.json=-
   ```
 
-Like other commands that write to the file system is can safely be run as root as the destination directory and file will be changed to be owned by either the instance or the default user, with the caveat that any intermediate directrories above the destination sub-directory (e.g. the first two in `my/long/path`) will be owned by root.
-`geneos clean` will remove backup files. Principal use for license token files, XML configs, scripts.
+Like other commands that write to the file system is can safely be run as root as the destination directory and file will be changed to be owned by either the instance or the default user, with the caveat that any intermediate directories above the destination sub-directory (e.g. the first two in `my/long/path`) will be owned by root.
 
 ## TLS Operations
 
@@ -470,7 +513,7 @@ The root and signing certificates are only kept on the local server and the `tls
   Create a new certificate for matching instances, signed using the signing certificate and key. This will NOT overwrite an existing certificate and will re-use the private key if it exists. The default validity period is one year. This cannot currently be changed.
 
 * `geneos tls renew [TYPE] [NAME...]`
-  Renew a certificate for matching instances. This will overwrite an existing certificate regardless of it's current status of validity period. Any existing provate key will be re-used. `renew` can be used after `import` to create certificates for all instances, but if you already have specfic instance certificates in place you should use `new` above.
+  Renew a certificate for matching instances. This will overwrite an existing certificate regardless of it's current status of validity period. Any existing private key will be re-used. `renew` can be used after `import` to create certificates for all instances, but if you already have specific instance certificates in place you should use `new` above.
   As for `new` the validity period is a year and cannot be changed at this time.
 
 * `geneos tls ls [-a] [-c|-j] [-i] [-l] [TYPE] [NAME...]`
@@ -498,14 +541,14 @@ The base URL for downloads for automating installations. Not yet used.
 If files are locally downloaded then this can either be a `file://` style URL or a directory path.
 
 * `DefaultUser`
-Principally used when running with elevated priviliedge (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.
+Principally used when running with elevated privilege (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.
 
 * `GatewayPortRange` & `NetprobePortRange` & `LicdPortRange`
 
 
 ### Component Configuration
 
-For compatiblity with earlier tools, the per-component configurations are loaded from `.rc` files in the working directory of each component. The configuration names are also based on the original names, hence they can be obscure. the `migrate` command allows for the conversion of the `.rc` file to a JSON format one, the original `.rc` file being renamed to end `.rc.orig` and allowing the `revert` command to restore the original (without subsequent changes).
+For compatibility with earlier tools, the per-component configurations are loaded from `.rc` files in the working directory of each component. The configuration names are also based on the original names, hence they can be obscure. the `migrate` command allows for the conversion of the `.rc` file to a JSON format one, the original `.rc` file being renamed to end `.rc.orig` and allowing the `revert` command to restore the original (without subsequent changes).
 
 If you want to change settings you should first `migrate` the configuration and then use `set` to make changes.
 

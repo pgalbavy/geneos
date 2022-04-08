@@ -45,7 +45,7 @@ to prevent visibility in casual viewing.`})
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   `geneos delete [-f] [TYPE] [NAME...]`,
+		CommandLine:   `geneos delete [-F] [TYPE] [NAME...]`,
 		Summary:       `Delete an instance. Instance must be stopped.`,
 		Description: `Delete the matching instances. This will only work on instances that
 are disabled to prevent accidental deletion. The instance directory
@@ -60,7 +60,7 @@ FLAGS:
 	})
 
 	deleteFlags = flag.NewFlagSet("delete", flag.ExitOnError)
-	deleteFlags.BoolVar(&deleteForced, "f", false, "Force delete of instances")
+	deleteFlags.BoolVar(&deleteForced, "F", false, "Force delete of instances")
 	deleteFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
 	RegsiterCommand(Command{
@@ -70,7 +70,7 @@ FLAGS:
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   `geneos rebuild [-f] [-r] [TYPE] {NAME...]`,
+		CommandLine:   `geneos rebuild [-F] [-r] [TYPE] {NAME...]`,
 		Summary:       `Rebuild instance configuration files`,
 		Description: `Rebuild instance configuration files based on current templates and instance configuration values
 		
@@ -83,7 +83,7 @@ FLAGS:
 	})
 
 	rebuildFlags = flag.NewFlagSet("rebuild", flag.ExitOnError)
-	rebuildFlags.BoolVar(&rebuildForced, "f", false, "Force rebuild")
+	rebuildFlags.BoolVar(&rebuildForced, "F", false, "Force rebuild")
 	rebuildFlags.BoolVar(&rebuildRestart, "r", false, "Restart instances after rebuild")
 }
 

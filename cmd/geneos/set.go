@@ -25,7 +25,9 @@ func init() {
 		Description: `Set configuration item values in global, user, or for a specific
 instance.
 
-To set enironment variables for an instance use the key Env and the
+Special Names:
+
+To set environment variables for an instance use the key Env and the
 value var=value. Each new var=value is additive or overwrites an existing
 entry for 'var', e.g.
 
@@ -41,7 +43,11 @@ To add an include file to an auto-generated gateway use a similar syntax to the 
 	geneos set gateway gateway1 Includes=100:path/to/include.xml
 	geneos set gateway gateway1 Includes=-100
 
-Then rebuild the configuration as required.`,
+Then rebuild the configuration as required.
+
+Other special names include Gateways for a comma separated list of host:port values for Sans,
+Attributes as name=value pairs again for Sans and Types a comma separated list of Types for Sans.
+Variables (for San config templates) cannot be set from the command line at this time.`,
 	})
 }
 

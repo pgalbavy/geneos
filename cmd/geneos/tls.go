@@ -44,7 +44,7 @@ func init() {
 		renew certificates for matching instances
 		
 	geneos tls ls [TYPE] [NAME]
-		list certificates for matcing instances, including the root and intermediate CA certs.
+		list certificates for matching instances, including the root and intermediate CA certs.
 		same options as for the main 'ls' command
 
 	geneos tls sync

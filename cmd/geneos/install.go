@@ -33,7 +33,7 @@ func init() {
 		ParseArgs:     parseArgs,
 		Wildcard:      true,
 		ComponentOnly: false,
-		CommandLine:   "geneos install [-l] [-n] [-r REMOTE] [-T TYPE] [-V VERSION] [TYPE] | FILE|URL [FILE|URL...] | [VERSION | FILTER]",
+		CommandLine:   "geneos install [-b BASENAME] [-l] [-n] [-r REMOTE] [-U] [-T TYPE:VERSION] [TYPE] | FILE|URL [FILE|URL...] | [VERSION | FILTER]",
 		Summary:       `Install files from downloaded Geneos packages. Intended for sites without Internet access.`,
 		Description: `Installs files from FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
@@ -95,7 +95,7 @@ FLAGS:
 		Summary:       `Update the active version of Geneos software.`,
 		Description: `Update the symlink for the default base name of the package used to
 	VERSION. The base directory, for historical reasons, is 'active_prod'
-	and is usally linked to the latest version of a component type in the
+	and is usually linked to the latest version of a component type in the
 	packages directory. VERSION can either be a directory name or the
 	literal 'latest'. If TYPE is not supplied, all supported component
 	types are updated to VERSION.
@@ -113,8 +113,6 @@ FLAGS:
 	same numerical versions. All other directories name formats will
 	result in unexpected behaviour.
 
-	Future version may support selecting a base other than 'active_prod'.
-
 	FLAGS:
 		-b BASE - override the base link name, default active_prod
 		-r REMOTE - update remote. default is local. 'all' means all remotes including local.`,
@@ -122,7 +120,7 @@ FLAGS:
 
 	updateFlags = flag.NewFlagSet("update", flag.ExitOnError)
 	updateFlags.StringVar(&updateBase, "b", "active_prod", "Override the base active_prod link name")
-	updateFlags.StringVar(&updateRemote, "r", string(ALL), "Perform on a remote. \"all\" means all remotes and locally")
+	updateFlags.StringVar(&updateRemote, "r", string(ALL), "Perform on a remote. \"all\" - the default - means all remotes and locally")
 }
 
 var installFlags *flag.FlagSet

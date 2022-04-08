@@ -26,7 +26,7 @@ DIRECTORY must be an absolute path and this is used to distinguish it
 from USERNAME.
 
 DIRECTORY defaults to ${HOME}/geneos for the selected user
-unless the last compoonent of ${HOME} is 'geneos' in which case the
+unless the last component of ${HOME} is 'geneos' in which case the
 home directory is used. e.g. if the user is 'geneos' and the home
 directory is '/opt/geneos' then that is used, but if it were a user
 'itrs' which a home directory of '/home/itrs' then the directory
@@ -37,7 +37,7 @@ When DIRECTORY is given it must be an absolute path and the parent
 directory must be writable by the user - either running the command
 or given as USERNAME.
 
-DIRECTORY, whether explict or implied, must not exist or be empty of
+DIRECTORY, whether explicit or implied, must not exist or be empty of
 all except "dot" files and directories.
 
 When run with superuser privileges a USERNAME must be supplied and
