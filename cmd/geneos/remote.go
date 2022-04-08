@@ -57,7 +57,7 @@ func init() {
 	Remote.RegisterDirs([]string{
 		"remotes",
 	})
-	RegisterSettings(GlobalSettings{})
+	RegisterDefaultSettings(GlobalSettings{})
 
 }
 
@@ -259,10 +259,6 @@ func (r *Remotes) Add(username string, params []string, tmpl string) (err error)
 
 func (r *Remotes) Command() (args, env []string) {
 	return
-}
-
-func (r *Remotes) Clean(purge bool, params []string) (err error) {
-	return ErrNotSupported
 }
 
 func (r *Remotes) Reload(params []string) (err error) {

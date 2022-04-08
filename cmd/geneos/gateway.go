@@ -55,6 +55,9 @@ func init() {
 		ComponentMatches: []string{"gateway", "gateways"},
 		RealComponent:    true,
 		DownloadBase:     "Gateway+2",
+		PortRange:        "GatewayPortRange",
+		CleanList:        "GatewayCleanList",
+		PurgeList:        "GatewayPurgeList",
 	})
 	Gateway.RegisterDirs([]string{
 		"packages/gateway",
@@ -63,7 +66,7 @@ func init() {
 		"gateway/gateway_config",
 		"gateway/templates",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"GatewayPortRange": "7039,7100-",
 		"GatewayCleanList": "*.old:*.history",
 		"GatewayPurgeList": "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/",
@@ -148,7 +151,7 @@ func (g *Gateways) Loaded() bool {
 }
 
 func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
-	g.GatePort = g.InstanceRemote.nextPort(GlobalConfig["GatewayPortRange"])
+	g.GatePort = g.InstanceRemote.nextPort(Gateway)
 	g.GateUser = username
 	g.ConfigRebuild = "initial"
 	g.Includes = make(map[int]string)
@@ -204,7 +207,7 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 
 	// use getPorts() to check valid change, else go up one
 	ports := g.Remote().getPorts()
-	nextport := g.Remote().nextPort(GlobalConfig["GatewayPortRange"])
+	nextport := g.Remote().nextPort(Gateway)
 	if secure && g.GatePort == 7039 {
 		if _, ok := ports[7038]; !ok {
 			g.GatePort = 7038
@@ -282,39 +285,6 @@ func (g *Gateways) Command() (args, env []string) {
 	// }
 
 	return
-}
-
-func (g *Gateways) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err == nil {
-			log.Println(g, "cleaned")
-		}
-		return
-
-	}
-
-	if _, err = findInstancePID(g); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(g, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(g, GlobalConfig["GatewayCleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(g, GlobalConfig["GatewayPurgeList"]); err != nil {
-		return
-	}
-	log.Println(g, "fully cleaned")
-	if stopped {
-		err = startInstance(g, params)
-	}
-	return
-
 }
 
 func (g *Gateways) Reload(params []string) (err error) {

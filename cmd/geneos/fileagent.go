@@ -42,12 +42,15 @@ func init() {
 		ComponentMatches: []string{"fileagent", "fileagents", "file-agent"},
 		RealComponent:    true,
 		DownloadBase:     "Fix+Analyser+File+Agent",
+		PortRange:        "FAPortRange",
+		CleanList:        "FACleanList",
+		PurgeList:        "FAPurgeList",
 	})
 	FileAgent.RegisterDirs([]string{
 		"packages/fileagent",
 		"fileagent/fileagents",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"FAPortRange": "7030,7100-",
 		"FACleanList": "*.old",
 		"FAPurgeList": "fileagent.log:fileagent.txt",
@@ -123,7 +126,7 @@ func (n *FileAgents) Loaded() bool {
 }
 
 func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
-	n.FAPort = n.InstanceRemote.nextPort(GlobalConfig["FAPortRange"])
+	n.FAPort = n.InstanceRemote.nextPort(FileAgent)
 	n.FAUser = username
 
 	if err = writeInstanceConfig(n); err != nil {
@@ -165,37 +168,6 @@ func (c *FileAgents) Command() (args, env []string) {
 	// 	args = append(args, "-ssl-certificate-key", c.FAKey)
 	// }
 
-	return
-}
-
-func (c *FileAgents) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(c, GlobalConfig["FACleanList"]); err == nil {
-			log.Println(c, "cleaned")
-		}
-		return
-	}
-
-	if _, err = findInstancePID(c); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(c, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(c, GlobalConfig["FACleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(c, GlobalConfig["FAPurgeList"]); err != nil {
-		return
-	}
-	log.Println(c, "fully cleaned")
-	if stopped {
-		err = startInstance(c, params)
-	}
 	return
 }
 

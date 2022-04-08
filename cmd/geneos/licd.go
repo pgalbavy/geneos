@@ -32,12 +32,15 @@ func init() {
 		ComponentMatches: []string{"licd", "licds"},
 		RealComponent:    true,
 		DownloadBase:     "Licence+Daemon",
+		PortRange:        "LicdPortRange",
+		CleanList:        "LicdCleanList",
+		PurgeList:        "LicdPurgeList",
 	})
 	Licd.RegisterDirs([]string{
 		"packages/licd",
 		"licd/licds",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"LicdPortRange": "7041,7100-",
 		"LicdCleanList": "*.old",
 		"LicdPurgeList": "licd.log:licd.txt",
@@ -112,7 +115,7 @@ func (l *Licds) Loaded() bool {
 }
 
 func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
-	l.LicdPort = l.InstanceRemote.nextPort(GlobalConfig["LicdPortRange"])
+	l.LicdPort = l.InstanceRemote.nextPort(Licd)
 	l.LicdUser = username
 
 	if err = writeInstanceConfig(l); err != nil {
@@ -153,37 +156,6 @@ func (l *Licds) Command() (args, env []string) {
 		args = append(args, "-ssl-certificate-key", l.LicdKey)
 	}
 
-	return
-}
-
-func (l *Licds) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err == nil {
-			log.Println(l, "cleaned")
-		}
-		return
-	}
-
-	if _, err = findInstancePID(l); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(l, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(l, GlobalConfig["LicdCleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(l, GlobalConfig["LicdPurgeList"]); err != nil {
-		return
-	}
-	log.Println(l, "fully cleaned")
-	if stopped {
-		err = startInstance(l, params)
-	}
 	return
 }
 

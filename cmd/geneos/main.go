@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -48,10 +47,10 @@ var (
 	ErrNotSupported = errors.New("not supported")
 	ErrPermission   = os.ErrPermission
 	ErrInvalidArgs  = os.ErrInvalid
-	ErrProcNotExist = errors.New("process not found")
+	ErrProcNotFound = errors.New("process not found")
 	ErrProcExists   = errors.New("process exists")
 	ErrDisabled     = errors.New("disabled")
-	ErrNotFound     = fs.ErrNotExist
+	ErrNotFound     = errors.New("not found")
 	ErrNoAction     = errors.New("no action taken")
 )
 

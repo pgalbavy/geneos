@@ -84,7 +84,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 			}
 		}
 	}
-	return 0, ErrProcNotExist
+	return 0, ErrProcNotFound
 }
 
 func findInstancePIDInfo(c Instances) (pid int, uid uint32, gid uint32, mtime int64, err error) {
@@ -94,7 +94,7 @@ func findInstancePIDInfo(c Instances) (pid int, uid uint32, gid uint32, mtime in
 		s, err = c.Remote().statFile(fmt.Sprintf("/proc/%d", pid))
 		return pid, s.uid, s.gid, s.mtime, err
 	}
-	return 0, 0, 0, 0, ErrProcNotExist
+	return 0, 0, 0, 0, ErrProcNotFound
 }
 
 func getUser(username string) (uid, gid int, gids []int, err error) {
@@ -587,7 +587,7 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 func signalInstance(c Instances, signal syscall.Signal) (err error) {
 	pid, err := findInstancePID(c)
 	if err != nil {
-		return ErrProcNotExist
+		return ErrProcNotFound
 	}
 
 	if c.Remote() == rLOCAL {

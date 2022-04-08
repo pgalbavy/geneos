@@ -34,3 +34,5 @@
   * first pass review configs
   * second to edit
   * use a REST interface
+* move/copy - need to update ports when moving to another remote or copying to same remote
+* explore gRPC and other options over ssh for remotes (required daemon mode)

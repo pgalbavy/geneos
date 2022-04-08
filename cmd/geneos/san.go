@@ -55,13 +55,16 @@ func init() {
 		ComponentMatches: []string{"san", "sans"},
 		RealComponent:    true,
 		DownloadBase:     "Netprobe",
+		PortRange:        "SanPortRange",
+		CleanList:        "SanCleanList",
+		PurgeList:        "SanPurgeList",
 	})
 	San.RegisterDirs([]string{
 		"packages/netprobe",
 		"san/sans",
 		"san/templates",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"SanPortRange": "7036,7100-",
 		"SanCleanList": "*.old",
 		"SanPurgeList": "san.log:san.txt:*.snooze:*.user_assignment",
@@ -151,7 +154,7 @@ func (s *Sans) Loaded() bool {
 }
 
 func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
-	s.SanPort = s.InstanceRemote.nextPort(GlobalConfig["SanPortRange"])
+	s.SanPort = s.InstanceRemote.nextPort(San)
 	s.SanUser = username
 	s.ConfigRebuild = "always"
 
@@ -254,38 +257,6 @@ func (s *Sans) Command() (args, env []string) {
 	}
 
 	return
-}
-
-func (s *Sans) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(s, GlobalConfig["SanCleanList"]); err == nil {
-			log.Println(s, "cleaned")
-		}
-		return
-	}
-
-	if _, err = findInstancePID(s); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(s, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(s, GlobalConfig["SanCleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(s, GlobalConfig["SanPurgeList"]); err != nil {
-		return
-	}
-	log.Println(s, "fully cleaned")
-	if stopped {
-		err = startInstance(s, params)
-	}
-	return
-
 }
 
 func (s *Sans) Reload(params []string) (err error) {

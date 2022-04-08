@@ -45,6 +45,9 @@ func init() {
 		ComponentMatches: []string{"words", "to", "match"},
 		RealComponent:    true,
 		DownloadBase:     "Name+Whatever",
+		PortRange:        "NamePortRange",
+		CleanList:        "NameCleanList",
+		PurgeList:        "NamePurgeList",
 	})
 	RegisterDirs([]string{
 		"",
@@ -156,30 +159,6 @@ func (c Names) Command() (args, env []string) {
 	}
 
 	return
-}
-
-func (c Names) Clean(purge bool, params []string) (err error) {
-	logDebug.Println(c.Type(), c.Name(), "clean")
-	if purge {
-		var stopped bool = true
-		err = stopInstance(c, params)
-		if err != nil {
-			if errors.Is(err, ErrProcNotExist) {
-				stopped = false
-			} else {
-				return err
-			}
-		}
-		if err = deletePaths(c, GlobalConfig["NameCleanList"]); err != nil {
-			return err
-		}
-		err = deletePaths(c, GlobalConfig["NamePurgeList"])
-		if stopped {
-			err = startInstance(c, params)
-		}
-		return
-	}
-	return deletePaths(c, GlobalConfig["NameCleanList"])
 }
 
 func (c Names) Reload(params []string) (err error) {

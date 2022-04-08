@@ -96,7 +96,7 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 			csvWriter.Flush()
 		default:
 			lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-			fmt.Fprintf(lsTabWriter, "Type\tName\tUsername\tHostname:Port\tITRSHome\n")
+			fmt.Fprintf(lsTabWriter, "Type\tName\tUsername\tHostname\tPort\tITRSHome\n")
 			err = ct.loopCommand(lsInstancePlainRemotes, args, params)
 			lsTabWriter.Flush()
 		}
@@ -115,12 +115,12 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 		err = ct.loopCommand(lsInstanceJSON, args, params)
 	case listCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Disabled", "Location", "Version", "Home"})
+		csvWriter.Write([]string{"Type", "Name", "Disabled", "Location", "Port", "Version", "Home"})
 		err = ct.loopCommand(lsInstanceCSV, args, params)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tVersion\tHome\n")
+		fmt.Fprintf(lsTabWriter, "Type\tName\tLocation\tPort\tVersion\tHome\n")
 		err = ct.loopCommand(lsInstancePlain, args, params)
 		lsTabWriter.Flush()
 	}
@@ -136,7 +136,7 @@ func lsInstancePlain(c Instances, params []string) (err error) {
 		suffix = "*"
 	}
 	base, underlying, _ := componentVersion(c)
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), base, underlying, c.Home())
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), getInt(c, c.Prefix("Port")), base, underlying, c.Home())
 	return
 }
 
@@ -145,7 +145,7 @@ func lsInstancePlainRemotes(c Instances, params []string) (err error) {
 	if Disabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s:%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "Geneos"))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\t%d\t%s\n", c.Type(), c.Name()+suffix, getString(c, "Username"), getString(c, "Hostname"), getInt(c, "Port"), getString(c, "Geneos"))
 	return
 }
 
@@ -155,7 +155,7 @@ func lsInstanceCSV(c Instances, params []string) (err error) {
 		dis = "Y"
 	}
 	base, underlying, _ := componentVersion(c)
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprint(getInt(c, c.Prefix("Port"))), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }
 
@@ -173,6 +173,7 @@ type lsType struct {
 	Name     string
 	Disabled string
 	Location string
+	Port     int64
 	Version  string
 	Home     string
 }
@@ -193,7 +194,7 @@ func lsInstanceJSON(c Instances, params []string) (err error) {
 		dis = "Y"
 	}
 	base, underlying, _ := componentVersion(c)
-	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), getInt(c, c.Prefix("Port")), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }
 

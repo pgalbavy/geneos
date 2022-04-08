@@ -29,6 +29,9 @@ type Components struct {
 	ComponentMatches []string
 	RealComponent    bool
 	DownloadBase     string
+	PortRange        Global
+	CleanList        Global
+	PurgeList        Global
 }
 
 func init() {
@@ -39,7 +42,7 @@ func init() {
 		RealComponent:    false,
 		DownloadBase:     "",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		// Root directory for all operations
 		"Geneos": "",
 
@@ -87,7 +90,7 @@ type Instances interface {
 
 	Add(string, []string, string) error
 	Command() ([]string, []string)
-	Clean(bool, []string) error
+	// Clean(bool, []string) error
 	Reload(params []string) (err error)
 	Rebuild(bool) error
 }
@@ -175,7 +178,7 @@ func (ct Component) makeComponentDirs(r *Remotes) (err error) {
 }
 
 // register setting with their defaults
-func RegisterSettings(settings GlobalSettings) {
+func RegisterDefaultSettings(settings GlobalSettings) {
 	for k, v := range settings {
 		GlobalConfig[k] = v
 	}
@@ -219,7 +222,7 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 		}
 		n++
 		for _, c := range cs {
-			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotExist) && !errors.Is(err, ErrNotSupported) {
+			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotFound) && !errors.Is(err, ErrNotSupported) {
 				log.Println(c, err)
 			}
 		}
@@ -233,13 +236,15 @@ func (ct Component) loopCommand(fn func(Instances, []string) error, args []strin
 // Return a slice of all instanceNames for a given Component. No
 // checking is done to validate that the directory is a populated
 // instance.
-func (ct Component) FindNames(r *Remotes) (components []string) {
+//
+func (ct Component) FindNames(r *Remotes) (names []string) {
 	var files []fs.DirEntry
 
 	if r == rALL {
 		for _, r := range AllRemotes() {
-			components = append(components, ct.FindNames(r)...)
+			names = append(names, ct.FindNames(r)...)
 		}
+		logDebug.Println("names:", names)
 		return
 	}
 
@@ -257,15 +262,20 @@ func (ct Component) FindNames(r *Remotes) (components []string) {
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].Name() < files[j].Name()
 	})
-	for _, file := range files {
+	for i, file := range files {
+		// skip for values with the same name as previous
+		if i > 0 && i < len(files) && file.Name() == files[i-1].Name() {
+			continue
+		}
 		if file.IsDir() {
 			if ct == Remote {
-				components = append(components, file.Name())
+				names = append(names, file.Name())
 			} else {
-				components = append(components, file.Name()+"@"+r.InstanceName)
+				names = append(names, file.Name()+"@"+r.InstanceName)
 			}
 		}
 	}
+	logDebug.Println("names:", names)
 	return
 }
 
@@ -307,10 +317,10 @@ func (ct Component) FindInstances(name string) (c []Instances) {
 	}
 
 	for _, name := range ct.FindNames(r) {
-		logDebug.Println(ct, name)
+		// logDebug.Println(ct, name)
 		// for case insensitive match change to EqualFold here
 		_, ldir, _ := SplitInstanceName(name, rALL)
-		logDebug.Println(ldir, local)
+		// logDebug.Println(ldir, local)
 		if filepath.Base(ldir) == local {
 			i, err := ct.GetInstance(name)
 			if err != nil {
@@ -328,6 +338,10 @@ func (ct Component) FindInstances(name string) (c []Instances) {
 // returns Invalid Args if zero of more than 1 match
 func (ct Component) FindInstance(name string) (c Instances, err error) {
 	list := ct.FindInstances(name)
+	if len(list) == 0 {
+		err = ErrNotFound
+		return
+	}
 	if len(list) == 1 {
 		c = list[0]
 		return

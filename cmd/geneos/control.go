@@ -268,7 +268,7 @@ func commandStop(ct Component, args []string, params []string) (err error) {
 func stopInstance(c Instances, params []string) (err error) {
 	if !stopKill {
 		err = signalInstance(c, syscall.SIGTERM)
-		if err == ErrProcNotExist {
+		if err == ErrProcNotFound {
 			return nil
 		}
 
@@ -279,24 +279,24 @@ func stopInstance(c Instances, params []string) (err error) {
 		for i := 0; i < 10; i++ {
 			time.Sleep(250 * time.Millisecond)
 			err = signalInstance(c, syscall.SIGTERM)
-			if err == ErrProcNotExist {
+			if err == ErrProcNotFound {
 				break
 			}
 		}
 
-		if _, err = findInstancePID(c); err == ErrProcNotExist {
+		if _, err = findInstancePID(c); err == ErrProcNotFound {
 			log.Println(c, "stopped")
 			return nil
 		}
 	}
 
-	if err = signalInstance(c, syscall.SIGKILL); err == ErrProcNotExist {
+	if err = signalInstance(c, syscall.SIGKILL); err == ErrProcNotFound {
 		return nil
 	}
 
 	time.Sleep(250 * time.Millisecond)
 	_, err = findInstancePID(c)
-	if err == ErrProcNotExist {
+	if err == ErrProcNotFound {
 		log.Println(c, "killed")
 		return nil
 	}
@@ -328,7 +328,7 @@ func commandRestart(ct Component, args []string, params []string) (err error) {
 
 func restartInstance(c Instances, params []string) (err error) {
 	err = stopInstance(c, params)
-	if err == nil || (errors.Is(err, ErrProcNotExist) && restartAll) {
+	if err == nil || (errors.Is(err, ErrProcNotFound) && restartAll) {
 		return startInstance(c, params)
 	}
 	return
@@ -350,7 +350,7 @@ func disableInstance(c Instances, params []string) (err error) {
 		return
 	}
 
-	if err = stopInstance(c, params); err != nil && !errors.Is(err, ErrProcNotExist) {
+	if err = stopInstance(c, params); err != nil && !errors.Is(err, ErrProcNotFound) {
 		return
 	}
 

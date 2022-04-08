@@ -182,7 +182,8 @@ func (r *Remotes) getPorts() (ports map[int]Component) {
 //
 // not concurrency safe at this time
 //
-func (r *Remotes) nextPort(from string) int {
+func (r *Remotes) nextPort(ct Component) int {
+	from := GlobalConfig[components[ct].PortRange]
 	used := r.getPorts()
 	ps := strings.Split(from, ",")
 	for _, p := range ps {

@@ -32,12 +32,15 @@ func init() {
 		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 		RealComponent:    true,
 		DownloadBase:     "Netprobe",
+		PortRange:        "NetprobePortRange",
+		CleanList:        "NetprobeCleanList",
+		PurgeList:        "NetprobePurgeList",
 	})
 	Netprobe.RegisterDirs([]string{
 		"packages/netprobe",
 		"netprobe/netprobes",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"NetprobePortRange": "7036,7100-",
 		"NetprobeCleanList": "*.old",
 		"NetprobePurgeList": "netprobe.log:netprobe.txt:*.snooze:*.user_assignment",
@@ -112,7 +115,7 @@ func (n *Netprobes) Loaded() bool {
 }
 
 func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
-	n.NetpPort = n.InstanceRemote.nextPort(GlobalConfig["NetprobePortRange"])
+	n.NetpPort = n.InstanceRemote.nextPort(Netprobe)
 	n.NetpUser = username
 
 	if err = writeInstanceConfig(n); err != nil {
@@ -159,38 +162,6 @@ func (n *Netprobes) Command() (args, env []string) {
 	}
 
 	return
-}
-
-func (n *Netprobes) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err == nil {
-			log.Println(n, "cleaned")
-		}
-		return
-	}
-
-	if _, err = findInstancePID(n); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(n, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(n, GlobalConfig["NetprobeCleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(n, GlobalConfig["NetprobePurgeList"]); err != nil {
-		return
-	}
-	log.Println(n, "fully cleaned")
-	if stopped {
-		err = startInstance(n, params)
-	}
-	return
-
 }
 
 func (n *Netprobes) Reload(params []string) (err error) {

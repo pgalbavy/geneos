@@ -32,12 +32,15 @@ func init() {
 		ComponentMatches: []string{"fa2", "fixanalyser", "fixanalyzer", "fixanalyser2-netprobe"},
 		RealComponent:    true,
 		DownloadBase:     "Fix+Analyser+2+Netprobe",
+		PortRange:        "FA2PortRange",
+		CleanList:        "FA2CleanList",
+		PurgeList:        "FA2PurgeList",
 	})
 	FA2.RegisterDirs([]string{
 		"packages/fa2",
 		"fa2/fa2s",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"FA2PortRange": "7030,7100-",
 		"FA2CleanList": "*.old",
 		"FA2PurgeList": "fa2.log:fa2.txt:*.snooze:*.user_assignment",
@@ -113,7 +116,7 @@ func (n *FA2s) Loaded() bool {
 }
 
 func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
-	n.FA2Port = n.InstanceRemote.nextPort(GlobalConfig["FA2PortRange"])
+	n.FA2Port = n.InstanceRemote.nextPort(FA2)
 	n.FA2User = username
 
 	if err = writeInstanceConfig(n); err != nil {
@@ -155,37 +158,6 @@ func (n *FA2s) Command() (args, env []string) {
 		args = append(args, "-ssl-certificate-key", n.FA2Key)
 	}
 
-	return
-}
-
-func (n *FA2s) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(n, GlobalConfig["FA2CleanList"]); err == nil {
-			log.Println(n, "cleaned")
-		}
-		return
-	}
-
-	if _, err = findInstancePID(n); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(n, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(n, GlobalConfig["FA2CleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(n, GlobalConfig["FA2PurgeList"]); err != nil {
-		return
-	}
-	log.Println(n, "fully cleaned")
-	if stopped {
-		err = startInstance(n, params)
-	}
 	return
 }
 

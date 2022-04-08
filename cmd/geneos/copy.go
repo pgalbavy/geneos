@@ -104,6 +104,32 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 
 	logDebug.Println(ct, srcname, dstname)
 
+	// move/copy all instances from remote
+	// destination must also be a remote and different and exist
+	if strings.HasPrefix(srcname, "@") {
+		if !strings.HasPrefix(dstname, "@") {
+			return fmt.Errorf("%w: destination must be a remote when source is a remote", ErrInvalidArgs)
+		}
+		srcremote := strings.TrimPrefix(srcname, "@")
+		dstremote := strings.TrimPrefix(dstname, "@")
+		if srcremote == dstremote {
+			return fmt.Errorf("%w: src and destination remotes must be different", ErrInvalidArgs)
+		}
+		srcrem := GetRemote(RemoteName(srcremote))
+		if !srcrem.Loaded() {
+			return fmt.Errorf("%w: source remote %q not found", ErrNotFound, srcremote)
+		}
+		dstrem := GetRemote(RemoteName(dstremote))
+		if !dstrem.Loaded() {
+			return fmt.Errorf("%w: destination remote %q not found", ErrNotFound, dstremote)
+		}
+		// they both exist, now loop through all instances on src and try to move/copy
+		for _, name := range ct.FindNames(srcrem) {
+			ct.copyInstance(name, dstname, remove)
+		}
+		return nil
+	}
+
 	if ct == None {
 		for _, t := range RealComponents() {
 			if err = t.copyInstance(srcname, dstname, remove); err != nil {
@@ -116,7 +142,7 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 
 	src, err := ct.FindInstance(srcname)
 	if err != nil {
-		return fmt.Errorf("%s %q not matched to exactly one instance", ct, srcname)
+		return fmt.Errorf("%w: %q %q", err, ct, srcname)
 	}
 	if err = migrateConfig(src); err != nil {
 		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, srcname)
@@ -129,13 +155,18 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	}
 
 	dst, err := ct.GetInstance(dstname)
-	dstname, _ = splitInstanceName(dstname)
+	if err != nil {
+		logDebug.Println(err)
+	}
+	var dstremote RemoteName
+	dstname, dstremote = splitInstanceName(dstname)
+	_ = dstremote
 
 	if dst.Loaded() {
 		return fmt.Errorf("%s already exists", dst)
 	}
 
-	if _, err = findInstancePID(src); err != ErrProcNotExist {
+	if _, err = findInstancePID(src); err != ErrProcNotFound {
 		if err = stopInstance(src, nil); err == nil {
 			// cannot use defer startInstance() here as we have
 			// not yet created the new instance
@@ -151,7 +182,7 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	}
 
 	// now a full clean
-	if err = src.Clean(true, []string{}); err != nil {
+	if err = Clean(src, true, []string{}); err != nil {
 		return
 	}
 
@@ -179,8 +210,8 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 		}
 	}()
 
-	// update oldconf here and then write that out as if it were newconf
-	// this gets around the defaults set in newconf being incomplete and wrong
+	// update src here and then write that out as if it were dst
+	// this gets around the defaults set in dst being incomplete (and hence wrong)
 	if err = changeDirPrefix(src, src.Remote().GeneosRoot(), dst.Remote().GeneosRoot()); err != nil {
 		logDebug.Println(err)
 		return
@@ -190,6 +221,19 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	if err = setField(src, src.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dst.Remote()), dstname)); err != nil {
 		logDebug.Println(err)
 		return
+	}
+
+	// fetch a new port if remotes are different and port is already used
+	if src.Remote() != dst.Remote() {
+		srcport := getInt(src, src.Prefix("Port"))
+		dstports := dst.Remote().getPorts()
+		if _, ok := dstports[int(srcport)]; ok {
+			dstport := dst.Remote().nextPort(src.Type())
+			if err = setField(src, src.Prefix("Port"), fmt.Sprint(dstport)); err != nil {
+				logDebug.Println(err)
+				return
+			}
+		}
 	}
 
 	// after path updates, rename non paths

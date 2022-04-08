@@ -36,12 +36,15 @@ func init() {
 		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
 		RealComponent:    true,
 		DownloadBase:     "Web+Dashboard",
+		PortRange:        "WebserverPortRange",
+		CleanList:        "WebserverCleanList",
+		PurgeList:        "WebserverPurgeList",
 	})
 	Webserver.RegisterDirs([]string{
 		"packages/webserver",
 		"webserver/webservers",
 	})
-	RegisterSettings(GlobalSettings{
+	RegisterDefaultSettings(GlobalSettings{
 		"WebserverPortRange": "8080,8100-",
 		"WebserverCleanList": "*.old",
 		"WebserverPurgeList": "logs/*.log:webserver.txt",
@@ -131,7 +134,7 @@ func (w *Webservers) Loaded() bool {
 }
 
 func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
-	w.WebsPort = w.InstanceRemote.nextPort(GlobalConfig["WebserverPortRange"])
+	w.WebsPort = w.InstanceRemote.nextPort(Webserver)
 	w.WebsUser = username
 
 	if err = writeInstanceConfig(w); err != nil {
@@ -212,38 +215,6 @@ func (w *Webservers) Command() (args, env []string) {
 	}
 
 	return
-}
-
-func (w *Webservers) Clean(purge bool, params []string) (err error) {
-	var stopped bool
-
-	if !purge {
-		if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err == nil {
-			log.Println(w, "cleaned")
-		}
-		return
-	}
-
-	if _, err = findInstancePID(w); err == ErrProcNotExist {
-		stopped = false
-	} else if err = stopInstance(w, params); err != nil {
-		return
-	} else {
-		stopped = true
-	}
-
-	if err = deletePaths(w, GlobalConfig["WebserverCleanList"]); err != nil {
-		return
-	}
-	if err = deletePaths(w, GlobalConfig["WebserverPurgeList"]); err != nil {
-		return
-	}
-	log.Println(w, "fully cleaned")
-	if stopped {
-		err = startInstance(w, params)
-	}
-	return
-
 }
 
 func (w *Webservers) Reload(params []string) (err error) {

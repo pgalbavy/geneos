@@ -40,5 +40,46 @@ func commandClean(ct Component, args []string, params []string) error {
 }
 
 func cleanInstance(c Instances, params []string) (err error) {
-	return c.Clean(cleanPurge, params)
+	return Clean(c, cleanPurge, params)
+}
+
+func Clean(c Instances, purge bool, params []string) (err error) {
+	var stopped bool
+
+	cleanlist := GlobalConfig[components[c.Type()].CleanList]
+	purgelist := GlobalConfig[components[c.Type()].PurgeList]
+
+	if !purge {
+		if cleanlist != "" {
+			if err = deletePaths(c, cleanlist); err == nil {
+				logDebug.Println(c, "cleaned")
+			}
+		}
+		return
+	}
+
+	if _, err = findInstancePID(c); err == ErrProcNotFound {
+		stopped = false
+	} else if err = stopInstance(c, params); err != nil {
+		return
+	} else {
+		stopped = true
+	}
+
+	if cleanlist != "" {
+		if err = deletePaths(c, cleanlist); err != nil {
+			return
+		}
+	}
+	if purgelist != "" {
+		if err = deletePaths(c, purgelist); err != nil {
+			return
+		}
+	}
+	logDebug.Println(c, "fully cleaned")
+	if stopped {
+		err = startInstance(c, params)
+	}
+	return
+
 }
