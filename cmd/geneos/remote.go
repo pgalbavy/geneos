@@ -83,7 +83,7 @@ func NewRemote(name string) Instances {
 	c.InstanceType = Remote.String()
 	c.InstanceName = local
 	if err := setDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefauls():", err)
+		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = LOCAL
 	// fill this in directly as there is no config file to load

@@ -91,7 +91,7 @@ func NewGateway(name string) Instances {
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
 	if err := setDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefauls():", err)
+		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(remote.InstanceName)
 	return c

@@ -285,33 +285,6 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 	}
 
-	if superuser {
-		if err = rLOCAL.chown(dir, uid, gid); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	// create directories
-	// for _, d := range initDirs {
-	// 	dir := filepath.Join(dir, d)
-	// 	if err = r.mkdirAll(dir, 0775); err != nil {
-	// 		logError.Fatalln(err)
-	// 	}
-	// }
-
-	if err = None.makeComponentDirs(rLOCAL); err != nil {
-		return
-	}
-
-	if superuser {
-		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
-			if err == nil {
-				err = rLOCAL.chown(path, uid, gid)
-			}
-			return err
-		})
-	}
-
 	if r == rLOCAL {
 		c := make(GlobalSettings)
 		c["Geneos"] = dir
@@ -343,6 +316,25 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	// also recreate rLOCAL to load Geneos and others
 	delete(remotes, LOCAL)
 	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
+
+	if superuser {
+		if err = rLOCAL.chown(dir, uid, gid); err != nil {
+			logError.Fatalln(err)
+		}
+	}
+
+	if err = None.makeComponentDirs(rLOCAL); err != nil {
+		return
+	}
+
+	if superuser {
+		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
+			if err == nil {
+				err = rLOCAL.chown(path, uid, gid)
+			}
+			return err
+		})
+	}
 
 	for _, c := range components {
 		if c.Initialise != nil {
