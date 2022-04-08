@@ -87,7 +87,7 @@ None of these commands should have any side-effects but others will not only sta
 
 You can set-up a Demo environment like this:
 
-    geneos init -d /path/to/empty/dir
+    geneos init -D /path/to/empty/dir
 
 This one line command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Netprobe and Webserver for dashboards. However, no configuration is done to connect these up, that's up to you!
 
