@@ -127,12 +127,10 @@ func commandStart(ct Component, args []string, params []string) (err error) {
 	if err = ct.loopCommand(startInstance, args, params); err != nil {
 		return
 	}
+
 	if startLogs {
-		done := make(chan bool)
-		watcher, _ = watchLogs()
-		defer watcher.Close()
-		err = ct.loopCommand(logFollowInstance, args, params)
-		<-done
+		// never returns
+		return ct.followLogs(args, params)
 	}
 	return
 }
@@ -317,11 +315,8 @@ func commandRestart(ct Component, args []string, params []string) (err error) {
 	}
 
 	if startLogs {
-		done := make(chan bool)
-		watcher, _ = watchLogs()
-		defer watcher.Close()
-		err = ct.loopCommand(logFollowInstance, args, params)
-		<-done
+		// never returns
+		return ct.followLogs(args, params)
 	}
 	return
 }

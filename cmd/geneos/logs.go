@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 	"unicode"
 
 	"github.com/fsnotify/fsnotify"
@@ -58,10 +60,11 @@ var logsFollow, logsCat bool
 var logsLines int
 var logsMatchLines, logsExclude string
 
-// global watcher for logs
+// global watchers for logs
 // we need this right now so that logFollowInstance() knows to add files to it
 // abstract this away somehow
-var watcher *fsnotify.Watcher
+var watcherLocal *fsnotify.Watcher
+var watcherRemote *sync.Map
 
 // struct to hold logfile details
 type tail struct {
@@ -99,19 +102,26 @@ func commandLogs(ct Component, args []string, params []string) (err error) {
 
 	switch {
 	case logsCat:
-		return ct.loopCommand(logCatInstance, args, params)
+		err = ct.loopCommand(logCatInstance, args, params)
 	case logsFollow:
-		// tail -f here
-		done := make(chan bool)
-		watcher, _ = watchLogs()
-		defer watcher.Close()
-		err = ct.loopCommand(logFollowInstance, args, params)
-		<-done
+		// never returns
+		err = ct.followLogs(args, params)
 	default:
 		err = ct.loopCommand(logTailInstance, args, params)
-		// just tail a number of lines
 	}
 
+	return
+}
+
+func (ct Component) followLogs(args, params []string) (err error) {
+	done := make(chan bool)
+	watcherLocal, _ = watchLocalLogs()
+	watcherRemote, _ = watchRemoteLogs()
+	defer watcherLocal.Close()
+	if err = ct.loopCommand(logFollowInstance, args, params); err != nil {
+		log.Println(err)
+	}
+	<-done
 	return
 }
 
@@ -166,15 +176,6 @@ func tailLines(f io.ReadSeekCloser, end int64, linecount int) (text string, err 
 		_, err = f.Seek(0, os.SEEK_END)
 		return
 	}
-
-	// st, err := f.Stat()
-	// if err != nil {
-	// 	return
-	// }
-	// var end int64
-	// if st != (fileStat{}) {
-	// 	end = st.st.Size()
-	// }
 
 	for i = 1 + end/chunk; i > 0; i-- {
 		f.Seek((i-1)*chunk, io.SeekStart)
@@ -255,14 +256,13 @@ func logCatInstance(c Instances, params []string) (err error) {
 	return
 }
 
+// add local logs to a watcher list
+// for remote logs, spawn a go routine for each log, watch using stat etc.
+// and output changes
 func logFollowInstance(c Instances, params []string) (err error) {
-	if c.Remote() != rLOCAL {
-		log.Printf("===> %s -f not supported for remote instances, ignoring <===", c)
-		return
-	}
 	logfile := getLogfilePath(c)
 
-	f, st, err := rLOCAL.statAndOpenFile(logfile)
+	f, st, err := c.Remote().statAndOpenFile(logfile)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return
@@ -283,16 +283,86 @@ func logFollowInstance(c Instances, params []string) (err error) {
 	}
 	logDebug.Println("watching", logfile)
 
-	// add parent directory, to watch for changes
-	// no worries about tidying up, process is short lived
-	if err = watcher.Add(filepath.Dir(logfile)); err != nil {
-		logDebug.Fatalln("watcher.Add():", logfile, err)
+	if c.Remote() == rLOCAL {
+		// add parent directory, to watch for changes
+		// no worries about tidying up, process is short lived
+		if err = watcherLocal.Add(filepath.Dir(logfile)); err != nil {
+			logError.Fatalln(logfile, err)
+		}
+		return
 	}
+
+	watchRemoteLog(c, watcherRemote)
+	return nil
+}
+
+// set-up remote watchers
+func watchRemoteLogs() (m *sync.Map, err error) {
+	m = new(sync.Map)
+	ticker := time.NewTicker(500 * time.Millisecond)
+
+	go func() {
+		for range ticker.C {
+			m.Range(func(key, value interface{}) bool {
+				if value == nil {
+					return true
+				}
+				c := key.(Instances)
+				oldsize := value.(int64)
+				logfile := getLogfilePath(c)
+				tail := tails[logfile]
+
+				st, err := c.Remote().statFile(logfile)
+				if err != nil {
+					return true
+				}
+				newsize := st.st.Size()
+
+				if newsize == oldsize {
+					return true
+				}
+
+				// if we have an existing file and it appears
+				// to have grown then output whatever is new
+				if tail.f != nil {
+					tail.f.Seek(oldsize, io.SeekStart)
+					copyFromFile(logfile)
+					if newsize > oldsize {
+						// this seems reqired
+						m.Store(key, newsize)
+						return true
+					}
+
+					// if the file seems to have shrunk, then
+					// we are here, so close the old one
+					tail.f.Close()
+				}
+
+				// open new file, read to the end, return
+				if tail.f, st, err = c.Remote().statAndOpenFile(logfile); err != nil {
+					log.Println("cannot (re)open", err)
+				}
+				copyFromFile(logfile)
+				m.Store(key, st.st.Size())
+				return true
+			})
+		}
+	}()
 
 	return
 }
 
-func watchLogs() (watcher *fsnotify.Watcher, err error) {
+// add a remote instance 'c' log watcher to sync Map 'm'
+func watchRemoteLog(c Instances, m *sync.Map) {
+	var sz int64
+	st, err := c.Remote().statFile(getLogfilePath(c))
+	if err == nil {
+		sz = st.st.Size()
+	}
+	m.Store(c, sz)
+}
+
+func watchLocalLogs() (watcher *fsnotify.Watcher, err error) {
 	// set up watcher
 	watcher, err = fsnotify.NewWatcher()
 	if err != nil {
