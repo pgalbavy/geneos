@@ -78,19 +78,19 @@ FLAGS:
 
 	-f	Force rebuild for instances marked 'initial' even if configuration is not 'always'
 		- 'never' is never rebuilt
-	-r	restart any of instances where the configuration has changed.
+	-r	reload any of instances where the configuration has changed.
 		This is not normally required as both Sans and Gateways can be set to auto-reload on a time.`,
 	})
 
 	rebuildFlags = flag.NewFlagSet("rebuild", flag.ExitOnError)
 	rebuildFlags.BoolVar(&rebuildForced, "F", false, "Force rebuild")
-	rebuildFlags.BoolVar(&rebuildRestart, "r", false, "Restart instances after rebuild")
+	rebuildFlags.BoolVar(&rebuildReload, "r", false, "Reload instances after rebuild")
 }
 
 var deleteForced bool
 
 var rebuildFlags *flag.FlagSet
-var rebuildForced, rebuildRestart bool
+var rebuildForced, rebuildReload bool
 
 func deleteFlag(command string, args []string) []string {
 	deleteFlags.Parse(args)
@@ -303,8 +303,8 @@ func rebuildInstance(c Instances, params []string) (err error) {
 		return
 	}
 	log.Println(c, "configuration rebuilt")
-	if !rebuildRestart {
+	if !rebuildReload {
 		return
 	}
-	return restartInstance(c, params)
+	return reloadInstance(c, params)
 }
