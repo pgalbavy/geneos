@@ -648,11 +648,7 @@ func (r *Remotes) ReadDir(name string) (dirs []os.DirEntry, err error) {
 	return
 }
 
-func (r *Remotes) statAndOpenFile(name string) (f io.ReadSeekCloser, st fileStat, err error) {
-	st, err = r.Stat(name)
-	if err != nil {
-		return
-	}
+func (r *Remotes) Open(name string) (f io.ReadSeekCloser, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		f, err = os.Open(name)

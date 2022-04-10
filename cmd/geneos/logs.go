@@ -127,12 +127,16 @@ func outHeader(c Instances) {
 func logTailInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	f, st, err := c.Remote().statAndOpenFile(logfile)
+	st, err := c.Remote().Stat(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			log.Printf("===> %s log file not found <===", c)
 			return nil
 		}
+		return
+	}
+	f, err := c.Remote().Open(logfile)
+	if err != nil {
 		return
 	}
 	defer f.Close()
@@ -230,7 +234,7 @@ func filterOutput(c Instances, reader io.ReadSeeker) (sz int64) {
 func logCatInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	lines, _, err := c.Remote().statAndOpenFile(logfile)
+	lines, err := c.Remote().Open(logfile)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			log.Printf("===> %s log file not found <===", c)
@@ -250,19 +254,18 @@ func logCatInstance(c Instances, params []string) (err error) {
 func logFollowInstance(c Instances, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
-	f, st, err := c.Remote().statAndOpenFile(logfile)
+	// store a placeholder
+	tails.Store(c, &files{nil, 0})
+
+	f, err := c.Remote().Open(logfile)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return
 		}
 		log.Printf("===> %s log file not found <===", c)
-	}
-
-	// perfectly valid to not have a file to watch at start
-	tails.Store(c, &files{f, 0})
-
-	if err == nil {
+	} else {
 		// output up to this point
+		st, _ := c.Remote().Stat(logfile)
 		text, _ := tailLines(f, st.st.Size(), logsLines)
 
 		if len(text) != 0 {
@@ -320,7 +323,7 @@ func watchLogs() (tails *sync.Map) {
 				}
 
 				// open new file, read to the end, return
-				if tail.f, _, err = c.Remote().statAndOpenFile(logfile); err != nil {
+				if tail.f, err = c.Remote().Open(logfile); err != nil {
 					log.Println("cannot (re)open", err)
 				}
 				tail.p = copyFromFile(c)

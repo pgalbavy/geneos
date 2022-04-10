@@ -335,7 +335,11 @@ func copyDirEntry(fi fs.FileInfo, srcRemote *Remotes, srcPath string, dstRemote 
 			return err
 		}
 	default:
-		sf, ss, err := srcRemote.statAndOpenFile(srcPath)
+		ss, err := srcRemote.Stat(srcPath)
+		if err != nil {
+			return err
+		}
+		sf, err := srcRemote.Open(srcPath)
 		if err != nil {
 			return err
 		}

@@ -607,7 +607,7 @@ func (ct Component) openArchive(r *Remotes, version string) (filename string, bo
 			return
 		}
 		var f io.ReadSeekCloser
-		if f, _, err = rLOCAL.statAndOpenFile(filepath.Join(archiveDir, filename)); err != nil {
+		if f, err = rLOCAL.Open(filepath.Join(archiveDir, filename)); err != nil {
 			err = fmt.Errorf("local installation selected but no suitable file found for %s on %s (%w)", ct, r.InstanceName, err)
 			return
 		}
@@ -624,10 +624,13 @@ func (ct Component) openArchive(r *Remotes, version string) (filename string, bo
 	archiveDir := filepath.Join(Geneos(), "packages", "downloads")
 	rLOCAL.MkdirAll(archiveDir, 0775)
 	archivePath := filepath.Join(archiveDir, filename)
-	if f, s, err := rLOCAL.statAndOpenFile(archivePath); err == nil && s.st.Size() == resp.ContentLength {
-		logDebug.Println("not downloading, file already exists:", archivePath)
-		resp.Body.Close()
-		return filename, f, nil
+	s, err := rLOCAL.Stat(archivePath)
+	if err == nil && s.st.Size() == resp.ContentLength {
+		if f, err := rLOCAL.Open(archivePath); err == nil {
+			logDebug.Println("not downloading, file already exists:", archivePath)
+			resp.Body.Close()
+			return filename, f, nil
+		}
 	}
 
 	resp, err = http.Get(finalURL)

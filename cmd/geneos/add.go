@@ -341,7 +341,7 @@ func importFile(c Instances, source string) (err error) {
 
 	default:
 		// support globbing later
-		from, _, err = rLOCAL.statAndOpenFile(source)
+		from, err = rLOCAL.Open(source)
 		if err != nil {
 			return err
 		}
