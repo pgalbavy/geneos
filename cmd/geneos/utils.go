@@ -38,7 +38,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
-	dirs, _ := c.Remote().globPath("/proc/[0-9]*")
+	dirs, _ := c.Remote().Glob("/proc/[0-9]*")
 
 	for _, dir := range dirs {
 		p, _ := strconv.Atoi(filepath.Base(dir))
@@ -49,7 +49,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 
 	var data []byte
 	for _, pid = range pids {
-		if data, err = c.Remote().readFile(fmt.Sprintf("/proc/%d/cmdline", pid)); err != nil {
+		if data, err = c.Remote().ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid)); err != nil {
 			// process may disappear by this point, ignore error
 			continue
 		}
@@ -91,7 +91,7 @@ func findInstancePIDInfo(c Instances) (pid int, uid uint32, gid uint32, mtime in
 	pid, err = findInstancePID(c)
 	if err == nil {
 		var s fileStat
-		s, err = c.Remote().statFile(fmt.Sprintf("/proc/%d", pid))
+		s, err = c.Remote().Stat(fmt.Sprintf("/proc/%d", pid))
 		return pid, s.uid, s.gid, s.mtime, err
 	}
 	return 0, 0, 0, 0, ErrProcNotFound
@@ -483,12 +483,12 @@ func deletePaths(c Instances, paths string) (err error) {
 			return fmt.Errorf("%s %w", p, err)
 		}
 		// glob here
-		m, err := c.Remote().globPath(filepath.Join(c.Home(), p))
+		m, err := c.Remote().Glob(filepath.Join(c.Home(), p))
 		if err != nil {
 			return err
 		}
 		for _, f := range m {
-			if err = c.Remote().removeAll(f); err != nil {
+			if err = c.Remote().RemoveAll(f); err != nil {
 				logError.Println(err)
 				continue
 			}
@@ -570,7 +570,7 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 
 	// XXX backup old file - use same scheme as writeConfigFile()
 
-	if out, err = c.Remote().createFile(path, 0660); err != nil {
+	if out, err = c.Remote().Create(path, 0660); err != nil {
 		log.Printf("Cannot create configurtion file for %s %s", c, path)
 		return err
 	}

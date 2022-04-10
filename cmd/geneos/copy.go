@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/sftp"
 )
 
 //
@@ -198,7 +196,7 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 				// once we are done, try to delete old instance
 				orig, _ := ct.GetInstance(srcname)
 				logDebug.Println("removing old instance", orig)
-				orig.Remote().removeAll(orig.Home())
+				orig.Remote().RemoveAll(orig.Home())
 				log.Println(ct, srcname, "moved to", dstname)
 			} else {
 				log.Println(ct, srcname, "copied to", dstname)
@@ -206,7 +204,7 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 		} else {
 			// remove new instance
 			logDebug.Println("removing new instance", dst)
-			dst.Remote().removeAll(dst.Home())
+			dst.Remote().RemoveAll(dst.Home())
 		}
 	}()
 
@@ -295,9 +293,9 @@ func copyTree(srcRemote *Remotes, srcDir string, dstRemote *Remotes, dstDir stri
 		return
 	}
 
-	var s *sftp.Client
-	if s, err = srcRemote.sftpOpenSession(); err != nil {
-		return
+	s, err := srcRemote.sftpOpenSession()
+	if err != nil {
+		return err
 	}
 
 	w := s.Walk(srcDir)
@@ -320,20 +318,20 @@ func copyTree(srcRemote *Remotes, srcDir string, dstRemote *Remotes, dstDir stri
 func copyDirEntry(fi fs.FileInfo, srcRemote *Remotes, srcPath string, dstRemote *Remotes, dstPath string) (err error) {
 	switch {
 	case fi.IsDir():
-		ds, err := srcRemote.statFile(srcPath)
+		ds, err := srcRemote.Stat(srcPath)
 		if err != nil {
 			logError.Println(err)
 			return err
 		}
-		if err = dstRemote.mkdirAll(dstPath, ds.st.Mode()); err != nil {
+		if err = dstRemote.MkdirAll(dstPath, ds.st.Mode()); err != nil {
 			return err
 		}
 	case fi.Mode()&fs.ModeSymlink != 0:
-		link, err := srcRemote.readlink(srcPath)
+		link, err := srcRemote.ReadLink(srcPath)
 		if err != nil {
 			return err
 		}
-		if err = dstRemote.symlink(link, dstPath); err != nil {
+		if err = dstRemote.Symlink(link, dstPath); err != nil {
 			return err
 		}
 	default:
@@ -342,7 +340,7 @@ func copyDirEntry(fi fs.FileInfo, srcRemote *Remotes, srcPath string, dstRemote 
 			return err
 		}
 		defer sf.Close()
-		df, err := dstRemote.createFile(dstPath, ss.st.Mode())
+		df, err := dstRemote.Create(dstPath, ss.st.Mode())
 		if err != nil {
 			return err
 		}

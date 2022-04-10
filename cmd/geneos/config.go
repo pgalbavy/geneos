@@ -258,7 +258,7 @@ func readLocalConfigFile(file string, config interface{}) (err error) {
 }
 
 func (r *Remotes) readConfigFile(file string, config interface{}) (jsonFile []byte, err error) {
-	if jsonFile, err = r.readFile(file); err != nil {
+	if jsonFile, err = r.ReadFile(file); err != nil {
 		return
 	}
 	// dec := json.NewDecoder(jsonFile)
@@ -279,7 +279,7 @@ func deleteInstance(c Instances, params []string) (err error) {
 	}
 
 	if deleteForced || Disabled(c) {
-		if err = c.Remote().removeAll(c.Home()); err != nil {
+		if err = c.Remote().RemoveAll(c.Home()); err != nil {
 			return
 		}
 		c.Unload()
