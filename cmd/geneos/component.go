@@ -173,7 +173,7 @@ func (ct Component) makeComponentDirs(r *Remotes) (err error) {
 	}
 	for _, d := range initDirs[ct] {
 		dir := filepath.Join(r.Geneos, d)
-		if err = r.mkdirAll(dir, 0775); err != nil {
+		if err = r.MkdirAll(dir, 0775); err != nil {
 			return
 		}
 	}
@@ -254,12 +254,12 @@ func (ct Component) FindNames(r *Remotes) (names []string) {
 	if ct == None {
 		for _, t := range RealComponents() {
 			// ignore errors, we only care about any files found
-			d, _ := r.readDir(t.ComponentDir(r))
+			d, _ := r.ReadDir(t.ComponentDir(r))
 			files = append(files, d...)
 		}
 	} else {
 		// ignore errors, we only care about any files found
-		files, _ = r.readDir(ct.ComponentDir(r))
+		files, _ = r.ReadDir(ct.ComponentDir(r))
 	}
 
 	sort.Slice(files, func(i, j int) bool {

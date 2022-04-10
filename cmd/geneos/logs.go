@@ -294,7 +294,7 @@ func watchLogs() (tails *sync.Map) {
 				oldsize := tail.p
 
 				logfile := getLogfilePath(c)
-				st, err := c.Remote().statFile(logfile)
+				st, err := c.Remote().Stat(logfile)
 				if err != nil {
 					return true
 				}

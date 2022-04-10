@@ -90,9 +90,9 @@ func commandEdit(ct Component, args []string, params []string) (err error) {
 				logError.Println("remote edit of", c, ErrNotSupported)
 				continue
 			}
-			if _, err = rLOCAL.statFile(InstanceFileWithExt(c, "rc")); err == nil {
+			if _, err = rLOCAL.Stat(InstanceFileWithExt(c, "rc")); err == nil {
 				cs = append(cs, InstanceFileWithExt(c, "rc"))
-			} else if _, err = c.Remote().statFile(InstanceFileWithExt(c, "json")); err == nil {
+			} else if _, err = c.Remote().Stat(InstanceFileWithExt(c, "json")); err == nil {
 				cs = append(cs, InstanceFileWithExt(c, "json"))
 			} else {
 				logError.Println("no configuration file found for", c)

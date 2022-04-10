@@ -164,7 +164,7 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 		return
 	}
 
-	if err = w.Remote().mkdirAll(filepath.Join(w.Home(), "webapps"), 0775); err != nil {
+	if err = w.Remote().MkdirAll(filepath.Join(w.Home(), "webapps"), 0775); err != nil {
 		return
 	}
 

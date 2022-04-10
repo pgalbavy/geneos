@@ -364,13 +364,13 @@ func componentVersion(c Instances) (base string, underlying string, err error) {
 	for {
 		basepath := filepath.Join(basedir, underlying)
 		var st fileStat
-		st, err = c.Remote().lstatFile(basepath)
+		st, err = c.Remote().Lstat(basepath)
 		if err != nil {
 			underlying = "unknown"
 			return
 		}
 		if st.st.Mode()&fs.ModeSymlink != 0 {
-			underlying, err = c.Remote().readlink(basepath)
+			underlying, err = c.Remote().ReadLink(basepath)
 			if err != nil {
 				underlying = "unknown"
 				return

@@ -148,7 +148,7 @@ func startInstance(c Instances, params []string) (err error) {
 	}
 
 	binary := getString(c, c.Prefix("Exec"))
-	if _, err = c.Remote().statFile(binary); err != nil {
+	if _, err = c.Remote().Stat(binary); err != nil {
 		return fmt.Errorf("%q %w", binary, err)
 	}
 
@@ -351,13 +351,13 @@ func disableInstance(c Instances, params []string) (err error) {
 
 	disablePath := InstanceFileWithExt(c, disableExtension)
 
-	f, err := c.Remote().createFile(disablePath, 0664)
+	f, err := c.Remote().Create(disablePath, 0664)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if err = c.Remote().chown(disablePath, uid, gid); err != nil {
-		c.Remote().removeFile(disablePath)
+	if err = c.Remote().Chown(disablePath, uid, gid); err != nil {
+		c.Remote().Remove(disablePath)
 	}
 
 	return
@@ -376,7 +376,7 @@ func commandEneable(ct Component, args []string, params []string) (err error) {
 }
 
 func enableInstance(c Instances, params []string) (err error) {
-	err = c.Remote().removeFile(InstanceFileWithExt(c, disableExtension))
+	err = c.Remote().Remove(InstanceFileWithExt(c, disableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableStart {
 		startInstance(c, params)
 	}
@@ -385,7 +385,7 @@ func enableInstance(c Instances, params []string) (err error) {
 
 func Disabled(c Instances) bool {
 	d := InstanceFileWithExt(c, disableExtension)
-	if f, err := c.Remote().statFile(d); err == nil && f.st.Mode().IsRegular() {
+	if f, err := c.Remote().Stat(d); err == nil && f.st.Mode().IsRegular() {
 		return true
 	}
 	return false

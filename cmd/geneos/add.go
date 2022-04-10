@@ -289,7 +289,7 @@ func importFile(c Instances, source string) (err error) {
 				logError.Fatalln("dest path must be relative to (and in) instance directory")
 			}
 			// if the destination exists is it a directory?
-			if s, err := c.Remote().statFile(filepath.Join(c.Home(), destfile)); err == nil {
+			if s, err := c.Remote().Stat(filepath.Join(c.Home(), destfile)); err == nil {
 				if s.st.IsDir() {
 					destdir = filepath.Join(c.Home(), destfile)
 					destfile = ""
@@ -353,41 +353,41 @@ func importFile(c Instances, source string) (err error) {
 
 	destfile = filepath.Join(destdir, destfile)
 
-	if _, err := c.Remote().statFile(filepath.Dir(destfile)); err != nil {
-		err = c.Remote().mkdirAll(filepath.Dir(destfile), 0775)
+	if _, err := c.Remote().Stat(filepath.Dir(destfile)); err != nil {
+		err = c.Remote().MkdirAll(filepath.Dir(destfile), 0775)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			logError.Fatalln(err)
 		}
 		// if created, chown the last element
 		if err == nil {
-			if err = c.Remote().chown(filepath.Dir(destfile), uid, gid); err != nil {
+			if err = c.Remote().Chown(filepath.Dir(destfile), uid, gid); err != nil {
 				return err
 			}
 		}
 	}
 
 	// xxx - wrong way around. create tmp first, move over later
-	if s, err := c.Remote().statFile(destfile); err == nil {
+	if s, err := c.Remote().Stat(destfile); err == nil {
 		if !s.st.Mode().IsRegular() {
 			logError.Fatalln("dest exists and is not a plain file")
 		}
 		datetime := time.Now().UTC().Format("20060102150405")
 		backuppath = destfile + "." + datetime + ".old"
-		if err = c.Remote().renameFile(destfile, backuppath); err != nil {
+		if err = c.Remote().Rename(destfile, backuppath); err != nil {
 			return err
 		}
 	}
 
-	cf, err := c.Remote().createFile(destfile, 0664)
+	cf, err := c.Remote().Create(destfile, 0664)
 	if err != nil {
 		return err
 	}
 	defer cf.Close()
 
-	if err = c.Remote().chown(destfile, uid, gid); err != nil {
-		c.Remote().removeFile(destfile)
+	if err = c.Remote().Chown(destfile, uid, gid); err != nil {
+		c.Remote().Remove(destfile)
 		if backuppath != "" {
-			if err = c.Remote().renameFile(backuppath, destfile); err != nil {
+			if err = c.Remote().Rename(backuppath, destfile); err != nil {
 				return err
 			}
 			return err

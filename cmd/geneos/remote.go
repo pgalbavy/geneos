@@ -275,9 +275,9 @@ func (r *Remotes) Rebuild(initial bool) error {
 
 func (r *Remotes) getOSReleaseEnv() (err error) {
 	r.OSInfo = make(map[string]string)
-	f, err := r.readFile("/etc/os-release")
+	f, err := r.ReadFile("/etc/os-release")
 	if err != nil {
-		if f, err = r.readFile("/usr/lib/os-release"); err != nil {
+		if f, err = r.ReadFile("/usr/lib/os-release"); err != nil {
 			return fmt.Errorf("cannot open /etc/os-release or /usr/lib/os-releaae")
 		}
 	}
@@ -372,7 +372,7 @@ func AllRemotes() (remotes []*Remotes) {
 // at some point this should become interface based to allow other
 // remote protocols cleanly
 
-func (r *Remotes) symlink(target, path string) (err error) {
+func (r *Remotes) Symlink(target, path string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Symlink(target, path)
@@ -385,7 +385,7 @@ func (r *Remotes) symlink(target, path string) (err error) {
 	}
 }
 
-func (r *Remotes) readlink(file string) (link string, err error) {
+func (r *Remotes) ReadLink(file string) (link string, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Readlink(file)
@@ -398,7 +398,7 @@ func (r *Remotes) readlink(file string) (link string, err error) {
 	}
 }
 
-func (r *Remotes) mkdirAll(path string, perm os.FileMode) (err error) {
+func (r *Remotes) MkdirAll(path string, perm os.FileMode) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.MkdirAll(path, perm)
@@ -411,7 +411,7 @@ func (r *Remotes) mkdirAll(path string, perm os.FileMode) (err error) {
 	}
 }
 
-func (r *Remotes) chown(name string, uid, gid int) (err error) {
+func (r *Remotes) Chown(name string, uid, gid int) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Chown(name, uid, gid)
@@ -424,7 +424,7 @@ func (r *Remotes) chown(name string, uid, gid int) (err error) {
 	}
 }
 
-func (r *Remotes) createFile(path string, perms fs.FileMode) (out io.WriteCloser, err error) {
+func (r *Remotes) Create(path string, perms fs.FileMode) (out io.WriteCloser, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		var cf *os.File
@@ -453,7 +453,7 @@ func (r *Remotes) createFile(path string, perms fs.FileMode) (out io.WriteCloser
 	return
 }
 
-func (r *Remotes) removeFile(name string) (err error) {
+func (r *Remotes) Remove(name string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Remove(name)
@@ -466,7 +466,7 @@ func (r *Remotes) removeFile(name string) (err error) {
 	}
 }
 
-func (r *Remotes) removeAll(name string) (err error) {
+func (r *Remotes) RemoveAll(name string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.RemoveAll(name)
@@ -495,7 +495,7 @@ func (r *Remotes) removeAll(name string) (err error) {
 	}
 }
 
-func (r *Remotes) renameFile(oldpath, newpath string) (err error) {
+func (r *Remotes) Rename(oldpath, newpath string) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.Rename(oldpath, newpath)
@@ -518,7 +518,7 @@ type fileStat struct {
 }
 
 // stat() a local or remote file and normalise common values
-func (r *Remotes) statFile(name string) (s fileStat, err error) {
+func (r *Remotes) Stat(name string) (s fileStat, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		if s.st, err = os.Stat(name); err != nil {
@@ -543,7 +543,7 @@ func (r *Remotes) statFile(name string) (s fileStat, err error) {
 }
 
 // lstat() a local or remote file and normalise common values
-func (r *Remotes) lstatFile(name string) (s fileStat, err error) {
+func (r *Remotes) Lstat(name string) (s fileStat, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		if s.st, err = os.Lstat(name); err != nil {
@@ -567,7 +567,7 @@ func (r *Remotes) lstatFile(name string) (s fileStat, err error) {
 	return
 }
 
-func (r *Remotes) globPath(pattern string) (paths []string, err error) {
+func (r *Remotes) Glob(pattern string) (paths []string, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return filepath.Glob(pattern)
@@ -580,7 +580,7 @@ func (r *Remotes) globPath(pattern string) (paths []string, err error) {
 	}
 }
 
-func (r *Remotes) writeFile(path string, b []byte, perm os.FileMode) (err error) {
+func (r *Remotes) WriteFile(path string, b []byte, perm os.FileMode) (err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.WriteFile(path, b, perm)
@@ -600,7 +600,7 @@ func (r *Remotes) writeFile(path string, b []byte, perm os.FileMode) (err error)
 	}
 }
 
-func (r *Remotes) readFile(name string) (b []byte, err error) {
+func (r *Remotes) ReadFile(name string) (b []byte, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.ReadFile(name)
@@ -628,7 +628,7 @@ func (r *Remotes) readFile(name string) (b []byte, err error) {
 	}
 }
 
-func (r *Remotes) readDir(name string) (dirs []os.DirEntry, err error) {
+func (r *Remotes) ReadDir(name string) (dirs []os.DirEntry, err error) {
 	switch r.InstanceName {
 	case string(LOCAL):
 		return os.ReadDir(name)
@@ -649,7 +649,7 @@ func (r *Remotes) readDir(name string) (dirs []os.DirEntry, err error) {
 }
 
 func (r *Remotes) statAndOpenFile(name string) (f io.ReadSeekCloser, st fileStat, err error) {
-	st, err = r.statFile(name)
+	st, err = r.Stat(name)
 	if err != nil {
 		return
 	}
@@ -677,7 +677,7 @@ func (r *Remotes) createTempFile(path string, perms fs.FileMode) (f io.WriteClos
 	try := 0
 	for {
 		name = path + nextRandom()
-		f, err = r.createFile(name, perms)
+		f, err = r.Create(name, perms)
 		if os.IsExist(err) {
 			if try++; try < 100 {
 				continue

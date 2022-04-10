@@ -70,7 +70,7 @@ func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
 //
 // No processing of shell variables. should there be?
 func readRCConfig(c Instances) (err error) {
-	rcdata, err := c.Remote().readFile(InstanceFileWithExt(c, "rc"))
+	rcdata, err := c.Remote().ReadFile(InstanceFileWithExt(c, "rc"))
 	if err != nil {
 		return
 	}

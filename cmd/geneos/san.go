@@ -76,7 +76,7 @@ func InitSan(r *Remotes) {
 	if err := San.makeComponentDirs(r); err != nil {
 		logError.Fatalln(err)
 	}
-	if err := r.writeFile(r.GeneosPath(San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
+	if err := r.WriteFile(r.GeneosPath(San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
 		logError.Fatalln(err)
 	}
 }

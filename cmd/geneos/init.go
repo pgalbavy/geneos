@@ -133,26 +133,26 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 	// rewrite local templates and exit
 	if initFlags.Templates {
 		gatewayTemplates := rLOCAL.GeneosPath(Gateway.String(), "templates")
-		rLOCAL.mkdirAll(gatewayTemplates, 0775)
+		rLOCAL.MkdirAll(gatewayTemplates, 0775)
 		tmpl := GatewayTemplate
 		if initFlags.GatewayTmpl != "" {
 			if tmpl, err = readLocalFileOrURL(initFlags.GatewayTmpl); err != nil {
 				return
 			}
 		}
-		if err := rLOCAL.writeFile(filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.WriteFile(filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
 
 		sanTemplates := rLOCAL.GeneosPath(San.String(), "templates")
-		rLOCAL.mkdirAll(sanTemplates, 0775)
+		rLOCAL.MkdirAll(sanTemplates, 0775)
 		tmpl = SanTemplate
 		if initFlags.SanTmpl != "" {
 			if tmpl, err = readLocalFileOrURL(initFlags.SanTmpl); err != nil {
 				return
 			}
 		}
-		if err := rLOCAL.writeFile(filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.WriteFile(filepath.Join(sanTemplates, SanDefaultTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
 
@@ -263,9 +263,9 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	// XXX have an ignore flag?
 	// maybe check that the entire list of registered directories are
 	// either directories or do not exist
-	if _, err := r.statFile(dir); err == nil {
+	if _, err := r.Stat(dir); err == nil {
 		// check empty
-		dirs, err := r.readDir(dir)
+		dirs, err := r.ReadDir(dir)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -280,7 +280,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 	} else {
 		// need to create out own, chown base directory only
-		if err = r.mkdirAll(dir, 0775); err != nil {
+		if err = r.MkdirAll(dir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -296,7 +296,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 			}
 
 			// if everything else worked, remove any existing user config
-			_ = r.removeFile(filepath.Join(dir, ".config", "geneos.json"))
+			_ = r.Remove(filepath.Join(dir, ".config", "geneos.json"))
 		} else {
 			userConfDir, err := os.UserConfigDir()
 			if err != nil {
@@ -318,7 +318,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
 
 	if superuser {
-		if err = rLOCAL.chown(dir, uid, gid); err != nil {
+		if err = rLOCAL.Chown(dir, uid, gid); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -330,7 +330,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	if superuser {
 		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
 			if err == nil {
-				err = rLOCAL.chown(path, uid, gid)
+				err = rLOCAL.Chown(path, uid, gid)
 			}
 			return err
 		})
@@ -347,7 +347,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		if tmpl, err = readLocalFileOrURL(initFlags.GatewayTmpl); err != nil {
 			return
 		}
-		if err := rLOCAL.writeFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
+		if err := rLOCAL.WriteFile(rLOCAL.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -357,7 +357,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		if tmpl, err = readLocalFileOrURL(initFlags.SanTmpl); err != nil {
 			return
 		}
-		if err = rLOCAL.writeFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
+		if err = rLOCAL.WriteFile(rLOCAL.GeneosPath(San.String(), "templates", SanDefaultTemplate), tmpl, 0664); err != nil {
 			return
 		}
 	}

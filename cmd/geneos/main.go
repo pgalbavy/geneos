@@ -182,7 +182,7 @@ You can fix this by doing one of the following:
 	$ echo '{ "Geneos": "/path/to/geneos" }' >` + globalConfig + `
 `)
 		}
-		s, err := rLOCAL.statFile(Geneos())
+		s, err := rLOCAL.Stat(Geneos())
 		if err != nil {
 			logError.Fatalf("home directory %q: %s", Geneos(), errors.Unwrap(err))
 		}

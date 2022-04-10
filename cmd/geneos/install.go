@@ -368,13 +368,13 @@ func (ct Component) updateToVersion(r *Remotes, version, basename string, overwr
 	}
 
 	// does the version directory exist?
-	existing, err := r.readlink(basepath)
+	existing, err := r.ReadLink(basepath)
 	if err != nil {
 		logDebug.Println("cannot read link for existing version", basepath)
 	}
 
 	// before removing existing link, check there is something to link to
-	if _, err = r.statFile(filepath.Join(basedir, version)); err != nil {
+	if _, err = r.Stat(filepath.Join(basedir, version)); err != nil {
 		return fmt.Errorf("%q version of %s on %s: %w", version, ct, r.InstanceName, ErrNotFound)
 	}
 
@@ -390,10 +390,10 @@ func (ct Component) updateToVersion(r *Remotes, version, basename string, overwr
 		stopInstance(i, nil)
 		defer startInstance(i, nil)
 	}
-	if err = r.removeFile(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err = r.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
-	if err = r.symlink(version, basepath); err != nil {
+	if err = r.Symlink(version, basepath); err != nil {
 		return err
 	}
 	log.Println(ct, "on", r.InstanceName, basename, "updated to", version)
@@ -406,7 +406,7 @@ var anchoredVersRE = regexp.MustCompile(`^(\d+(\.\d+){0,2})$`)
 // given a directory find the "latest" version of the form
 // [GA]M.N.P[-DATE] M, N, P are numbers, DATE is treated as a string
 func (r *Remotes) latestMatch(dir, filter string, fn func(os.DirEntry) bool) (latest string) {
-	dirs, err := r.readDir(dir)
+	dirs, err := r.ReadDir(dir)
 	if err != nil {
 		return
 	}
@@ -622,7 +622,7 @@ func (ct Component) openArchive(r *Remotes, version string) (filename string, bo
 	logDebug.Println("final URL", finalURL)
 
 	archiveDir := filepath.Join(Geneos(), "packages", "downloads")
-	rLOCAL.mkdirAll(archiveDir, 0775)
+	rLOCAL.MkdirAll(archiveDir, 0775)
 	archivePath := filepath.Join(archiveDir, filename)
 	if f, s, err := rLOCAL.statAndOpenFile(archivePath); err == nil && s.st.Size() == resp.ContentLength {
 		logDebug.Println("not downloading, file already exists:", archivePath)
@@ -711,12 +711,12 @@ func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reade
 
 	basedir := r.GeneosPath("packages", ct.String(), version)
 	logDebug.Println(basedir)
-	if _, err = r.statFile(basedir); err == nil {
+	if _, err = r.Stat(basedir); err == nil {
 		// something is already using that dir
 		// XXX - option to delete and overwrite?
 		return
 	}
-	if err = r.mkdirAll(basedir, 0775); err != nil {
+	if err = r.MkdirAll(basedir, 0775); err != nil {
 		return
 	}
 
@@ -772,12 +772,12 @@ func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reade
 		case tar.TypeReg:
 			// check (and created) containing directories - account for munged tar files
 			dir := filepath.Dir(fullpath)
-			if err = r.mkdirAll(dir, 0775); err != nil {
+			if err = r.MkdirAll(dir, 0775); err != nil {
 				return
 			}
 
 			var out io.WriteCloser
-			if out, err = r.createFile(fullpath, hdr.FileInfo().Mode()); err != nil {
+			if out, err = r.Create(fullpath, hdr.FileInfo().Mode()); err != nil {
 				return err
 			}
 			n, err := io.Copy(out, tr)
@@ -791,7 +791,7 @@ func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reade
 			out.Close()
 
 		case tar.TypeDir:
-			if err = r.mkdirAll(fullpath, hdr.FileInfo().Mode()); err != nil {
+			if err = r.MkdirAll(fullpath, hdr.FileInfo().Mode()); err != nil {
 				return
 			}
 
@@ -799,8 +799,8 @@ func (ct Component) unarchive(r *Remotes, filename, basename string, gz io.Reade
 			if filepath.IsAbs(hdr.Linkname) {
 				logError.Fatalln("archive contains absolute symlink target")
 			}
-			if _, err = r.statFile(fullpath); err != nil {
-				if err = r.symlink(hdr.Linkname, fullpath); err != nil {
+			if _, err = r.Stat(fullpath); err != nil {
+				if err = r.Symlink(hdr.Linkname, fullpath); err != nil {
 					logError.Fatalln(err)
 				}
 			}

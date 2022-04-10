@@ -376,11 +376,11 @@ func (r *Remotes) writeConfigFile(file string, username string, perms fs.FileMod
 
 	dir := filepath.Dir(file)
 	// try to ensure directory exists
-	if err = r.mkdirAll(dir, 0775); err != nil {
+	if err = r.MkdirAll(dir, 0775); err != nil {
 		return
 	}
 	// change final directory ownership
-	_ = r.chown(dir, uid, gid)
+	_ = r.Chown(dir, uid, gid)
 
 	buffer := bytes.NewBuffer(j)
 	f, fn, err := r.createTempFile(file, perms)
@@ -389,13 +389,13 @@ func (r *Remotes) writeConfigFile(file string, username string, perms fs.FileMod
 	}
 	defer f.Close()
 
-	if err = r.chown(fn, uid, gid); err != nil {
-		r.removeFile(fn)
+	if err = r.Chown(fn, uid, gid); err != nil {
+		r.Remove(fn)
 	}
 
 	if _, err = io.Copy(f, buffer); err != nil {
 		return err
 	}
 
-	return r.renameFile(fn, file)
+	return r.Rename(fn, file)
 }

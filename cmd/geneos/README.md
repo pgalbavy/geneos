@@ -285,9 +285,8 @@ If you can log in to a remote Linux server using `ssh user@server` and no be pro
 
 The remote connections over SSH mean there are limitations to the features available on remote servers:
 
-1. No following logs (i.e. the `-f` option). The program is written to use `fsnotify` and that only works on local filesystems and not over sftp. This may be added using a more primitive polling mechanism later.
-2. Control over instance processes is done via shell commands and little error checking is done, so it is possible to cause damage and/or processes not to to start or stop as expected. Contributions of fixes are welcomed.
-3. All actions are taken as the user given in the SSH URL (which should NEVER be `root`) and so instances that are meant to run as other users cannot be controlled. Files and directories may not be available if the user does not have suitable permissions.
+1. Control over instance processes is done via shell commands and little error checking is done, so it is possible to cause damage and/or processes not to to start or stop as expected. Contributions of fixes are welcomed.
+2. All actions are taken as the user given in the SSH URL (which should NEVER be `root`) and so instances that are meant to run as other users cannot be controlled. Files and directories may not be available if the user does not have suitable permissions.
 
 
 

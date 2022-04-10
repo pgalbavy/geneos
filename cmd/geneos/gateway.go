@@ -78,7 +78,7 @@ func InitGateway(r *Remotes) {
 	if err := Gateway.makeComponentDirs(r); err != nil {
 		logError.Fatalln(err)
 	}
-	if err := r.writeFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
+	if err := r.WriteFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
 		logError.Fatalln(err)
 	}
 }
@@ -307,7 +307,7 @@ func createAESKeyFile(c Instances) (err error) {
 	key := md[:32]
 	iv := md[32:]
 
-	if err = c.Remote().writeFile(InstanceFileWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
+	if err = c.Remote().WriteFile(InstanceFileWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
 		return
 	}
 	if err = setField(c, c.Prefix("AES"), c.Type().String()+".aes"); err != nil {

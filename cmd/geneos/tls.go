@@ -439,7 +439,7 @@ func lsInstanceCertJSON(c Instances, params []string) (err error) {
 func TLSInit() (err error) {
 	tlsPath := filepath.Join(Geneos(), "tls")
 	// directory permissions do not need to be restrictive
-	err = rLOCAL.mkdirAll(tlsPath, 0775)
+	err = rLOCAL.MkdirAll(tlsPath, 0775)
 	if err != nil {
 		logError.Fatalln(err)
 	}
@@ -478,7 +478,7 @@ func TLSSync() (err error) {
 			continue
 		}
 		tlsPath := r.GeneosPath("tls")
-		if err = r.mkdirAll(tlsPath, 0775); err != nil {
+		if err = r.MkdirAll(tlsPath, 0775); err != nil {
 			return
 		}
 		if err = r.writeCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
@@ -498,7 +498,7 @@ func TLSSync() (err error) {
 func TLSImport(sources ...string) (err error) {
 	logDebug.Println(sources)
 	tlsPath := filepath.Join(Geneos(), "tls")
-	err = rLOCAL.mkdirAll(tlsPath, 0755)
+	err = rLOCAL.MkdirAll(tlsPath, 0755)
 	if err != nil {
 		return
 	}
@@ -854,7 +854,7 @@ func (r *Remotes) writeKey(path string, key *rsa.PrivateKey) (err error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
 
-	return r.writeFile(path, keyPEM, 0600)
+	return r.WriteFile(path, keyPEM, 0600)
 }
 
 // write cert as PEM to path
@@ -865,7 +865,7 @@ func (r *Remotes) writeCert(path string, cert *x509.Certificate) (err error) {
 		Bytes: cert.Raw,
 	})
 
-	return r.writeFile(path, certPEM, 0644)
+	return r.WriteFile(path, certPEM, 0644)
 }
 
 // concatenate certs and write to path
@@ -879,12 +879,12 @@ func (r *Remotes) writeCerts(path string, certs ...*x509.Certificate) (err error
 		})
 		certsPEM = append(certsPEM, p...)
 	}
-	return r.writeFile(path, certsPEM, 0644)
+	return r.WriteFile(path, certsPEM, 0644)
 }
 
 // read a PEM encoded cert from path, return the first found as a parsed certificate
 func (r *Remotes) readCert(path string) (cert *x509.Certificate, err error) {
-	certPEM, err := r.readFile(path)
+	certPEM, err := r.ReadFile(path)
 	if err != nil {
 		return
 	}
@@ -928,7 +928,7 @@ func readInstanceCert(c Instances) (cert *x509.Certificate, err error) {
 // read a PEM encoded RSA private key from path. returns the first found as
 // a parsed key
 func (r *Remotes) readKey(path string) (key *rsa.PrivateKey, err error) {
-	keyPEM, err := r.readFile(path)
+	keyPEM, err := r.ReadFile(path)
 	if err != nil {
 		return
 	}
