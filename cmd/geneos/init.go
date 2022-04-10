@@ -314,7 +314,7 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 	loadSysConfig()
 
 	// also recreate rLOCAL to load Geneos and others
-	delete(remotes, LOCAL)
+	rLOCAL.Unload()
 	rLOCAL = NewRemote(string(LOCAL)).(*Remotes)
 
 	if superuser {

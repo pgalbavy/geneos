@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/pkg/sftp"
@@ -64,24 +65,29 @@ func init() {
 // interface method set
 
 // cache instances of remotes as they get used frequently
-var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
+// var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
+var remotes sync.Map
 
 func NewRemote(name string) Instances {
-	local, remote := splitInstanceName(name)
-	if remote != LOCAL {
+	localpart, remotepart := splitInstanceName(name)
+	if remotepart != LOCAL {
 		logDebug.Println("remote remotes not suported")
 		return nil
 	}
-	r, ok := remotes[RemoteName(local)]
+	r, ok := remotes.Load(localpart)
 	if ok {
-		return r
+		rem, ok := r.(*Remotes)
+		if ok {
+			return rem
+		}
 	}
+
 	// Bootstrap
 	c := &Remotes{}
 	c.InstanceRemote = rLOCAL
 	c.RemoteRoot = Geneos()
 	c.InstanceType = Remote.String()
-	c.InstanceName = local
+	c.InstanceName = localpart
 	if err := setDefaults(&c); err != nil {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
@@ -94,7 +100,7 @@ func NewRemote(name string) Instances {
 	if c.InstanceName == string(LOCAL) || c.InstanceName == string(ALL) {
 		c.ConfigLoaded = true
 	}
-	remotes[RemoteName(local)] = c
+	remotes.Store(localpart, c)
 	return c
 }
 
@@ -141,7 +147,8 @@ func (r *Remotes) Load() (err error) {
 
 func (r *Remotes) Unload() (err error) {
 	if r == rLOCAL || r == rALL {
-		return ErrInvalidArgs
+		remotes.Delete(r.Name())
+		return
 	}
 	r.ConfigLoaded = false
 	return
