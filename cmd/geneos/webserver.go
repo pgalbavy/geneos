@@ -169,7 +169,7 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 	}
 
 	for _, source := range webserverFiles {
-		if err = importFile(w, source); err != nil {
+		if err = importFile(w.Remote(), w.Home(), getString(w, w.Prefix("User")), source); err != nil {
 			return
 		}
 	}
