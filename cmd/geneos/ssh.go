@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -15,6 +16,9 @@ import (
 )
 
 const userSSHdir = ".ssh"
+
+var sshSessions sync.Map
+var sftpSessions sync.Map
 
 // load all the known private keys with no passphrase
 func readSSHkeys(homedir string) (signers []ssh.Signer) {
@@ -88,42 +92,64 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 }
 
 func (r *Remotes) sshOpenRemote() (s *ssh.Client, err error) {
-	s = r.sshClient
-	if s == nil {
-		dest := r.Hostname + ":" + strconv.Itoa(r.Port)
-		user := getString(r, "Username")
+	dest := r.Hostname + ":" + strconv.Itoa(r.Port)
+	user := getString(r, "Username")
+	val, ok := sshSessions.Load(user + "@" + dest)
+	if ok {
+		s = val.(*ssh.Client)
+	} else {
 		s, err = sshConnect(dest, user)
 		if err != nil {
 			return
 		}
 		logDebug.Println("remote opened", r.InstanceName, dest, user)
-		r.sshClient = s
+		sshSessions.Store(user+"@"+dest, s)
+		// r.sshClient = s
 	}
 	return
 }
 
 func (r *Remotes) sshCloseRemote() {
 	r.sftpCloseSession()
-	r.sshClient.Close()
+
+	dest := r.Hostname + ":" + strconv.Itoa(r.Port)
+	user := getString(r, "Username")
+	val, ok := sshSessions.Load(user + "@" + dest)
+	if ok {
+		s := val.(*ssh.Client)
+		s.Close()
+		sshSessions.Delete(user + "@" + dest)
+	}
 }
 
 // succeed or fatal
 func (r *Remotes) sftpOpenSession() (f *sftp.Client, err error) {
-	f = r.sftpClient
-	if f == nil {
-		var c *ssh.Client
-		if c, err = r.sshOpenRemote(); err != nil {
+	dest := r.Hostname + ":" + strconv.Itoa(r.Port)
+	user := getString(r, "Username")
+	val, ok := sftpSessions.Load(user + "@" + dest)
+	if ok {
+		f = val.(*sftp.Client)
+	} else {
+		var s *ssh.Client
+		if s, err = r.sshOpenRemote(); err != nil {
 			return
 		}
-		if f, err = sftp.NewClient(c); err != nil {
+		if f, err = sftp.NewClient(s); err != nil {
 			return
 		}
 		logDebug.Println("remote opened", r.InstanceName)
-		r.sftpClient = f
+		sftpSessions.Store(user+"@"+dest, f)
 	}
 	return
 }
 
 func (r *Remotes) sftpCloseSession() {
-	r.sftpClient.Close()
+	dest := r.Hostname + ":" + strconv.Itoa(r.Port)
+	user := getString(r, "Username")
+	val, ok := sftpSessions.Load(user + "@" + dest)
+	if ok {
+		f := val.(*sftp.Client)
+		f.Close()
+		sftpSessions.Delete(user + "@" + dest)
+	}
 }

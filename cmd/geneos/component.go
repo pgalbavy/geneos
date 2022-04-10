@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"sort"
+	"sync"
 )
 
 // definitions and access methods for the generic component types
@@ -98,6 +99,8 @@ type Instances interface {
 // The Common type is the common data shared by all component types
 type InstanceBase struct {
 	Instances `json:"-"`
+	// A mutex, for ongoing changes
+	L *sync.RWMutex
 	// The Name of an instance. This may be different to the instance
 	// directory InstanceName during certain operations, e.g. rename
 	InstanceName string `json:"Name"`

@@ -16,7 +16,6 @@ import (
 	"syscall"
 
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 )
 
 // remote support
@@ -34,9 +33,6 @@ const ALL RemoteName = "all"
 var rLOCAL, rALL *Remotes
 
 type Remotes struct {
-	sshClient  *ssh.Client
-	sftpClient *sftp.Client
-
 	InstanceBase
 	HomeDir  string `default:"{{join .RemoteRoot \"remotes\" .InstanceName}}"`
 	Hostname string
@@ -83,11 +79,12 @@ func NewRemote(name string) Instances {
 	}
 
 	// Bootstrap
-	c := &Remotes{}
+	c := new(Remotes)
 	c.InstanceRemote = rLOCAL
 	c.RemoteRoot = Geneos()
 	c.InstanceType = Remote.String()
 	c.InstanceName = localpart
+	c.L = new(sync.RWMutex)
 	if err := setDefaults(&c); err != nil {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
