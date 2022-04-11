@@ -81,7 +81,7 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 		os.Exit(1)
 	case ERROR:
 		var fnName string = "UNKNOWN"
-		pc, _, _, ok := runtime.Caller(3)
+		pc, _, ln, ok := runtime.Caller(3)
 		if ok {
 			fn := runtime.FuncForPC(pc)
 			if fn != nil {
@@ -90,7 +90,7 @@ func (g GeneosLogger) Write(p []byte) (n int, err error) {
 		}
 		fnName = strings.TrimPrefix(fnName, "main.")
 
-		line = fmt.Sprintf("%s%s() %s", prefix, fnName, p)
+		line = fmt.Sprintf("%s%s():%d %s", prefix, fnName, ln, p)
 	case DEBUG:
 		var fnName string = "UNKNOWN"
 		pc, f, ln, ok := runtime.Caller(3)
