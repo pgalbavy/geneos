@@ -554,18 +554,50 @@ func readLocalFileOrURL(source string) (b []byte, err error) {
 	return io.ReadAll(from)
 }
 
+// return the KEY from "[TYPE:]KEY=VALUE"
+func keyOf(s string, sep string) string {
+	r := strings.SplitN(s, sep, 2)
+	return r[0]
+}
+
+// return the VALUE from "[TYPE:]KEY=VALUE"
+func valueOf(s string, sep string) string {
+	r := strings.SplitN(s, sep, 2)
+	if len(r) > 0 {
+		return r[1]
+	}
+	return ""
+}
+
+func first(d ...string) string {
+	for _, s := range d {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+var fnmap template.FuncMap = template.FuncMap{
+	"first":   first,
+	"join":    filepath.Join,
+	"keyOf":   keyOf,
+	"valueOf": valueOf,
+}
+
 //
 // load templates from TYPE/templates/[tmpl]* and parse it using the instance data
 // write it out to a single file. If tmpl is empty, load all files
 //
 func createConfigFromTemplate(c Instances, path string, name string, defaultTemplate []byte) (err error) {
 	var out io.WriteCloser
-	var t *template.Template
+	// var t *template.Template
 
-	if t, err = template.ParseGlob(c.Remote().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
+	t := template.New("").Funcs(fnmap)
+	if t, err = t.ParseGlob(c.Remote().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
 		// if there are no templates, use internal as a fallback
 		log.Printf("No templates found in %s, using internal defaults", c.Remote().GeneosPath(c.Type().String(), "templates"))
-		t = template.Must(template.New(name).Parse(string(defaultTemplate)))
+		t = template.Must(t.Parse(string(defaultTemplate)))
 	}
 
 	// XXX backup old file - use same scheme as writeConfigFile()

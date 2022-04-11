@@ -22,7 +22,7 @@
 				<variables>
 					{{range $key, $value := .Variables -}}
 					<var name="{{$key}}">
-						<{{$value.Type}}>{{$value.Value}}</{{$value.Type}}>
+						<{{keyOf $value ":"}}>{{valueOf $value ":"}}</{{keyOf $value ":"}}>
 					</var>
 					{{end}}
 				</variables>

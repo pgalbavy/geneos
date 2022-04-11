@@ -45,7 +45,11 @@ type Gateways struct {
 //go:embed templates/gateway.setup.xml.gotmpl
 var GatewayTemplate []byte
 
+//go:embed templates/gateway-instance.setup.xml.gotmpl
+var InstanceTemplate []byte
+
 const GatewayDefaultTemplate = "gateway.setup.xml.gotmpl"
+const GatewayInstanceTemplate = "gateway-instance.setup.xml.gotmpl"
 
 func init() {
 	RegisterComponent(Components{
@@ -80,6 +84,9 @@ func InitGateway(r *Remotes) {
 		logError.Fatalln(err)
 	}
 	if err := r.WriteFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
+		logError.Fatalln(err)
+	}
+	if err := r.WriteFile(r.GeneosPath(Gateway.String(), "templates", GatewayInstanceTemplate), InstanceTemplate, 0664); err != nil {
 		logError.Fatalln(err)
 	}
 }
@@ -196,6 +203,11 @@ func (g *Gateways) Add(username string, params []string, tmpl string) (err error
 }
 
 func (g *Gateways) Rebuild(initial bool) (err error) {
+	err = createConfigFromTemplate(g, filepath.Join(g.Home(), "instance.setup.xml"), GatewayInstanceTemplate, InstanceTemplate)
+	if err != nil {
+		return
+	}
+
 	if g.ConfigRebuild == "never" {
 		return ErrNoAction
 	}
@@ -241,6 +253,7 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 			return
 		}
 	}
+
 	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }
 

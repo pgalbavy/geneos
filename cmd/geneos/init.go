@@ -54,6 +54,7 @@ components created
 FLAGS:
 
 	-A LICENSE	Initialise a basic environment an import the give file as a license for licd
+	-C		Create default certificates for TLS support
 	-D		Initialise a Demo environment
 	-S		Initialise a environment with one Self-Announcing Netprobe.
 		If a signing certificate and key are provided then also
@@ -80,6 +81,7 @@ FLAGS:
 	initFlagSet = flag.NewFlagSet("init", flag.ExitOnError)
 	initFlagSet.StringVar(&initFlags.All, "A", "",
 		"Perform initialisation steps using provided license file and start environment")
+	initFlagSet.BoolVar(&initFlags.Certs, "C", false, "Create default certificates for TLS support")
 	initFlagSet.BoolVar(&initFlags.Demo, "D", false,
 		"Perform initialisation steps for a demo setup and start environment")
 	initFlagSet.BoolVar(&initFlags.StartSAN, "S", false,
@@ -103,11 +105,11 @@ FLAGS:
 }
 
 type initFlagsType struct {
-	Demo, StartSAN, Templates bool
-	Name                      string
-	All                       string
-	SigningCert, SigningKey   string
-	GatewayTmpl, SanTmpl      string
+	Certs, Demo, StartSAN, Templates bool
+	Name                             string
+	All                              string
+	SigningCert, SigningKey          string
+	GatewayTmpl, SanTmpl             string
 }
 
 var initFlagSet, deleteFlags *flag.FlagSet
@@ -141,6 +143,11 @@ func commandInit(ct Component, args []string, params []string) (err error) {
 			}
 		}
 		if err := rLOCAL.WriteFile(filepath.Join(gatewayTemplates, GatewayDefaultTemplate), tmpl, 0664); err != nil {
+			logError.Fatalln(err)
+		}
+
+		tmpl = InstanceTemplate
+		if err := rLOCAL.WriteFile(filepath.Join(gatewayTemplates, GatewayInstanceTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
 
@@ -362,15 +369,18 @@ func (r *Remotes) initGeneos(args []string) (err error) {
 		}
 	}
 
-	// both options can import arbitrary PEM files, fix this
-	if initFlags.SigningCert != "" {
-		TLSImport(initFlags.SigningCert)
-	}
+	if initFlags.Certs {
+		TLSInit()
+	} else {
+		// both options can import arbitrary PEM files, fix this
+		if initFlags.SigningCert != "" {
+			TLSImport(initFlags.SigningCert)
+		}
 
-	if initFlags.SigningKey != "" {
-		TLSImport(initFlags.SigningKey)
+		if initFlags.SigningKey != "" {
+			TLSImport(initFlags.SigningKey)
+		}
 	}
-
 	e := []string{}
 	rem := []string{"@" + r.InstanceName}
 

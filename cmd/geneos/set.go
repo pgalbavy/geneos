@@ -80,11 +80,6 @@ func commandSet(ct Component, args []string, params []string) (err error) {
 	}
 
 	for _, arg := range params {
-		// special handling for "Env" field, which is always
-		// a slice of environment key=value pairs
-		// 'geneos set probe Env=JAVA_HOME=/path'
-		// remove with leading '-' ?
-		// 'geneos set probe Env=-PASSWORD'
 		s := strings.SplitN(arg, "=", 2)
 		if len(s) != 2 {
 			logError.Printf("ignoring %q %s", arg, ErrInvalidArgs)
@@ -122,66 +117,66 @@ var pluralise = map[string]string{
 	"Include":   "s",
 }
 
-func setValue(c Instances, k, vs string) (err error) {
+func setValue(c Instances, tag, v string) (err error) {
 	defaults := map[string]string{
 		"Includes": "100",
 		"Gateways": "7039",
 	}
 
-	if pluralise[k] != "" {
-		k = k + pluralise[k]
+	if pluralise[tag] != "" {
+		tag = tag + pluralise[tag]
 	}
 
-	switch k {
+	switch tag {
 	// make this list dynamic
 	case "Includes", "Gateways":
 		var remove bool
-		e := strings.SplitN(vs, ":", 2)
+		e := strings.SplitN(v, ":", 2)
 		if strings.HasPrefix(e[0], "-") {
 			e[0] = strings.TrimPrefix(e[0], "-")
 			remove = true
 		}
 		if remove {
-			err = setStructMap(c, k, e[0], "")
+			err = setStructMap(c, tag, e[0], "")
 			if err != nil {
-				logDebug.Printf("%s delete %v[%v] failed, %s", c, k, e[0], err)
+				logDebug.Printf("%s delete %v[%v] failed, %s", c, tag, e[0], err)
 			}
 		} else {
-			val := defaults[k]
+			val := defaults[tag]
 			if len(e) > 1 {
 				val = e[1]
 			} else {
 				// XXX check two values and first is a number
 				logDebug.Println("second value missing after ':', using default", val)
 			}
-			err = setStructMap(c, k, e[0], val)
+			err = setStructMap(c, tag, e[0], val)
 			if err != nil {
-				logDebug.Printf("%s set %v[%v]=%v failed, %s", c, k, e[0], val, err)
+				logDebug.Printf("%s set %v[%v]=%v failed, %s", c, tag, e[0], val, err)
 			}
 		}
 	case "Attributes":
 		var remove bool
-		e := strings.SplitN(vs, "=", 2)
+		e := strings.SplitN(v, "=", 2)
 		if strings.HasPrefix(e[0], "-") {
 			e[0] = strings.TrimPrefix(e[0], "-")
 			remove = true
 		}
 		// '-name' or 'name=' remove the attribute
 		if remove || len(e) == 1 {
-			err = setStructMap(c, k, e[0], "")
+			err = setStructMap(c, tag, e[0], "")
 			if err != nil {
-				logDebug.Printf("%s delete %v[%v] failed, %s", c, k, e[0], err)
+				logDebug.Printf("%s delete %v[%v] failed, %s", c, tag, e[0], err)
 			}
 		} else {
-			err = setStructMap(c, k, e[0], e[1])
+			err = setStructMap(c, tag, e[0], e[1])
 			if err != nil {
-				logDebug.Printf("%s set %v[%v]=%v failed, %s", c, k, e[0], e[1], err)
+				logDebug.Printf("%s set %v[%v]=%v failed, %s", c, tag, e[0], e[1], err)
 			}
 		}
 	case "Env", "Types":
 		var remove bool
-		slice := getSliceStrings(c, k)
-		e := strings.SplitN(vs, "=", 2)
+		slice := getSliceStrings(c, tag)
+		e := strings.SplitN(v, "=", 2)
 		if strings.HasPrefix(e[0], "-") {
 			e[0] = strings.TrimPrefix(e[0], "-")
 			remove = true
@@ -193,14 +188,14 @@ func setValue(c Instances, k, vs string) (err error) {
 			anchor = ""
 		}
 		var exists bool
-		// transfer ietms to new slice as removing items in a loop
+		// transfer items to new slice as removing items in a loop
 		// does random things
 		var newslice []string
 		for _, n := range slice {
 			if strings.HasPrefix(n, e[0]+anchor) {
 				if !remove {
 					// replace with new value
-					newslice = append(newslice, vs)
+					newslice = append(newslice, v)
 					exists = true
 				}
 			} else {
@@ -210,97 +205,78 @@ func setValue(c Instances, k, vs string) (err error) {
 		}
 		// add a new item rather than update or remove
 		if !exists && !remove {
-			newslice = append(newslice, vs)
+			newslice = append(newslice, v)
 		}
-		if err = setFieldSlice(c, k, newslice); err != nil {
-			logDebug.Printf("%s set %s=%s failed, %s", c, k, newslice, err)
+		if err = setFieldSlice(c, tag, newslice); err != nil {
+			logDebug.Printf("%s set %s=%s failed, %s", c, tag, newslice, err)
 		}
 	case "Variables", "Variable", "Var":
 		// syntax: "[TYPE:]NAME=VALUE" - TYPE defaults to string
-		// TYPE must match what's in XML, or just pass stright through anyway
+		// TYPE must match what's in XML, or just pass straight through anyway
 		// lowercase?
-		// NAME use unchanged, case sesitive
+		// NAME use unchanged, case sensitive
 		//
-		// 	<var name="test1">
-		// 		<activeTime>
-		// 			<activeTime ref="activetimename"></activeTime>
-		// 		</activeTime>
-		// 	</var>
-		// 	<var name="test2">
-		// 		<boolean>true</boolean>
-		// 	</var>
-		// 	<var name="test3">
-		// 		<double>0.0</double>
-		// 	</var>
-		// 	<var name="test4">
-		// 		<externalConfigFile>this is a test</externalConfigFile>
-		// 	</var>
-		// 	<var name="test5">
-		// 		<externalPassword>
-		// 			<extPwd>password</extPwd>
-		// 		</externalPassword>
-		// 	</var>
-		// 	<var name="test6">
-		// 		<integer>0</integer>
-		// 	</var>
-		// 	<var name="test7">
-		// 		<ipAddress>
-		// 			<value>0</value>
-		// 			<value>0</value>
-		// 			<value>0</value>
-		// 			<value>0</value>
-		// 		</ipAddress>
-		// 	</var>
-		// 	<var name="test8">
-		// 		<macro>
-		// 			<insecureGatewayPort></insecureGatewayPort>
-		// 		</macro>
-		// 	</var>
-		// 	<var name="test9">
-		// 		<nameValueList>
-		// 			<item>
-		// 				<name>key1</name>
-		// 				<value>value1</value>
-		// 			</item>
-		// 			<item>
-		// 				<name>key2</name>
-		// 				<value>value2</value>
-		// 			</item>
-		// 		</nameValueList>
-		// 	</var>
-		// 	<var name="test10">
-		// 		<plainTextPassword>
-		// 			<plaintext>test</plaintext>
-		// 		</plainTextPassword>
-		// 	</var>
-		// 	<var name="test11">
-		// 		<regex>
-		// 			<regex>aaaaa</regex>
-		// 			<flags>
-		// 				<i>false</i>
-		// 				<s>false</s>
-		// 			</flags>
-		// 		</regex>
-		// 	</var>
-		// 	<var name="test12">
-		// 		<stdAESPassword>
-		// 			<stdAES>password-id-1</stdAES>
-		// 		</stdAESPassword>
-		// 	</var>
-		// 	<var name="test13">
-		// 		<string>sdfsfdsdfdf</string>
-		// 	</var>
-		// 	<var name="test14">
-		// 		<stringList>
-		// 			<string>one</string>
-		// 			<string>two</string>
-		// 		</stringList>
-		// 	</var>
+		// Support only the following types:
+		//   activeTime, boolean, double, integer, string, externalConfigFile
+		//
 
-		return ErrNotSupported
+		// tag = "Var", v = [TYPE]:KEY=VALUE, TYPE default = string
+
+		var remove bool
+		if strings.HasPrefix(v, "-") {
+			v = strings.TrimPrefix(v, "-")
+			err = setStructMap(c, tag, v, "")
+			if err != nil {
+				logDebug.Printf("%s delete %v[%v] failed, %s", c, tag, v, err)
+			}
+			return
+		}
+
+		var t, key, value string
+
+		e := strings.SplitN(v, ":", 2)
+		if len(e) == 1 {
+			t = "string"
+			s := strings.SplitN(e[0], "=", 2)
+			if len(s) == 1 && !remove {
+				logError.Printf("invalid format for variable: %q", v)
+				return ErrInvalidArgs
+			}
+			key = s[0]
+			value = s[1]
+		} else {
+			t = e[0]
+			s := strings.SplitN(e[1], "=", 2)
+			if len(s) == 1 && !remove {
+				logError.Printf("invalid format for variable: %q", v)
+				return ErrInvalidArgs
+			}
+			key = s[0]
+			value = s[1]
+		}
+
+		// XXX check types here - e[0] options type, default string
+		var validtypes map[string]string = map[string]string{
+			"string":             "",
+			"integer":            "",
+			"double":             "",
+			"boolean":            "",
+			"activeTime":         "",
+			"externalConfigFile": "",
+		}
+		if _, ok := validtypes[t]; !ok {
+			logError.Printf("invalid type %q for variable", t)
+			return ErrInvalidArgs
+		}
+		val := t + ":" + value
+		err = setStructMap(c, tag, key, val)
+		if err != nil {
+			logDebug.Printf("%s set %v[%v]=%v failed, %s", c, tag, e[0], val, err)
+		}
+
 	default:
-		if err = setField(c, k, vs); err != nil {
-			logDebug.Printf("%s set %s=%s failed, %s", c, k, vs, err)
+		if err = setField(c, tag, v); err != nil {
+			logDebug.Printf("%s set %s=%s failed, %s", c, tag, v, err)
 		}
 	}
 	return

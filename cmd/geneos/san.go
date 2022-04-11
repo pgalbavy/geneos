@@ -34,12 +34,9 @@ type Sans struct {
 
 	// These fields are for templating the netprobe.setup.xml file but only as placeholders
 	Attributes map[string]string
-	Variables  map[string]struct {
-		Type  string
-		Value string
-	}
-	Gateways map[string]int
-	Types    []string
+	Variables  map[string]string // key = name, value = type:value (names must be unique)
+	Gateways   map[string]int
+	Types      []string
 }
 
 //go:embed templates/netprobe.setup.xml.gotmpl
@@ -172,10 +169,7 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 
 	s.Types = []string{}
 	s.Attributes = make(map[string]string)
-	s.Variables = make(map[string]struct {
-		Type  string
-		Value string
-	})
+	s.Variables = make(map[string]string)
 	s.Gateways = make(map[string]int)
 
 	if initFlags.Name != "" {
