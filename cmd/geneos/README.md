@@ -31,9 +31,8 @@ The aim is to:
 You can download a pre-built binary version (for Linux on amd64 only):
 
 ```bash
-# edit version to suit - until this is a non pre-release 'latest' will not work
-curl -OL https://github.com/pgalbavy/geneos/releases/download/v0.17.0/geneos
-chmod +x geneos
+curl -OL https://github.com/pgalbavy/geneos/releases/latest/download/geneos
+chmod 555 geneos
 sudo mv geneos /usr/local/bin/
 ```
 
