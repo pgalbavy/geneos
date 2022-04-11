@@ -392,7 +392,7 @@ func parseArgs(cmd Command, rawargs []string) (ct Component, args []string, para
 	return
 }
 
-// seperate reserved words and invalid syntax
+// separate reserved words and invalid syntax
 //
 func reservedName(in string) (ok bool) {
 	logDebug.Printf("checking %q", in)
@@ -555,7 +555,7 @@ func readLocalFileOrURL(source string) (b []byte, err error) {
 }
 
 //
-// load templates from TYPE/templates/[tmpl]* and parse it using the intance data
+// load templates from TYPE/templates/[tmpl]* and parse it using the instance data
 // write it out to a single file. If tmpl is empty, load all files
 //
 func createConfigFromTemplate(c Instances, path string, name string, defaultTemplate []byte) (err error) {
@@ -571,7 +571,7 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 	// XXX backup old file - use same scheme as writeConfigFile()
 
 	if out, err = c.Remote().Create(path, 0660); err != nil {
-		log.Printf("Cannot create configurtion file for %s %s", c, path)
+		log.Printf("Cannot create configuration file for %s %s", c, path)
 		return err
 	}
 	defer out.Close()

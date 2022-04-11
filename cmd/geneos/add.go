@@ -57,7 +57,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 		logError.Fatalln("not enough args")
 	}
 
-	// check validty and reserved words here
+	// check validity and reserved words here
 	name := args[0]
 
 	_, _, rem := SplitInstanceName(name, rLOCAL)
@@ -134,7 +134,7 @@ func (r *Remotes) getPorts() (ports map[int]Component) {
 // special ports? - nah
 //
 
-// given a range, find the first unsed port
+// given a range, find the first unused port
 //
 // range is comma or two-dot seperated list of
 // single number, e.g. "7036"
