@@ -3,7 +3,7 @@ package main
 import "flag"
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "clean",
 		Function:      commandClean,
 		ParseFlags:    cleanFlag,

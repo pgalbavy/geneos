@@ -38,7 +38,7 @@ type Command struct {
 // The Commands type is a map of command text (as a string) to a Command structure
 type Commands map[string]Command
 
-func RegsiterCommand(cmd Command) {
+func RegisterCommand(cmd Command) {
 	if cmd.Name == "" {
 		return
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "ls",
 		Function:      commandLS,
 		ParseFlags:    listFlag,
@@ -31,7 +31,7 @@ FLAGS:
 `,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "ps",
 		Function:      commandPS,
 		ParseFlags:    listFlag,
@@ -49,7 +49,7 @@ FLAGS:
 	`,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "command",
 		Function:      commandCommand,
 		ParseFlags:    nil,

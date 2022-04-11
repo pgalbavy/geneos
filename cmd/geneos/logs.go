@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "logs",
 		Function:      commandLogs,
 		ParseFlags:    logsFlag,

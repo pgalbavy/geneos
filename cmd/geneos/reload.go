@@ -1,7 +1,7 @@
 package main
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "reload",
 		Function:      commandReload,
 		ParseFlags:    defaultFlag,

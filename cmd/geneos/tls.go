@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "tls",
 		Function:      commandTLS,
 		ParseFlags:    TLSFlag,

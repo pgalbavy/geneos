@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "edit",
 		Function:      commandEdit,
 		ParseFlags:    defaultFlag,
@@ -28,7 +28,7 @@ editor invoked will be the first set of the environment variables VISUAL or EDIT
 will open a VS Code editor window for the user configuration file.`,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:        "home",
 		Function:    commandHome,
 		ParseFlags:  defaultFlag,

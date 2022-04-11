@@ -30,7 +30,7 @@ import (
 //
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "move",
 		Function:      commandMove,
 		ParseFlags:    defaultFlag,
@@ -51,7 +51,7 @@ before the restart. This allows SANs to be updated as expected.
 Moving across remotes is supported.`,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "copy",
 		Function:      commandCopy,
 		ParseFlags:    defaultFlag,

@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:        "version",
 		Function:    commandVersion,
 		ParseFlags:  defaultFlag,
@@ -19,7 +19,7 @@ func init() {
 		Description: `Display the current version number: ` + releaseVersion,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:        "help",
 		Function:    commandHelp,
 		ParseFlags:  defaultFlag,

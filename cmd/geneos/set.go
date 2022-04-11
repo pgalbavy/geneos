@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "set",
 		Function:      commandSet,
 		ParseFlags:    defaultFlag,

@@ -26,7 +26,7 @@ func init() {
 		"packages/downloads",
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "install",
 		Function:      commandInstall,
 		ParseFlags:    installFlag,
@@ -84,7 +84,7 @@ FLAGS:
 
 	installFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "update",
 		Function:      commandUpdate,
 		ParseFlags:    updateFlag,

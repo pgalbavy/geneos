@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "show",
 		Function:      commandShow,
 		ParseFlags:    defaultFlag,
@@ -38,7 +38,7 @@ configuration.
 Passwords and secrets are redacted in a very simplistic manner simply
 to prevent visibility in casual viewing.`})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "delete",
 		Function:      commandDelete,
 		ParseFlags:    deleteFlag,
@@ -63,7 +63,7 @@ FLAGS:
 	deleteFlags.BoolVar(&deleteForced, "F", false, "Force delete of instances")
 	deleteFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "rebuild",
 		Function:      commandRebuild,
 		ParseFlags:    rebuildFlag,

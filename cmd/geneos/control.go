@@ -12,7 +12,7 @@ import (
 // TODO: Core files and other ulimits
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "start",
 		Function:      commandStart,
 		ParseFlags:    startFlag,
@@ -33,7 +33,7 @@ FLAGS:
 	startFlags.BoolVar(&startLogs, "l", false, "Run 'logs -f' after starting instance(s)")
 	startFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "stop",
 		Function:      commandStop,
 		ParseFlags:    stopFlag,
@@ -56,7 +56,7 @@ FLAGS:
 	stopFlags.BoolVar(&stopKill, "K", false, "Force stop by sending an immediate SIGKILL")
 	stopFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "restart",
 		Function:      commandRestart,
 		ParseFlags:    restartFlag,
@@ -80,7 +80,7 @@ FLAGS:
 	restartFlags.BoolVar(&startLogs, "l", false, "Run 'logs -f' after starting instance(s)")
 	restartFlags.BoolVar(&helpFlag, "h", false, helpUsage)
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "disable",
 		Function:      commandDisable,
 		ParseFlags:    defaultFlag,
@@ -92,7 +92,7 @@ FLAGS:
 		Description:   `Mark any matching instances as disabled. The instances are also stopped.`,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "enable",
 		Function:      commandEneable,
 		ParseFlags:    enableFlag,

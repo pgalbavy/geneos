@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "migrate",
 		Function:      commandMigrate,
 		ParseFlags:    defaultFlag,
@@ -19,7 +19,7 @@ func init() {
 rename the .rc file to .rc.orig.`,
 	})
 
-	RegsiterCommand(Command{
+	RegisterCommand(Command{
 		Name:          "revert",
 		Function:      commandRevert,
 		ParseFlags:    defaultFlag,
