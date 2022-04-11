@@ -190,23 +190,22 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	}
 
 	// delete one or the other, depending
-	defer func() {
+	defer func(srcname string, srcrem *Remotes, srchome string, dst Instances) {
 		if done {
 			if remove {
 				// once we are done, try to delete old instance
-				orig, _ := ct.GetInstance(srcname)
-				logDebug.Println("removing old instance", orig)
-				orig.Remote().RemoveAll(orig.Home())
-				log.Println(ct, srcname, "moved to", dstname)
+				logDebug.Println("removing old instance", srcname)
+				srcrem.RemoveAll(srchome)
+				log.Println(srcname, "moved to", dst)
 			} else {
-				log.Println(ct, srcname, "copied to", dstname)
+				log.Println(srcname, "copied to", dstname)
 			}
 		} else {
 			// remove new instance
 			logDebug.Println("removing new instance", dst)
 			dst.Remote().RemoveAll(dst.Home())
 		}
-	}()
+	}(src.String(), src.Remote(), src.Home(), dst)
 
 	// update src here and then write that out as if it were dst
 	// this gets around the defaults set in dst being incomplete (and hence wrong)
