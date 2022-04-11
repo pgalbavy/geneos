@@ -36,3 +36,4 @@
   * use a REST interface
 * move/copy - need to update ports when moving to another remote or copying to same remote
 * explore gRPC and other options over ssh for remotes (required daemon mode)
+* passing templates to 'add' (or init) doesn't work - the code is missing! d'oh!
