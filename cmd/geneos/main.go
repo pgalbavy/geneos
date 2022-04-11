@@ -177,9 +177,9 @@ You can fix this by doing one of the following:
 
 	$ geneos set user Geneos=/path/to/geneos
 
-3. Set the Geneos parameter in the global configuration file:
+3. Set the Geneos parameter in the global configuration file (usually as root):
 
-	$ echo '{ "Geneos": "/path/to/geneos" }' >` + globalConfig + `
+	# echo '{ "Geneos": "/path/to/geneos" }' >` + globalConfig + `
 `)
 		}
 		s, err := rLOCAL.Stat(Geneos())
