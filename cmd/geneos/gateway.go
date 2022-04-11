@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"path/filepath"
+	"sync"
 	"syscall"
 
 	"golang.org/x/crypto/pbkdf2"
@@ -83,8 +84,17 @@ func InitGateway(r *Remotes) {
 	}
 }
 
+var gateways sync.Map
+
 func NewGateway(name string) Instances {
 	_, local, remote := SplitInstanceName(name, rLOCAL)
+	g, ok := gateways.Load(local + "@" + remote.InstanceName)
+	if ok {
+		gw, ok := g.(*Gateways)
+		if ok {
+			return gw
+		}
+	}
 	c := &Gateways{}
 	c.InstanceRemote = remote
 	c.RemoteRoot = remote.GeneosRoot()
@@ -94,6 +104,7 @@ func NewGateway(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(remote.InstanceName)
+	gateways.Store(local+"@"+remote.InstanceName, c)
 	return c
 }
 
@@ -142,6 +153,7 @@ func (g *Gateways) Load() (err error) {
 }
 
 func (g *Gateways) Unload() (err error) {
+	gateways.Delete(g.Name() + "@" + g.Location().String())
 	g.ConfigLoaded = false
 	return
 }
@@ -291,7 +303,7 @@ func (g *Gateways) Reload(params []string) (err error) {
 	return signalInstance(g, syscall.SIGUSR1)
 }
 
-// create a gateway key file for secure passwrods as per
+// create a gateway key file for secure passwords as per
 // https://docs.itrsgroup.com/docs/geneos/4.8.0/Gateway_Reference_Guide/gateway_secure_passwords.htm
 func createAESKeyFile(c Instances) (err error) {
 	rp := make([]byte, 20)
