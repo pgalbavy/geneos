@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -113,16 +114,16 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 		if srcremote == dstremote {
 			return fmt.Errorf("%w: src and destination remotes must be different", ErrInvalidArgs)
 		}
-		srcrem := GetRemote(RemoteName(srcremote))
-		if !srcrem.Loaded() {
+		sr := GetRemote(RemoteName(srcremote))
+		if !sr.Loaded() {
 			return fmt.Errorf("%w: source remote %q not found", ErrNotFound, srcremote)
 		}
-		dstrem := GetRemote(RemoteName(dstremote))
-		if !dstrem.Loaded() {
+		dr := GetRemote(RemoteName(dstremote))
+		if !dr.Loaded() {
 			return fmt.Errorf("%w: destination remote %q not found", ErrNotFound, dstremote)
 		}
 		// they both exist, now loop through all instances on src and try to move/copy
-		for _, name := range ct.FindNames(srcrem) {
+		for _, name := range ct.FindNames(sr) {
 			ct.copyInstance(name, dstname, remove)
 		}
 		return nil
@@ -156,24 +157,19 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	if err != nil {
 		logDebug.Println(err)
 	}
-	var dstremote RemoteName
-	dstname, dstremote = splitInstanceName(dstname)
-	_ = dstremote
-
 	if dst.Loaded() {
 		return fmt.Errorf("%s already exists", dst)
 	}
+	dst.Unload()
 
 	if _, err = findInstancePID(src); err != ErrProcNotFound {
 		if err = stopInstance(src, nil); err == nil {
-			// cannot use defer startInstance() here as we have
-			// not yet created the new instance
 			stopped = true
-			defer func() {
+			defer func(c Instances) {
 				if !done {
-					startInstance(src, nil)
+					startInstance(c, nil)
 				}
-			}()
+			}(src)
 		} else {
 			return fmt.Errorf("cannot stop %s", srcname)
 		}
@@ -184,8 +180,23 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 		return
 	}
 
+	_, ds, dr := SplitInstanceName(dstname, rLOCAL)
+
+	// do a dance here to deep copy-ish the dst
+	realdst := dst
+	b, _ := json.Marshal(src)
+	if err = json.Unmarshal(b, &realdst); err != nil {
+		logError.Println(err)
+	}
+
+	// after path updates, rename non paths
+	ib := realdst.Base()
+	ib.InstanceLocation = dst.Remote().RemoteName()
+	ib.InstanceRemote = dst.Remote()
+	ib.InstanceName = ds
+
 	// move directory
-	if err = copyTree(src.Remote(), src.Home(), dst.Remote(), dst.Home()); err != nil {
+	if err = copyTree(src.Remote(), src.Home(), dr, dst.Home()); err != nil {
 		return
 	}
 
@@ -207,61 +218,56 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 		}
 	}(src.String(), src.Remote(), src.Home(), dst)
 
-	// update src here and then write that out as if it were dst
+	// XXX update src here and then write that out as if it were dst
 	// this gets around the defaults set in dst being incomplete (and hence wrong)
-	if err = changeDirPrefix(src, src.Remote().GeneosRoot(), dst.Remote().GeneosRoot()); err != nil {
+	if err = changeDirPrefix(realdst, src.Remote().GeneosRoot(), dr.GeneosRoot()); err != nil {
 		logDebug.Println(err)
 		return
 	}
 
 	// update *Home manually, as it's not just the prefix
-	if err = setField(src, src.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dst.Remote()), dstname)); err != nil {
+	if err = setField(realdst, dst.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dr), ds)); err != nil {
 		logDebug.Println(err)
 		return
 	}
+	// dst.Unload()
 
 	// fetch a new port if remotes are different and port is already used
-	if src.Remote() != dst.Remote() {
+	if src.Remote() != dr {
 		srcport := getInt(src, src.Prefix("Port"))
-		dstports := dst.Remote().getPorts()
+		dstports := dr.getPorts()
 		if _, ok := dstports[int(srcport)]; ok {
-			dstport := dst.Remote().nextPort(src.Type())
-			if err = setField(src, src.Prefix("Port"), fmt.Sprint(dstport)); err != nil {
+			dstport := dr.nextPort(dst.Type())
+			if err = setField(realdst, dst.Prefix("Port"), fmt.Sprint(dstport)); err != nil {
 				logDebug.Println(err)
 				return
 			}
 		}
 	}
 
-	// after path updates, rename non paths
-	ib := src.Base()
-	ib.InstanceLocation = dst.Remote().RemoteName()
-	ib.InstanceRemote = dst.Remote()
-	ib.InstanceName = dstname
-
 	// update any component name only if the same as the instance name
 	if getString(src, src.Prefix("Name")) == srcname {
-		if err = setField(src, src.Prefix("Name"), dstname); err != nil {
+		if err = setField(realdst, dst.Prefix("Name"), dstname); err != nil {
 			logDebug.Println(err)
 			return
 		}
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeInstanceConfig(src); err != nil {
+	if err = writeInstanceConfig(realdst); err != nil {
 		logDebug.Println(err)
 		return
 	}
 
-	//	oldconf.Unload()
-	if err = src.Rebuild(false); err != nil && err != ErrNotSupported && err != ErrNoAction {
+	// src.Unload()
+	if err = realdst.Rebuild(false); err != nil && err != ErrNotSupported && err != ErrNoAction {
 		logDebug.Println(err)
 		return
 	}
 
 	done = true
 	if stopped {
-		return startInstance(src, nil)
+		return startInstance(realdst, nil)
 	}
 	return nil
 }
