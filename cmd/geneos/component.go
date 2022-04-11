@@ -100,7 +100,7 @@ type Instances interface {
 type InstanceBase struct {
 	Instances `json:"-"`
 	// A mutex, for ongoing changes
-	L *sync.RWMutex
+	L *sync.RWMutex `json:"-"`
 	// The Name of an instance. This may be different to the instance
 	// directory InstanceName during certain operations, e.g. rename
 	InstanceName string `json:"Name"`
