@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"io/fs"
 	"os/user"
 	"strconv"
 	"strings"
@@ -73,7 +75,7 @@ func commandAdd(ct Component, args []string, params []string) (err error) {
 	}
 
 	c, err := ct.GetInstance(name)
-	if err != nil {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return
 	}
 
