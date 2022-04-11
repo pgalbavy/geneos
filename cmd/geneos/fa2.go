@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"sync"
 )
 
 const FA2 Component = "fa2"
@@ -47,8 +48,17 @@ func init() {
 	})
 }
 
+var fa2s sync.Map
+
 func NewFA2(name string) Instances {
 	_, local, r := SplitInstanceName(name, rLOCAL)
+	f, ok := gateways.Load(r.FullName(local))
+	if ok {
+		fa, ok := f.(*FA2s)
+		if ok {
+			return fa
+		}
+	}
 	c := &FA2s{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
@@ -58,6 +68,7 @@ func NewFA2(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	fa2s.Store(r.FullName(local), c)
 	return c
 }
 
@@ -107,6 +118,7 @@ func (n *FA2s) Load() (err error) {
 }
 
 func (n *FA2s) Unload() (err error) {
+	fa2s.Delete(n.Name() + "@" + n.Location().String())
 	n.ConfigLoaded = false
 	return
 }

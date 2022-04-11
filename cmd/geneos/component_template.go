@@ -57,15 +57,24 @@ func init() {
 	})
 }
 
+var names sync.Map
+
 func NewName(name string) Instances {
 	local, r := SplitInstanceName(name, rLOCAL)
-	c := &Names{}
+	n, ok := namess.Load(r.FullName(local))
+	if ok {
+		nt, ok := n.(*Names)
+		if ok {
+			return nt
+		}
+	}	c := &Names{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Name.String()
 	c.InstanceName = local
 	setDefaults(&c)
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	names.Store(r.FullName(local), c)
 	return c
 }
 
@@ -111,6 +120,7 @@ func (n Names) Load() (err error) {
 }
 
 func (n Names) Unload() (err error) {
+	names.Delete(n.Name()+"@"+n.Location.String())
 	n.ConfigLoaded = false
 	return
 }

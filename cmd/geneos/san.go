@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"path/filepath"
 	"strconv"
+	"sync"
 )
 
 const San Component = "san"
@@ -81,8 +82,17 @@ func InitSan(r *Remotes) {
 	}
 }
 
+var sans sync.Map
+
 func NewSan(name string) Instances {
 	ct, local, r := SplitInstanceName(name, rLOCAL)
+	s, ok := sans.Load(r.FullName(local))
+	if ok {
+		sn, ok := s.(*Sans)
+		if ok {
+			return sn
+		}
+	}
 	c := &Sans{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
@@ -96,6 +106,7 @@ func NewSan(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	sans.Store(r.FullName(local), c)
 	return c
 }
 
@@ -145,6 +156,7 @@ func (s *Sans) Load() (err error) {
 }
 
 func (s *Sans) Unload() (err error) {
+	sans.Delete(s.Name() + "@" + s.Location().String())
 	s.ConfigLoaded = false
 	return
 }

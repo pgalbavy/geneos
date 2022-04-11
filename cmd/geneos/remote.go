@@ -324,6 +324,13 @@ func (r *Remotes) GeneosPath(paths ...string) string {
 	return filepath.Join(append([]string{r.GeneosRoot()}, paths...)...)
 }
 
+func (r *Remotes) FullName(name string) string {
+	if strings.Contains(name, "@") {
+		return name
+	}
+	return name + "@" + r.InstanceName
+}
+
 func (r *Remotes) String() string {
 	return r.Type().String() + ":" + r.InstanceName + "@" + r.Location().String()
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 )
 
 const Webserver Component = "webserver"
@@ -51,8 +52,17 @@ func init() {
 	})
 }
 
+var webservers sync.Map
+
 func NewWebserver(name string) Instances {
 	_, local, r := SplitInstanceName(name, rLOCAL)
+	w, ok := webservers.Load(r.FullName(local))
+	if ok {
+		ws, ok := w.(*Webservers)
+		if ok {
+			return ws
+		}
+	}
 	c := &Webservers{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
@@ -62,6 +72,7 @@ func NewWebserver(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	webservers.Store(r.FullName(local), c)
 	return c
 }
 
@@ -125,6 +136,7 @@ func (w *Webservers) Load() (err error) {
 }
 
 func (w *Webservers) Unload() (err error) {
+	webservers.Delete(w.Name() + "@" + w.Location().String())
 	w.ConfigLoaded = false
 	return
 }

@@ -12,6 +12,7 @@ package main
 
 import (
 	"strconv"
+	"sync"
 )
 
 const FileAgent Component = "fileagent"
@@ -57,8 +58,17 @@ func init() {
 	})
 }
 
+var fileagents sync.Map
+
 func NewFileAgent(name string) Instances {
 	_, local, r := SplitInstanceName(name, rLOCAL)
+	f, ok := fileagents.Load(r.FullName(local))
+	if ok {
+		fa, ok := f.(*FileAgents)
+		if ok {
+			return fa
+		}
+	}
 	c := &FileAgents{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
@@ -68,6 +78,7 @@ func NewFileAgent(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	fileagents.Store(r.FullName(local), c)
 	return c
 }
 
@@ -117,6 +128,7 @@ func (n *FileAgents) Load() (err error) {
 }
 
 func (n *FileAgents) Unload() (err error) {
+	fileagents.Delete(n.Name() + "@" + n.Location().String())
 	n.ConfigLoaded = false
 	return
 }

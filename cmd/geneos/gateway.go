@@ -87,8 +87,8 @@ func InitGateway(r *Remotes) {
 var gateways sync.Map
 
 func NewGateway(name string) Instances {
-	_, local, remote := SplitInstanceName(name, rLOCAL)
-	g, ok := gateways.Load(local + "@" + remote.InstanceName)
+	_, local, r := SplitInstanceName(name, rLOCAL)
+	g, ok := gateways.Load(r.FullName(local))
 	if ok {
 		gw, ok := g.(*Gateways)
 		if ok {
@@ -96,15 +96,15 @@ func NewGateway(name string) Instances {
 		}
 	}
 	c := &Gateways{}
-	c.InstanceRemote = remote
-	c.RemoteRoot = remote.GeneosRoot()
+	c.InstanceRemote = r
+	c.RemoteRoot = r.GeneosRoot()
 	c.InstanceType = Gateway.String()
 	c.InstanceName = local
 	if err := setDefaults(&c); err != nil {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = RemoteName(remote.InstanceName)
-	gateways.Store(local+"@"+remote.InstanceName, c)
+	c.InstanceLocation = RemoteName(r.InstanceName)
+	gateways.Store(r.FullName(local), c)
 	return c
 }
 

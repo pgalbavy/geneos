@@ -28,7 +28,7 @@ The aim is to:
 
 ### Download the binary
 
-You can download a pre-built binary version (for Linux on amd64 only):
+You can download a pre-built binary version (for Linux on amd64 only) from [this link](https://github.com/pgalbavy/geneos/releases/latest/download/geneos) or like this:
 
 ```bash
 curl -OL https://github.com/pgalbavy/geneos/releases/latest/download/geneos

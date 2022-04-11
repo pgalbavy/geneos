@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"sync"
 )
 
 const Licd Component = "licd"
@@ -47,8 +48,17 @@ func init() {
 	})
 }
 
+var licds sync.Map
+
 func NewLicd(name string) Instances {
 	_, local, r := SplitInstanceName(name, rLOCAL)
+	l, ok := licds.Load(r.FullName(local))
+	if ok {
+		lc, ok := l.(*Licds)
+		if ok {
+			return lc
+		}
+	}
 	c := &Licds{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
@@ -58,6 +68,7 @@ func NewLicd(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	licds.Store(r.FullName(local), c)
 	return c
 }
 
@@ -106,6 +117,7 @@ func (l *Licds) Load() (err error) {
 }
 
 func (l *Licds) Unload() (err error) {
+	licds.Delete(l.Name() + "@" + l.Location().String())
 	l.ConfigLoaded = false
 	return
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"sync"
 )
 
 const Netprobe Component = "netprobe"
@@ -47,8 +48,17 @@ func init() {
 	})
 }
 
+var netprobes sync.Map
+
 func NewNetprobe(name string) Instances {
 	_, local, r := SplitInstanceName(name, rLOCAL)
+	n, ok := netprobes.Load(r.FullName(local))
+	if ok {
+		np, ok := n.(*Netprobes)
+		if ok {
+			return np
+		}
+	}
 	c := &Netprobes{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
@@ -58,6 +68,7 @@ func NewNetprobe(name string) Instances {
 		logError.Fatalln(c, "setDefaults():", err)
 	}
 	c.InstanceLocation = RemoteName(r.InstanceName)
+	netprobes.Store(r.FullName(local), c)
 	return c
 }
 
@@ -106,6 +117,7 @@ func (n *Netprobes) Load() (err error) {
 }
 
 func (n *Netprobes) Unload() (err error) {
+	netprobes.Delete(n.Name() + "@" + n.Location().String())
 	n.ConfigLoaded = false
 	return
 }
