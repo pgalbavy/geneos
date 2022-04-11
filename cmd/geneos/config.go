@@ -166,6 +166,10 @@ func loadConfig(c Instances) (err error) {
 		}
 		//if we validate then Unmarshal same file over existing instance
 		if err = json.Unmarshal(jsonFile, &c); err == nil {
+			if c.Home() != filepath.Dir(j) {
+				logError.Printf("%s has a configured home directory different to real location: %q != %q", c, filepath.Dir(j), c.Home())
+				return ErrInvalidArgs
+			}
 			// return if no error, else drop through
 			return
 		}
@@ -183,7 +187,7 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 		return
 	}
 
-	// read the cofig into a struct then print it out again,
+	// read the config into a struct then print it out again,
 	// to sanitise the contents - or generate an error
 	if len(args) > 0 {
 		switch args[0] {
@@ -282,12 +286,12 @@ func deleteInstance(c Instances, params []string) (err error) {
 		if err = c.Remote().RemoveAll(c.Home()); err != nil {
 			return
 		}
+		log.Printf("%s deleted %s:%s", c, c.Remote().InstanceName, c.Home())
 		c.Unload()
-		log.Println(c, "deleted")
 		return nil
 	}
 
-	log.Println(c, "must use -f or instance must be be disabled before delete")
+	log.Println(c, "must use -F or instance must be be disabled before delete")
 	return nil
 }
 
