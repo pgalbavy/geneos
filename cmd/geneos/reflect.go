@@ -227,7 +227,7 @@ func setDefaults(c interface{}) (err error) {
 	return
 }
 
-// go through a struct and update directory poath prefixes from
+// go through a struct and update directory path prefixes from
 // old to new.
 // XXX may need to ignore specific fields
 func changeDirPrefix(c interface{}, old, new string) (err error) {

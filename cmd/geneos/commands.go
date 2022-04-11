@@ -66,7 +66,7 @@ func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
 
 // read an old style .rc file. parameters are one-per-line and are key=value
 // any keys that do not match the component prefix or the special
-// 'BinSuffix' are terated as environment variables
+// 'BinSuffix' are treated as environment variables
 //
 // No processing of shell variables. should there be?
 func readRCConfig(c Instances) (err error) {
