@@ -208,10 +208,6 @@ func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
 
 // given a component type and a slice of args, call the function for each arg
 //
-// rely on New() checking the component type and returning a slice
-// of all matching components for a single name in an arg (e.g all instances
-// called 'thisserver')
-//
 // try to use go routines here - mutexes required
 func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
 	n := 0
