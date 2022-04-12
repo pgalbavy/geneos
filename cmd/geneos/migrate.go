@@ -40,7 +40,7 @@ func commandMigrate(ct Component, names []string, params []string) (err error) {
 	return ct.loopCommand(migrateInstance, names, params)
 }
 
-func migrateInstance(c Instances, params []string) (err error) {
+func migrateInstance(c Instance, params []string) (err error) {
 	if err = migrateConfig(c); err != nil {
 		log.Println(c, "cannot migrate configuration", err)
 	}
@@ -48,7 +48,7 @@ func migrateInstance(c Instances, params []string) (err error) {
 }
 
 // migrate config from .rc to .json, but check first
-func migrateConfig(c Instances) (err error) {
+func migrateConfig(c Instance) (err error) {
 	// if no .rc, return
 	if _, err = c.Remote().Stat(InstanceFileWithExt(c, "rc")); errors.Is(err, fs.ErrNotExist) {
 		return nil
@@ -78,7 +78,7 @@ func commandRevert(ct Component, names []string, params []string) (err error) {
 	return ct.loopCommand(revertInstance, names, params)
 }
 
-func revertInstance(c Instances, params []string) (err error) {
+func revertInstance(c Instance, params []string) (err error) {
 	// if *.rc file exists, remove rc.orig+JSON, continue
 	if _, err := c.Remote().Stat(InstanceFileWithExt(c, "rc")); err == nil {
 		// ignore errors

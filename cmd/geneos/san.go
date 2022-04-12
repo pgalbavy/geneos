@@ -81,7 +81,7 @@ func InitSan(r *Remotes) {
 
 var sans sync.Map
 
-func NewSan(name string) Instances {
+func NewSan(name string) Instance {
 	ct, local, r := SplitInstanceName(name, rLOCAL)
 	s, ok := sans.Load(r.FullName(local))
 	if ok {

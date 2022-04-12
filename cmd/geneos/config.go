@@ -153,7 +153,7 @@ func Geneos() string {
 // support cache?
 //
 // error check core values - e.g. Name
-func loadConfig(c Instances) (err error) {
+func loadConfig(c Instance) (err error) {
 	j := InstanceFileWithExt(c, "json")
 
 	var n InstanceBase
@@ -211,7 +211,7 @@ func commandShow(ct Component, args []string, params []string) (err error) {
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
 	//
-	cs := make(map[RemoteName][]Instances)
+	cs := make(map[RemoteName][]Instance)
 	for _, name := range args {
 		for _, i := range ct.FindInstances(name) {
 			cs[i.Remote().RemoteName()] = append(cs[i.Remote().RemoteName()], i)
@@ -273,7 +273,7 @@ func commandDelete(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(deleteInstance, args, params)
 }
 
-func deleteInstance(c Instances, params []string) (err error) {
+func deleteInstance(c Instance, params []string) (err error) {
 	if deleteForced {
 		if components[c.Type()].RealComponent {
 			if err = stopInstance(c, nil); err != nil {
@@ -299,7 +299,7 @@ func commandRebuild(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(rebuildInstance, args, params)
 }
 
-func rebuildInstance(c Instances, params []string) (err error) {
+func rebuildInstance(c Instance, params []string) (err error) {
 	if err = c.Rebuild(rebuildForced); err != nil {
 		if err == ErrNoAction {
 			err = nil

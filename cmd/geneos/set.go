@@ -56,7 +56,7 @@ Variables (for San config templates) cannot be set from the command line at this
 //
 // consume component names, stop at first parameter, error out if more names
 func commandSet(ct Component, args []string, params []string) (err error) {
-	var instances []Instances
+	var instances []Instance
 
 	logDebug.Println("args", args, "params", params)
 
@@ -117,7 +117,7 @@ var pluralise = map[string]string{
 	"Include":   "s",
 }
 
-func setValue(c Instances, tag, v string) (err error) {
+func setValue(c Instance, tag, v string) (err error) {
 	defaults := map[string]string{
 		"Includes": "100",
 		"Gateways": "7039",
@@ -316,7 +316,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 }
 
 // check for rc file? migrate?
-func writeInstanceConfig(c Instances) (err error) {
+func writeInstanceConfig(c Instance) (err error) {
 	return c.Remote().writeConfigFile(InstanceFileWithExt(c, "json"), c.Prefix("User"), 0664, c)
 }
 

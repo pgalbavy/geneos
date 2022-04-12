@@ -64,7 +64,7 @@ func init() {
 // var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
 var remotes sync.Map
 
-func NewRemote(name string) Instances {
+func NewRemote(name string) Instance {
 	localpart, remotepart := splitInstanceName(name)
 	if remotepart != LOCAL {
 		logDebug.Println("remote remotes not suported")

@@ -49,7 +49,7 @@ func RegisterCommand(cmd Command) {
 // buildCmd gathers the path to the binary, arguments and any environment variables
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers
 // will add more details such as working directories, user and group etc.
-func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
+func buildCmd(c Instance) (cmd *exec.Cmd, env []string) {
 	binary := getString(c, c.Prefix("Exec"))
 
 	args, env := c.Command()
@@ -69,7 +69,7 @@ func buildCmd(c Instances) (cmd *exec.Cmd, env []string) {
 // 'BinSuffix' are treated as environment variables
 //
 // No processing of shell variables. should there be?
-func readRCConfig(c Instances) (err error) {
+func readRCConfig(c Instance) (err error) {
 	rcdata, err := c.Remote().ReadFile(InstanceFileWithExt(c, "rc"))
 	if err != nil {
 		return

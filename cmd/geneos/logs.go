@@ -66,7 +66,7 @@ type files struct {
 var tails *sync.Map
 
 // last logfile written out
-var lastout Instances
+var lastout Instance
 
 func logsFlag(command string, args []string) []string {
 	logsFlags.Parse(args)
@@ -112,7 +112,7 @@ func (ct Component) followLogs(args, params []string) (err error) {
 	return
 }
 
-func outHeader(c Instances) {
+func outHeader(c Instance) {
 	logfile := getLogfilePath(c)
 	if lastout == c {
 		return
@@ -124,7 +124,7 @@ func outHeader(c Instances) {
 	lastout = c
 }
 
-func logTailInstance(c Instances, params []string) (err error) {
+func logTailInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
 	st, err := c.Remote().Stat(logfile)
@@ -200,7 +200,7 @@ func isLineSep(r rune) bool {
 	return unicode.Is(unicode.Zp, r)
 }
 
-func filterOutput(c Instances, reader io.ReadSeeker) (sz int64) {
+func filterOutput(c Instance, reader io.ReadSeeker) (sz int64) {
 	switch {
 	case logsMatchLines != "":
 		scanner := bufio.NewScanner(reader)
@@ -231,7 +231,7 @@ func filterOutput(c Instances, reader io.ReadSeeker) (sz int64) {
 	return
 }
 
-func logCatInstance(c Instances, params []string) (err error) {
+func logCatInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
 	lines, err := c.Remote().Open(logfile)
@@ -251,7 +251,7 @@ func logCatInstance(c Instances, params []string) (err error) {
 // add local logs to a watcher list
 // for remote logs, spawn a go routine for each log, watch using stat etc.
 // and output changes
-func logFollowInstance(c Instances, params []string) (err error) {
+func logFollowInstance(c Instance, params []string) (err error) {
 	logfile := getLogfilePath(c)
 
 	// store a placeholder
@@ -291,7 +291,7 @@ func watchLogs() (tails *sync.Map) {
 					return true
 				}
 
-				c := key.(Instances)
+				c := key.(Instance)
 				tail := value.(*files)
 
 				oldsize := tail.p
@@ -336,7 +336,7 @@ func watchLogs() (tails *sync.Map) {
 	return
 }
 
-func copyFromFile(c Instances) (sz int64) {
+func copyFromFile(c Instance) (sz int64) {
 	if t, ok := tails.Load(c); ok {
 		tail := t.(*files)
 		sz = tail.p

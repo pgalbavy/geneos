@@ -101,7 +101,7 @@ func commandImport(ct Component, args []string, params []string) (err error) {
 // 'geneos import netprobe exampel3 scripts/=myscript.sh'
 //
 // local directroreies are created
-func importInstance(c Instances, params []string) (err error) {
+func importInstance(c Instance, params []string) (err error) {
 	if !components[c.Type()].RealComponent {
 		return ErrNotSupported
 	}

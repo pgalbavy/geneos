@@ -129,7 +129,7 @@ func commandHome(ctunused Component, args []string, params []string) error {
 		args = args[1:]
 	}
 
-	var i []Instances
+	var i []Instance
 	if len(args) == 0 {
 		i = ct.GetInstancesForComponent(rLOCAL)
 	} else {

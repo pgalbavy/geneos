@@ -50,7 +50,7 @@ func init() {
 
 var netprobes sync.Map
 
-func NewNetprobe(name string) Instances {
+func NewNetprobe(name string) Instance {
 	_, local, r := SplitInstanceName(name, rLOCAL)
 	n, ok := netprobes.Load(r.FullName(local))
 	if ok {

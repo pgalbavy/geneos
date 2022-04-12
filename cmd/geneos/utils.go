@@ -32,7 +32,7 @@ import (
 //
 // walk the /proc directory (local or remote) and find the matching pid
 // this is subject to races, but not much we can do
-func findInstancePID(c Instances) (pid int, err error) {
+func findInstancePID(c Instance) (pid int, err error) {
 	var pids []int
 	binsuffix := getString(c, "BinSuffix")
 
@@ -87,7 +87,7 @@ func findInstancePID(c Instances) (pid int, err error) {
 	return 0, ErrProcNotFound
 }
 
-func findInstancePIDInfo(c Instances) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+func findInstancePIDInfo(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
 	pid, err = findInstancePID(c)
 	if err == nil {
 		var s fileStat
@@ -176,7 +176,7 @@ func setUser(cmd *exec.Cmd, username string) (err error) {
 // this does not however change the user to match anything, so starting a
 // process still requires a seteuid type change
 //
-func canControl(c Instances) bool {
+func canControl(c Instance) bool {
 	if superuser {
 		logDebug.Println("I am root")
 		return true
@@ -465,7 +465,7 @@ func cleanRelativePath(path string) (clean string, err error) {
 
 // given a filename or path, prepend the instance home directory
 // if not absolute, and clean
-func instanceAbsPath(c Instances, file string) (path string) {
+func instanceAbsPath(c Instance, file string) (path string) {
 	path = filepath.Clean(file)
 	if filepath.IsAbs(path) {
 		return
@@ -473,7 +473,7 @@ func instanceAbsPath(c Instances, file string) (path string) {
 	return filepath.Join(c.Home(), path)
 }
 
-func deletePaths(c Instances, paths string) (err error) {
+func deletePaths(c Instance, paths string) (err error) {
 	list := filepath.SplitList(paths)
 	for _, p := range list {
 		// clean path, error on absolute or parent paths, like 'import'
@@ -498,7 +498,7 @@ func deletePaths(c Instances, paths string) (err error) {
 }
 
 // logdir = LogD relative to Home or absolute
-func getLogfilePath(c Instances) (logfile string) {
+func getLogfilePath(c Instance) (logfile string) {
 	logd := filepath.Clean(getString(c, c.Prefix("LogD")))
 	switch {
 	case logd == "":
@@ -589,7 +589,7 @@ var fnmap template.FuncMap = template.FuncMap{
 // load templates from TYPE/templates/[tmpl]* and parse it using the instance data
 // write it out to a single file. If tmpl is empty, load all files
 //
-func createConfigFromTemplate(c Instances, path string, name string, defaultTemplate []byte) (err error) {
+func createConfigFromTemplate(c Instance, path string, name string, defaultTemplate []byte) (err error) {
 	var out io.WriteCloser
 	// var t *template.Template
 
@@ -616,7 +616,7 @@ func createConfigFromTemplate(c Instances, path string, name string, defaultTemp
 	return
 }
 
-func signalInstance(c Instances, signal syscall.Signal) (err error) {
+func signalInstance(c Instance, signal syscall.Signal) (err error) {
 	pid, err := findInstancePID(c)
 	if err != nil {
 		return ErrProcNotFound

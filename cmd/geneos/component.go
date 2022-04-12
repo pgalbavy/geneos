@@ -23,7 +23,7 @@ type Components struct {
 	Initialise func(*Remotes)
 
 	// function to create a new instance of component
-	New func(string) Instances
+	New func(string) Instance
 
 	ComponentType    Component
 	RelatedTypes     []Component
@@ -73,9 +73,9 @@ type ComponentsMap map[Component]Components
 // this should actually become an Interface
 var components ComponentsMap = make(ComponentsMap)
 
-// The Instances interface is used by all components through
+// The Instance interface is used by all components through
 // the InstancesBase struct below
-type Instances interface {
+type Instance interface {
 	Name() string
 	Home() string
 	Type() Component
@@ -98,7 +98,7 @@ type Instances interface {
 
 // The Common type is the common data shared by all component types
 type InstanceBase struct {
-	Instances `json:"-"`
+	Instance `json:"-"`
 	// A mutex, for ongoing changes
 	L *sync.RWMutex `json:"-"`
 	// The Name of an instance. This may be different to the instance
@@ -188,7 +188,7 @@ func RegisterDefaultSettings(settings GlobalSettings) {
 }
 
 // return a slice instances for a given component type
-func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
+func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instance) {
 	if ct == None {
 		for _, c := range RealComponents() {
 			confs = append(confs, c.GetInstancesForComponent(r)...)
@@ -209,7 +209,37 @@ func (ct Component) GetInstancesForComponent(r *Remotes) (confs []Instances) {
 // given a component type and a slice of args, call the function for each arg
 //
 // try to use go routines here - mutexes required
-func (ct Component) loopCommand(fn func(Instances, []string) error, args []string, params []string) (err error) {
+func (ct Component) loopCommand(fn func(Instance, []string) error, args []string, params []string) (err error) {
+	n := 0
+	logDebug.Println("args, params", args, params)
+	for _, name := range args {
+		cs := ct.FindInstances(name)
+		if len(cs) == 0 {
+			log.Println("no matches for", ct, name)
+			continue
+			// return ErrNotFound
+		}
+		n++
+		for _, c := range cs {
+			if err = fn(c, params); err != nil && !errors.Is(err, ErrProcNotFound) && !errors.Is(err, ErrNotSupported) {
+				log.Println(c, err)
+			}
+		}
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// new version, just rearranging params at first
+//
+// loop over args, resolving the component type and name to an instance
+// and then call the given function with the params passed.
+//
+// try to, as we convert, follow a go fan-out, fan-in model with go routines and channels
+//
+func loopCommand(ct Component, args, params []string, fn func(Instance, []string) error) (err error) {
 	n := 0
 	logDebug.Println("args, params", args, params)
 	for _, name := range args {
@@ -278,7 +308,7 @@ func (ct Component) FindNames(r *Remotes) (names []string) {
 }
 
 // return an instance of component ct. loads the config.
-func (ct Component) GetInstance(name string) (c Instances, err error) {
+func (ct Component) GetInstance(name string) (c Instance, err error) {
 	if ct == None {
 		return nil, ErrInvalidArgs
 	}
@@ -298,7 +328,7 @@ func (ct Component) GetInstance(name string) (c Instances, err error) {
 
 // construct and return a slice of a/all component types that have
 // a matching name
-func (ct Component) FindInstances(name string) (c []Instances) {
+func (ct Component) FindInstances(name string) (c []Instance) {
 	_, local, r := SplitInstanceName(name, rALL)
 	if !r.Loaded() {
 		logDebug.Println("remote", r, "not loaded")
@@ -329,7 +359,7 @@ func (ct Component) FindInstances(name string) (c []Instances) {
 
 // Looks for exactly one matching instance across types and remotes
 // returns Invalid Args if zero of more than 1 match
-func (ct Component) FindInstance(name string) (c Instances, err error) {
+func (ct Component) FindInstance(name string) (c Instance, err error) {
 	list := ct.FindInstances(name)
 	if len(list) == 0 {
 		err = ErrNotFound
@@ -357,6 +387,6 @@ func (ct Component) ComponentDir(r *Remotes) string {
 	}
 }
 
-func InstanceFileWithExt(c Instances, extension string) (path string) {
+func InstanceFileWithExt(c Instance, extension string) (path string) {
 	return filepath.Join(c.Home(), c.Type().String()+"."+extension)
 }

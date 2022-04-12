@@ -60,7 +60,7 @@ func init() {
 
 var fileagents sync.Map
 
-func NewFileAgent(name string) Instances {
+func NewFileAgent(name string) Instance {
 	_, local, r := SplitInstanceName(name, rLOCAL)
 	f, ok := fileagents.Load(r.FullName(local))
 	if ok {

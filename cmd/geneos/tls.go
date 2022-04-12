@@ -356,15 +356,15 @@ func listCertsLongCommand(ct Component, args []string, params []string) (err err
 	return
 }
 
-func TLSNewInstance(c Instances, params []string) (err error) {
+func TLSNewInstance(c Instance, params []string) (err error) {
 	return createInstanceCert(c)
 }
 
-func TLSRenewInstance(c Instances, params []string) (err error) {
+func TLSRenewInstance(c Instance, params []string) (err error) {
 	return renewInstanceCert(c)
 }
 
-func lsInstanceCert(c Instances, params []string) (err error) {
+func lsInstanceCert(c Instance, params []string) (err error) {
 	cert, err := readInstanceCert(c)
 	if err == ErrNotFound {
 		// this is OK - readInstanceCert() reports no configured cert this way
@@ -391,7 +391,7 @@ func lsInstanceCert(c Instances, params []string) (err error) {
 	return
 }
 
-func lsInstanceCertCSV(c Instances, params []string) (err error) {
+func lsInstanceCertCSV(c Instance, params []string) (err error) {
 	cert, err := readInstanceCert(c)
 	if err == ErrNotFound {
 		// this is OK
@@ -414,7 +414,7 @@ func lsInstanceCertCSV(c Instances, params []string) (err error) {
 	return
 }
 
-func lsInstanceCertJSON(c Instances, params []string) (err error) {
+func lsInstanceCertJSON(c Instance, params []string) (err error) {
 	cert, err := readInstanceCert(c)
 	if err == ErrNotFound {
 		// this is OK
@@ -692,7 +692,7 @@ func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 // this also creates a new private key
 //
 // skip if certificate exists (no expiry check)
-func createInstanceCert(c Instances) (err error) {
+func createInstanceCert(c Instance) (err error) {
 	tlsDir := filepath.Join(Geneos(), "tls")
 
 	// skip if we can load an existing certificate
@@ -752,7 +752,7 @@ func createInstanceCert(c Instances) (err error) {
 }
 
 // renew an instance certificate, use private key if it exists
-func renewInstanceCert(c Instances) (err error) {
+func renewInstanceCert(c Instance) (err error) {
 	tlsDir := filepath.Join(Geneos(), "tls")
 
 	host, _ := os.Hostname()
@@ -810,7 +810,7 @@ func renewInstanceCert(c Instances) (err error) {
 	return
 }
 
-func writeInstanceCert(c Instances, cert *x509.Certificate) (err error) {
+func writeInstanceCert(c Instance, cert *x509.Certificate) (err error) {
 	if c.Type() == None {
 		return ErrInvalidArgs
 	}
@@ -828,7 +828,7 @@ func writeInstanceCert(c Instances, cert *x509.Certificate) (err error) {
 	return writeInstanceConfig(c)
 }
 
-func writeInstanceKey(c Instances, key *rsa.PrivateKey) (err error) {
+func writeInstanceKey(c Instance, key *rsa.PrivateKey) (err error) {
 	if c.Type() == None {
 		return ErrInvalidArgs
 	}
@@ -914,7 +914,7 @@ func readSigningCert() (cert *x509.Certificate, err error) {
 }
 
 // read the instance certificate
-func readInstanceCert(c Instances) (cert *x509.Certificate, err error) {
+func readInstanceCert(c Instance) (cert *x509.Certificate, err error) {
 	if c.Type() == None {
 		return nil, ErrInvalidArgs
 	}
@@ -946,7 +946,7 @@ func (r *Remotes) readKey(path string) (key *rsa.PrivateKey, err error) {
 }
 
 // read the instance RSA private key
-func readInstanceKey(c Instances) (key *rsa.PrivateKey, err error) {
+func readInstanceKey(c Instance) (key *rsa.PrivateKey, err error) {
 	if c.Type() == None {
 		return nil, ErrInvalidArgs
 	}

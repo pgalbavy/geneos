@@ -135,7 +135,7 @@ func commandStart(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func startInstance(c Instances, params []string) (err error) {
+func startInstance(c Instance, params []string) (err error) {
 	logDebug.Println(c, params)
 	pid, err := findInstancePID(c)
 	if err == nil {
@@ -263,7 +263,7 @@ func commandStop(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(stopInstance, args, params)
 }
 
-func stopInstance(c Instances, params []string) (err error) {
+func stopInstance(c Instance, params []string) (err error) {
 	if !stopKill {
 		err = signalInstance(c, syscall.SIGTERM)
 		if err == ErrProcNotFound {
@@ -321,7 +321,7 @@ func commandRestart(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func restartInstance(c Instances, params []string) (err error) {
+func restartInstance(c Instance, params []string) (err error) {
 	err = stopInstance(c, params)
 	if err == nil || (errors.Is(err, ErrProcNotFound) && restartAll) {
 		return startInstance(c, params)
@@ -335,7 +335,7 @@ func commandDisable(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(disableInstance, args, params)
 }
 
-func disableInstance(c Instances, params []string) (err error) {
+func disableInstance(c Instance, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
@@ -375,7 +375,7 @@ func commandEneable(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(enableInstance, args, params)
 }
 
-func enableInstance(c Instances, params []string) (err error) {
+func enableInstance(c Instance, params []string) (err error) {
 	err = c.Remote().Remove(InstanceFileWithExt(c, disableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableStart {
 		startInstance(c, params)
@@ -383,7 +383,7 @@ func enableInstance(c Instances, params []string) (err error) {
 	return nil
 }
 
-func Disabled(c Instances) bool {
+func Disabled(c Instance) bool {
 	d := InstanceFileWithExt(c, disableExtension)
 	if f, err := c.Remote().Stat(d); err == nil && f.st.Mode().IsRegular() {
 		return true

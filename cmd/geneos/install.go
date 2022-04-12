@@ -481,7 +481,7 @@ func sliceAtoi(s []string) (n []int) {
 //
 // not right for FA2 Sans...
 //
-func (ct Component) findInstances(r *Remotes, k, v string) (insts []Instances) {
+func (ct Component) findInstances(r *Remotes, k, v string) (insts []Instance) {
 	if ct == None {
 		for _, rct := range RealComponents() {
 			insts = append(insts, rct.findInstances(r, k, v)...)

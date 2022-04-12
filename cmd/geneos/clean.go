@@ -36,14 +36,14 @@ func cleanFlag(command string, args []string) []string {
 }
 
 func commandClean(ct Component, args []string, params []string) error {
-	return ct.loopCommand(cleanInstance, args, params)
+	return loopCommand(ct, args, params, cleanInstance)
 }
 
-func cleanInstance(c Instances, params []string) (err error) {
+func cleanInstance(c Instance, params []string) (err error) {
 	return Clean(c, cleanPurge, params)
 }
 
-func Clean(c Instances, purge bool, params []string) (err error) {
+func Clean(c Instance, purge bool, params []string) (err error) {
 	var stopped bool
 
 	cleanlist := GlobalConfig[components[c.Type()].CleanList]

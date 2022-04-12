@@ -54,7 +54,7 @@ func init() {
 
 var webservers sync.Map
 
-func NewWebserver(name string) Instances {
+func NewWebserver(name string) Instance {
 	_, local, r := SplitInstanceName(name, rLOCAL)
 	w, ok := webservers.Load(r.FullName(local))
 	if ok {

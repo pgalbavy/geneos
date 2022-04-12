@@ -165,7 +165,7 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	if _, err = findInstancePID(src); err != ErrProcNotFound {
 		if err = stopInstance(src, nil); err == nil {
 			stopped = true
-			defer func(c Instances) {
+			defer func(c Instance) {
 				if !done {
 					startInstance(c, nil)
 				}
@@ -201,7 +201,7 @@ func (ct Component) copyInstance(srcname, dstname string, remove bool) (err erro
 	}
 
 	// delete one or the other, depending
-	defer func(srcname string, srcrem *Remotes, srchome string, dst Instances) {
+	defer func(srcname string, srcrem *Remotes, srchome string, dst Instance) {
 		if done {
 			if remove {
 				// once we are done, try to delete old instance

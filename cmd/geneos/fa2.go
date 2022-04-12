@@ -50,7 +50,7 @@ func init() {
 
 var fa2s sync.Map
 
-func NewFA2(name string) Instances {
+func NewFA2(name string) Instance {
 	_, local, r := SplitInstanceName(name, rLOCAL)
 	f, ok := gateways.Load(r.FullName(local))
 	if ok {

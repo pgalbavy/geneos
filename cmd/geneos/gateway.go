@@ -93,7 +93,7 @@ func InitGateway(r *Remotes) {
 
 var gateways sync.Map
 
-func NewGateway(name string) Instances {
+func NewGateway(name string) Instance {
 	_, local, r := SplitInstanceName(name, rLOCAL)
 	g, ok := gateways.Load(r.FullName(local))
 	if ok {
@@ -318,7 +318,7 @@ func (g *Gateways) Reload(params []string) (err error) {
 
 // create a gateway key file for secure passwords as per
 // https://docs.itrsgroup.com/docs/geneos/4.8.0/Gateway_Reference_Guide/gateway_secure_passwords.htm
-func createAESKeyFile(c Instances) (err error) {
+func createAESKeyFile(c Instance) (err error) {
 	rp := make([]byte, 20)
 	salt := make([]byte, 10)
 	if _, err = rand.Read(rp); err != nil {

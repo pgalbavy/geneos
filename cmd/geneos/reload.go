@@ -19,6 +19,6 @@ func commandReload(ct Component, args []string, params []string) error {
 	return ct.loopCommand(reloadInstance, args, params)
 }
 
-func reloadInstance(c Instances, params []string) (err error) {
+func reloadInstance(c Instance, params []string) (err error) {
 	return c.Reload(params)
 }

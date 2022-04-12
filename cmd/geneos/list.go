@@ -138,7 +138,7 @@ func commandLS(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func lsInstancePlain(c Instances, params []string) (err error) {
+func lsInstancePlain(c Instance, params []string) (err error) {
 	var suffix string
 	if Disabled(c) {
 		suffix = "*"
@@ -148,7 +148,7 @@ func lsInstancePlain(c Instances, params []string) (err error) {
 	return
 }
 
-func lsInstancePlainRemotes(c Instances, params []string) (err error) {
+func lsInstancePlainRemotes(c Instance, params []string) (err error) {
 	var suffix string
 	if Disabled(c) {
 		suffix = "*"
@@ -157,7 +157,7 @@ func lsInstancePlainRemotes(c Instances, params []string) (err error) {
 	return
 }
 
-func lsInstanceCSV(c Instances, params []string) (err error) {
+func lsInstanceCSV(c Instance, params []string) (err error) {
 	var dis string = "N"
 	if Disabled(c) {
 		dis = "Y"
@@ -167,7 +167,7 @@ func lsInstanceCSV(c Instances, params []string) (err error) {
 	return
 }
 
-func lsInstanceCSVRemotes(c Instances, params []string) (err error) {
+func lsInstanceCSVRemotes(c Instance, params []string) (err error) {
 	var dis string = "N"
 	if Disabled(c) {
 		dis = "Y"
@@ -196,7 +196,7 @@ type lsTypeRemotes struct {
 	Geneos   string
 }
 
-func lsInstanceJSON(c Instances, params []string) (err error) {
+func lsInstanceJSON(c Instance, params []string) (err error) {
 	var dis string = "N"
 	if Disabled(c) {
 		dis = "Y"
@@ -206,7 +206,7 @@ func lsInstanceJSON(c Instances, params []string) (err error) {
 	return
 }
 
-func lsInstanceJSONRemotes(c Instances, params []string) (err error) {
+func lsInstanceJSONRemotes(c Instance, params []string) (err error) {
 	var dis string = "N"
 	if Disabled(c) {
 		dis = "Y"
@@ -252,7 +252,7 @@ func commandPS(ct Component, args []string, params []string) (err error) {
 	return
 }
 
-func psInstancePlain(c Instances, params []string) (err error) {
+func psInstancePlain(c Instance, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
@@ -279,7 +279,7 @@ func psInstancePlain(c Instances, params []string) (err error) {
 	return
 }
 
-func psInstanceCSV(c Instances, params []string) (err error) {
+func psInstanceCSV(c Instance, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
@@ -306,7 +306,7 @@ func psInstanceCSV(c Instances, params []string) (err error) {
 	return
 }
 
-func psInstanceJSON(c Instances, params []string) (err error) {
+func psInstanceJSON(c Instance, params []string) (err error) {
 	if Disabled(c) {
 		return nil
 	}
@@ -337,7 +337,7 @@ func commandCommand(ct Component, args []string, params []string) (err error) {
 	return ct.loopCommand(commandInstance, args, params)
 }
 
-func commandInstance(c Instances, params []string) (err error) {
+func commandInstance(c Instance, params []string) (err error) {
 	log.Printf("=== %s ===", c)
 	cmd, env := buildCmd(c)
 	if cmd != nil {
@@ -357,7 +357,7 @@ func commandInstance(c Instances, params []string) (err error) {
 // return the base package name and the version it links to.
 // if not a link, then return the same
 // follow a limited number of links (10?)
-func componentVersion(c Instances) (base string, underlying string, err error) {
+func componentVersion(c Instance) (base string, underlying string, err error) {
 	basedir := getString(c, c.Prefix("Bins"))
 	base = getString(c, c.Prefix("Base"))
 	underlying = base

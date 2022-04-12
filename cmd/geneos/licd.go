@@ -50,7 +50,7 @@ func init() {
 
 var licds sync.Map
 
-func NewLicd(name string) Instances {
+func NewLicd(name string) Instance {
 	_, local, r := SplitInstanceName(name, rLOCAL)
 	l, ok := licds.Load(r.FullName(local))
 	if ok {
