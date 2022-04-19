@@ -77,6 +77,8 @@ func New(name Name) *Host {
 	c := &Host{}
 	c.conf = viper.New()
 	c.name = name
+	c.geneos = "/tmp/geneos"
+	c.dir = filepath.Join(c.geneos, "remote", string(c.name))
 
 	// c.InstanceRemote = rLOCAL
 	// c.RemoteRoot = Geneos()
@@ -109,6 +111,9 @@ func (h *Host) Load() {
 }
 
 func (h *Host) Loaded() bool {
+	if h == LOCAL || h == ALL {
+		return true
+	}
 	return false
 }
 

@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -136,11 +137,11 @@ func (g *Gateways) Location() host.Name {
 }
 
 func (g *Gateways) Home() string {
-	return g.GateHome
+	return g.V().GetString("gatehome")
 }
 
 func (g *Gateways) Prefix(field string) string {
-	return "Gate" + field
+	return strings.ToLower("Gate" + field)
 }
 
 func (g *Gateways) Remote() *host.Host {
@@ -159,7 +160,12 @@ func (g *Gateways) Load() (err error) {
 	if g.ConfigLoaded {
 		return
 	}
-	err = instance.LoadConfig(g)
+	logger.Debug.Printf("%v", g.V().AllSettings())
+	// err = instance.LoadConfig(g)
+	err = instance.ReadConfig(g)
+	if err != nil {
+		logger.Error.Println(err)
+	}
 	g.ConfigLoaded = err == nil
 	return
 }

@@ -8,12 +8,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
+	"text/template"
 	"time"
 
 	"github.com/spf13/viper"
@@ -160,7 +162,7 @@ func GetPIDInfo(c geneos.Instance) (pid int, uid uint32, gid uint32, mtime int64
 
 // separate reserved words and invalid syntax
 //
-func reservedName(in string) (ok bool) {
+func ReservedName(in string) (ok bool) {
 	logDebug.Printf("checking %q", in)
 	if geneos.ParseComponentName(in) != nil {
 		logDebug.Println("matches a reserved word")
@@ -187,7 +189,7 @@ var validStringRE = regexp.MustCompile(`^\w[\w-]+[:@\.\w -]*$`)
 //
 // used to consume instance names until parameters are then passed down
 //
-func validInstanceName(in string) (ok bool) {
+func ValidInstanceName(in string) (ok bool) {
 	ok = validStringRE.MatchString(in)
 	if !ok {
 		logDebug.Println("no rexexp match:", in)
@@ -329,11 +331,14 @@ func FindInstances(ct *geneos.Component, name string) (c []geneos.Instance) {
 	}
 
 	for _, name := range FindNames(r, ct) {
+		logDebug.Println("ct, name =", ct, name)
+
 		// for case insensitive match change to EqualFold here
 		_, ldir, _ := SplitName(name, host.ALL)
 		if filepath.Base(ldir) == local {
 			i, err := GetInstance(ct, name)
 			if err != nil {
+				logError.Println(err)
 				continue
 			}
 			c = append(c, i)
@@ -615,10 +620,49 @@ func BuildCmd(c geneos.Instance) (cmd *exec.Cmd, env []string) {
 	return
 }
 
+// a template function to support "{{join .X .Y}}"
+var textJoinFuncs = template.FuncMap{"join": filepath.Join}
+
+// SetDefaults() is a common function called by component New*()
+// functions to iterate over the component specific instance
+// struct and set the defaults as defined in the 'defaults'
+// struct tags.
 func SetDefaults(c geneos.Instance) (err error) {
+	st := reflect.TypeOf(c)
+	sv := reflect.ValueOf(c)
+	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
+		st = st.Elem()
+		sv = sv.Elem()
+	}
+
+	for _, f := range reflect.VisibleFields(st) {
+		fv := sv.FieldByIndex(f.Index)
+
+		if !f.IsExported() {
+			continue
+		}
+		if !fv.CanSet() {
+			logDebug.Println("cannot set", f.Name)
+			return err
+		}
+		if def, ok := f.Tag.Lookup("default"); ok {
+			// treat all defaults as if they are templates
+			val, err := template.New(f.Name).Funcs(textJoinFuncs).Parse(def)
+			if err != nil {
+				log.Println(c, "setDefaults parse error:", def)
+				return err
+			}
+			var b bytes.Buffer
+			if err = val.Execute(&b, c); err != nil {
+				log.Println(c, "cannot set defaults:", def)
+				return err
+			}
+			c.V().Set(f.Name, b.String())
+		}
+	}
+
 	return
 }
-
 func Clean(c geneos.Instance, purge bool, params []string) (err error) {
 	var stopped bool
 

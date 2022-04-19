@@ -24,6 +24,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -56,9 +57,10 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		fmt.Println("persistent pre-run called", args)
+		parseArgs(cmd, args)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -70,7 +72,7 @@ func Execute() {
 	}
 }
 
-var debug bool
+var debug, quiet bool
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -84,12 +86,19 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "config file (default is $HOME/.config/geneos.json, /etc/geneos/geneos.json)")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable extra debug output")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
 	rootCmd.Flags().MarkHidden("debug")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	if quiet {
+		log.SetOutput(ioutil.Discard)
+	} else if debug {
+		logger.EnableDebugLog()
+	}
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)

@@ -173,6 +173,7 @@ func WriteConfig(c geneos.Instance) (err error) {
 
 func ReadConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
+	logDebug.Println(file)
 	c.V().SetConfigFile(file)
 	return c.V().MergeInConfig()
 }
