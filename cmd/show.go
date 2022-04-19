@@ -25,10 +25,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/instance"
 )
 
 // showCmd represents the show command
@@ -51,8 +53,14 @@ var showCmd = &cobra.Command{
 	
 	Passwords and secrets are redacted in a very simplistic manner simply
 	to prevent visibility in casual viewing.`,
+	Annotations: make(map[string]string),
+
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("show called")
+		ct := geneos.ParseComponentName(cmd.Annotations["ct"])
+		newargs := strings.Split(cmd.Annotations["args"], ",")
+		params := strings.Split(cmd.Annotations["params"], ",")
+		commandShow(ct, newargs, params)
 	},
 }
 
@@ -61,21 +69,35 @@ func init() {
 }
 
 func commandShow(ct *geneos.Component, args []string, params []string) (err error) {
+	var buffer []byte
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
 	//
 	cs := make(map[host.Name][]geneos.Instance)
-	// for _, name := range args {
-	// 	for _, i := range instance.FindInstances(ct, name) {
-	// 		cs[i.Remote().String()] = append(cs[i.Remote().String()], i)
-	// 	}
-	// }
-	if len(cs) > 0 {
-		printConfigJSON(cs)
-		return
+	for _, name := range args {
+		cs[host.LOCALHOST] = instance.FindInstances(ct, name)
+		logDebug.Println(cs[host.LOCALHOST])
+		for _, c := range cs[host.LOCALHOST] {
+			config := c.V().AllSettings()
+			if buffer, err = json.MarshalIndent(config, "", "    "); err != nil {
+				return
+			}
+			j := string(buffer)
+			j = opaqueJSONSecrets(j)
+			log.Printf("%s\n", j)
+		}
+
+		// for _, i := range instance.FindInstances(ct, name) {
+		// 	cs[i.Remote().String()] = append(cs[i.Remote().String()], i)
+		// }
 	}
 
-	log.Println("no matches to show")
+	// if len(cs) > 0 {
+	// 	printConfigJSON(cs)
+	// 	return
+	// }
+
+	// log.Println("no matches to show")
 
 	return
 }

@@ -186,7 +186,7 @@ func copyDirEntry(fi fs.FileInfo, srcRemote *Host, srcPath string, dstRemote *Ho
 // remote protocols cleanly
 
 func (h *Host) Symlink(target, path string) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.Symlink(target, path)
 	default:
@@ -199,7 +199,7 @@ func (h *Host) Symlink(target, path string) (err error) {
 }
 
 func (h *Host) ReadLink(file string) (link string, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.Readlink(file)
 	default:
@@ -212,7 +212,7 @@ func (h *Host) ReadLink(file string) (link string, err error) {
 }
 
 func (h *Host) MkdirAll(path string, perm os.FileMode) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.MkdirAll(path, perm)
 	default:
@@ -225,7 +225,7 @@ func (h *Host) MkdirAll(path string, perm os.FileMode) (err error) {
 }
 
 func (h *Host) Chown(name string, uid, gid int) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.Chown(name, uid, gid)
 	default:
@@ -238,7 +238,7 @@ func (h *Host) Chown(name string, uid, gid int) (err error) {
 }
 
 func (h *Host) Create(path string, perms fs.FileMode) (out io.WriteCloser, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		var cf *os.File
 		cf, err = os.Create(path)
@@ -267,7 +267,7 @@ func (h *Host) Create(path string, perms fs.FileMode) (out io.WriteCloser, err e
 }
 
 func (h *Host) Remove(name string) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.Remove(name)
 	default:
@@ -280,7 +280,7 @@ func (h *Host) Remove(name string) (err error) {
 }
 
 func (h *Host) RemoveAll(name string) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.RemoveAll(name)
 	default:
@@ -309,7 +309,7 @@ func (h *Host) RemoveAll(name string) (err error) {
 }
 
 func (h *Host) Rename(oldpath, newpath string) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.Rename(oldpath, newpath)
 	default:
@@ -332,7 +332,7 @@ type FileStat struct {
 
 // stat() a local or remote file and normalise common values
 func (h *Host) Stat(name string) (s FileStat, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		if s.St, err = os.Stat(name); err != nil {
 			return
@@ -357,7 +357,7 @@ func (h *Host) Stat(name string) (s FileStat, err error) {
 
 // lstat() a local or remote file and normalise common values
 func (h *Host) Lstat(name string) (s FileStat, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		if s.St, err = os.Lstat(name); err != nil {
 			return
@@ -381,7 +381,7 @@ func (h *Host) Lstat(name string) (s FileStat, err error) {
 }
 
 func (h *Host) Glob(pattern string) (paths []string, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return filepath.Glob(pattern)
 	default:
@@ -394,7 +394,7 @@ func (h *Host) Glob(pattern string) (paths []string, err error) {
 }
 
 func (h *Host) WriteFile(path string, b []byte, perm os.FileMode) (err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.WriteFile(path, b, perm)
 	default:
@@ -414,7 +414,7 @@ func (h *Host) WriteFile(path string, b []byte, perm os.FileMode) (err error) {
 }
 
 func (h *Host) ReadFile(name string) (b []byte, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.ReadFile(name)
 	default:
@@ -442,7 +442,7 @@ func (h *Host) ReadFile(name string) (b []byte, err error) {
 }
 
 func (h *Host) ReadDir(name string) (dirs []os.DirEntry, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		return os.ReadDir(name)
 	default:
@@ -462,7 +462,7 @@ func (h *Host) ReadDir(name string) (dirs []os.DirEntry, err error) {
 }
 
 func (h *Host) Open(name string) (f io.ReadSeekCloser, err error) {
-	switch h.name {
+	switch h.Name {
 	case LOCALHOST:
 		f, err = os.Open(name)
 	default:

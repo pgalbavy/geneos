@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"wonderland.org/geneos/internal/geneos"
@@ -21,7 +22,7 @@ var Webserver geneos.Component = geneos.Component{
 	PortRange:        "WebserverPortRange",
 	CleanList:        "WebserverCleanList",
 	PurgeList:        "WebserverPurgeList",
-	DefaultSettings: map[string]string{
+	GlobalSettings: map[string]string{
 		"WebserverPortRange": "8080,8100-",
 		"WebserverCleanList": "*.old",
 		"WebserverPurgeList": "logs/*.log:webserver.txt",
@@ -69,7 +70,7 @@ func New(name string) geneos.Instance {
 	}
 	c := &Webservers{}
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &Webserver
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -115,7 +116,7 @@ func (w *Webservers) Home() string {
 }
 
 func (w *Webservers) Prefix(field string) string {
-	return "Webs" + field
+	return strings.ToLower("Webs" + field)
 }
 
 func (w *Webservers) Remote() *host.Host {

@@ -2,6 +2,7 @@ package fa2
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -20,7 +21,7 @@ var FA2 geneos.Component = geneos.Component{
 	PortRange:        "FA2PortRange",
 	CleanList:        "FA2CleanList",
 	PurgeList:        "FA2PurgeList",
-	DefaultSettings: map[string]string{
+	GlobalSettings: map[string]string{
 		"FA2PortRange": "7030,7100-",
 		"FA2CleanList": "*.old",
 		"FA2PurgeList": "fa2.log:fa2.txt:*.snooze:*.user_assignment",
@@ -66,7 +67,7 @@ func New(name string) geneos.Instance {
 	}
 	c := &FA2s{}
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &FA2
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -98,7 +99,7 @@ func (n *FA2s) Home() string {
 
 // Prefix() takes the string argument and adds any component type specific prefix
 func (n *FA2s) Prefix(field string) string {
-	return "FA2" + field
+	return strings.ToLower("FA2" + field)
 }
 
 func (n *FA2s) Remote() *host.Host {

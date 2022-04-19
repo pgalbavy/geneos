@@ -53,7 +53,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) (ct *geneos.Component, args
 
 	a["ct"] = "none"
 
-	if a["Wildcard"] != "true" {
+	if a["Wildcard"] == "false" {
 		if len(rawargs) == 0 {
 			ct = nil
 			return
@@ -177,7 +177,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) (ct *geneos.Component, args
 	a["args"] = strings.Join(args, ",")
 	a["params"] = strings.Join(params, ",")
 
-	if a["Wildcard"] != "true" {
+	if a["Wildcard"] == "false" {
 		return
 	}
 

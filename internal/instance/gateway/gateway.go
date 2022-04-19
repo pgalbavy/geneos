@@ -19,7 +19,7 @@ import (
 )
 
 var Gateway geneos.Component = geneos.Component{
-	Initialise:       InitGateway,
+	Initialise:       Init,
 	Name:             "gateway",
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"gateway", "gateways"},
@@ -28,11 +28,24 @@ var Gateway geneos.Component = geneos.Component{
 	PortRange:        "GatewayPortRange",
 	CleanList:        "GatewayCleanList",
 	PurgeList:        "GatewayPurgeList",
-	DefaultSettings: map[string]string{
+	Defaults:         GatewayDefaults,
+	GlobalSettings: map[string]string{
 		"GatewayPortRange": "7039,7100-",
 		"GatewayCleanList": "*.old:*.history",
 		"GatewayPurgeList": "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/",
 	},
+}
+
+var GatewayDefaults []string = []string{
+	"BinSuffix=gateway2.linux_64",
+	"GateHome={{join .RemoteRoot \"gateway\" \"gateways\" .InstanceName}}",
+	"GateBins={{join .RemoteRoot \"packages\" \"gateway\"}}",
+	"GateBase=active_prod",
+	"GateExec={{join .GateBins .GateBase .BinSuffix}}",
+	"GateLogF=gateway.log",
+	"GatePort=7039",
+	"GateLibs={{join .GateBins .GateBase \"lib64\"}}:/usr/lib64",
+	"GateName={{.InstanceName}}",
 }
 
 type Gateways struct {
@@ -83,7 +96,7 @@ func init() {
 	})
 }
 
-func InitGateway(r *host.Host, ct *geneos.Component) {
+func Init(r *host.Host, ct *geneos.Component) {
 	// copy default template to directory
 	if err := geneos.MakeComponentDirs(r, ct); err != nil {
 		logger.Error.Fatalln(err)
@@ -110,7 +123,7 @@ func New(name string) geneos.Instance {
 	c := &Gateways{}
 	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &Gateway
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {

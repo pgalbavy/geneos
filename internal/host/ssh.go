@@ -4,7 +4,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -94,8 +93,8 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 }
 
 func (h *Host) Dial() (s *ssh.Client, err error) {
-	dest := h.hostname + ":" + strconv.Itoa(h.port)
-	user := h.username
+	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
+	user := h.V().GetString("username")
 	val, ok := sshSessions.Load(user + "@" + dest)
 	if ok {
 		s = val.(*ssh.Client)
@@ -114,8 +113,8 @@ func (h *Host) Dial() (s *ssh.Client, err error) {
 func (h *Host) Close() {
 	h.CloseSFTP()
 
-	dest := h.hostname + ":" + strconv.Itoa(h.port)
-	user := h.username
+	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
+	user := h.V().GetString("username")
 	val, ok := sshSessions.Load(user + "@" + dest)
 	if ok {
 		s := val.(*ssh.Client)
@@ -126,8 +125,8 @@ func (h *Host) Close() {
 
 // succeed or fatal
 func (h *Host) DialSFTP() (f *sftp.Client, err error) {
-	dest := h.hostname + ":" + strconv.Itoa(h.port)
-	user := h.username
+	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
+	user := h.V().GetString("username")
 	val, ok := sftpSessions.Load(user + "@" + dest)
 	if ok {
 		f = val.(*sftp.Client)
@@ -139,15 +138,15 @@ func (h *Host) DialSFTP() (f *sftp.Client, err error) {
 		if f, err = sftp.NewClient(s); err != nil {
 			return
 		}
-		logDebug.Println("remote opened", h.name)
+		logDebug.Println("remote opened", h.Name)
 		sftpSessions.Store(user+"@"+dest, f)
 	}
 	return
 }
 
 func (h *Host) CloseSFTP() {
-	dest := h.hostname + ":" + strconv.Itoa(h.port)
-	user := h.username
+	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
+	user := h.V().GetString("username")
 	val, ok := sftpSessions.Load(user + "@" + dest)
 	if ok {
 		f := val.(*sftp.Client)

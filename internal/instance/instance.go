@@ -25,30 +25,6 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-// type InstanceInterface interface {
-// 	// getters ans setters
-// 	Name() string
-// 	Home() string
-// 	Type() *geneos.Component
-// 	Location() host.Name
-// 	Remote() *host.Host
-// 	// Base() *instance.InstanceBase
-// 	Prefix(string) string
-// 	String() string
-
-// 	// config
-// 	Load() error
-// 	Unload() error
-// 	Loaded() bool
-
-// 	// actions
-// 	Add(string, []string, string) error
-// 	Command() ([]string, []string)
-// 	Reload(params []string) (err error)
-// 	Rebuild(bool) error
-// 	Signal(syscall.Signal) error
-// }
-
 // The Common type is the common data shared by all component types
 type Instance struct {
 	geneos.Instance `json:"-"`
@@ -516,6 +492,7 @@ func LoopCommand(ct *geneos.Component, fn func(geneos.Instance, []string) error,
 func FindNames(r *host.Host, ct *geneos.Component) (names []string) {
 	var files []fs.DirEntry
 
+	logDebug.Println("host, ct:", r, ct)
 	if r == host.ALL {
 		for _, r := range host.AllHosts() {
 			names = append(names, FindNames(r, ct)...)
@@ -628,6 +605,28 @@ var textJoinFuncs = template.FuncMap{"join": filepath.Join}
 // struct and set the defaults as defined in the 'defaults'
 // struct tags.
 func SetDefaults(c geneos.Instance) (err error) {
+	if c.Type().Defaults != nil {
+		for _, s := range c.Type().Defaults {
+			p := strings.SplitN(s, "=", 2)
+			k, v := p[0], p[1]
+			val, err := template.New(k).Funcs(textJoinFuncs).Parse(v)
+			if err != nil {
+				log.Println(c, "setDefaults parse error:", v)
+				return err
+			}
+			var b bytes.Buffer
+			if err = val.Execute(&b, c); err != nil {
+				log.Println(c, "cannot set defaults:", v)
+				return err
+			}
+			if err = setField(c, k, b.String()); err != nil {
+				return err
+			}
+			c.V().Set(k, b.String())
+		}
+		return
+	}
+
 	st := reflect.TypeOf(c)
 	sv := reflect.ValueOf(c)
 	for st.Kind() == reflect.Ptr || st.Kind() == reflect.Interface {
@@ -657,12 +656,47 @@ func SetDefaults(c geneos.Instance) (err error) {
 				log.Println(c, "cannot set defaults:", def)
 				return err
 			}
+			if err = setField(c, f.Name, b.String()); err != nil {
+				return err
+			}
 			c.V().Set(f.Name, b.String())
 		}
 	}
 
 	return
 }
+
+func setField(c interface{}, k string, v string) (err error) {
+	fv := reflect.ValueOf(c)
+	for fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+		fv = fv.Elem()
+	}
+	if fv.Kind() == reflect.Map {
+		return fmt.Errorf("cannot set field in a map")
+	}
+	fv = fv.FieldByName(k)
+	if fv.IsValid() && fv.CanSet() {
+		switch fv.Kind() {
+		case reflect.String:
+			fv.SetString(v)
+		case reflect.Int:
+			i, _ := strconv.Atoi(v)
+			fv.SetInt(int64(i))
+		case reflect.Bool:
+			if v == "1" || strings.EqualFold(v, "true") {
+				fv.SetBool(true)
+			} else {
+				fv.SetBool(false)
+			}
+		default:
+			return fmt.Errorf("cannot set %q to a %T: %w", k, v, geneos.ErrInvalidArgs)
+		}
+	} else {
+		return fmt.Errorf("cannot set %q: %w (isValid=%v, canset=%v)", k, geneos.ErrInvalidArgs, fv.IsValid(), fv.CanSet())
+	}
+	return
+}
+
 func Clean(c geneos.Instance, purge bool, params []string) (err error) {
 	var stopped bool
 

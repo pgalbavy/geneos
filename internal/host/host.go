@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -29,21 +28,22 @@ const ALLHOSTS Name = "all"
 var LOCAL, ALL *Host
 
 type Host struct {
-	conf *viper.Viper `json:"-"`
+	Name Name   `json:"Name,omitempty"`    // name, as opposed to hostname
+	Home string `json:"HomeDir,omitempty"` // Remote configuration directory
 
-	name Name `json:"Name,omitempty"` // name, as opposed to hostname
+	Geneos string `json:"Geneos,omitempty"` // Geneos root directory
 
-	dir    string `json:"HomeDir,omitempty"`
-	geneos string `json:"Geneos,omitempty"` // Geneos root directory
+	Conf *viper.Viper `json:"-"`
 
-	hostname string `json:"Hostname,omitempty"`
-	port     int    `default:"22" json:"Port,omitempty"`
-	username string `json:"Username,omitempty"`
-
-	osinfo map[string]string `json:"OSInfo,omitempty"`
+	// Type   string `default:"ssh"`
+	// Hostname string `json:"Hostname,omitempty"`
+	// Port int `default:"22" json:"Port,omitempty"`
+	// Username string `json:"Username,omitempty"`
+	// OSInfo   map[string]string `json:"OSInfo,omitempty"`
 }
 
-func init() {
+// this is called from cmd root
+func Init() {
 	LOCAL = New(LOCALHOST)
 	ALL = New(ALLHOSTS)
 }
@@ -55,16 +55,13 @@ func init() {
 var remotes sync.Map
 
 func New(name Name) *Host {
-	remote := LOCALHOST
 	parts := strings.SplitN(string(name), "@", 2)
 	name = Name(parts[0])
-	if len(parts) > 1 {
-		remote = Name(parts[1])
-	}
-	if remote != LOCALHOST {
-		logDebug.Println("remote remotes not supported")
+	if len(parts) > 1 && parts[1] != string(LOCALHOST) {
+		logError.Println("remote remotes not supported")
 		return nil
 	}
+
 	r, ok := remotes.Load(name)
 	if ok {
 		rem, ok := r.(*Host)
@@ -75,23 +72,15 @@ func New(name Name) *Host {
 
 	// Bootstrap
 	c := &Host{}
-	c.conf = viper.New()
-	c.name = name
-	c.geneos = "/tmp/geneos"
-	c.dir = filepath.Join(c.geneos, "remote", string(c.name))
-
-	// c.InstanceRemote = rLOCAL
-	// c.RemoteRoot = Geneos()
-	// c.L = new(sync.RWMutex)
-	// if err := setDefaults(&c); err != nil {
-	// 	logError.Fatalln(c, "setDefaults():", err)
-	// }
-	// c.InstanceLocation = LOCAL
+	c.Conf = viper.New()
+	c.Name = name
+	c.Home = filepath.Join(c.Geneos, "remote", string(c.Name))
+	c.Geneos = viper.GetString("geneos") // default is same as local
 
 	// fill this in directly as there is no config file to load
-	// if c.RemoteName() == LOCAL {
-	// 	c.getOSReleaseEnv()
-	// }
+	if c.Name == LOCALHOST {
+		c.getOSReleaseEnv()
+	}
 
 	// these are pseudo remotes and always exist
 	// if c.InstanceName == string(LOCAL) || c.InstanceName == string(ALL) {
@@ -103,11 +92,13 @@ func New(name Name) *Host {
 }
 
 func (h *Host) V() *viper.Viper {
-	return h.conf
+	return h.Conf
 }
 
 func (h *Host) Load() {
-
+	if err := ReadConfig(h); err != nil {
+		logError.Println(err)
+	}
 }
 
 func (h *Host) Loaded() bool {
@@ -126,16 +117,7 @@ func (host Name) String() string {
 }
 
 func (h *Host) String() string {
-	return string(h.name)
-}
-
-func (h *Host) Geneos() string {
-	return h.geneos
-}
-
-// Return the base directory for the remote, inc LOCAL
-func (r *Host) GeneosRoot() string {
-	return r.geneos
+	return string(h.Name)
 }
 
 //
@@ -144,7 +126,7 @@ func (r *Host) GeneosRoot() string {
 func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 	if len(params) == 0 {
 		// default - try ssh to a host with the same name as remote
-		params = []string{"ssh://" + string(r.name)}
+		params = []string{"ssh://" + string(r.Name)}
 	}
 
 	var remurl string
@@ -172,26 +154,26 @@ func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 	}
 
 	// if no hostname in URL fall back to remote name (e.g. ssh:///path)
-	r.hostname = u.Host
-	if r.hostname == "" {
-		r.hostname = string(r.name)
+	r.V().Set("hostname", u.Host)
+	if u.Host == "" {
+		r.V().Set("hostname", r.Name)
 	}
 
 	if u.Port() != "" {
-		r.port, _ = strconv.Atoi(u.Port())
+		r.V().Set("port", u.Port())
 	}
 
 	if u.User.Username() != "" {
 		username = u.User.Username()
 	}
-	r.username = username
+	r.V().Set("username", username)
 
 	// XXX default to remote user's home dir, not local
-	r.geneos = viper.GetString("Geneos")
+	r.Geneos = viper.GetString("Geneos")
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
-		r.geneos = u.Path
+		r.Geneos = u.Path
 	}
 	// r.Geneos = homepath
 
@@ -245,7 +227,7 @@ func (r *Host) Rebuild(initial bool) error {
 }
 
 func (h *Host) getOSReleaseEnv() (err error) {
-	h.osinfo = make(map[string]string)
+	osinfo := make(map[string]string)
 	f, err := h.ReadFile("/etc/os-release")
 	if err != nil {
 		if f, err = h.ReadFile("/usr/lib/os-release"); err != nil {
@@ -266,8 +248,9 @@ func (h *Host) getOSReleaseEnv() (err error) {
 		}
 		key, value := s[0], s[1]
 		value = strings.Trim(value, "\"")
-		h.osinfo[key] = value
+		osinfo[key] = value
 	}
+	h.V().Set("osinfo", osinfo)
 	return
 }
 
@@ -287,7 +270,7 @@ func GetRemote(remote Name) (r *Host) {
 // return an absolute path anchored in the root directory of the remote
 // this can also be LOCAL
 func (r *Host) GeneosPath(paths ...string) string {
-	return filepath.Join(append([]string{r.GeneosRoot()}, paths...)...)
+	return filepath.Join(append([]string{r.Geneos}, paths...)...)
 }
 
 func (r *Host) FullName(name string) string {
@@ -305,10 +288,5 @@ func AllHosts() (remotes []*Host) {
 	// for _, r := range GetInstancesForComponent(LOCAL, geneos.Remote) {
 	// 	remotes = append(remotes, r.(*Remotes))
 	// }
-	return
-}
-
-func (h *Host) OSInfo(key string) (value string, ok bool) {
-	value, ok = h.osinfo[key]
 	return
 }

@@ -29,6 +29,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/pkg/logger"
 )
 
@@ -57,8 +58,8 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	Annotations: make(map[string]string),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		fmt.Println("persistent pre-run called", args)
 		parseArgs(cmd, args)
 	},
 }
@@ -120,6 +121,8 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+	// initialise after config loaded
+	host.Init()
 }
 
 func Geneos() string {

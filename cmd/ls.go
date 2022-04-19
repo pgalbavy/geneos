@@ -32,7 +32,6 @@ import (
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
-	"wonderland.org/geneos/pkg/logger"
 )
 
 // lsCmd represents the ls command
@@ -45,11 +44,9 @@ var lsCmd = &cobra.Command{
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ls called", cmd.Annotations)
 		ct := geneos.ParseComponentName(cmd.Annotations["ct"])
 		args = strings.Split(cmd.Annotations["args"], ",")
 		params := strings.Split(cmd.Annotations["params"], ",")
-		logger.Debug.Println(ct, args, params)
 		commandLS(ct, args, params)
 	},
 }

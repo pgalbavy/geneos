@@ -29,7 +29,7 @@ var FileAgent geneos.Component = geneos.Component{
 	PortRange:        "FAPortRange",
 	CleanList:        "FACleanList",
 	PurgeList:        "FAPurgeList",
-	DefaultSettings: map[string]string{
+	GlobalSettings: map[string]string{
 		"FAPortRange": "7030,7100-",
 		"FACleanList": "*.old",
 		"FAPurgeList": "fileagent.log:fileagent.txt",
@@ -75,7 +75,7 @@ func New(name string) geneos.Instance {
 	}
 	c := &FileAgents{}
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &FileAgent
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {

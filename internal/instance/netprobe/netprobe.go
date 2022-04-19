@@ -2,6 +2,7 @@ package netprobe
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 
 	"wonderland.org/geneos/internal/geneos"
@@ -19,7 +20,7 @@ var Netprobe geneos.Component = geneos.Component{
 	PortRange:        "NetprobePortRange",
 	CleanList:        "NetprobeCleanList",
 	PurgeList:        "NetprobePurgeList",
-	DefaultSettings: map[string]string{
+	GlobalSettings: map[string]string{
 		"NetprobePortRange": "7036,7100-",
 		"NetprobeCleanList": "*.old",
 		"NetprobePurgeList": "netprobe.log:netprobe.txt:*.snooze:*.user_assignment",
@@ -65,7 +66,7 @@ func New(name string) geneos.Instance {
 	}
 	c := &Netprobes{}
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &Netprobe
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -96,7 +97,7 @@ func (n *Netprobes) Home() string {
 }
 
 func (n *Netprobes) Prefix(field string) string {
-	return "Netp" + field
+	return strings.ToLower("Netp" + field)
 }
 
 func (n *Netprobes) Remote() *host.Host {

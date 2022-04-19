@@ -2,6 +2,7 @@ package licd
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -20,7 +21,7 @@ var Licd geneos.Component = geneos.Component{
 	PortRange:        "LicdPortRange",
 	CleanList:        "LicdCleanList",
 	PurgeList:        "LicdPurgeList",
-	DefaultSettings: map[string]string{
+	GlobalSettings: map[string]string{
 		"LicdPortRange": "7041,7100-",
 		"LicdCleanList": "*.old",
 		"LicdPurgeList": "licd.log:licd.txt",
@@ -67,7 +68,7 @@ func New(name string) geneos.Instance {
 	c := &Licds{}
 	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &Licd
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -98,7 +99,7 @@ func (l *Licds) Home() string {
 }
 
 func (l *Licds) Prefix(field string) string {
-	return "Licd" + field
+	return strings.ToLower("Licd" + field)
 }
 
 func (l *Licds) Remote() *host.Host {

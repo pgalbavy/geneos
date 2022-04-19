@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -16,7 +17,7 @@ import (
 )
 
 var San geneos.Component = geneos.Component{
-	Initialise:       InitSan,
+	Initialise:       Init,
 	Name:             "san",
 	RelatedTypes:     []*geneos.Component{&netprobe.Netprobe, &fa2.FA2},
 	ComponentMatches: []string{"san", "sans"},
@@ -25,7 +26,7 @@ var San geneos.Component = geneos.Component{
 	PortRange:        "SanPortRange",
 	CleanList:        "SanCleanList",
 	PurgeList:        "SanPurgeList",
-	DefaultSettings: map[string]string{
+	GlobalSettings: map[string]string{
 		"SanPortRange": "7036,7100-",
 		"SanCleanList": "*.old",
 		"SanPurgeList": "san.log:san.txt:*.snooze:*.user_assignment",
@@ -76,7 +77,7 @@ func init() {
 	})
 }
 
-func InitSan(r *host.Host, ct *geneos.Component) {
+func Init(r *host.Host, ct *geneos.Component) {
 	// copy default template to directory
 	if err := geneos.MakeComponentDirs(r, ct); err != nil {
 		logger.Error.Fatalln(err)
@@ -100,7 +101,7 @@ func New(name string) geneos.Instance {
 	c := &Sans{}
 	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.GeneosRoot()
+	c.RemoteRoot = r.Geneos
 	c.Component = &San
 	c.InstanceName = local
 	c.SanType = &netprobe.Netprobe
@@ -136,7 +137,7 @@ func (s *Sans) Home() string {
 
 // Prefix() takes the string argument and adds any component type specific prefix
 func (s *Sans) Prefix(field string) string {
-	return "San" + field
+	return strings.ToLower("San" + field)
 }
 
 func (s *Sans) Remote() *host.Host {
