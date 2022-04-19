@@ -29,31 +29,23 @@ const ALLHOSTS Name = "all"
 var LOCAL, ALL *Host
 
 type Host struct {
-	// instance.Instance
-	V *viper.Viper `json:"-"`
+	conf *viper.Viper `json:"-"`
 
-	name     Name              `json:"Name,omitempty"` // name, as opposed to hostname
-	dir      string            `json:"HomeDir,omitempty"`
-	hostname string            `json:"Hostname,omitempty"`
-	port     int               `default:"22" json:"Port,omitempty"`
-	username string            `json:"Username,omitempty"`
-	geneos   string            `json:"Geneos,omitempty"` // Geneos root directory
-	osinfo   map[string]string `json:"OSInfo,omitempty"`
+	name Name `json:"Name,omitempty"` // name, as opposed to hostname
+
+	dir    string `json:"HomeDir,omitempty"`
+	geneos string `json:"Geneos,omitempty"` // Geneos root directory
+
+	hostname string `json:"Hostname,omitempty"`
+	port     int    `default:"22" json:"Port,omitempty"`
+	username string `json:"Username,omitempty"`
+
+	osinfo map[string]string `json:"OSInfo,omitempty"`
 }
 
 func init() {
-	// component.RegisterComponent(component.Components{
-	// 	New:              NewRemote,
-	// 	ComponentType:    Remote,
-	// 	ComponentMatches: []string{"remote", "remotes"},
-	// 	RealComponent:    false,
-	// 	DownloadBase:     "",
-	// })
-	// Remote.RegisterDirs([]string{
-	// 	"remotes",
-	// })
-	// component.RegisterDefaultSettings(GlobalSettings{})
-
+	LOCAL = New(LOCALHOST)
+	ALL = New(ALLHOSTS)
 }
 
 // interface method set
@@ -62,13 +54,18 @@ func init() {
 // var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
 var remotes sync.Map
 
-func New(name Name) interface{} {
-	localpart, remotepart := splitInstanceName(name)
-	if remotepart != LOCALHOST {
+func New(name Name) *Host {
+	remote := LOCALHOST
+	parts := strings.SplitN(string(name), "@", 2)
+	name = Name(parts[0])
+	if len(parts) > 1 {
+		remote = Name(parts[1])
+	}
+	if remote != LOCALHOST {
 		logDebug.Println("remote remotes not supported")
 		return nil
 	}
-	r, ok := remotes.Load(localpart)
+	r, ok := remotes.Load(name)
 	if ok {
 		rem, ok := r.(*Host)
 		if ok {
@@ -77,26 +74,46 @@ func New(name Name) interface{} {
 	}
 
 	// Bootstrap
-	c := new(Host)
+	c := &Host{}
+	c.conf = viper.New()
+	c.name = name
+
 	// c.InstanceRemote = rLOCAL
 	// c.RemoteRoot = Geneos()
-	// c.InstanceType = Remote.String()
-	// c.InstanceName = localpart
 	// c.L = new(sync.RWMutex)
 	// if err := setDefaults(&c); err != nil {
 	// 	logError.Fatalln(c, "setDefaults():", err)
 	// }
 	// c.InstanceLocation = LOCAL
+
 	// fill this in directly as there is no config file to load
 	// if c.RemoteName() == LOCAL {
 	// 	c.getOSReleaseEnv()
 	// }
+
 	// these are pseudo remotes and always exist
 	// if c.InstanceName == string(LOCAL) || c.InstanceName == string(ALL) {
 	// 	c.ConfigLoaded = true
 	// }
-	remotes.Store(localpart, c)
+
+	remotes.Store(name, c)
 	return c
+}
+
+func (h *Host) V() *viper.Viper {
+	return h.conf
+}
+
+func (h *Host) Load() {
+
+}
+
+func (h *Host) Loaded() bool {
+	return false
+}
+
+func (h *Host) Unload() {
+
 }
 
 func (host Name) String() string {
@@ -105,6 +122,15 @@ func (host Name) String() string {
 
 func (h *Host) String() string {
 	return string(h.name)
+}
+
+func (h *Host) Geneos() string {
+	return h.geneos
+}
+
+// Return the base directory for the remote, inc LOCAL
+func (r *Host) GeneosRoot() string {
+	return r.geneos
 }
 
 //
@@ -127,9 +153,9 @@ func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 		remurl = "ssh://" + r.String()
 	}
 
-	if err = initFlagSet.Parse(params); err != nil {
-		return
-	}
+	// if err = initFlagSet.Parse(params); err != nil {
+	// 	return
+	// }
 
 	u, err := url.Parse(remurl)
 	if err != nil {
@@ -156,7 +182,7 @@ func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 	r.username = username
 
 	// XXX default to remote user's home dir, not local
-	r.geneos = Geneos()
+	r.geneos = viper.GetString("Geneos")
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
@@ -164,7 +190,7 @@ func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 	}
 	// r.Geneos = homepath
 
-	if err = writeInstanceConfig(r); err != nil {
+	if err = WriteConfig(r); err != nil {
 		return
 	}
 
@@ -173,30 +199,30 @@ func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 		return
 	}
 
-	if err = writeInstanceConfig(r); err != nil {
+	if err = WriteConfig(r); err != nil {
 		return
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(Remote, []string{r.String()}, params); err != nil {
-			return
-		}
-		r.Unload()
-		r.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(Remote, []string{r.String()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	r.Unload()
+	// 	r.Load()
+	// }
 
 	// initialise the remote directory structure, but perhaps ignore errors
 	// as we may simply be adding an existing installation
-	if err = r.initGeneos([]string{r.Geneos}); err != nil {
-		return err
-	}
+	// if err = geneos.Init(r, []string{r.Geneos}); err != nil {
+	// 	return err
+	// }
 
-	for _, c := range components {
-		if c.Initialise != nil {
-			c.Initialise(r)
-		}
-	}
+	// for _, c := range components {
+	// 	if c.Initialise != nil {
+	// 		c.Initialise(r)
+	// 	}
+	// }
 
 	return
 }
@@ -235,7 +261,7 @@ func (h *Host) getOSReleaseEnv() (err error) {
 		}
 		key, value := s[0], s[1]
 		value = strings.Trim(value, "\"")
-		h.OSInfo[key] = value
+		h.osinfo[key] = value
 	}
 	return
 }
@@ -247,15 +273,10 @@ func GetRemote(remote Name) (r *Host) {
 	case ALLHOSTS:
 		return ALL
 	default:
-		i := New(string(remote))
+		i := New(remote)
 		i.Load()
-		return i.(*Host)
+		return i
 	}
-}
-
-// Return the base directory for the remote, inc LOCAL
-func (r *Host) GeneosRoot() string {
-	return r.geneos
 }
 
 // return an absolute path anchored in the root directory of the remote
@@ -273,11 +294,16 @@ func (r *Host) FullName(name string) string {
 
 func AllHosts() (remotes []*Host) {
 	remotes = []*Host{LOCAL}
-	if utils.IsSuperuser {
+	if utils.IsSuperuser() {
 		return
 	}
-	// for _, r := range GetInstancesForComponent(LOCAL, component.Remote) {
+	// for _, r := range GetInstancesForComponent(LOCAL, geneos.Remote) {
 	// 	remotes = append(remotes, r.(*Remotes))
 	// }
+	return
+}
+
+func (h *Host) OSInfo(key string) (value string, ok bool) {
+	value, ok = h.osinfo[key]
 	return
 }

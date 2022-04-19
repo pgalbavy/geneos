@@ -27,7 +27,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -51,14 +51,14 @@ var enableCmdStart bool
 
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
-func commandEneable(ct component.ComponentType, args []string, params []string) (err error) {
+func commandEneable(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, enableInstance, args, params)
 }
 
-func enableInstance(c instance.Instance, params []string) (err error) {
-	err = c.Remote().Remove(instance.ConfigPathWithExt(c, disableExtension))
+func enableInstance(c geneos.Instance, params []string) (err error) {
+	err = c.Remote().Remove(instance.ConfigPathWithExt(c, geneos.DisableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableCmdStart {
-		startInstance(c, params)
+		instance.Start(c, params)
 	}
 	return nil
 }

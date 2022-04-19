@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -82,10 +83,10 @@ type lsCertLongType struct {
 	Signature   string
 }
 
-func lsInstanceCert(c instance.Instance, params []string) (err error) {
-	cert, err := readInstanceCert(c)
+func lsInstanceCert(c geneos.Instance, params []string) (err error) {
+	cert, err := instance.ReadCert(c)
 	if err == os.ErrNotExist {
-		// this is OK - readInstanceCert() reports no configured cert this way
+		// this is OK - instance.ReadCert() reports no configured cert this way
 		return nil
 	}
 	if err != nil {
@@ -109,8 +110,8 @@ func lsInstanceCert(c instance.Instance, params []string) (err error) {
 	return
 }
 
-func lsInstanceCertCSV(c instance.Instance, params []string) (err error) {
-	cert, err := readInstanceCert(c)
+func lsInstanceCertCSV(c geneos.Instance, params []string) (err error) {
+	cert, err := instance.ReadCert(c)
 	if err == os.ErrNotExist {
 		// this is OK
 		return nil
@@ -132,8 +133,8 @@ func lsInstanceCertCSV(c instance.Instance, params []string) (err error) {
 	return
 }
 
-func lsInstanceCertJSON(c instance.Instance, params []string) (err error) {
-	cert, err := readInstanceCert(c)
+func lsInstanceCertJSON(c geneos.Instance, params []string) (err error) {
+	cert, err := instance.ReadCert(c)
 	if err == os.ErrNotExist {
 		// this is OK
 		return nil

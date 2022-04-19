@@ -23,21 +23,17 @@ package cmd
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance/gateway"
 	"wonderland.org/geneos/internal/instance/licd"
 	"wonderland.org/geneos/internal/instance/netprobe"
 	"wonderland.org/geneos/internal/instance/san"
 	"wonderland.org/geneos/internal/instance/webserver"
-	"wonderland.org/geneos/internal/utils"
 )
 
 // initCmd represents the init command
@@ -110,9 +106,9 @@ var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, in
 //
 // XXX Call any registered initialiser funcs from components
 //
-func commandInit(ct component.ComponentType, args []string, params []string) (err error) {
+func commandInit(ct *geneos.Component, args []string, params []string) (err error) {
 	// none of the arguments can be a reserved type
-	if ct != component.None {
+	if ct != nil {
 		return ErrInvalidArgs
 	}
 
@@ -124,7 +120,7 @@ func commandInit(ct component.ComponentType, args []string, params []string) (er
 		host.LOCAL.MkdirAll(gatewayTemplates, 0775)
 		tmpl := gateway.GatewayTemplate
 		if initCmdGatewayTemplate != "" {
-			if tmpl, err = component.ReadLocalFileOrURL(initCmdGatewayTemplate); err != nil {
+			if tmpl, err = geneos.ReadLocalFileOrURL(initCmdGatewayTemplate); err != nil {
 				return
 			}
 		}
@@ -141,7 +137,7 @@ func commandInit(ct component.ComponentType, args []string, params []string) (er
 		host.LOCAL.MkdirAll(sanTemplates, 0775)
 		tmpl = san.SanTemplate
 		if initCmdSANTemplate != "" {
-			if tmpl, err = component.ReadLocalFileOrURL(initCmdSANTemplate); err != nil {
+			if tmpl, err = geneos.ReadLocalFileOrURL(initCmdSANTemplate); err != nil {
 				return
 			}
 		}
@@ -167,177 +163,13 @@ func commandInit(ct component.ComponentType, args []string, params []string) (er
 		return fmt.Errorf("%w: Only one of -A, -D, -S or -T can be given", ErrInvalidArgs)
 	}
 
-	if err = initGeneos(host.LOCAL, args); err != nil {
+	if err = geneos.Init(host.LOCAL, args); err != nil {
 		logError.Fatalln(err)
-	}
-
-	return
-}
-
-func initGeneos(r *host.Host, args []string) (err error) {
-	var dir string
-	var uid, gid int
-	var username, homedir string
-	var params []string
-
-	if r != host.LOCAL && utils.IsSuperuser() {
-		err = ErrNotSupported
-		return
-	}
-
-	// split params into their own list
-	_, args, params = parseArgs(Command{
-		Name:          "init",
-		Wildcard:      false,
-		ComponentOnly: false,
-		ParseFlags:    initFlag,
-	}, args)
-
-	logDebug.Println("args:", args)
-
-	if utils.IsSuperuser() {
-		if len(args) == 0 {
-			logError.Fatalln("init requires a USERNAME when run as root")
-		}
-		username = args[0]
-		uid, gid, _, err = utils.GetUser(username)
-
-		if err != nil {
-			logError.Fatalln("invalid user", username)
-		}
-		u, err := user.Lookup(username)
-		homedir = u.HomeDir
-		if err != nil {
-			logError.Fatalln("user lookup failed")
-		}
-		if len(args) == 1 {
-			// If user's home dir doesn't end in "geneos" then create a
-			// directory "geneos" else use the home directory directly
-			dir = homedir
-			if filepath.Base(homedir) != "geneos" {
-				dir = filepath.Join(homedir, "geneos")
-			}
-		} else {
-			// must be an absolute path or relative to given user's home
-			dir = args[1]
-			if !strings.HasPrefix(dir, "/") {
-				dir = homedir
-				if filepath.Base(homedir) != "geneos" {
-					dir = filepath.Join(homedir, dir)
-				}
-			}
-		}
-	} else {
-		if r == host.LOCAL {
-			u, _ := user.Current()
-			username = u.Username
-			homedir = u.HomeDir
-		} else {
-			username = r.Username()
-			homedir = r.GeneosHome()
-		}
-		switch len(args) {
-		case 0: // default home + geneos
-			dir = homedir
-			if filepath.Base(homedir) != "geneos" {
-				dir = filepath.Join(homedir, "geneos")
-			}
-		case 1: // home = abs path
-			if !filepath.IsAbs(args[0]) {
-				logError.Fatalln("Home directory must be absolute path:", args[0])
-			}
-			dir = filepath.Clean(args[0])
-		default:
-			logError.Fatalln("too many args:", args, params)
-		}
-	}
-
-	// dir must first not exist (or be empty) and then be createable
-	// XXX have an ignore flag?
-	// maybe check that the entire list of registered directories are
-	// either directories or do not exist
-	if _, err := r.Stat(dir); err == nil {
-		// check empty
-		dirs, err := r.ReadDir(dir)
-		if err != nil {
-			logError.Fatalln(err)
-		}
-		for _, entry := range dirs {
-			if !strings.HasPrefix(entry.Name(), ".") {
-				if r != host.LOCAL {
-					logDebug.Println("remote directories exist, ending initialisation")
-					return nil
-				}
-				logError.Fatalf("target directory %q exists and is not empty", dir)
-			}
-		}
-	} else {
-		// need to create out own, chown base directory only
-		if err = r.MkdirAll(dir, 0775); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	if r == host.LOCAL {
-		c := make(GlobalSettings)
-		c["Geneos"] = dir
-		c["DefaultUser"] = username
-
-		if utils.IsSuperuser() {
-			if err = host.LOCAL.writeConfigFile(globalConfig, "root", 0664, c); err != nil {
-				logError.Fatalln("cannot write global config", err)
-			}
-
-			// if everything else worked, remove any existing user config
-			_ = r.Remove(filepath.Join(dir, ".config", "geneos.json"))
-		} else {
-			userConfDir, err := os.UserConfigDir()
-			if err != nil {
-				logError.Fatalln(err)
-			}
-			userConfFile := filepath.Join(userConfDir, "geneos.json")
-
-			if err = host.LOCAL.writeConfigFile(userConfFile, username, 0664, c); err != nil {
-				return err
-			}
-		}
-	}
-
-	// now reload config, after init
-	loadSysConfig()
-
-	// also recreate host.LOCAL to load Geneos and others
-	host.LOCAL.Unload()
-	host.LOCAL = host.New(host.LOCALHOST).(*host.Host)
-
-	if utils.IsSuperuser() {
-		if err = host.LOCAL.Chown(dir, uid, gid); err != nil {
-			logError.Fatalln(err)
-		}
-	}
-
-	if err = component.MakeComponentDirs(host.LOCAL, component.None); err != nil {
-		return
-	}
-
-	if utils.IsSuperuser() {
-		err = filepath.WalkDir(dir, func(path string, dir fs.DirEntry, err error) error {
-			if err == nil {
-				err = host.LOCAL.Chown(path, uid, gid)
-			}
-			return err
-		})
-	}
-
-	for _, c := range components {
-		if c.Initialise != nil {
-			c.Initialise(host.LOCAL)
-		}
 	}
 
 	if initCmdGatewayTemplate != "" {
 		var tmpl []byte
-		if tmpl, err = component.ReadLocalFileOrURL(initCmdGatewayTemplate); err != nil {
+		if tmpl, err = geneos.ReadLocalFileOrURL(initCmdGatewayTemplate); err != nil {
 			return
 		}
 		if err := host.LOCAL.WriteFile(host.LOCAL.GeneosPath(gateway.Gateway.String(), "templates", gateway.GatewayDefaultTemplate), tmpl, 0664); err != nil {
@@ -347,7 +179,7 @@ func initGeneos(r *host.Host, args []string) (err error) {
 
 	if initCmdSANTemplate != "" {
 		var tmpl []byte
-		if tmpl, err = component.ReadLocalFileOrURL(initCmdSANTemplate); err != nil {
+		if tmpl, err = geneos.ReadLocalFileOrURL(initCmdSANTemplate); err != nil {
 			return
 		}
 		if err = host.LOCAL.WriteFile(host.LOCAL.GeneosPath(san.San.String(), "templates", san.SanDefaultTemplate), tmpl, 0664); err != nil {
@@ -367,25 +199,30 @@ func initGeneos(r *host.Host, args []string) (err error) {
 			TLSImport(initCmdImportKey)
 		}
 	}
+
+	r := host.LOCAL
+
+	geneos.Init(r, args)
+
 	e := []string{}
-	rem := []string{"@" + r.String()}
+	// rem := []string{"@" + r.String()}
 
 	// create a demo environment
 	if initCmdDemo {
 		g := []string{"Demo Gateway@" + r.String()}
 		n := []string{"localhost@" + r.String()}
 		w := []string{"demo@" + r.String()}
-		commandInstall(gateway.Gateway, e, e)
-		commandAdd(gateway.Gateway, g, params)
-		commandSet(gateway.Gateway, g, []string{"GateOpts=-demo"})
-		commandInstall(san.San, e, e)
-		commandAdd(san.San, n, []string{"Gateways=localhost"})
-		commandInstall(webserver.Webserver, e, e)
-		commandAdd(webserver.Webserver, w, params)
+		commandInstall(&gateway.Gateway, e, e)
+		commandAdd(&gateway.Gateway, g, params)
+		commandSet(&gateway.Gateway, g, []string{"GateOpts=-demo"})
+		commandInstall(&san.San, e, e)
+		commandAdd(&san.San, n, []string{"Gateways=localhost"})
+		commandInstall(&webserver.Webserver, e, e)
+		commandAdd(&webserver.Webserver, w, params)
 		// call parseArgs() on an empty list to populate for loopCommand()
-		ct, args, params := parseArgs(commands["start"], rem)
-		commandStart(ct, args, params)
-		commandPS(ct, args, params)
+		// ct, args, params := parseArgs(commands["start"], rem)
+		// commandStart(ct, args, params)
+		// commandPS(ct, args, params)
 		return
 	}
 
@@ -403,7 +240,7 @@ func initGeneos(r *host.Host, args []string) (err error) {
 		}
 		s = []string{sanname}
 		// Add will also install the right package
-		commandAdd(san.San, s, params)
+		commandAdd(&san.San, s, params)
 		return nil
 	}
 
@@ -417,19 +254,19 @@ func initGeneos(r *host.Host, args []string) (err error) {
 		}
 		name := []string{initCmdName}
 		localhost := []string{"localhost@" + r.String()}
-		commandInstall(licd.Licd, e, e)
-		commandAdd(licd.Licd, name, params)
-		commandImport(licd.Licd, name, []string{"geneos.lic=" + initCmdAll})
-		commandInstall(gateway.Gateway, e, e)
-		commandAdd(gateway.Gateway, name, params)
-		commandInstall(netprobe.Netprobe, e, e)
-		commandAdd(netprobe.Netprobe, localhost, params)
-		commandInstall(webserver.Webserver, e, e)
-		commandAdd(webserver.Webserver, name, params)
+		commandInstall(&licd.Licd, e, e)
+		commandAdd(&licd.Licd, name, params)
+		commandImport(&licd.Licd, name, []string{"geneos.lic=" + initCmdAll})
+		commandInstall(&gateway.Gateway, e, e)
+		commandAdd(&gateway.Gateway, name, params)
+		commandInstall(&netprobe.Netprobe, e, e)
+		commandAdd(&netprobe.Netprobe, localhost, params)
+		commandInstall(&webserver.Webserver, e, e)
+		commandAdd(&webserver.Webserver, name, params)
 		// call parseArgs() on an empty list to populate for loopCommand()
-		ct, args, params := parseArgs(commands["start"], rem)
-		commandStart(ct, args, params)
-		commandPS(ct, args, params)
+		// ct, args, params := parseArgs(commands["start"], rem)
+		// commandStart(ct, args, params)
+		// commandPS(ct, args, params)
 		return nil
 	}
 

@@ -29,7 +29,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -53,7 +53,7 @@ func init() {
 
 var lsRemoteCmdJSON, lsRemoteCmdCSV, lsRemoteCmdIndent bool
 
-func commandLSRemote(ct component.ComponentType, args []string, params []string) (err error) {
+func commandLSRemote(ct *geneos.Component, args []string, params []string) (err error) {
 	switch {
 	case lsRemoteCmdJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -78,21 +78,21 @@ func commandLSRemote(ct component.ComponentType, args []string, params []string)
 	return
 }
 
-func lsInstancePlainRemotes(c instance.Instance, params []string) (err error) {
+func lsInstancePlainRemotes(c geneos.Instance, params []string) (err error) {
 	var suffix string
-	if IsDisabled(c) {
+	if instance.IsDisabled(c) {
 		suffix = "*"
 	}
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\t%d\t%s\n", c.Type(), c.Name()+suffix, c.V.GetString("Username"), c.V.GetString("Hostname"), c.V.GetInt("Port"), c.V.GetString("Geneos"))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%s\t%d\t%s\n", c.Type(), c.Name()+suffix, c.V().GetString("Username"), c.V().GetString("Hostname"), c.V().GetInt("Port"), c.V().GetString("Geneos"))
 	return
 }
 
-func lsInstanceCSVRemotes(c instance.Instance, params []string) (err error) {
+func lsInstanceCSVRemotes(c geneos.Instance, params []string) (err error) {
 	var dis string = "N"
-	if IsDisabled(c) {
+	if instance.IsDisabled(c) {
 		dis = "Y"
 	}
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, c.V.GetString("Username"), c.V.GetString("Hostname"), fmt.Sprint(c.V.GetInt("Port")), c.V.GetString("Geneos")})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, c.V().GetString("Username"), c.V().GetString("Hostname"), fmt.Sprint(c.V().GetInt("Port")), c.V().GetString("Geneos")})
 	return
 }
 
@@ -106,11 +106,11 @@ type lsTypeRemotes struct {
 	Geneos   string
 }
 
-func lsInstanceJSONRemotes(c instance.Instance, params []string) (err error) {
+func lsInstanceJSONRemotes(c geneos.Instance, params []string) (err error) {
 	var dis string = "N"
-	if IsDisabled(c) {
+	if instance.IsDisabled(c) {
 		dis = "Y"
 	}
-	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, c.V.GetString("Username"), c.V.GetString("Hostname"), c.V.GetInt64("Port"), c.V.GetString("Geneos")})
+	jsonEncoder.Encode(lsTypeRemotes{c.Type().String(), c.Name(), dis, c.V().GetString("Username"), c.V().GetString("Hostname"), c.V().GetInt64("Port"), c.V().GetString("Geneos")})
 	return
 }

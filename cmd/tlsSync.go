@@ -27,6 +27,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/instance"
 )
 
 // tlsSyncCmd represents the tlsSync command
@@ -61,8 +62,8 @@ func init() {
 // if there is a local tls/chain.pem file then copy it to all remotes
 // overwriting any existing versions
 func TLSSync() (err error) {
-	rootCert, _ := readRootCert()
-	geneosCert, _ := readSigningCert()
+	rootCert, _ := instance.ReadRootCert()
+	geneosCert, _ := instance.ReadSigningCert()
 
 	if rootCert == nil && geneosCert == nil {
 		return
@@ -76,7 +77,7 @@ func TLSSync() (err error) {
 		if err = r.MkdirAll(tlsPath, 0775); err != nil {
 			return
 		}
-		if err = writeCerts(r, filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
+		if err = r.WriteCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, geneosCert); err != nil {
 			return
 		}
 

@@ -25,10 +25,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 	"wonderland.org/geneos/internal/utils"
@@ -56,7 +55,7 @@ func init() {
 //
 // run the configured editor against the instance chosen
 //
-func commandEdit(ct component.ComponentType, args []string, params []string) (err error) {
+func commandEdit(ct *geneos.Component, args []string, params []string) (err error) {
 	// default for no args is to edit user config
 	if len(args) == 0 {
 		args = []string{"user"}
@@ -69,16 +68,6 @@ func commandEdit(ct component.ComponentType, args []string, params []string) (er
 			// let the Linux alternatives system sort it out
 			editor = "editor"
 		}
-	}
-
-	// read the config into a struct then print it out again,
-	// to sanitise the contents - or generate an error
-	switch args[0] {
-	case "global":
-		return editConfigFiles(editor, globalConfig)
-	case "user":
-		userConfDir, _ := os.UserConfigDir()
-		return editConfigFiles(editor, filepath.Join(userConfDir, "geneos.json"))
 	}
 
 	// instance config files ?

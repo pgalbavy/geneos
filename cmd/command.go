@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -56,11 +56,11 @@ func init() {
 	// commandCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func commandCommand(ct component.ComponentType, args []string, params []string) (err error) {
+func commandCommand(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, commandInstance, args, params)
 }
 
-func commandInstance(c instance.Instance, params []string) (err error) {
+func commandInstance(c geneos.Instance, params []string) (err error) {
 	log.Printf("=== %s ===", c)
 	cmd, env := instance.BuildCmd(c)
 	if cmd != nil {

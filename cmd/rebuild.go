@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -57,11 +57,11 @@ func init() {
 
 var rebuildCmdForce, rebuildCmdReload bool
 
-func commandRebuild(ct component.ComponentType, args []string, params []string) (err error) {
+func commandRebuild(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, rebuildInstance, args, params)
 }
 
-func rebuildInstance(c instance.Instance, params []string) (err error) {
+func rebuildInstance(c geneos.Instance, params []string) (err error) {
 	if err = c.Rebuild(rebuildCmdForce); err != nil {
 		return
 	}

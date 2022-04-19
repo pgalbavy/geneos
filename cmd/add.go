@@ -30,7 +30,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 	"wonderland.org/geneos/internal/utils"
@@ -66,7 +66,7 @@ var addCmdStart bool
 //
 // remote support would be of the form name@remotename
 //
-func commandAdd(ct component.ComponentType, args []string, params []string) (err error) {
+func commandAdd(ct *geneos.Component, args []string, params []string) (err error) {
 	var username string
 	if len(args) == 0 {
 		logError.Fatalln("not enough args")
@@ -75,8 +75,8 @@ func commandAdd(ct component.ComponentType, args []string, params []string) (err
 	// check validity and reserved words here
 	name := args[0]
 
-	_, _, rem := instance.SplitInstanceName(name, host.LOCAL)
-	if err = component.MakeComponentDirs(rem, ct); err != nil {
+	_, _, rem := instance.SplitName(name, host.LOCAL)
+	if err = geneos.MakeComponentDirs(rem, ct); err != nil {
 		return
 	}
 
@@ -105,10 +105,10 @@ func commandAdd(ct component.ComponentType, args []string, params []string) (err
 	// reload config as instance data is not updated by Add() as an interface value
 	c.Unload()
 	c.Load()
-	log.Printf("%s added, port %d\n", c, c.V.GetInt(c.Prefix("Port")))
+	log.Printf("%s added, port %d\n", c, c.V().GetInt(c.Prefix("Port")))
 
 	if addCmdStart || initCmdSAN {
-		startInstance(c, nil)
+		instance.Start(c, nil)
 		// commandStart(c.Type(), []string{name}, []string{})
 	}
 

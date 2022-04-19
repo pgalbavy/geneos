@@ -27,7 +27,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -51,7 +51,7 @@ func init() {
 
 var restartCmdAll, restartCmdKill, restartCmdLogs bool
 
-func commandRestart(ct component.ComponentType, args []string, params []string) (err error) {
+func commandRestart(ct *geneos.Component, args []string, params []string) (err error) {
 	if err = instance.LoopCommand(ct, restartInstance, args, params); err != nil {
 		logDebug.Println(err)
 		return
@@ -64,10 +64,10 @@ func commandRestart(ct component.ComponentType, args []string, params []string) 
 	return
 }
 
-func restartInstance(c instance.Instance, params []string) (err error) {
-	err = stopInstance(c, params)
+func restartInstance(c geneos.Instance, params []string) (err error) {
+	err = instance.Stop(c, false, params)
 	if err == nil || (errors.Is(err, os.ErrProcessDone) && restartCmdAll) {
-		return startInstance(c, params)
+		return instance.Start(c, params)
 	}
 	return
 }

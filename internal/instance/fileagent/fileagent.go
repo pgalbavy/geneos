@@ -1,6 +1,6 @@
 package fileagent
 
-// Use this file as a template to add a new component.
+// Use this file as a template to add a new geneos.
 //
 // Replace 'Name' with the camel-cased name of the component, e.g. Gateway
 // Replace 'name' with the display name of the component, e.g. gateway
@@ -14,12 +14,27 @@ import (
 	"strconv"
 	"sync"
 
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const FileAgent component.ComponentType = "fileagent"
+var FileAgent geneos.Component = geneos.Component{
+	Name:             "fileagent",
+	RelatedTypes:     nil,
+	ComponentMatches: []string{"fileagent", "fileagents", "file-agent"},
+	RealComponent:    true,
+	DownloadBase:     "Fix+Analyser+File+Agent",
+	PortRange:        "FAPortRange",
+	CleanList:        "FACleanList",
+	PurgeList:        "FAPurgeList",
+	DefaultSettings: map[string]string{
+		"FAPortRange": "7030,7100-",
+		"FACleanList": "*.old",
+		"FAPurgeList": "fileagent.log:fileagent.txt",
+	},
+}
 
 type FileAgents struct {
 	instance.Instance
@@ -40,22 +55,7 @@ type FileAgents struct {
 }
 
 func init() {
-	component.RegisterComponent(component.Components{
-		New:              NewFileAgent,
-		ComponentType:    FileAgent,
-		RelatedTypes:     nil,
-		ComponentMatches: []string{"fileagent", "fileagents", "file-agent"},
-		RealComponent:    true,
-		DownloadBase:     "Fix+Analyser+File+Agent",
-		PortRange:        "FAPortRange",
-		CleanList:        "FACleanList",
-		PurgeList:        "FAPurgeList",
-		DefaultSettings: map[string]string{
-			"FAPortRange": "7030,7100-",
-			"FACleanList": "*.old",
-			"FAPurgeList": "fileagent.log:fileagent.txt",
-		},
-	})
+	geneos.RegisterComponent(&FileAgent, New)
 	FileAgent.RegisterDirs([]string{
 		"packages/fileagent",
 		"fileagent/fileagents",
@@ -64,8 +64,8 @@ func init() {
 
 var fileagents sync.Map
 
-func NewFileAgent(name string) interface{} {
-	_, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	_, local, r := instance.SplitName(name, host.LOCAL)
 	f, ok := fileagents.Load(r.FullName(local))
 	if ok {
 		fa, ok := f.(*FileAgents)
@@ -76,12 +76,12 @@ func NewFileAgent(name string) interface{} {
 	c := &FileAgents{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = FileAgent.String()
+	c.Component = &FileAgent
 	c.InstanceName = local
-	if err := SetDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = host.Name(r.String())
+	c.InstanceHost = host.Name(r.String())
 	fileagents.Store(r.FullName(local), c)
 	return c
 }
@@ -89,8 +89,8 @@ func NewFileAgent(name string) interface{} {
 // interface method set
 
 // Return the Component for an Instance
-func (n *FileAgents) Type() component.ComponentType {
-	return component.ParseComponentName(n.InstanceType)
+func (n *FileAgents) Type() *geneos.Component {
+	return n.Component
 }
 
 func (n *FileAgents) Name() string {
@@ -98,7 +98,7 @@ func (n *FileAgents) Name() string {
 }
 
 func (n *FileAgents) Location() host.Name {
-	return n.InstanceLocation
+	return n.InstanceHost
 }
 
 func (n *FileAgents) Home() string {
@@ -126,7 +126,7 @@ func (n *FileAgents) Load() (err error) {
 	if n.ConfigLoaded {
 		return
 	}
-	err = loadConfig(n)
+	err = instance.LoadConfig(n)
 	n.ConfigLoaded = err == nil
 	return
 }
@@ -142,24 +142,24 @@ func (n *FileAgents) Loaded() bool {
 }
 
 func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
-	n.FAPort = n.InstanceRemote.NextPort(FileAgent)
+	n.FAPort = instance.NextPort(n.Remote(), &FileAgent)
 	n.FAUser = username
 
-	if err = writeInstanceConfig(n); err != nil {
-		logError.Fatalln(err)
+	if err = instance.WriteConfig(n); err != nil {
+		logger.Error.Fatalln(err)
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(San, []string{n.Name()}, params); err != nil {
-			return
-		}
-		n.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(San, []string{n.Name()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	n.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(n); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(n); err != nil {
 			return
 		}
 	}
@@ -169,7 +169,7 @@ func (n *FileAgents) Add(username string, params []string, tmpl string) (err err
 }
 
 func (c *FileAgents) Command() (args, env []string) {
-	logFile := LogFile(c)
+	logFile := instance.LogFile(c)
 	args = []string{
 		c.Name(),
 		"-port", strconv.Itoa(c.FAPort),
@@ -188,9 +188,9 @@ func (c *FileAgents) Command() (args, env []string) {
 }
 
 func (c *FileAgents) Reload(params []string) (err error) {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
 
 func (c *FileAgents) Rebuild(initial bool) error {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }

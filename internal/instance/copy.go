@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
-func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bool) (err error) {
+func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (err error) {
 	var stopped, done bool
 	if srcname == dstname {
 		return fmt.Errorf("source and destination must have different names and/or locations")
@@ -23,12 +23,12 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 	// destination must also be a remote and different and exist
 	if strings.HasPrefix(srcname, "@") {
 		if !strings.HasPrefix(dstname, "@") {
-			return fmt.Errorf("%w: destination must be a remote when source is a remote", ErrInvalidArgs)
+			return fmt.Errorf("%w: destination must be a remote when source is a remote", geneos.ErrInvalidArgs)
 		}
 		srcremote := strings.TrimPrefix(srcname, "@")
 		dstremote := strings.TrimPrefix(dstname, "@")
 		if srcremote == dstremote {
-			return fmt.Errorf("%w: src and destination remotes must be different", ErrInvalidArgs)
+			return fmt.Errorf("%w: src and destination remotes must be different", geneos.ErrInvalidArgs)
 		}
 		sr := host.GetRemote(host.Name(srcremote))
 		if !sr.Loaded() {
@@ -45,8 +45,8 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 		return nil
 	}
 
-	if ct == component.None {
-		for _, t := range component.RealComponents() {
+	if ct == nil {
+		for _, t := range geneos.RealComponents() {
 			if err = CopyInstance(t, srcname, dstname, remove); err != nil {
 				logDebug.Println(err)
 				continue
@@ -59,7 +59,7 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 	if err != nil {
 		return fmt.Errorf("%w: %q %q", err, ct, srcname)
 	}
-	if err = migrateConfig(src); err != nil {
+	if err = Migrate(src); err != nil {
 		return fmt.Errorf("%s %s cannot be migrated to new configuration format", ct, srcname)
 	}
 
@@ -79,11 +79,11 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 	dst.Unload()
 
 	if _, err = GetPID(src); err != os.ErrProcessDone {
-		if err = stopInstance(src, nil); err == nil {
+		if err = Stop(src, false, nil); err == nil {
 			stopped = true
-			defer func(c Instance) {
+			defer func(c geneos.Instance) {
 				if !done {
-					startInstance(c, nil)
+					Start(c, nil)
 				}
 			}(src)
 		} else {
@@ -96,7 +96,7 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 		return
 	}
 
-	_, ds, dr := SplitInstanceName(dstname, host.LOCAL)
+	_, ds, dr := SplitName(dstname, host.LOCAL)
 
 	// do a dance here to deep copy-ish the dst
 	realdst := dst
@@ -106,10 +106,10 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 	}
 
 	// after path updates, rename non paths
-	ib := realdst.Base()
-	ib.InstanceLocation = dst.Remote().RemoteName()
-	ib.InstanceRemote = dst.Remote()
-	ib.InstanceName = ds
+	// ib := realdst.Base()
+	// ib.InstanceLocation = dst.Remote().String()
+	// ib.InstanceRemote = dst.Remote()
+	// ib.InstanceName = ds
 
 	// move directory
 	if err = host.CopyAll(src.Remote(), src.Home(), dr, dst.Home()); err != nil {
@@ -117,7 +117,7 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 	}
 
 	// delete one or the other, depending
-	defer func(srcname string, srcrem *host.Host, srchome string, dst Instance) {
+	defer func(srcname string, srcrem *host.Host, srchome string, dst geneos.Instance) {
 		if done {
 			if remove {
 				// once we are done, try to delete old instance
@@ -136,54 +136,45 @@ func CopyInstance(ct component.ComponentType, srcname, dstname string, remove bo
 
 	// XXX update src here and then write that out as if it were dst
 	// this gets around the defaults set in dst being incomplete (and hence wrong)
-	if err = changeDirPrefix(realdst, src.Remote().GeneosRoot(), dr.GeneosRoot()); err != nil {
-		logDebug.Println(err)
-		return
-	}
+	// if err = changeDirPrefix(realdst, src.Remote().GeneosRoot(), dr.GeneosRoot()); err != nil {
+	// 	logDebug.Println(err)
+	// 	return
+	// }
 
 	// update *Home manually, as it's not just the prefix
-	if err = setField(realdst, dst.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dr), ds)); err != nil {
-		logDebug.Println(err)
-		return
-	}
+	realdst.V().Set(dst.Prefix("Home"), filepath.Join(dst.Type().ComponentDir(dr), ds))
 	// dst.Unload()
 
 	// fetch a new port if remotes are different and port is already used
 	if src.Remote() != dr {
-		srcport := getInt(src, src.Prefix("Port"))
+		srcport := src.V().GetInt64(src.Prefix("Port"))
 		dstports := GetPorts(dr)
 		if _, ok := dstports[int(srcport)]; ok {
 			dstport := NextPort(dr, dst.Type())
-			if err = setField(realdst, dst.Prefix("Port"), fmt.Sprint(dstport)); err != nil {
-				logDebug.Println(err)
-				return
-			}
+			realdst.V().Set(dst.Prefix("Port"), fmt.Sprint(dstport))
 		}
 	}
 
 	// update any component name only if the same as the instance name
-	if getString(src, src.Prefix("Name")) == srcname {
-		if err = setField(realdst, dst.Prefix("Name"), dstname); err != nil {
-			logDebug.Println(err)
-			return
-		}
+	if src.V().GetString(src.Prefix("Name")) == srcname {
+		realdst.V().Set(dst.Prefix("Name"), dstname)
 	}
 
 	// config changes don't matter until writing config succeeds
-	if err = writeInstanceConfig(realdst); err != nil {
+	if err = WriteConfig(realdst); err != nil {
 		logDebug.Println(err)
 		return
 	}
 
 	// src.Unload()
-	if err = realdst.Rebuild(false); err != nil && err != ErrNotSupported {
+	if err = realdst.Rebuild(false); err != nil && err != geneos.ErrNotSupported {
 		logDebug.Println(err)
 		return
 	}
 
 	done = true
 	if stopped {
-		return startInstance(realdst, nil)
+		return Start(realdst, nil)
 	}
 	return nil
 }

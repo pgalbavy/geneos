@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -65,12 +66,12 @@ func init() {
 }
 
 // renew an instance certificate, use private key if it exists
-func renewInstanceCert(c instance.Instance) (err error) {
+func renewInstanceCert(c geneos.Instance) (err error) {
 	tlsDir := filepath.Join(Geneos(), "tls")
 
 	hostname, _ := os.Hostname()
 	if c.Remote() != host.LOCAL {
-		hostname = c.Remote().V.GetString("Hostname")
+		hostname = c.Remote().V().GetString("Hostname")
 	}
 
 	serial, err := rand.Prime(rand.Reader, 64)
@@ -92,28 +93,28 @@ func renewInstanceCert(c instance.Instance) (err error) {
 		// IPAddresses:    []net.IP{net.ParseIP("127.0.0.1")},
 	}
 
-	intrCert, err := readCert(host.LOCAL, filepath.Join(tlsDir, signingCertFile+".pem"))
+	intrCert, err := host.LOCAL.ReadCert(filepath.Join(tlsDir, geneos.SigningCertFile+".pem"))
 	if err != nil {
 		return
 	}
-	intrKey, err := readKey(host.LOCAL, filepath.Join(tlsDir, signingCertFile+".key"))
+	intrKey, err := host.LOCAL.ReadKey(filepath.Join(tlsDir, geneos.SigningCertFile+".key"))
 	if err != nil {
 		return
 	}
 
 	// read existing key or create a new one
-	existingKey, _ := readInstanceKey(c)
-	cert, key, err := createCert(&template, intrCert, intrKey, existingKey)
+	existingKey, _ := instance.ReadKey(c)
+	cert, key, err := instance.CreateCertKey(&template, intrCert, intrKey, existingKey)
 	if err != nil {
 		return
 	}
 
-	if err = writeInstanceCert(c, cert); err != nil {
+	if err = instance.WriteCert(c, cert); err != nil {
 		return
 	}
 
 	if existingKey == nil {
-		if err = writeInstanceKey(c, key); err != nil {
+		if err = instance.WriteKey(c, key); err != nil {
 			return
 		}
 	}

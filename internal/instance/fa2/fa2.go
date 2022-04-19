@@ -5,12 +5,27 @@ import (
 	"sync"
 	"syscall"
 
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const FA2 component.ComponentType = "fa2"
+var FA2 geneos.Component = geneos.Component{
+	Name:             "fa2",
+	RelatedTypes:     nil,
+	ComponentMatches: []string{"fa2", "fixanalyser", "fixanalyzer", "fixanalyser2-netprobe"},
+	RealComponent:    true,
+	DownloadBase:     "Fix+Analyser+2+Netprobe",
+	PortRange:        "FA2PortRange",
+	CleanList:        "FA2CleanList",
+	PurgeList:        "FA2PurgeList",
+	DefaultSettings: map[string]string{
+		"FA2PortRange": "7030,7100-",
+		"FA2CleanList": "*.old",
+		"FA2PurgeList": "fa2.log:fa2.txt:*.snooze:*.user_assignment",
+	},
+}
 
 type FA2s struct {
 	instance.Instance
@@ -31,22 +46,7 @@ type FA2s struct {
 }
 
 func init() {
-	component.RegisterComponent(component.Components{
-		New:              New,
-		ComponentType:    FA2,
-		RelatedTypes:     nil,
-		ComponentMatches: []string{"fa2", "fixanalyser", "fixanalyzer", "fixanalyser2-netprobe"},
-		RealComponent:    true,
-		DownloadBase:     "Fix+Analyser+2+Netprobe",
-		PortRange:        "FA2PortRange",
-		CleanList:        "FA2CleanList",
-		PurgeList:        "FA2PurgeList",
-		DefaultSettings: map[string]string{
-			"FA2PortRange": "7030,7100-",
-			"FA2CleanList": "*.old",
-			"FA2PurgeList": "fa2.log:fa2.txt:*.snooze:*.user_assignment",
-		},
-	})
+	geneos.RegisterComponent(&FA2, New)
 	FA2.RegisterDirs([]string{
 		"packages/fa2",
 		"fa2/fa2s",
@@ -55,8 +55,8 @@ func init() {
 
 var fa2s sync.Map
 
-func New(name string) interface{} {
-	_, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	_, local, r := instance.SplitName(name, host.LOCAL)
 	f, ok := fa2s.Load(r.FullName(local))
 	if ok {
 		fa, ok := f.(*FA2s)
@@ -67,12 +67,12 @@ func New(name string) interface{} {
 	c := &FA2s{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = FA2.String()
+	c.Component = &FA2
 	c.InstanceName = local
-	if err := instance.SetDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = host.Name(r.String())
+	c.InstanceHost = host.Name(r.String())
 	fa2s.Store(r.FullName(local), c)
 	return c
 }
@@ -80,8 +80,8 @@ func New(name string) interface{} {
 // interface method set
 
 // Return the Component for an Instance
-func (n *FA2s) Type() component.ComponentType {
-	return component.ParseComponentName(n.InstanceType)
+func (n *FA2s) Type() *geneos.Component {
+	return n.Component
 }
 
 func (n *FA2s) Name() string {
@@ -89,7 +89,7 @@ func (n *FA2s) Name() string {
 }
 
 func (n *FA2s) Location() host.Name {
-	return n.InstanceLocation
+	return n.InstanceHost
 }
 
 func (n *FA2s) Home() string {
@@ -133,24 +133,24 @@ func (n *FA2s) Loaded() bool {
 }
 
 func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
-	n.FA2Port = instance.NextPort(n.InstanceRemote, FA2)
+	n.FA2Port = instance.NextPort(n.InstanceRemote, &FA2)
 	n.FA2User = username
 
-	if err = writeInstanceConfig(n); err != nil {
+	if err = instance.WriteConfig(n); err != nil {
 		return
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(san.San, []string{n.Name()}, params); err != nil {
-			return
-		}
-		n.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(san.San, []string{n.Name()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	n.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(n); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(n); err != nil {
 			return
 		}
 	}
@@ -179,11 +179,11 @@ func (n *FA2s) Command() (args, env []string) {
 }
 
 func (n *FA2s) Reload(params []string) (err error) {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
 
 func (n *FA2s) Rebuild(initial bool) error {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
 
 func (n *FA2s) Signal(s syscall.Signal) error {

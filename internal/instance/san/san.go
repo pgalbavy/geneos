@@ -7,19 +7,35 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 	"wonderland.org/geneos/internal/instance/fa2"
 	"wonderland.org/geneos/internal/instance/netprobe"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const San component.ComponentType = "san"
+var San geneos.Component = geneos.Component{
+	Initialise:       InitSan,
+	Name:             "san",
+	RelatedTypes:     []*geneos.Component{&netprobe.Netprobe, &fa2.FA2},
+	ComponentMatches: []string{"san", "sans"},
+	RealComponent:    true,
+	DownloadBase:     "Netprobe",
+	PortRange:        "SanPortRange",
+	CleanList:        "SanCleanList",
+	PurgeList:        "SanPurgeList",
+	DefaultSettings: map[string]string{
+		"SanPortRange": "7036,7100-",
+		"SanCleanList": "*.old",
+		"SanPurgeList": "san.log:san.txt:*.snooze:*.user_assignment",
+	},
+}
 
 type Sans struct {
 	instance.Instance
 	// The SanType is used to select the base netprobe type - either Netprobe or FA2
-	SanType string
+	SanType *geneos.Component
 
 	BinSuffix string `default:"{{if eq .SanType \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64"`
 	SanHome   string `default:"{{join .RemoteRoot \"san\" \"sans\" .InstanceName}}"`
@@ -52,23 +68,7 @@ var SanTemplate []byte
 const SanDefaultTemplate = "netprobe.setup.xml.gotmpl"
 
 func init() {
-	component.RegisterComponent(component.Components{
-		Initialise:       InitSan,
-		New:              NewSan,
-		ComponentType:    San,
-		RelatedTypes:     []component.ComponentType{netprobe.Netprobe, fa2.FA2},
-		ComponentMatches: []string{"san", "sans"},
-		RealComponent:    true,
-		DownloadBase:     "Netprobe",
-		PortRange:        "SanPortRange",
-		CleanList:        "SanCleanList",
-		PurgeList:        "SanPurgeList",
-		DefaultSettings: map[string]string{
-			"SanPortRange": "7036,7100-",
-			"SanCleanList": "*.old",
-			"SanPurgeList": "san.log:san.txt:*.snooze:*.user_assignment",
-		},
-	})
+	geneos.RegisterComponent(&San, New)
 	San.RegisterDirs([]string{
 		"packages/netprobe",
 		"san/sans",
@@ -76,20 +76,20 @@ func init() {
 	})
 }
 
-func InitSan(r *host.Host) {
+func InitSan(r *host.Host, ct *geneos.Component) {
 	// copy default template to directory
-	if err := component.MakeComponentDirs(r, San); err != nil {
-		logError.Fatalln(err)
+	if err := geneos.MakeComponentDirs(r, ct); err != nil {
+		logger.Error.Fatalln(err)
 	}
-	if err := r.WriteFile(r.GeneosPath(San.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
-		logError.Fatalln(err)
+	if err := r.WriteFile(r.GeneosPath(ct.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
+		logger.Error.Fatalln(err)
 	}
 }
 
 var sans sync.Map
 
-func NewSan(name string) interface{} {
-	ct, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	ct, local, r := instance.SplitName(name, host.LOCAL)
 	s, ok := sans.Load(r.FullName(local))
 	if ok {
 		sn, ok := s.(*Sans)
@@ -98,19 +98,19 @@ func NewSan(name string) interface{} {
 		}
 	}
 	c := &Sans{}
-	c.V = viper.New()
+	c.Conf = viper.New()
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = San.String()
+	c.Component = &San
 	c.InstanceName = local
-	c.SanType = string(netprobe.Netprobe)
-	if ct != component.None {
-		c.SanType = string(ct)
+	c.SanType = &netprobe.Netprobe
+	if ct != nil {
+		c.SanType = ct
 	}
-	if err := setDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = host.Name(r.String())
+	c.InstanceHost = host.Name(r.String())
 	sans.Store(r.FullName(local), c)
 	return c
 }
@@ -118,8 +118,8 @@ func NewSan(name string) interface{} {
 // interface method set
 
 // Return the Component for an Instance
-func (s *Sans) Type() component.ComponentType {
-	return component.ParseComponentName(s.InstanceType)
+func (s *Sans) Type() *geneos.Component {
+	return s.Component
 }
 
 func (s *Sans) Name() string {
@@ -127,7 +127,7 @@ func (s *Sans) Name() string {
 }
 
 func (s *Sans) Location() host.Name {
-	return s.InstanceLocation
+	return s.InstanceHost
 }
 
 func (s *Sans) Home() string {
@@ -155,7 +155,7 @@ func (s *Sans) Load() (err error) {
 	if s.ConfigLoaded {
 		return
 	}
-	err = loadConfig(s)
+	err = instance.LoadConfig(s)
 	s.ConfigLoaded = err == nil
 	return
 }
@@ -171,7 +171,7 @@ func (s *Sans) Loaded() bool {
 }
 
 func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
-	s.SanPort = instance.NextPort(s.InstanceRemote, San)
+	s.SanPort = instance.NextPort(s.InstanceRemote, &San)
 	s.SanUser = username
 	s.ConfigRebuild = "always"
 
@@ -180,37 +180,36 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 	s.Variables = make(map[string]string)
 	s.Gateways = make(map[string]int)
 
-	if initFlags.Name != "" {
-		s.SanName = initFlags.Name
-	}
+	// if initFlags.Name != "" {
+	// 	s.SanName = initFlags.Name
+	// }
 
-	if err = writeInstanceConfig(s); err != nil {
+	if err = instance.WriteConfig(s); err != nil {
 		return
 	}
 
-	names := []string{s.Name()}
-	e := []string{}
-
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(San, names, params); err != nil {
-			return
-		}
-		s.Load()
-	}
+	// names := []string{s.Name()}
+	// if len(params) > 0 {
+	// 	if err = commandSet(San, names, params); err != nil {
+	// 		return
+	// 	}
+	// 	s.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(s); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(s); err != nil {
 			return
 		}
 	}
 
 	s.Rebuild(true)
 
-	if initFlags.StartSAN {
-		commandInstall(component.ParseComponentName(s.SanType), e, e)
-	}
+	// e := []string{}
+	// if initFlags.StartSAN {
+	// 	commandInstall(s.SanType, e, e)
+	// }
 
 	return nil
 }
@@ -242,11 +241,11 @@ func (s *Sans) Rebuild(initial bool) (err error) {
 		s.Gateways[gw] = port
 	}
 	if changed {
-		if err := writeInstanceConfig(s); err != nil {
+		if err := instance.WriteConfig(s); err != nil {
 			return err
 		}
 	}
-	return createConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
+	return instance.CreateConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
 }
 
 func (s *Sans) Command() (args, env []string) {
@@ -274,5 +273,5 @@ func (s *Sans) Command() (args, env []string) {
 }
 
 func (s *Sans) Reload(params []string) (err error) {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }

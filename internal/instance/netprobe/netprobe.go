@@ -4,12 +4,27 @@ import (
 	"strconv"
 	"sync"
 
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const Netprobe component.ComponentType = "netprobe"
+var Netprobe geneos.Component = geneos.Component{
+	Name:             "netprobe",
+	RelatedTypes:     nil,
+	ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
+	RealComponent:    true,
+	DownloadBase:     "Netprobe",
+	PortRange:        "NetprobePortRange",
+	CleanList:        "NetprobeCleanList",
+	PurgeList:        "NetprobePurgeList",
+	DefaultSettings: map[string]string{
+		"NetprobePortRange": "7036,7100-",
+		"NetprobeCleanList": "*.old",
+		"NetprobePurgeList": "netprobe.log:netprobe.txt:*.snooze:*.user_assignment",
+	},
+}
 
 type Netprobes struct {
 	instance.Instance
@@ -30,22 +45,7 @@ type Netprobes struct {
 }
 
 func init() {
-	component.RegisterComponent(component.Components{
-		New:              NewNetprobe,
-		ComponentType:    Netprobe,
-		RelatedTypes:     nil,
-		ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
-		RealComponent:    true,
-		DownloadBase:     "Netprobe",
-		PortRange:        "NetprobePortRange",
-		CleanList:        "NetprobeCleanList",
-		PurgeList:        "NetprobePurgeList",
-		DefaultSettings: map[string]string{
-			"NetprobePortRange": "7036,7100-",
-			"NetprobeCleanList": "*.old",
-			"NetprobePurgeList": "netprobe.log:netprobe.txt:*.snooze:*.user_assignment",
-		},
-	})
+	geneos.RegisterComponent(&Netprobe, New)
 	Netprobe.RegisterDirs([]string{
 		"packages/netprobe",
 		"netprobe/netprobes",
@@ -54,8 +54,8 @@ func init() {
 
 var netprobes sync.Map
 
-func NewNetprobe(name string) interface{} {
-	_, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	_, local, r := instance.SplitName(name, host.LOCAL)
 	n, ok := netprobes.Load(r.FullName(local))
 	if ok {
 		np, ok := n.(*Netprobes)
@@ -66,12 +66,12 @@ func NewNetprobe(name string) interface{} {
 	c := &Netprobes{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = Netprobe.String()
+	c.Component = &Netprobe
 	c.InstanceName = local
-	if err := setDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = r.String()
+	c.InstanceHost = host.Name(r.String())
 	netprobes.Store(r.FullName(local), c)
 	return c
 }
@@ -79,8 +79,8 @@ func NewNetprobe(name string) interface{} {
 // interface method set
 
 // Return the Component for an Instance
-func (n *Netprobes) Type() component.ComponentType {
-	return component.ParseComponentName(n.InstanceType)
+func (n *Netprobes) Type() *geneos.Component {
+	return n.Component
 }
 
 func (n *Netprobes) Name() string {
@@ -88,7 +88,7 @@ func (n *Netprobes) Name() string {
 }
 
 func (n *Netprobes) Location() host.Name {
-	return n.InstanceLocation
+	return n.InstanceHost
 }
 
 func (n *Netprobes) Home() string {
@@ -115,7 +115,7 @@ func (n *Netprobes) Load() (err error) {
 	if n.ConfigLoaded {
 		return
 	}
-	err = loadConfig(n)
+	err = instance.LoadConfig(n)
 	n.ConfigLoaded = err == nil
 	return
 }
@@ -131,24 +131,24 @@ func (n *Netprobes) Loaded() bool {
 }
 
 func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
-	n.NetpPort = n.InstanceRemote.nextPort(Netprobe)
+	n.NetpPort = instance.NextPort(n.Remote(), &Netprobe)
 	n.NetpUser = username
 
-	if err = writeInstanceConfig(n); err != nil {
+	if err = instance.WriteConfig(n); err != nil {
 		return
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(Netprobe, []string{n.Name()}, params); err != nil {
-			return
-		}
-		n.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(Netprobe, []string{n.Name()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	n.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(n); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(n); err != nil {
 			return
 		}
 	}
@@ -158,11 +158,11 @@ func (n *Netprobes) Add(username string, params []string, tmpl string) (err erro
 }
 
 func (n *Netprobes) Rebuild(initial bool) error {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
 
 func (n *Netprobes) Command() (args, env []string) {
-	logFile := LogFile(n)
+	logFile := instance.LogFile(n)
 	args = []string{
 		n.Name(),
 		"-port", strconv.Itoa(n.NetpPort),
@@ -181,5 +181,5 @@ func (n *Netprobes) Command() (args, env []string) {
 }
 
 func (n *Netprobes) Reload(params []string) (err error) {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }

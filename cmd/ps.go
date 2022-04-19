@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -69,7 +69,7 @@ type psType struct {
 	Home      string
 }
 
-func commandPS(ct component.ComponentType, args []string, params []string) (err error) {
+func commandPS(ct *geneos.Component, args []string, params []string) (err error) {
 	switch {
 	case psCmdJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -92,8 +92,8 @@ func commandPS(ct component.ComponentType, args []string, params []string) (err 
 	return
 }
 
-func psInstancePlain(c instance.Instance, params []string) (err error) {
-	if IsDisabled(c) {
+func psInstancePlain(c geneos.Instance, params []string) (err error) {
+	if instance.IsDisabled(c) {
 		return nil
 	}
 	pid, uid, gid, mtime, err := instance.GetPIDInfo(c)
@@ -119,8 +119,8 @@ func psInstancePlain(c instance.Instance, params []string) (err error) {
 	return
 }
 
-func psInstanceCSV(c instance.Instance, params []string) (err error) {
-	if IsDisabled(c) {
+func psInstanceCSV(c geneos.Instance, params []string) (err error) {
+	if instance.IsDisabled(c) {
 		return nil
 	}
 	pid, uid, gid, mtime, err := instance.GetPIDInfo(c)
@@ -146,8 +146,8 @@ func psInstanceCSV(c instance.Instance, params []string) (err error) {
 	return
 }
 
-func psInstanceJSON(c instance.Instance, params []string) (err error) {
-	if IsDisabled(c) {
+func psInstanceJSON(c geneos.Instance, params []string) (err error) {
+	if instance.IsDisabled(c) {
 		return nil
 	}
 	pid, uid, gid, mtime, err := instance.GetPIDInfo(c)

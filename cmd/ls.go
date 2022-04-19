@@ -29,7 +29,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -57,7 +57,7 @@ var lsTabWriter *tabwriter.Writer
 var csvWriter *csv.Writer
 var jsonEncoder *json.Encoder
 
-func commandLS(ct component.ComponentType, args []string, params []string) (err error) {
+func commandLS(ct *geneos.Component, args []string, params []string) (err error) {
 	switch {
 	case lsCmdJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
@@ -82,23 +82,23 @@ func commandLS(ct component.ComponentType, args []string, params []string) (err 
 	return
 }
 
-func lsInstancePlain(c instance.Instance, params []string) (err error) {
+func lsInstancePlain(c geneos.Instance, params []string) (err error) {
 	var suffix string
-	if IsDisabled(c) {
+	if instance.IsDisabled(c) {
 		suffix = "*"
 	}
 	base, underlying, _ := instance.ComponentVersion(c)
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), c.V.GetInt(c.Prefix("Port")), base, underlying, c.Home())
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Location(), c.V().GetInt(c.Prefix("Port")), base, underlying, c.Home())
 	return
 }
 
-func lsInstanceCSV(c instance.Instance, params []string) (err error) {
+func lsInstanceCSV(c geneos.Instance, params []string) (err error) {
 	var dis string = "N"
-	if IsDisabled(c) {
+	if instance.IsDisabled(c) {
 		dis = "Y"
 	}
 	base, underlying, _ := instance.ComponentVersion(c)
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprint(c.V.GetInt(c.Prefix("Port"))), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, string(c.Location()), fmt.Sprint(c.V().GetInt(c.Prefix("Port"))), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }
 
@@ -112,12 +112,12 @@ type lsType struct {
 	Home     string
 }
 
-func lsInstanceJSON(c instance.Instance, params []string) (err error) {
+func lsInstanceJSON(c geneos.Instance, params []string) (err error) {
 	var dis string = "N"
-	if IsDisabled(c) {
+	if instance.IsDisabled(c) {
 		dis = "Y"
 	}
 	base, underlying, _ := instance.ComponentVersion(c)
-	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), c.V.GetInt64(c.Prefix("Port")), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, string(c.Location()), c.V().GetInt64(c.Prefix("Port")), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }

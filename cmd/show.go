@@ -24,14 +24,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
-	"wonderland.org/geneos/internal/instance"
 )
 
 // showCmd represents the show command
@@ -63,45 +60,16 @@ func init() {
 	rootCmd.AddCommand(showCmd)
 }
 
-func commandShow(ct component.ComponentType, args []string, params []string) (err error) {
-	// default to combined global + user config
-	// allow overrides to show specific or components
-	if len(args) == 0 && ct == component.None {
-		// special case "config show" for resolved settings
-		printConfigJSON(GlobalConfig)
-		return
-	}
-
-	// read the config into a struct then print it out again,
-	// to sanitise the contents - or generate an error
-	if len(args) > 0 {
-		switch args[0] {
-		case "global":
-			var c GlobalSettings
-			readLocalConfigFile(globalConfig, &c)
-			printConfigJSON(c)
-			return
-		case "user":
-			var c GlobalSettings
-			userConfDir, _ := os.UserConfigDir()
-			readLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
-			printConfigJSON(c)
-			return
-		}
-	}
-
-	// need this to process @remote args etc.
-	_, args, _ = parseArgs(commands["show"], args)
-
+func commandShow(ct *geneos.Component, args []string, params []string) (err error) {
 	// loop instances - parse the args again and load/print the config,
 	// but allow for RC files again
 	//
-	cs := make(map[host.Name][]instance.Instance)
-	for _, name := range args {
-		for _, i := range instance.FindInstances(ct, name) {
-			cs[i.Remote().String()] = append(cs[i.Remote().String()], i)
-		}
-	}
+	cs := make(map[host.Name][]geneos.Instance)
+	// for _, name := range args {
+	// 	for _, i := range instance.FindInstances(ct, name) {
+	// 		cs[i.Remote().String()] = append(cs[i.Remote().String()], i)
+	// 	}
+	// }
 	if len(cs) > 0 {
 		printConfigJSON(cs)
 		return
@@ -135,21 +103,4 @@ func opaqueJSONSecrets(j string) string {
 	j = red1.ReplaceAllString(j, `"$1": "********"`)
 	j = red2.ReplaceAllString(j, `"$1=********"`)
 	return j
-}
-
-func readLocalConfigFile(file string, config interface{}) (err error) {
-	jsonFile, err := os.ReadFile(file)
-	if err != nil {
-		return
-	}
-	// dec := json.NewDecoder(jsonFile)
-	return json.Unmarshal(jsonFile, &config)
-}
-
-func readConfigFile(r *host.Host, file string, config interface{}) (jsonFile []byte, err error) {
-	if jsonFile, err = r.ReadFile(file); err != nil {
-		return
-	}
-	// dec := json.NewDecoder(jsonFile)
-	return jsonFile, json.Unmarshal(jsonFile, &config)
 }

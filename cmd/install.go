@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
@@ -82,20 +82,16 @@ func init() {
 var installCmdLocal, installCmdNoSave, installCmdUpdate bool
 var installCmdBase, installCmdRemote, installCmdOverride string
 
-func commandInstall(ct component.ComponentType, args []string, params []string) (err error) {
+func commandInstall(ct *geneos.Component, args []string, params []string) (err error) {
 	// first, see if user wants a particular version
 	version := "latest"
 
 	for n := 0; n < len(params); n++ {
-		if component.MatchVersion(params[n]) {
+		if geneos.MatchVersion(params[n]) {
 			version = params[n]
 			params[n] = params[len(params)-1]
 			params = params[:len(params)-1]
 		}
-	}
-
-	if ct == component.Unknown {
-		ct = component.None
 	}
 
 	r := host.GetRemote(host.Name(installCmdRemote))
@@ -106,9 +102,9 @@ func commandInstall(ct component.ComponentType, args []string, params []string) 
 	//
 	// overrides do not work in this case as the version and type have to be part of the
 	// archive file name
-	if ct != component.None {
+	if ct != nil {
 		logDebug.Printf("installing %q version of %s to %s remote(s)", version, ct, installCmdRemote)
-		filename, f, err := component.OpenArchive(host.LOCAL, ct, version)
+		filename, f, err := geneos.OpenArchive(host.LOCAL, ct, version)
 		if err != nil {
 			return err
 		}
@@ -116,19 +112,19 @@ func commandInstall(ct component.ComponentType, args []string, params []string) 
 
 		if r == host.ALL {
 			for _, r := range host.AllHosts() {
-				if err = component.MakeComponentDirs(r, ct); err != nil {
+				if err = geneos.MakeComponentDirs(r, ct); err != nil {
 					return err
 				}
-				if err = component.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
+				if err = geneos.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
 					logError.Println(err)
 					continue
 				}
 			}
 		} else {
-			if err = component.MakeComponentDirs(r, ct); err != nil {
+			if err = geneos.MakeComponentDirs(r, ct); err != nil {
 				return err
 			}
-			if err = component.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
+			if err = geneos.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
 				return err
 			}
 			logDebug.Println("installed", ct.String())
@@ -152,10 +148,10 @@ func commandInstall(ct component.ComponentType, args []string, params []string) 
 		}
 
 		for _, r := range rs {
-			if err = component.MakeComponentDirs(r, ct); err != nil {
+			if err = geneos.MakeComponentDirs(r, ct); err != nil {
 				return err
 			}
-			if err = component.DownloadComponent(r, ct, version, installCmdBase, installCmdUpdate); err != nil {
+			if err = geneos.DownloadComponent(r, ct, version, installCmdBase, installCmdUpdate); err != nil {
 				logError.Println(err)
 				continue
 			}
@@ -167,7 +163,7 @@ func commandInstall(ct component.ComponentType, args []string, params []string) 
 	// work through command line params and try to install them using the naming format
 	// of standard downloads - fix versioning
 	for _, file := range params {
-		f, filename, err := component.OpenLocalFileOrURL(file)
+		f, filename, err := geneos.OpenLocalFileOrURL(file)
 		if err != nil {
 			log.Println(err)
 			continue
@@ -177,18 +173,18 @@ func commandInstall(ct component.ComponentType, args []string, params []string) 
 		if installCmdRemote == string(host.ALLHOSTS) {
 			for _, r := range host.AllHosts() {
 				// what is finalVersion ?
-				if err = component.MakeComponentDirs(r, ct); err != nil {
+				if err = geneos.MakeComponentDirs(r, ct); err != nil {
 					return err
 				}
-				if err = component.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
+				if err = geneos.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
 					logError.Println(err)
 					continue
 				}
 			}
 		} else {
 			r := host.GetRemote(host.Name(installCmdRemote))
-			component.MakeComponentDirs(r, ct)
-			if err = component.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
+			geneos.MakeComponentDirs(r, ct)
+			if err = geneos.Unarchive(r, ct, filename, installCmdBase, f, installCmdUpdate); err != nil {
 				return err
 			}
 			logDebug.Println("installed", ct.String())

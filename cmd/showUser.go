@@ -23,8 +23,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/host"
 )
 
 // showUserCmd represents the showUser command
@@ -54,4 +57,12 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// showUserCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func commandShowUser() {
+	var c interface{}
+	userConfDir, _ := os.UserConfigDir()
+	host.ReadLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
+	printConfigJSON(c)
+
 }

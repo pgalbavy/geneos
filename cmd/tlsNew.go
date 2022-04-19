@@ -26,11 +26,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -66,11 +66,11 @@ func init() {
 
 func newRootCA(dir string) (cert *x509.Certificate, err error) {
 	// create rootCA.pem / rootCA.key
-	rootCertPath := filepath.Join(dir, rootCAFile+".pem")
-	rootKeyPath := filepath.Join(dir, rootCAFile+".key")
+	rootCertPath := filepath.Join(dir, geneos.RootCAFile+".pem")
+	rootKeyPath := filepath.Join(dir, geneos.RootCAFile+".key")
 
-	if cert, err = readRootCert(); err == nil {
-		log.Println(rootCAFile, "already exists")
+	if cert, err = instance.ReadRootCert(); err == nil {
+		log.Println(geneos.RootCAFile, "already exists")
 		return
 	}
 	serial, err := rand.Prime(rand.Reader, 64)
@@ -90,28 +90,28 @@ func newRootCA(dir string) (cert *x509.Certificate, err error) {
 		MaxPathLen:            2,
 	}
 
-	cert, key, err := createCert(&template, &template, nil, nil)
+	cert, key, err := instance.CreateCertKey(&template, &template, nil, nil)
 	if err != nil {
 		return
 	}
 
-	if err = writeCert(host.LOCAL, rootCertPath, cert); err != nil {
+	if err = host.LOCAL.WriteCert(rootCertPath, cert); err != nil {
 		return
 	}
-	if err = writeKey(host.LOCAL, rootKeyPath, key); err != nil {
+	if err = host.LOCAL.WriteKey(rootKeyPath, key); err != nil {
 		return
 	}
-	log.Println("CA certificate created for", rootCAFile)
+	log.Println("CA certificate created for", geneos.RootCAFile)
 
 	return
 }
 
 func newIntrCA(dir string) (cert *x509.Certificate, err error) {
-	intrCertPath := filepath.Join(dir, signingCertFile+".pem")
-	intrKeyPath := filepath.Join(dir, signingCertFile+".key")
+	intrCertPath := filepath.Join(dir, geneos.SigningCertFile+".pem")
+	intrKeyPath := filepath.Join(dir, geneos.SigningCertFile+".key")
 
-	if cert, err = readSigningCert(); err == nil {
-		log.Println(signingCertFile, "already exists")
+	if cert, err = instance.ReadSigningCert(); err == nil {
+		log.Println(geneos.SigningCertFile, "already exists")
 		return
 	}
 
@@ -132,92 +132,28 @@ func newIntrCA(dir string) (cert *x509.Certificate, err error) {
 		MaxPathLen:            1,
 	}
 
-	rootCert, err := readRootCert()
+	rootCert, err := instance.ReadRootCert()
 	if err != nil {
 		return
 	}
-	rootKey, err := readKey(host.LOCAL, filepath.Join(dir, rootCAFile+".key"))
-	if err != nil {
-		return
-	}
-
-	cert, key, err := createCert(&template, rootCert, rootKey, nil)
+	rootKey, err := host.LOCAL.ReadKey(filepath.Join(dir, geneos.RootCAFile+".key"))
 	if err != nil {
 		return
 	}
 
-	if err = writeCert(host.LOCAL, intrCertPath, cert); err != nil {
-		return
-	}
-	if err = writeKey(host.LOCAL, intrKeyPath, key); err != nil {
-		return
-	}
-
-	log.Println("Signing certificate created for", signingCertFile)
-
-	return
-}
-
-// create a new certificate for an instance
-//
-// this also creates a new private key
-//
-// skip if certificate exists (no expiry check)
-func createInstanceCert(c instance.Instance) (err error) {
-	tlsDir := filepath.Join(Geneos(), "tls")
-
-	// skip if we can load an existing certificate
-	if _, err = readInstanceCert(c); err == nil {
-		return
-	}
-
-	hostname, _ := os.Hostname()
-	if c.Remote() != host.LOCAL {
-		hostname = c.Remote().V.GetString("Hostname")
-	}
-
-	serial, err := rand.Prime(rand.Reader, 64)
-	if err != nil {
-		return
-	}
-	expires := time.Now().AddDate(1, 0, 0)
-	template := x509.Certificate{
-		SerialNumber: serial,
-		Subject: pkix.Name{
-			CommonName: fmt.Sprintf("geneos %s %s", c.Type(), c.Name()),
-		},
-		NotBefore:      time.Now().Add(-60 * time.Second),
-		NotAfter:       expires,
-		KeyUsage:       x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		MaxPathLenZero: true,
-		DNSNames:       []string{hostname},
-		// IPAddresses:    []net.IP{net.ParseIP("127.0.0.1")},
-	}
-
-	intrCert, err := readSigningCert()
-	if err != nil {
-		return
-	}
-	intrKey, err := readKey(host.LOCAL, filepath.Join(tlsDir, signingCertFile+".key"))
+	cert, key, err := instance.CreateCertKey(&template, rootCert, rootKey, nil)
 	if err != nil {
 		return
 	}
 
-	cert, key, err := createCert(&template, intrCert, intrKey, nil)
-	if err != nil {
+	if err = host.LOCAL.WriteCert(intrCertPath, cert); err != nil {
+		return
+	}
+	if err = host.LOCAL.WriteKey(intrKeyPath, key); err != nil {
 		return
 	}
 
-	if err = writeInstanceCert(c, cert); err != nil {
-		return
-	}
-
-	if err = writeInstanceKey(c, key); err != nil {
-		return
-	}
-
-	log.Printf("certificate created for %s (expires %s)", c, expires)
+	log.Println("Signing certificate created for", geneos.SigningCertFile)
 
 	return
 }

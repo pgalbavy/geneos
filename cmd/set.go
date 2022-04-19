@@ -23,12 +23,11 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	"github.com/spf13/viper"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -76,8 +75,8 @@ func init() {
 // but allow for RC files again
 //
 // consume component names, stop at first parameter, error out if more names
-func commandSet(ct component.ComponentType, args []string, params []string) (err error) {
-	var instances []instance.Instance
+func commandSet(ct *geneos.Component, args []string, params []string) (err error) {
+	var instances []geneos.Instance
 
 	logDebug.Println("args", args, "params", params)
 
@@ -85,14 +84,9 @@ func commandSet(ct component.ComponentType, args []string, params []string) (err
 		return ErrInvalidArgs
 	}
 
-	if ct != component.None && len(args) == 0 {
+	if ct != nil && len(args) == 0 {
 		// if all args have no become params (e.g. 'set gateway X=Y') then reprocess args here
 		args = instance.FindNames(host.ALL, ct)
-	} else if len(args) == 0 || args[0] == "user" {
-		userConfDir, _ := os.UserConfigDir()
-		return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
-	} else if args[0] == "global" {
-		return writeConfigParams(globalConfig, params)
 	}
 
 	// loop through named instances
@@ -120,10 +114,10 @@ func commandSet(ct component.ComponentType, args []string, params []string) (err
 
 	// now loop through the collected results and write out
 	for _, c := range instances {
-		if err = migrateConfig(c); err != nil {
+		if err = instance.Migrate(c); err != nil {
 			logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
 		}
-		if err = writeInstanceConfig(c); err != nil {
+		if err = instance.WriteConfig(c); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -138,7 +132,7 @@ var pluralise = map[string]string{
 	"Include":   "s",
 }
 
-func setValue(c Instance, tag, v string) (err error) {
+func setValue(c geneos.Instance, tag, v string) (err error) {
 	defaults := map[string]string{
 		"Includes": "100",
 		"Gateways": "7039",
@@ -158,10 +152,7 @@ func setValue(c Instance, tag, v string) (err error) {
 			remove = true
 		}
 		if remove {
-			err = setStructMap(c, tag, e[0], "")
-			if err != nil {
-				logDebug.Printf("%s delete %v[%v] failed, %s", c, tag, e[0], err)
-			}
+			setStructMap(c, tag, e[0], "")
 		} else {
 			val := defaults[tag]
 			if len(e) > 1 {
@@ -170,10 +161,7 @@ func setValue(c Instance, tag, v string) (err error) {
 				// XXX check two values and first is a number
 				logDebug.Println("second value missing after ':', using default", val)
 			}
-			err = setStructMap(c, tag, e[0], val)
-			if err != nil {
-				logDebug.Printf("%s set %v[%v]=%v failed, %s", c, tag, e[0], val, err)
-			}
+			setStructMap(c, tag, e[0], val)
 		}
 	case "Attributes":
 		var remove bool
@@ -184,19 +172,13 @@ func setValue(c Instance, tag, v string) (err error) {
 		}
 		// '-name' or 'name=' remove the attribute
 		if remove || len(e) == 1 {
-			err = setStructMap(c, tag, e[0], "")
-			if err != nil {
-				logDebug.Printf("%s delete %v[%v] failed, %s", c, tag, e[0], err)
-			}
+			setStructMap(c, tag, e[0], "")
 		} else {
-			err = setStructMap(c, tag, e[0], e[1])
-			if err != nil {
-				logDebug.Printf("%s set %v[%v]=%v failed, %s", c, tag, e[0], e[1], err)
-			}
+			setStructMap(c, tag, e[0], e[1])
 		}
 	case "Env", "Types":
 		var remove bool
-		slice := c.V.getSliceStrings(tag)
+		slice := c.V().GetStringSlice(tag)
 		e := strings.SplitN(v, "=", 2)
 		if strings.HasPrefix(e[0], "-") {
 			e[0] = strings.TrimPrefix(e[0], "-")
@@ -228,9 +210,7 @@ func setValue(c Instance, tag, v string) (err error) {
 		if !exists && !remove {
 			newslice = append(newslice, v)
 		}
-		if err = c.V.Set(tag, newslice); err != nil {
-			logDebug.Printf("%s set %s=%s failed, %s", c, tag, newslice, err)
-		}
+		c.V().Set(tag, newslice)
 	case "Variables", "Variable", "Var":
 		// syntax: "[TYPE:]NAME=VALUE" - TYPE defaults to string
 		// TYPE must match what's in XML, or just pass straight through anyway
@@ -246,10 +226,7 @@ func setValue(c Instance, tag, v string) (err error) {
 		var remove bool
 		if strings.HasPrefix(v, "-") {
 			v = strings.TrimPrefix(v, "-")
-			err = setStructMap(c, tag, v, "")
-			if err != nil {
-				logDebug.Printf("%s delete %v[%v] failed, %s", c, tag, v, err)
-			}
+			setStructMap(c, tag, v, "")
 			return
 		}
 
@@ -290,27 +267,29 @@ func setValue(c Instance, tag, v string) (err error) {
 			return ErrInvalidArgs
 		}
 		val := t + ":" + value
-		err = setStructMap(c, tag, key, val)
-		if err != nil {
-			logDebug.Printf("%s set %v[%v]=%v failed, %s", c, tag, e[0], val, err)
-		}
-
+		setStructMap(c, tag, key, val)
 	default:
-		if err = c.V.Set(tag, v); err != nil {
-			logDebug.Printf("%s set %s=%s failed, %s", c, tag, v, err)
-		}
+		c.V().Set(tag, v)
 	}
 	return
 }
 
-func writeConfigParams(filename string, params []string) (err error) {
-	var c GlobalSettings
-	// ignore err - config may not exist, but that's OK
-	_ = readLocalConfigFile(filename, &c)
-	// change here
-	if len(c) == 0 {
-		c = make(GlobalSettings)
+func setStructMap(c geneos.Instance, field, key, value string) {
+	m := c.V().GetStringMapString(field)
+	if value == "" {
+		delete(m, key)
+	} else {
+		m[key] = value
 	}
+	c.V().Set(field, m)
+
+}
+
+func writeConfigParams(filename string, params []string) (err error) {
+	var c interface{}
+	// ignore err - config may not exist, but that's OK
+	_ = host.ReadLocalConfigFile(filename, &c)
+	// change here
 	for _, set := range params {
 		// skip all non '=' args
 		if !strings.Contains(set, "=") {
@@ -318,20 +297,20 @@ func writeConfigParams(filename string, params []string) (err error) {
 		}
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
-		c[Global(k)] = v
+		viper.Set(k, v)
 	}
 
 	// fix breaking change
-	if oldhome, ok := c["ITRSHome"]; ok {
-		if newhome, ok := c["Geneos"]; !ok || newhome == "" {
-			c["Geneos"] = oldhome
+	if viper.IsSet("ITRSHome") {
+		if !viper.IsSet("Geneos") {
+			viper.Set("Geneos", viper.GetString("ITRSHome"))
 		}
-		delete(c, "ITRSHome")
+		viper.Set("ITRSHome", nil)
 	}
 
 	// XXX fix permissions assumptions here
-	if filename == globalConfig {
-		return host.LOCAL.writeConfigFile(filename, "root", 0664, c)
+	if filename == "/etc/geneos/geneos.json" {
+		return host.LOCAL.WriteConfigFile(filename, "root", 0664, c)
 	}
-	return host.LOCAL.writeConfigFile(filename, "", 0664, c)
+	return host.LOCAL.WriteConfigFile(filename, "", 0664, c)
 }

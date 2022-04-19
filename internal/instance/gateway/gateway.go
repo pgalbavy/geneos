@@ -11,12 +11,28 @@ import (
 
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/pbkdf2"
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const Gateway component.ComponentType = "gateway"
+var Gateway geneos.Component = geneos.Component{
+	Initialise:       InitGateway,
+	Name:             "gateway",
+	RelatedTypes:     nil,
+	ComponentMatches: []string{"gateway", "gateways"},
+	RealComponent:    true,
+	DownloadBase:     "Gateway+2",
+	PortRange:        "GatewayPortRange",
+	CleanList:        "GatewayCleanList",
+	PurgeList:        "GatewayPurgeList",
+	DefaultSettings: map[string]string{
+		"GatewayPortRange": "7039,7100-",
+		"GatewayCleanList": "*.old:*.history",
+		"GatewayPurgeList": "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/",
+	},
+}
 
 type Gateways struct {
 	instance.Instance
@@ -56,23 +72,7 @@ const GatewayDefaultTemplate = "gateway.setup.xml.gotmpl"
 const GatewayInstanceTemplate = "gateway-instance.setup.xml.gotmpl"
 
 func init() {
-	component.RegisterComponent(component.Components{
-		Initialise:       InitGateway,
-		New:              New,
-		ComponentType:    Gateway,
-		RelatedTypes:     nil,
-		ComponentMatches: []string{"gateway", "gateways"},
-		RealComponent:    true,
-		DownloadBase:     "Gateway+2",
-		PortRange:        "GatewayPortRange",
-		CleanList:        "GatewayCleanList",
-		PurgeList:        "GatewayPurgeList",
-		DefaultSettings: map[string]string{
-			"GatewayPortRange": "7039,7100-",
-			"GatewayCleanList": "*.old:*.history",
-			"GatewayPurgeList": "gateway.log:gateway.txt:gateway.snooze:gateway.user_assignment:licences.cache:cache/:database/",
-		},
-	})
+	geneos.RegisterComponent(&Gateway, New)
 	Gateway.RegisterDirs([]string{
 		"packages/gateway",
 		"gateway/gateways",
@@ -82,23 +82,23 @@ func init() {
 	})
 }
 
-func InitGateway(r *host.Host) {
+func InitGateway(r *host.Host, ct *geneos.Component) {
 	// copy default template to directory
-	if err := component.MakeComponentDirs(r, Gateway); err != nil {
-		logError.Fatalln(err)
+	if err := geneos.MakeComponentDirs(r, ct); err != nil {
+		logger.Error.Fatalln(err)
 	}
-	if err := r.WriteFile(r.GeneosPath(Gateway.String(), "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
-		logError.Fatalln(err)
+	if err := r.WriteFile(r.GeneosPath("gateway", "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
+		logger.Error.Fatalln(err)
 	}
-	if err := r.WriteFile(r.GeneosPath(Gateway.String(), "templates", GatewayInstanceTemplate), InstanceTemplate, 0664); err != nil {
-		logError.Fatalln(err)
+	if err := r.WriteFile(r.GeneosPath("gateway", "templates", GatewayInstanceTemplate), InstanceTemplate, 0664); err != nil {
+		logger.Error.Fatalln(err)
 	}
 }
 
 var gateways sync.Map
 
-func New(name string) interface{} {
-	_, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	_, local, r := instance.SplitName(name, host.LOCAL)
 	g, ok := gateways.Load(r.FullName(local))
 	if ok {
 		gw, ok := g.(*Gateways)
@@ -107,15 +107,15 @@ func New(name string) interface{} {
 		}
 	}
 	c := &Gateways{}
-	c.V = viper.New()
+	c.Conf = viper.New()
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = Gateway.String()
+	c.Component = &Gateway
 	c.InstanceName = local
-	if err := instance.SetDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = host.Name(r.String())
+	c.InstanceHost = host.Name(r.String())
 	gateways.Store(r.FullName(local), c)
 	return c
 }
@@ -123,8 +123,8 @@ func New(name string) interface{} {
 // interface method set
 
 // Return the Component for an Instance
-func (g *Gateways) Type() component.ComponentType {
-	return component.ParseComponentName(g.InstanceType)
+func (g *Gateways) Type() *geneos.Component {
+	return g.Component
 }
 
 func (g *Gateways) Name() string {
@@ -132,7 +132,7 @@ func (g *Gateways) Name() string {
 }
 
 func (g *Gateways) Location() host.Name {
-	return g.InstanceLocation
+	return g.InstanceHost
 }
 
 func (g *Gateways) Home() string {
@@ -159,7 +159,7 @@ func (g *Gateways) Load() (err error) {
 	if g.ConfigLoaded {
 		return
 	}
-	err = instance.LoadConfig(g.Instance)
+	err = instance.LoadConfig(g)
 	g.ConfigLoaded = err == nil
 	return
 }
@@ -174,33 +174,37 @@ func (g *Gateways) Loaded() bool {
 	return g.ConfigLoaded
 }
 
+func (g *Gateways) V() *viper.Viper {
+	return g.Conf
+}
+
 func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
-	g.GatePort = instance.NextPort(g.InstanceRemote, Gateway)
+	g.GatePort = instance.NextPort(g.InstanceRemote, &Gateway)
 	g.GateUser = username
 	g.ConfigRebuild = "initial"
 	g.Includes = make(map[int]string)
 
 	// try to save config early
-	if err = writeInstanceConfig(g); err != nil {
+	if err = instance.WriteConfig(g); err != nil {
 		return
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(Gateway, []string{g.Name()}, params); err != nil {
-			return
-		}
-		g.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(Gateway, []string{g.Name()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	g.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(g); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(g); err != nil {
 			return
 		}
 	}
 
-	if err = createAESKeyFile(g.Instance); err != nil {
+	if err = createAESKeyFile(g); err != nil {
 		return
 	}
 
@@ -208,7 +212,7 @@ func (g *Gateways) Add(username string, params []string, tmpl string) (err error
 }
 
 func (g *Gateways) Rebuild(initial bool) (err error) {
-	err = createConfigFromTemplate(g, filepath.Join(g.Home(), "instance.setup.xml"), GatewayInstanceTemplate, InstanceTemplate)
+	err = instance.CreateConfigFromTemplate(g, filepath.Join(g.Home(), "instance.setup.xml"), GatewayInstanceTemplate, InstanceTemplate)
 	if err != nil {
 		return
 	}
@@ -236,7 +240,7 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 
 	// use getPorts() to check valid change, else go up one
 	ports := instance.GetPorts(g.Remote())
-	nextport := instance.NextPort(g.Remote(), Gateway)
+	nextport := instance.NextPort(g.Remote(), &Gateway)
 	if secure && g.GatePort == 7039 {
 		if _, ok := ports[7038]; !ok {
 			g.GatePort = 7038
@@ -254,12 +258,12 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 	}
 
 	if changed {
-		if err = writeInstanceConfig(g); err != nil {
+		if err = instance.WriteConfig(g); err != nil {
 			return
 		}
 	}
 
-	return createConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
+	return instance.CreateConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
 }
 
 func (g *Gateways) Command() (args, env []string) {
@@ -271,7 +275,7 @@ func (g *Gateways) Command() (args, env []string) {
 		"-resources-dir",
 		filepath.Join(g.GateBins, g.GateBase, "resources"),
 		"-log",
-		instance.LogFile(g.Instance),
+		instance.LogFile(g),
 		"-setup",
 		filepath.Join(g.GateHome, "gateway.setup.xml"),
 		// enable stats by default
@@ -327,7 +331,7 @@ func (g *Gateways) Signal(s syscall.Signal) error {
 
 // create a gateway key file for secure passwords as per
 // https://docs.itrsgroup.com/docs/geneos/4.8.0/Gateway_Reference_Guide/gateway_secure_passwords.htm
-func createAESKeyFile(c instance.Instance) (err error) {
+func createAESKeyFile(c geneos.Instance) (err error) {
 	rp := make([]byte, 20)
 	salt := make([]byte, 10)
 	if _, err = rand.Read(rp); err != nil {
@@ -344,6 +348,6 @@ func createAESKeyFile(c instance.Instance) (err error) {
 	if err = c.Remote().WriteFile(instance.ConfigPathWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
 		return
 	}
-	c.V.Set(c.Prefix("AES"), c.Type().String()+".aes")
+	c.V().Set(c.Prefix("AES"), c.Type().String()+".aes")
 	return
 }

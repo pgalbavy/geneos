@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -53,21 +53,21 @@ func init() {
 	rootCmd.AddCommand(homeCmd)
 }
 
-func commandHome(_ component.ComponentType, args []string, params []string) error {
-	var ct component.ComponentType
+func commandHome(_ *geneos.Component, args []string, params []string) error {
+	var ct *geneos.Component
 	if len(args) == 0 {
 		log.Println(Geneos())
 		return nil
 	}
 
 	// check if first arg is a type, if not set to None else pop first arg
-	if ct = component.ParseComponentName(args[0]); ct == component.Unknown {
-		ct = component.None
+	if ct = geneos.ParseComponentName(args[0]); ct == nil {
+		ct = nil
 	} else {
 		args = args[1:]
 	}
 
-	var i []instance.Instance
+	var i []geneos.Instance
 	if len(args) == 0 {
 		i = instance.GetInstancesForComponent(host.LOCAL, ct)
 	} else {

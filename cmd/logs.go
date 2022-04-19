@@ -34,7 +34,7 @@ import (
 	"unicode"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -88,9 +88,9 @@ type files struct {
 var tails *sync.Map
 
 // last logfile written out
-var lastout *instance.Instance
+var lastout geneos.Instance
 
-func commandLogs(ct component.ComponentType, args []string, params []string) (err error) {
+func commandLogs(ct *geneos.Component, args []string, params []string) (err error) {
 	// validate options
 	if logCmdMatch != "" && logCmdIgnore != "" {
 		logError.Fatalln("Only one of -g or -v can be given")
@@ -118,7 +118,7 @@ func commandLogs(ct component.ComponentType, args []string, params []string) (er
 	return
 }
 
-func followLogs(ct component.ComponentType, args, params []string) (err error) {
+func followLogs(ct *geneos.Component, args, params []string) (err error) {
 	done := make(chan bool)
 	tails = watchLogs()
 	if err = instance.LoopCommand(ct, logFollowInstance, args, params); err != nil {
@@ -128,7 +128,7 @@ func followLogs(ct component.ComponentType, args, params []string) (err error) {
 	return
 }
 
-func outHeader(c instance.Instance) {
+func outHeader(c geneos.Instance) {
 	logfile := instance.LogFile(c)
 	if lastout.String() == c.String() {
 		return
@@ -137,10 +137,10 @@ func outHeader(c instance.Instance) {
 		log.Println()
 	}
 	log.Printf("==> %s %s <==\n", c, logfile)
-	lastout = &c
+	lastout = c
 }
 
-func logTailInstance(c instance.Instance, params []string) (err error) {
+func logTailInstance(c geneos.Instance, params []string) (err error) {
 	logfile := instance.LogFile(c)
 
 	st, err := c.Remote().Stat(logfile)
@@ -216,7 +216,7 @@ func isLineSep(r rune) bool {
 	return unicode.Is(unicode.Zp, r)
 }
 
-func filterOutput(c instance.Instance, reader io.ReadSeeker) (sz int64) {
+func filterOutput(c geneos.Instance, reader io.ReadSeeker) (sz int64) {
 	switch {
 	case logCmdMatch != "":
 		scanner := bufio.NewScanner(reader)
@@ -247,7 +247,7 @@ func filterOutput(c instance.Instance, reader io.ReadSeeker) (sz int64) {
 	return
 }
 
-func logCatInstance(c instance.Instance, params []string) (err error) {
+func logCatInstance(c geneos.Instance, params []string) (err error) {
 	logfile := instance.LogFile(c)
 
 	lines, err := c.Remote().Open(logfile)
@@ -267,7 +267,7 @@ func logCatInstance(c instance.Instance, params []string) (err error) {
 // add local logs to a watcher list
 // for remote logs, spawn a go routine for each log, watch using stat etc.
 // and output changes
-func logFollowInstance(c instance.Instance, params []string) (err error) {
+func logFollowInstance(c geneos.Instance, params []string) (err error) {
 	logfile := instance.LogFile(c)
 
 	// store a placeholder
@@ -307,7 +307,7 @@ func watchLogs() (tails *sync.Map) {
 					return true
 				}
 
-				c := key.(instance.Instance)
+				c := key.(*instance.Instance)
 				tail := value.(*files)
 
 				oldsize := tail.p
@@ -352,7 +352,7 @@ func watchLogs() (tails *sync.Map) {
 	return
 }
 
-func copyFromFile(c instance.Instance) (sz int64) {
+func copyFromFile(c geneos.Instance) (sz int64) {
 	if t, ok := tails.Load(c); ok {
 		tail := t.(*files)
 		sz = tail.p

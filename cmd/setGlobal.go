@@ -40,3 +40,7 @@ var setGlobalCmd = &cobra.Command{
 func init() {
 	setCmd.AddCommand(setGlobalCmd)
 }
+
+func commandSetGlobal() error {
+	return writeConfigParams("/etc/geneos/geneos.json", []string{})
+}

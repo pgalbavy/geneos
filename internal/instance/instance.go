@@ -14,54 +14,56 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/spf13/viper"
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/utils"
 	"wonderland.org/geneos/pkg/logger"
 )
 
-type InstanceInterface interface {
-	// getters ans setters
-	Name() string
-	Home() string
-	Type() component.ComponentType
-	Location() host.Name
-	Remote() *host.Host
-	// Base() *instance.InstanceBase
-	Prefix(string) string
-	String() string
+// type InstanceInterface interface {
+// 	// getters ans setters
+// 	Name() string
+// 	Home() string
+// 	Type() *geneos.Component
+// 	Location() host.Name
+// 	Remote() *host.Host
+// 	// Base() *instance.InstanceBase
+// 	Prefix(string) string
+// 	String() string
 
-	// config
-	Load() error
-	Unload() error
-	Loaded() bool
+// 	// config
+// 	Load() error
+// 	Unload() error
+// 	Loaded() bool
 
-	// actions
-	Add(string, []string, string) error
-	Command() ([]string, []string)
-	Reload(params []string) (err error)
-	Rebuild(bool) error
-	Signal(syscall.Signal) error
-}
+// 	// actions
+// 	Add(string, []string, string) error
+// 	Command() ([]string, []string)
+// 	Reload(params []string) (err error)
+// 	Rebuild(bool) error
+// 	Signal(syscall.Signal) error
+// }
 
 // The Common type is the common data shared by all component types
 type Instance struct {
-	InstanceInterface `json:"-"`
+	geneos.Instance `json:"-"`
 	// A mutex, for ongoing changes
 	L *sync.RWMutex `json:"-"`
 	// let's try embedding a viper for config in each instance
-	V *viper.Viper `json:"-"`
+	Conf *viper.Viper `json:"-"`
 	// The Name of an instance. This may be different to the instance
 	// directory InstanceName during certain operations, e.g. rename
 	InstanceName string `json:"Name"`
 	// The remote location name (this is a remote component and not
 	// a server name). This is NOT written to the config file as it
 	// may change if the remote name changes
-	InstanceLocation host.Name  `default:"local" json:"-"`
-	InstanceRemote   *host.Host `json:"-"`
+	InstanceHost   host.Name  `default:"local" json:"-"`
+	InstanceRemote *host.Host `json:"-"`
 	// The Component Type of an instance
-	InstanceType string `json:"-"`
+	Component *geneos.Component `json:"-"`
 	// The RemoteRoot directory of the Geneos installation. Used in template
 	// default settings for component types
 	RemoteRoot string `json:"-"`
@@ -91,9 +93,9 @@ var (
 //
 // walk the /proc directory (local or remote) and find the matching pid
 // this is subject to races, but not much we can do
-func GetPID(c Instance) (pid int, err error) {
+func GetPID(c geneos.Instance) (pid int, err error) {
 	var pids []int
-	binsuffix := getString(c, "BinSuffix")
+	binsuffix := c.V().GetString("BinSuffix")
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
@@ -115,7 +117,7 @@ func GetPID(c Instance) (pid int, err error) {
 		args := bytes.Split(data, []byte("\000"))
 		execfile := filepath.Base(string(args[0]))
 		switch c.Type() {
-		case component.ParseComponentName("webserver"):
+		case geneos.ParseComponentName("webserver"):
 			var wdOK, jarOK bool
 			if execfile != "java" {
 				continue
@@ -146,7 +148,7 @@ func GetPID(c Instance) (pid int, err error) {
 	return 0, os.ErrProcessDone
 }
 
-func GetPIDInfo(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
+func GetPIDInfo(c geneos.Instance) (pid int, uid uint32, gid uint32, mtime int64, err error) {
 	pid, err = GetPID(c)
 	if err == nil {
 		var s host.FileStat
@@ -160,11 +162,11 @@ func GetPIDInfo(c Instance) (pid int, uid uint32, gid uint32, mtime int64, err e
 //
 func reservedName(in string) (ok bool) {
 	logDebug.Printf("checking %q", in)
-	if component.ParseComponentName(in) != component.Unknown {
+	if geneos.ParseComponentName(in) != nil {
 		logDebug.Println("matches a reserved word")
 		return true
 	}
-	if GlobalConfig["ReservedNames"] != "" {
+	if viper.GetString("ReservedNames") != "" {
 		list := strings.Split(in, ",")
 		for _, n := range list {
 			if strings.EqualFold(in, strings.TrimSpace(n)) {
@@ -195,7 +197,7 @@ func validInstanceName(in string) (ok bool) {
 
 // given a filename or path, prepend the instance home directory
 // if not absolute, and clean
-func instanceAbsPath(c Instance, file string) (path string) {
+func AbsPath(c geneos.Instance, file string) (path string) {
 	path = filepath.Clean(file)
 	if filepath.IsAbs(path) {
 		return
@@ -203,7 +205,7 @@ func instanceAbsPath(c Instance, file string) (path string) {
 	return filepath.Join(c.Home(), path)
 }
 
-func DeletePaths(c Instance, paths string) (err error) {
+func DeletePaths(c geneos.Instance, paths string) (err error) {
 	list := filepath.SplitList(paths)
 	for _, p := range list {
 		// clean path, error on absolute or parent paths, like 'import'
@@ -228,8 +230,8 @@ func DeletePaths(c Instance, paths string) (err error) {
 }
 
 // logdir = LogD relative to Home or absolute
-func LogFile(c Instance) (logfile string) {
-	logd := filepath.Clean(getString(c, c.Prefix("LogD")))
+func LogFile(c geneos.Instance) (logfile string) {
+	logd := filepath.Clean(c.V().GetString(c.Prefix("LogD")))
 	switch {
 	case logd == "":
 		logfile = c.Home()
@@ -238,11 +240,11 @@ func LogFile(c Instance) (logfile string) {
 	default:
 		logfile = filepath.Join(c.Home(), logd)
 	}
-	logfile = filepath.Join(logfile, getString(c, c.Prefix("LogF")))
+	logfile = filepath.Join(logfile, c.V().GetString(c.Prefix("LogF")))
 	return
 }
 
-func Signal(c Instance, signal syscall.Signal) (err error) {
+func Signal(c geneos.Instance, signal syscall.Signal) (err error) {
 	pid, err := GetPID(c)
 	if err != nil {
 		return os.ErrProcessDone
@@ -278,9 +280,9 @@ func Signal(c Instance, signal syscall.Signal) (err error) {
 }
 
 // return a slice instances for a given component type
-func GetInstancesForComponent(r *host.Host, ct component.ComponentType) (confs []Instance) {
-	if ct == component.None {
-		for _, c := range component.RealComponents() {
+func GetInstancesForComponent(r *host.Host, ct *geneos.Component) (confs []geneos.Instance) {
+	if ct == nil {
+		for _, c := range geneos.RealComponents() {
 			confs = append(confs, GetInstancesForComponent(r, c)...)
 		}
 		return
@@ -297,19 +299,14 @@ func GetInstancesForComponent(r *host.Host, ct component.ComponentType) (confs [
 }
 
 // return an instance of component ct. loads the config.
-func GetInstance(ct component.ComponentType, name string) (c Instance, err error) {
-	if ct == component.None {
-		return nil, ErrInvalidArgs
+func GetInstance(ct *geneos.Component, name string) (c geneos.Instance, err error) {
+	if ct == nil {
+		return nil, geneos.ErrInvalidArgs
 	}
 
-	cm, ok := component.components[ct]
-	if !ok || cm.New == nil {
-		return nil, ErrNotSupported
-	}
-
-	c = cm.New(name)
+	c = ct.New(name)
 	if c == nil {
-		return nil, ErrInvalidArgs
+		return nil, geneos.ErrInvalidArgs
 	}
 	err = c.Load()
 	return
@@ -317,15 +314,15 @@ func GetInstance(ct component.ComponentType, name string) (c Instance, err error
 
 // construct and return a slice of a/all component types that have
 // a matching name
-func FindInstances(ct component.ComponentType, name string) (c []Instance) {
-	_, local, r := SplitInstanceName(name, host.ALL)
+func FindInstances(ct *geneos.Component, name string) (c []geneos.Instance) {
+	_, local, r := SplitName(name, host.ALL)
 	if !r.Loaded() {
 		logDebug.Println("remote", r, "not loaded")
 		return
 	}
 
-	if ct == None {
-		for _, t := range component.RealComponents() {
+	if ct == nil {
+		for _, t := range geneos.RealComponents() {
 			c = append(c, FindInstances(t, name)...)
 		}
 		return
@@ -333,7 +330,7 @@ func FindInstances(ct component.ComponentType, name string) (c []Instance) {
 
 	for _, name := range FindNames(r, ct) {
 		// for case insensitive match change to EqualFold here
-		_, ldir, _ := SplitInstanceName(name, host.ALL)
+		_, ldir, _ := SplitName(name, host.ALL)
 		if filepath.Base(ldir) == local {
 			i, err := GetInstance(ct, name)
 			if err != nil {
@@ -348,7 +345,7 @@ func FindInstances(ct component.ComponentType, name string) (c []Instance) {
 
 // Looks for exactly one matching instance across types and remotes
 // returns Invalid Args if zero of more than 1 match
-func FindInstance(ct component.ComponentType, name string) (c Instance, err error) {
+func FindInstance(ct *geneos.Component, name string) (c geneos.Instance, err error) {
 	list := FindInstances(ct, name)
 	if len(list) == 0 {
 		err = os.ErrNotExist
@@ -358,7 +355,7 @@ func FindInstance(ct component.ComponentType, name string) (c Instance, err erro
 		c = list[0]
 		return
 	}
-	err = ErrInvalidArgs
+	err = geneos.ErrInvalidArgs
 	return
 }
 
@@ -367,17 +364,17 @@ func FindInstance(ct component.ComponentType, name string) (c Instance, err erro
 // files, such as gateway setup or netprobe collection agent
 //
 // returns a map
-func GetPorts(r *host.Host) (ports map[int]component.ComponentType) {
-	if r == host.ALLHOSTS {
+func GetPorts(r *host.Host) (ports map[int]*geneos.Component) {
+	if r == host.ALL {
 		logError.Fatalln("getports() call with all remotes")
 	}
-	ports = make(map[int]component.ComponentType)
-	for _, c := range GetInstancesForComponent(r, component.None) {
-		if !getBool(c, "ConfigLoaded") {
+	ports = make(map[int]*geneos.Component)
+	for _, c := range GetInstancesForComponent(r, nil) {
+		if !c.V().GetBool("ConfigLoaded") {
 			log.Println("cannot load configuration for", c)
 			continue
 		}
-		if port := c.V.GetInt(c.Prefix("Port")); port != 0 {
+		if port := c.V().GetInt(c.Prefix("Port")); port != 0 {
 			ports[int(port)] = c.Type()
 		}
 	}
@@ -407,8 +404,8 @@ func GetPorts(r *host.Host) (ports map[int]component.ComponentType) {
 //
 // not concurrency safe at this time
 //
-func NextPort(r *host.Host, ct component.ComponentType) int {
-	from := viper.GetString(components[ct].PortRange)
+func NextPort(r *host.Host, ct *geneos.Component) int {
+	from := viper.GetString(ct.PortRange)
 	used := GetPorts(r)
 	ps := strings.Split(from, ",")
 	for _, p := range ps {
@@ -456,9 +453,9 @@ func NextPort(r *host.Host, ct component.ComponentType) int {
 // return the base package name and the version it links to.
 // if not a link, then return the same
 // follow a limited number of links (10?)
-func ComponentVersion(c Instance) (base string, underlying string, err error) {
-	basedir := getString(c, c.Prefix("Bins"))
-	base = getString(c, c.Prefix("Base"))
+func ComponentVersion(c geneos.Instance) (base string, underlying string, err error) {
+	basedir := c.V().GetString(c.Prefix("Bins"))
+	base = c.V().GetString(c.Prefix("Base"))
 	underlying = base
 	for {
 		basepath := filepath.Join(basedir, underlying)
@@ -484,7 +481,7 @@ func ComponentVersion(c Instance) (base string, underlying string, err error) {
 // given a component type and a slice of args, call the function for each arg
 //
 // try to use go routines here - mutexes required
-func LoopCommand(ct component.ComponentType, fn func(Instance, []string) error, args []string, params []string) (err error) {
+func LoopCommand(ct *geneos.Component, fn func(geneos.Instance, []string) error, args []string, params []string) (err error) {
 	n := 0
 	logDebug.Println("args, params", args, params)
 	for _, name := range args {
@@ -496,7 +493,7 @@ func LoopCommand(ct component.ComponentType, fn func(Instance, []string) error, 
 		}
 		n++
 		for _, c := range cs {
-			if err = fn(c, params); err != nil && !errors.Is(err, os.ErrProcessDone) && !errors.Is(err, ErrNotSupported) {
+			if err = fn(c, params); err != nil && !errors.Is(err, os.ErrProcessDone) && !errors.Is(err, geneos.ErrNotSupported) {
 				log.Println(c, err)
 			}
 		}
@@ -507,14 +504,14 @@ func LoopCommand(ct component.ComponentType, fn func(Instance, []string) error, 
 	return nil
 }
 
-// Return a slice of all instanceNames for a given Component. No
+// Return a slice of all instanceNames for a given geneos. No
 // checking is done to validate that the directory is a populated
 // instance.
 //
-func FindNames(r *host.Host, ct component.ComponentType) (names []string) {
+func FindNames(r *host.Host, ct *geneos.Component) (names []string) {
 	var files []fs.DirEntry
 
-	if r == host.ALLHOSTS {
+	if r == host.ALL {
 		for _, r := range host.AllHosts() {
 			names = append(names, FindNames(r, ct)...)
 		}
@@ -522,8 +519,8 @@ func FindNames(r *host.Host, ct component.ComponentType) (names []string) {
 		return
 	}
 
-	if ct == component.None {
-		for _, t := range component.RealComponents() {
+	if ct == nil {
+		for _, t := range geneos.RealComponents() {
 			// ignore errors, we only care about any files found
 			d, _ := r.ReadDir(t.ComponentDir(r))
 			files = append(files, d...)
@@ -542,11 +539,7 @@ func FindNames(r *host.Host, ct component.ComponentType) (names []string) {
 			continue
 		}
 		if file.IsDir() {
-			if ct == host.Type() {
-				names = append(names, file.Name())
-			} else {
-				names = append(names, file.Name()+"@"+r.String())
-			}
+			names = append(names, file.Name()+"@"+r.String())
 		}
 	}
 	return
@@ -559,47 +552,37 @@ func FindNames(r *host.Host, ct component.ComponentType) (names []string) {
 //
 // not right for FA2 Sans...
 //
-func findInstances(r *host.Host, ct component.ComponentType, k, v string) (insts []Instance) {
-	if ct == component.None {
-		for _, rct := range component.RealComponents() {
+func findInstances(r *host.Host, ct *geneos.Component, k, v string) (insts []geneos.Instance) {
+	if ct == nil {
+		for _, rct := range geneos.RealComponents() {
 			insts = append(insts, findInstances(r, rct, k, v)...)
 		}
 		return
 	}
 
 	// also check for any other component types that have related types
-	for _, rct := range components[ct].RelatedTypes {
+	for _, rct := range ct.RelatedTypes {
 		logDebug.Println(ct, "also matching", rct)
-		insts = append(insts, rct.findInstances(r, k, v)...)
+		insts = append(insts, findInstances(r, rct, k, v)...)
 	}
 
 	for _, i := range GetInstancesForComponent(r, ct) {
-		if !getBool(i, "ConfigLoaded") {
+		if !i.V().GetBool("ConfigLoaded") {
 			log.Println("cannot load configuration for", i)
 			continue
 		}
-		if v == getString(i, i.Prefix(k)) {
+		if v == i.V().GetString(i.Prefix(k)) {
 			insts = append(insts, i)
 		}
 	}
 	return
 }
 
-// given an instance name, split on an '@' and return left and right parts, using
-// "local" as a default
-func splitInstanceName(in string) (name string, remote host.Name) {
-	remote = host.LOCALHOST
-	parts := strings.SplitN(in, "@", 2)
-	name = parts[0]
-	if len(parts) > 1 {
-		remote = host.Name(parts[1])
-	}
-	return
-}
-
-// add an optional component type prefix and colon sep
-//
-func SplitInstanceName(in string, defaultRemote *host.Host) (ct component.ComponentType, name string, r *host.Host) {
+// given an instance name in the format [TYPE:]NAME[@HOST] and a default
+// host, return a *geneos.Component for the TYPE if given, a string
+// for the NAME and a *host.Host - the latter being either from the name
+// or the default provided
+func SplitName(in string, defaultRemote *host.Host) (ct *geneos.Component, name string, r *host.Host) {
 	r = defaultRemote
 	parts := strings.SplitN(in, "@", 2)
 	name = parts[0]
@@ -608,7 +591,7 @@ func SplitInstanceName(in string, defaultRemote *host.Host) (ct component.Compon
 	}
 	parts = strings.SplitN(name, ":", 2)
 	if len(parts) > 1 {
-		ct = component.ParseComponentName(parts[0])
+		ct = geneos.ParseComponentName(parts[0])
 		name = parts[1]
 	}
 	return
@@ -617,17 +600,227 @@ func SplitInstanceName(in string, defaultRemote *host.Host) (ct component.Compon
 // buildCmd gathers the path to the binary, arguments and any environment variables
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers
 // will add more details such as working directories, user and group etc.
-func BuildCmd(c Instance) (cmd *exec.Cmd, env []string) {
-	binary := getString(c, c.Prefix("Exec"))
+func BuildCmd(c geneos.Instance) (cmd *exec.Cmd, env []string) {
+	binary := c.V().GetString(c.Prefix("Exec"))
 
 	args, env := c.Command()
 
-	opts := strings.Fields(getString(c, c.Prefix("Opts")))
+	opts := strings.Fields(c.V().GetString(c.Prefix("Opts")))
 	args = append(args, opts...)
 	// XXX find common envs - JAVA_HOME etc.
-	env = append(env, getSliceStrings(c, "Env")...)
-	env = append(env, "LD_LIBRARY_PATH="+getString(c, c.Prefix("Libs")))
+	env = append(env, c.V().GetStringSlice("Env")...)
+	env = append(env, "LD_LIBRARY_PATH="+c.V().GetString(c.Prefix("Libs")))
 	cmd = exec.Command(binary, args...)
 
 	return
+}
+
+func SetDefaults(c geneos.Instance) (err error) {
+	return
+}
+
+func Clean(c geneos.Instance, purge bool, params []string) (err error) {
+	var stopped bool
+
+	cleanlist := viper.GetString(c.Type().CleanList)
+	purgelist := viper.GetString(c.Type().PurgeList)
+
+	if !purge {
+		if cleanlist != "" {
+			if err = DeletePaths(c, cleanlist); err == nil {
+				logDebug.Println(c, "cleaned")
+			}
+		}
+		return
+	}
+
+	if _, err = GetPID(c); err == os.ErrProcessDone {
+		stopped = false
+	} else if err = Stop(c, false, params); err != nil {
+		return
+	} else {
+		stopped = true
+	}
+
+	if cleanlist != "" {
+		if err = DeletePaths(c, cleanlist); err != nil {
+			return
+		}
+	}
+	if purgelist != "" {
+		if err = DeletePaths(c, purgelist); err != nil {
+			return
+		}
+	}
+	logDebug.Println(c, "fully cleaned")
+	if stopped {
+		err = Start(c, params)
+	}
+	return
+
+}
+
+func Stop(c geneos.Instance, force bool, params []string) (err error) {
+	if !force {
+		err = c.Signal(syscall.SIGTERM)
+		if err == os.ErrProcessDone {
+			return nil
+		}
+
+		if errors.Is(err, syscall.EPERM) {
+			return nil
+		}
+
+		for i := 0; i < 10; i++ {
+			time.Sleep(250 * time.Millisecond)
+			err = c.Signal(syscall.SIGTERM)
+			if err == os.ErrProcessDone {
+				break
+			}
+		}
+
+		if _, err = GetPID(c); err == os.ErrProcessDone {
+			log.Println(c, "stopped")
+			return nil
+		}
+	}
+
+	if err = c.Signal(syscall.SIGKILL); err == os.ErrProcessDone {
+		return nil
+	}
+
+	time.Sleep(250 * time.Millisecond)
+	_, err = GetPID(c)
+	if err == os.ErrProcessDone {
+		log.Println(c, "killed")
+		return nil
+	}
+	return
+
+}
+
+func Start(c geneos.Instance, params []string) (err error) {
+	logDebug.Println(c, params)
+	pid, err := GetPID(c)
+	if err == nil {
+		log.Println(c, "already running with PID", pid)
+		return
+	}
+
+	if IsDisabled(c) {
+		return geneos.ErrDisabled
+	}
+
+	binary := c.V().GetString(c.Prefix("Exec"))
+	if _, err = c.Remote().Stat(binary); err != nil {
+		return fmt.Errorf("%q %w", binary, err)
+	}
+
+	cmd, env := BuildCmd(c)
+	if cmd == nil {
+		return fmt.Errorf("buildCommand returned nil")
+	}
+
+	if !utils.CanControl(c.V().GetString(c.Prefix("User"))) {
+		return os.ErrPermission
+	}
+
+	// set underlying user for child proc
+	username := c.V().GetString(c.Prefix("User"))
+	errfile := ConfigPathWithExt(c, "txt")
+
+	if c.Remote() != host.LOCAL {
+		r := c.Remote()
+		rUsername := r.V().GetString("Username")
+		if rUsername != username {
+			return fmt.Errorf("cannot run remote process as a different user (%q != %q)", rUsername, username)
+		}
+		rem, err := r.Dial()
+		if err != nil {
+			return err
+		}
+		sess, err := rem.NewSession()
+		if err != nil {
+			return err
+		}
+
+		// we have to convert cmd to a string ourselves as we have to quote any args
+		// with spaces (like "Demo Gateway")
+		//
+		// given this is sent to a shell, we can quote everything blindly ?
+		var cmdstr = ""
+		for _, a := range cmd.Args {
+			cmdstr = fmt.Sprintf("%s %q", cmdstr, a)
+		}
+		pipe, err := sess.StdinPipe()
+		if err != nil {
+			return err
+		}
+
+		if err = sess.Shell(); err != nil {
+			return err
+		}
+		fmt.Fprintln(pipe, "cd", c.Home())
+		for _, e := range env {
+			fmt.Fprintln(pipe, "export", e)
+		}
+		fmt.Fprintf(pipe, "%s > %q 2>&1 &", cmdstr, errfile)
+		fmt.Fprintln(pipe, "exit")
+		sess.Close()
+		// wait a short while for remote to catch-up
+		time.Sleep(250 * time.Millisecond)
+
+		pid, err := GetPID(c)
+		if err != nil {
+			return err
+		}
+		log.Println(c, "started with PID", pid)
+		return nil
+	}
+
+	// pass possibly empty string down to setuser - it handles defaults
+	if err = utils.SetUser(cmd, username); err != nil {
+		return
+	}
+
+	cmd.Env = append(os.Environ(), env...)
+
+	out, err := os.OpenFile(errfile, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	// if we've set-up privs at all, set the redirection output file to the same
+	if cmd.SysProcAttr != nil && cmd.SysProcAttr.Credential != nil {
+		if err = out.Chown(int(cmd.SysProcAttr.Credential.Uid), int(cmd.SysProcAttr.Credential.Gid)); err != nil {
+			log.Println("chown:", err)
+		}
+	}
+	cmd.Stdout = out
+	cmd.Stderr = out
+	cmd.Dir = c.Home()
+	// detach process by creating a session (fixed start + log)
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setsid = true
+
+	if err = cmd.Start(); err != nil {
+		return
+	}
+	log.Println(c, "started with PID", cmd.Process.Pid)
+	if cmd.Process != nil {
+		// detach from control
+		cmd.Process.Release()
+	}
+
+	return
+}
+
+func IsDisabled(c geneos.Instance) bool {
+	d := ConfigPathWithExt(c, geneos.DisableExtension)
+	if f, err := c.Remote().Stat(d); err == nil && f.St.Mode().IsRegular() {
+		return true
+	}
+	return false
 }

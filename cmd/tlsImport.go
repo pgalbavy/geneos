@@ -27,10 +27,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
@@ -78,14 +79,14 @@ func TLSImport(sources ...string) (err error) {
 
 	// save certs and keys into memory, then check certs for root / etc.
 	// and then validate private keys against certs before saving
-	// nything to disk
+	// anything to disk
 	var certs []*x509.Certificate
 	var keys []*rsa.PrivateKey
 	var f []byte
 
 	for _, source := range sources {
 		logDebug.Println("importing", source)
-		if f, err = component.ReadLocalFileOrURL(source); err != nil {
+		if f, err = geneos.ReadLocalFileOrURL(source); err != nil {
 			logError.Println(err)
 			err = nil
 			continue
@@ -124,11 +125,11 @@ func TLSImport(sources ...string) (err error) {
 		if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
 			// root cert
 			title = "root"
-			prefix = rootCAFile
+			prefix = geneos.RootCAFile
 		} else {
 			// signing cert
 			title = "signing"
-			prefix = signingCertFile
+			prefix = geneos.SigningCertFile
 		}
 		i, err := matchKey(cert, keys)
 		if err != nil {
@@ -144,15 +145,24 @@ func TLSImport(sources ...string) (err error) {
 			keys = keys[:i]
 		}
 
-		if err = writeCert(host.LOCAL, filepath.Join(tlsPath, prefix+".pem"), cert); err != nil {
+		if err = host.LOCAL.WriteCert(filepath.Join(tlsPath, prefix+".pem"), cert); err != nil {
 			return err
 		}
 		log.Printf("imported %s certificate to %q", title, filepath.Join(tlsPath, prefix+".pem"))
-		if err = writeKey(host.LOCAL, filepath.Join(tlsPath, prefix+".key"), key); err != nil {
+		if err = host.LOCAL.WriteKey(filepath.Join(tlsPath, prefix+".key"), key); err != nil {
 			return err
 		}
 		log.Printf("imported %s RSA private key to %q", title, filepath.Join(tlsPath, prefix+".pem"))
 	}
 
 	return
+}
+
+func matchKey(cert *x509.Certificate, keys []*rsa.PrivateKey) (index int, err error) {
+	for i, key := range keys {
+		if key.PublicKey.Equal(cert.PublicKey) {
+			return i, nil
+		}
+	}
+	return -1, os.ErrNotExist
 }

@@ -22,14 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -52,45 +48,10 @@ func init() {
 
 var stopCmdKill bool
 
-func commandStop(ct component.ComponentType, args []string, params []string) (err error) {
+func commandStop(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, stopInstance, args, params)
 }
 
-func stopInstance(c instance.Instance, params []string) (err error) {
-	if !stopCmdKill {
-		err = c.Signal(syscall.SIGTERM)
-		if err == os.ErrProcessDone {
-			return nil
-		}
-
-		if errors.Is(err, syscall.EPERM) {
-			return nil
-		}
-
-		for i := 0; i < 10; i++ {
-			time.Sleep(250 * time.Millisecond)
-			err = c.Signal(syscall.SIGTERM)
-			if err == os.ErrProcessDone {
-				break
-			}
-		}
-
-		if _, err = instance.GetPID(c); err == os.ErrProcessDone {
-			log.Println(c, "stopped")
-			return nil
-		}
-	}
-
-	if err = c.Signal(syscall.SIGKILL); err == os.ErrProcessDone {
-		return nil
-	}
-
-	time.Sleep(250 * time.Millisecond)
-	_, err = instance.GetPID(c)
-	if err == os.ErrProcessDone {
-		log.Println(c, "killed")
-		return nil
-	}
-	return
-
+func stopInstance(c geneos.Instance, params []string) error {
+	return instance.Stop(c, stopCmdKill, params)
 }

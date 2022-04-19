@@ -5,12 +5,27 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const Licd component.ComponentType = "licd"
+var Licd geneos.Component = geneos.Component{
+	Name:             "licd",
+	RelatedTypes:     nil,
+	ComponentMatches: []string{"licd", "licds"},
+	RealComponent:    true,
+	DownloadBase:     "Licence+Daemon",
+	PortRange:        "LicdPortRange",
+	CleanList:        "LicdCleanList",
+	PurgeList:        "LicdPurgeList",
+	DefaultSettings: map[string]string{
+		"LicdPortRange": "7041,7100-",
+		"LicdCleanList": "*.old",
+		"LicdPurgeList": "licd.log:licd.txt",
+	},
+}
 
 type Licds struct {
 	instance.Instance
@@ -31,22 +46,7 @@ type Licds struct {
 }
 
 func init() {
-	component.RegisterComponent(component.Components{
-		New:              NewLicd,
-		ComponentType:    Licd,
-		RelatedTypes:     nil,
-		ComponentMatches: []string{"licd", "licds"},
-		RealComponent:    true,
-		DownloadBase:     "Licence+Daemon",
-		PortRange:        "LicdPortRange",
-		CleanList:        "LicdCleanList",
-		PurgeList:        "LicdPurgeList",
-		DefaultSettings: map[string]string{
-			"LicdPortRange": "7041,7100-",
-			"LicdCleanList": "*.old",
-			"LicdPurgeList": "licd.log:licd.txt",
-		},
-	})
+	geneos.RegisterComponent(&Licd, New)
 	Licd.RegisterDirs([]string{
 		"packages/licd",
 		"licd/licds",
@@ -55,8 +55,8 @@ func init() {
 
 var licds sync.Map
 
-func NewLicd(name string) interface{} {
-	_, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	_, local, r := instance.SplitName(name, host.LOCAL)
 	l, ok := licds.Load(r.FullName(local))
 	if ok {
 		lc, ok := l.(*Licds)
@@ -65,15 +65,15 @@ func NewLicd(name string) interface{} {
 		}
 	}
 	c := &Licds{}
-	c.V = viper.New()
+	c.Conf = viper.New()
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = Licd.String()
+	c.Component = &Licd
 	c.InstanceName = local
-	if err := setDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = host.Name(r.String())
+	c.InstanceHost = host.Name(r.String())
 	licds.Store(r.FullName(local), c)
 	return c
 }
@@ -81,8 +81,8 @@ func NewLicd(name string) interface{} {
 // interface method set
 
 // Return the Component for an Instance
-func (l *Licds) Type() component.ComponentType {
-	return component.ParseComponentName(l.InstanceType)
+func (l *Licds) Type() *geneos.Component {
+	return l.Component
 }
 
 func (l *Licds) Name() string {
@@ -90,7 +90,7 @@ func (l *Licds) Name() string {
 }
 
 func (l *Licds) Location() host.Name {
-	return l.InstanceLocation
+	return l.InstanceHost
 }
 
 func (l *Licds) Home() string {
@@ -117,7 +117,7 @@ func (l *Licds) Load() (err error) {
 	if l.ConfigLoaded {
 		return
 	}
-	err = loadConfig(l)
+	err = instance.LoadConfig(l)
 	l.ConfigLoaded = err == nil
 	return
 }
@@ -133,24 +133,24 @@ func (l *Licds) Loaded() bool {
 }
 
 func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
-	l.LicdPort = instance.NextPort(l.InstanceRemote, Licd)
+	l.LicdPort = instance.NextPort(l.InstanceRemote, &Licd)
 	l.LicdUser = username
 
-	if err = writeInstanceConfig(l); err != nil {
-		logError.Fatalln(err)
+	if err = instance.WriteConfig(l); err != nil {
+		logger.Error.Fatalln(err)
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(Licd, []string{l.Name()}, params); err != nil {
-			return
-		}
-		l.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(Licd, []string{l.Name()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	l.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(l); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(l); err != nil {
 			return
 		}
 	}
@@ -178,9 +178,9 @@ func (l *Licds) Command() (args, env []string) {
 }
 
 func (l *Licds) Reload(params []string) (err error) {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
 
 func (l *Licds) Rebuild(initial bool) error {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }

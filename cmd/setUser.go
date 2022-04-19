@@ -23,6 +23,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -39,4 +41,9 @@ var setUserCmd = &cobra.Command{
 
 func init() {
 	setCmd.AddCommand(setUserCmd)
+}
+
+func commandSetUser() error {
+	userConfDir, _ := os.UserConfigDir()
+	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), []string{})
 }

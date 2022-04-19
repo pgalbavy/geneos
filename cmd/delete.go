@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -59,20 +59,20 @@ func init() {
 
 var deleteCmdForce bool
 
-func commandDelete(ct component.ComponentType, args []string, params []string) (err error) {
+func commandDelete(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, deleteInstance, args, params)
 }
 
-func deleteInstance(c instance.Instance, params []string) (err error) {
+func deleteInstance(c geneos.Instance, params []string) (err error) {
 	if deleteCmdForce {
-		if components[c.Type()].RealComponent {
-			if err = stopInstance(c, nil); err != nil {
+		if c.Type().RealComponent {
+			if err = instance.Stop(c, false, nil); err != nil {
 				return
 			}
 		}
 	}
 
-	if deleteCmdForce || IsDisabled(c) {
+	if deleteCmdForce || instance.IsDisabled(c) {
 		if err = c.Remote().RemoveAll(c.Home()); err != nil {
 			return
 		}

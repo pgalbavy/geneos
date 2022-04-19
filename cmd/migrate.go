@@ -22,12 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -56,40 +54,13 @@ func init() {
 	// migrateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func commandMigrate(ct component.ComponentType, names []string, params []string) (err error) {
+func commandMigrate(ct *geneos.Component, names []string, params []string) (err error) {
 	return instance.LoopCommand(ct, migrateInstance, names, params)
 }
 
-func migrateInstance(c instance.Instance, params []string) (err error) {
-	if err = migrateConfig(c); err != nil {
+func migrateInstance(c geneos.Instance, params []string) (err error) {
+	if err = instance.Migrate(c); err != nil {
 		log.Println(c, "cannot migrate configuration", err)
 	}
-	return
-}
-
-// migrate config from .rc to .json, but check first
-func migrateConfig(c instance.Instance) (err error) {
-	// if no .rc, return
-	if _, err = c.Remote().Stat(instance.ConfigPathWithExt(c, "rc")); errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-
-	// if .json exists, return
-	if _, err = c.Remote().Stat(instance.ConfigPathWithExt(c, "json")); err == nil {
-		return nil
-	}
-
-	// write new .json
-	if err = writeInstanceConfig(c); err != nil {
-		logError.Println("failed to write config file:", err)
-		return
-	}
-
-	// back-up .rc
-	if err = c.Remote().Rename(instance.ConfigPathWithExt(c, "rc"), instance.ConfigPathWithExt(c, "rc.orig")); err != nil {
-		logError.Println("failed to rename old config:", err)
-	}
-
-	logDebug.Printf("migrated %s to JSON config", c)
 	return
 }

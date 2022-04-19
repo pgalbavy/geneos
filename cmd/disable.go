@@ -27,7 +27,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 	"wonderland.org/geneos/internal/utils"
 )
@@ -46,27 +46,25 @@ func init() {
 	rootCmd.AddCommand(disableCmd)
 }
 
-const disableExtension = "disabled"
-
-func commandDisable(ct component.ComponentType, args []string, params []string) (err error) {
+func commandDisable(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, disableInstance, args, params)
 }
 
-func disableInstance(c instance.Instance, params []string) (err error) {
-	if IsDisabled(c) {
+func disableInstance(c geneos.Instance, params []string) (err error) {
+	if instance.IsDisabled(c) {
 		return nil
 	}
 
-	uid, gid, _, err := utils.GetUser(c.V.GetString(c.Prefix("User")))
+	uid, gid, _, err := utils.GetUser(c.V().GetString(c.Prefix("User")))
 	if err != nil {
 		return
 	}
 
-	if err = stopInstance(c, params); err != nil && !errors.Is(err, os.ErrProcessDone) {
+	if err = instance.Stop(c, false, params); err != nil && !errors.Is(err, os.ErrProcessDone) {
 		return
 	}
 
-	disablePath := instance.ConfigPathWithExt(c, disableExtension)
+	disablePath := instance.ConfigPathWithExt(c, geneos.DisableExtension)
 
 	f, err := c.Remote().Create(disablePath, 0664)
 	if err != nil {
@@ -78,12 +76,4 @@ func disableInstance(c instance.Instance, params []string) (err error) {
 	}
 
 	return
-}
-
-func IsDisabled(c instance.Instance) bool {
-	d := instance.ConfigPathWithExt(c, disableExtension)
-	if f, err := c.Remote().Stat(d); err == nil && f.St.Mode().IsRegular() {
-		return true
-	}
-	return false
 }

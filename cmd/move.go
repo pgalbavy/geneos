@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -54,7 +54,7 @@ func init() {
 
 // XXX add more wildcard support - src = @remote for all instances, auto
 // component type loops etc.
-func commandMove(ct component.ComponentType, args []string, params []string) (err error) {
+func commandMove(ct *geneos.Component, args []string, params []string) (err error) {
 	if len(args) != 2 {
 		return ErrInvalidArgs
 	}

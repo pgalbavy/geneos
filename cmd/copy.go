@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -56,7 +56,7 @@ func init() {
 // gateway standby instance copy
 // distribute common config netprobe across multiple remotes
 // also create remotes as required?
-func commandCopy(ct component.ComponentType, args []string, params []string) (err error) {
+func commandCopy(ct *geneos.Component, args []string, params []string) (err error) {
 	if len(args) != 2 {
 		return ErrInvalidArgs
 	}

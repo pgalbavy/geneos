@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/host"
 )
 
 // showGlobalCmd represents the showGlobal command
@@ -54,4 +55,11 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// showGlobalCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func commandShowGlobal() {
+	var c interface{}
+	host.ReadLocalConfigFile("/etc/geneos/geneos.json", &c)
+	printConfigJSON(c)
+	return
 }

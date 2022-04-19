@@ -80,7 +80,7 @@ func TLSInit() (err error) {
 	}
 
 	// concatenate a chain
-	if err = writeCerts(host.LOCAL, filepath.Join(tlsPath, "chain.pem"), rootCert, interCert); err != nil {
+	if err = host.LOCAL.WriteCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, interCert); err != nil {
 		logError.Fatalln(err)
 	}
 	log.Println("created chain.pem")

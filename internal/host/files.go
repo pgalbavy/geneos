@@ -2,7 +2,10 @@ package host
 
 import (
 	"bytes"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/fs"
@@ -36,7 +39,7 @@ var (
 // try to be atomic, lots of edge cases, UNIX/Linux only
 // we know the size of config structs is typicall small, so just marshal
 // in memory
-func (h *Host) writeConfigFile(file string, username string, perms fs.FileMode, config interface{}) (err error) {
+func (h *Host) WriteConfigFile(file string, username string, perms fs.FileMode, config interface{}) (err error) {
 	j, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return
@@ -502,4 +505,79 @@ func CleanRelativePath(path string) (clean string, err error) {
 	}
 
 	return
+}
+
+// read a PEM encoded RSA private key from path. returns the first found as
+// a parsed key
+func (r *Host) ReadKey(path string) (key *rsa.PrivateKey, err error) {
+	keyPEM, err := r.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	for {
+		p, rest := pem.Decode(keyPEM)
+		if p == nil {
+			return nil, fmt.Errorf("cannot locate RSA private key in %s", path)
+		}
+		if p.Type == "RSA PRIVATE KEY" {
+			return x509.ParsePKCS1PrivateKey(p.Bytes)
+		}
+		keyPEM = rest
+	}
+}
+
+// write a private key as PEM to path. sets file permissions to 0600 (before umask)
+func (r *Host) WriteKey(path string, key *rsa.PrivateKey) (err error) {
+	logDebug.Println("write key to", path)
+	keyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	})
+
+	return r.WriteFile(path, keyPEM, 0600)
+}
+
+// read a PEM encoded cert from path, return the first found as a parsed certificate
+func (r *Host) ReadCert(path string) (cert *x509.Certificate, err error) {
+	certPEM, err := r.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	for {
+		p, rest := pem.Decode(certPEM)
+		if p == nil {
+			return nil, fmt.Errorf("cannot locate certificate in %s", path)
+		}
+		if p.Type == "CERTIFICATE" {
+			return x509.ParseCertificate(p.Bytes)
+		}
+		certPEM = rest
+	}
+}
+
+// write cert as PEM to path
+func (r *Host) WriteCert(path string, cert *x509.Certificate) (err error) {
+	logDebug.Println("write cert to", path)
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	})
+
+	return r.WriteFile(path, certPEM, 0644)
+}
+
+// concatenate certs and write to path
+func (r *Host) WriteCerts(path string, certs ...*x509.Certificate) (err error) {
+	logDebug.Println("write certs to", path)
+	var certsPEM []byte
+	for _, cert := range certs {
+		p := pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})
+		certsPEM = append(certsPEM, p...)
+	}
+	return r.WriteFile(path, certsPEM, 0644)
 }

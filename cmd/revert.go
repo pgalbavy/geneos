@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"wonderland.org/geneos/internal/component"
+	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -56,11 +56,11 @@ func init() {
 	// revertCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func commandRevert(ct component.ComponentType, names []string, params []string) (err error) {
+func commandRevert(ct *geneos.Component, names []string, params []string) (err error) {
 	return instance.LoopCommand(ct, revertInstance, names, params)
 }
 
-func revertInstance(c instance.Instance, params []string) (err error) {
+func revertInstance(c geneos.Instance, params []string) (err error) {
 	// if *.rc file exists, remove rc.orig+JSON, continue
 	if _, err := c.Remote().Stat(instance.ConfigPathWithExt(c, "rc")); err == nil {
 		// ignore errors

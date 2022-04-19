@@ -6,12 +6,27 @@ import (
 	"strconv"
 	"sync"
 
-	"wonderland.org/geneos/internal/component"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
+	"wonderland.org/geneos/pkg/logger"
 )
 
-const Webserver component.ComponentType = "webserver"
+var Webserver geneos.Component = geneos.Component{
+	Name:             "webserver",
+	RelatedTypes:     nil,
+	ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
+	RealComponent:    true,
+	DownloadBase:     "Web+Dashboard",
+	PortRange:        "WebserverPortRange",
+	CleanList:        "WebserverCleanList",
+	PurgeList:        "WebserverPurgeList",
+	DefaultSettings: map[string]string{
+		"WebserverPortRange": "8080,8100-",
+		"WebserverCleanList": "*.old",
+		"WebserverPurgeList": "logs/*.log:webserver.txt",
+	},
+}
 
 type Webservers struct {
 	instance.Instance
@@ -34,22 +49,7 @@ type Webservers struct {
 }
 
 func init() {
-	component.RegisterComponent(component.Components{
-		New:              NewWebserver,
-		ComponentType:    Webserver,
-		RelatedTypes:     nil,
-		ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
-		RealComponent:    true,
-		DownloadBase:     "Web+Dashboard",
-		PortRange:        "WebserverPortRange",
-		CleanList:        "WebserverCleanList",
-		PurgeList:        "WebserverPurgeList",
-		DefaultSettings: map[string]string{
-			"WebserverPortRange": "8080,8100-",
-			"WebserverCleanList": "*.old",
-			"WebserverPurgeList": "logs/*.log:webserver.txt",
-		},
-	})
+	geneos.RegisterComponent(&Webserver, New)
 	Webserver.RegisterDirs([]string{
 		"packages/webserver",
 		"webserver/webservers",
@@ -58,8 +58,8 @@ func init() {
 
 var webservers sync.Map
 
-func NewWebserver(name string) interface{} {
-	_, local, r := instance.SplitInstanceName(name, host.LOCAL)
+func New(name string) geneos.Instance {
+	_, local, r := instance.SplitName(name, host.LOCAL)
 	w, ok := webservers.Load(r.FullName(local))
 	if ok {
 		ws, ok := w.(*Webservers)
@@ -70,12 +70,12 @@ func NewWebserver(name string) interface{} {
 	c := &Webservers{}
 	c.InstanceRemote = r
 	c.RemoteRoot = r.GeneosRoot()
-	c.InstanceType = Webserver.String()
+	c.Component = &Webserver
 	c.InstanceName = local
-	if err := setDefaults(&c); err != nil {
-		logError.Fatalln(c, "setDefaults():", err)
+	if err := instance.SetDefaults(c); err != nil {
+		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceLocation = host.Name(r.String())
+	c.InstanceHost = host.Name(r.String())
 	webservers.Store(r.FullName(local), c)
 	return c
 }
@@ -98,8 +98,8 @@ var webserverFiles = []string{
 // interface method set
 
 // Return the Component for an Instance
-func (w *Webservers) Type() component.ComponentType {
-	return component.ParseComponentName(w.InstanceType)
+func (w *Webservers) Type() *geneos.Component {
+	return w.Component
 }
 
 func (w *Webservers) Name() string {
@@ -107,7 +107,7 @@ func (w *Webservers) Name() string {
 }
 
 func (w *Webservers) Location() host.Name {
-	return w.InstanceLocation
+	return w.InstanceHost
 }
 
 func (w *Webservers) Home() string {
@@ -134,7 +134,7 @@ func (w *Webservers) Load() (err error) {
 	if w.ConfigLoaded {
 		return
 	}
-	err = loadConfig(w)
+	err = instance.LoadConfig(w)
 	w.ConfigLoaded = err == nil
 	return
 }
@@ -150,24 +150,24 @@ func (w *Webservers) Loaded() bool {
 }
 
 func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
-	w.WebsPort = instance.NextPort(w.InstanceRemote, Webserver)
+	w.WebsPort = instance.NextPort(w.InstanceRemote, &Webserver)
 	w.WebsUser = username
 
-	if err = writeInstanceConfig(w); err != nil {
+	if err = instance.WriteConfig(w); err != nil {
 		return
 	}
 
 	// apply any extra args to settings
-	if len(params) > 0 {
-		if err = commandSet(Webserver, []string{w.Name()}, params); err != nil {
-			return
-		}
-		w.Load()
-	}
+	// if len(params) > 0 {
+	// 	if err = commandSet(Webserver, []string{w.Name()}, params); err != nil {
+	// 		return
+	// 	}
+	// 	w.Load()
+	// }
 
 	// check tls config, create certs if found
-	if _, err = readSigningCert(); err == nil {
-		if err = createInstanceCert(w); err != nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
+		if err = instance.CreateCert(w); err != nil {
 			return
 		}
 	}
@@ -185,7 +185,7 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 	}
 
 	for _, source := range webserverFiles {
-		if err = importFile(w.Remote(), w.Home(), w.V.GetString(w.Prefix("User")), source); err != nil {
+		if err = instance.ImportFile(w.Remote(), w.Home(), w.V().GetString(w.Prefix("User")), source); err != nil {
 			return
 		}
 	}
@@ -194,7 +194,7 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 }
 
 func (w *Webservers) Rebuild(initial bool) error {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
 
 func (w *Webservers) Command() (args, env []string) {
@@ -234,5 +234,5 @@ func (w *Webservers) Command() (args, env []string) {
 }
 
 func (w *Webservers) Reload(params []string) (err error) {
-	return ErrNotSupported
+	return geneos.ErrNotSupported
 }
