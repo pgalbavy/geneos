@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -35,8 +33,12 @@ var migrateCmd = &cobra.Command{
 	Short: "Migrate legacy .rc configuration to .json",
 	Long: `Migrate any legacy .rc configuration files to JSON format and
 	rename the .rc file to .rc.orig.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("migrate called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandMigrate(ct, args, params)
 	},
 }
 

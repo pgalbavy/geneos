@@ -22,15 +22,14 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
 // showGlobalCmd represents the showGlobal command
 var showGlobalCmd = &cobra.Command{
-	Use:   "showGlobal",
+	Use:   "global",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -38,26 +37,20 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("showGlobal called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandShowGlobal(ct, args, params)
 	},
 }
 
 func init() {
 	showCmd.AddCommand(showGlobalCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// showGlobalCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// showGlobalCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func commandShowGlobal() {
+func commandShowGlobal(ct *geneos.Component, args, params []string) (err error) {
 	var c interface{}
 	host.ReadLocalConfigFile("/etc/geneos/geneos.json", &c)
 	printConfigJSON(c)

@@ -22,7 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -43,8 +42,12 @@ var editCmd = &cobra.Command{
 		VISUAL=code geneos edit user
 	
 	will open a VS Code editor window for the user configuration file.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("edit called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandEdit(ct, args, params)
 	},
 }
 

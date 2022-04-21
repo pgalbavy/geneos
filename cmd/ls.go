@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -40,13 +39,10 @@ var lsCmd = &cobra.Command{
 	Short: "List instances, optionally in CSV or JSON format",
 	Long:  `List the matching instances and their component type.`,
 	Annotations: map[string]string{
-		"Wildcard": "true",
+		"wildcard": "true",
 	},
-
-	Run: func(cmd *cobra.Command, args []string) {
-		ct := geneos.ParseComponentName(cmd.Annotations["ct"])
-		args = strings.Split(cmd.Annotations["args"], ",")
-		params := strings.Split(cmd.Annotations["params"], ",")
+	Run: func(cmd *cobra.Command, _ []string) {
+		ct, args, params := processArgs(cmd)
 		commandLS(ct, args, params)
 	},
 }

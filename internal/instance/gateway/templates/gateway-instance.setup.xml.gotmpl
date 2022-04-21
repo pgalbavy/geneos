@@ -3,21 +3,21 @@
     <!-- DO NOT EDIT THIS INCLUDE FILE, IT IS AUTOMATICALLY BUILT BY THE 'geneos' COMMAND -->
 	<operatingEnvironment>
 		<var name="_InstanceName">
-			<string>{{.InstanceName}}</string>
+			<string>{{.instancename}}</string>
 		</var>
 		<var name="_GeneosHome">
-			<string>{{.RemoteRoot}}</string>
+			<string>{{.remoteroot}}</string>
 		</var>
 		<var name="_GatewayHome">
-			<string>{{.GateHome}}</string>
+			<string>{{.gatehome}}</string>
 		</var>
 		<var name="_GatewayBase">
-			<string>{{.GateBase}}</string>
+			<string>{{.gatebase}}</string>
 		</var>
 		<var name="_GatewayLog">
-			<string>{{$dir := first .GateLogD .GateHome}}{{join $dir .GateLogF}}</string>
+			<string>{{$dir := first .gatelogd .gatehome}}{{join $dir .gatelogf}}</string>
 		</var>
-		{{range $key, $value := .Env -}}
+		{{range $key, $value := .env -}}
 		<var name="_{{keyOf $value "="}}">
 			<string>{{valueOf $value "="}}</string>
 		</var>

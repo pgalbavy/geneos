@@ -70,8 +70,16 @@ var initCmd = &cobra.Command{
 	
 	Any PARAMS provided are passed to the 'add' command called for
 	components created.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("init called")
+	Annotations: map[string]string{
+		"wildcard":      "false",
+		"componentonly": "false",
+	},
+	Run: func(cmd *cobra.Command, _ []string) {
+		// ct := geneos.ParseComponentName(cmd.Annotations["ct"])
+		// newargs := strings.Split(cmd.Annotations["args"], ",")
+		// params := strings.Split(cmd.Annotations["params"], ",")
+		ct, args, params := processArgs(cmd)
+		commandInit(ct, args, params)
 	},
 }
 
@@ -107,15 +115,15 @@ var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, in
 // XXX Call any registered initialiser funcs from components
 //
 func commandInit(ct *geneos.Component, args []string, params []string) (err error) {
+	logDebug.Println(ct, args, params)
 	// none of the arguments can be a reserved type
 	if ct != nil {
+		logError.Println(ErrInvalidArgs, ct)
 		return ErrInvalidArgs
 	}
 
-	f := initCmd.Flags()
-
 	// rewrite local templates and exit
-	if t, _ := f.GetBool("templates"); t {
+	if initCmdTemplates {
 		gatewayTemplates := host.LOCAL.GeneosPath(gateway.Gateway.String(), "templates")
 		host.LOCAL.MkdirAll(gatewayTemplates, 0775)
 		tmpl := gateway.GatewayTemplate
@@ -163,6 +171,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		return fmt.Errorf("%w: Only one of -A, -D, -S or -T can be given", ErrInvalidArgs)
 	}
 
+	logDebug.Println(args)
 	if err = geneos.Init(host.LOCAL, args); err != nil {
 		logError.Fatalln(err)
 	}
@@ -201,9 +210,6 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 	}
 
 	r := host.LOCAL
-
-	geneos.Init(r, args)
-
 	e := []string{}
 	// rem := []string{"@" + r.String()}
 

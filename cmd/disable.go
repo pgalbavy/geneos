@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -37,8 +36,12 @@ var disableCmd = &cobra.Command{
 	Use:   "disable [TYPE] [NAME...]",
 	Short: "Stop and disable matching instances",
 	Long:  `Mark any matching instances as disabled. The instances are also stopped.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("disable called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandDisable(ct, args, params)
 	},
 }
 

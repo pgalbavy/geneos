@@ -3,7 +3,6 @@ package instance
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,10 +29,12 @@ func valueOf(s string, sep string) string {
 	return ""
 }
 
-func first(d ...string) string {
-	for _, s := range d {
-		if s != "" {
-			return s
+func first(d ...interface{}) string {
+	for _, f := range d {
+		if s, ok := f.(string); ok {
+			if s != "" {
+				return s
+			}
 		}
 	}
 	return ""
@@ -54,8 +55,9 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 	var out io.WriteCloser
 	// var t *template.Template
 
-	t := template.New("").Funcs(fnmap)
+	t := template.New("").Funcs(fnmap).Option("missingkey=zero")
 	if t, err = t.ParseGlob(c.Remote().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
+		t = template.New(name).Funcs(fnmap).Option("missingkey=zero")
 		// if there are no templates, use internal as a fallback
 		log.Printf("No templates found in %s, using internal defaults", c.Remote().GeneosPath(c.Type().String(), "templates"))
 		t = template.Must(t.Parse(string(defaultTemplate)))
@@ -69,7 +71,13 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 	}
 	defer out.Close()
 
-	if err = t.ExecuteTemplate(out, name, c); err != nil {
+	// m := make(map[string]string)
+	m := c.V().AllSettings()
+	m["remoteroot"] = c.Remote().V().GetString("geneos")
+	m["instancename"] = c.Name()
+	// m["env"] =
+
+	if err = t.ExecuteTemplate(out, name, m); err != nil {
 		log.Println("Cannot create configuration from template(s):", err)
 		return err
 	}
@@ -84,25 +92,9 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 //
 // error check core values - e.g. Name
 func LoadConfig(c geneos.Instance) (err error) {
-	j := ConfigPathWithExt(c, "json")
-
-	var n Instance
-	var jsonFile []byte
-	if jsonFile, err = c.Remote().ReadConfigFile(j, &n); err == nil {
-		// validate base here
-		if c.Name() != n.InstanceName {
-			logError.Println(c, "inconsistent configuration file contents:", j)
-			return geneos.ErrInvalidArgs
-		}
-		//if we validate then Unmarshal same file over existing instance
-		if err = json.Unmarshal(jsonFile, &c); err == nil {
-			if c.Home() != filepath.Dir(j) {
-				logError.Printf("%s has a configured home directory different to real location: %q != %q", c, filepath.Dir(j), c.Home())
-				return geneos.ErrInvalidArgs
-			}
-			// return if no error, else drop through
-			return
-		}
+	if err = ReadConfig(c); err == nil {
+		// XXX validation of paths in case people move configs
+		return
 	}
 
 	return readRCConfig(c)
@@ -169,12 +161,12 @@ func ConfigPathWithExt(c geneos.Instance, extension string) (path string) {
 
 func WriteConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
+	c.Remote().MkdirAll(filepath.Dir(file), 0775)
 	return c.V().WriteConfigAs(file)
 }
 
 func ReadConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
-	logDebug.Println(file)
 	c.V().SetConfigFile(file)
 	return c.V().MergeInConfig()
 }

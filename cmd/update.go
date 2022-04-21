@@ -22,9 +22,11 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
+	"errors"
+	"os"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
@@ -51,14 +53,32 @@ var updateCmd = &cobra.Command{
 	directory starts 'GA' it will be selected over a directory with the
 	same numerical versions. All other directories name formats will
 	result in unexpected behaviour.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("update called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandUpdate(ct, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
 
-	updateCmd.Flags().StringP("base", "b", "active_prod", "Override the base active_prod link name")
-	updateCmd.Flags().StringP("remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" - the default - means all remotes and locally")
+	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Override the base active_prod link name")
+	updateCmd.Flags().StringVarP(&cmdUpdateRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" - the default - means all remotes and locally")
+}
+
+var cmdUpdateBase, cmdUpdateRemote string
+
+func commandUpdate(ct *geneos.Component, args []string, params []string) (err error) {
+	version := "latest"
+	if len(args) > 0 {
+		version = args[0]
+	}
+	r := host.GetRemote(host.Name(cmdUpdateRemote))
+	if err = geneos.UpdateToVersion(r, ct, version, cmdUpdateBase, true); err != nil && errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return
 }

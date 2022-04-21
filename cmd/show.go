@@ -23,9 +23,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
@@ -53,14 +51,12 @@ var showCmd = &cobra.Command{
 	
 	Passwords and secrets are redacted in a very simplistic manner simply
 	to prevent visibility in casual viewing.`,
-	Annotations: make(map[string]string),
-
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("show called")
-		ct := geneos.ParseComponentName(cmd.Annotations["ct"])
-		newargs := strings.Split(cmd.Annotations["args"], ",")
-		params := strings.Split(cmd.Annotations["params"], ",")
-		commandShow(ct, newargs, params)
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandShow(ct, args, params)
 	},
 }
 

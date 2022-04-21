@@ -59,8 +59,42 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Annotations: make(map[string]string),
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
+		// check initialisation
+		geneosdir := viper.GetString("geneos")
+		if geneosdir == "" {
+			// only allow init through
+			if cmd != initCmd {
+				cmd.SetUsageTemplate(" ")
+				return fmt.Errorf("%s", `Installation directory is not set.
+
+You can fix this by doing one of the following:
+
+1. Create a new Geneos environment:
+
+	$ geneos init
+
+	or, if not in your home directory:
+
+	$ geneos init /path/to/geneos
+
+2. Set the ITRS_HOME environment:
+
+	$ export ITRS_HOME=/path/to/geneos
+
+3. Set the Geneos path in your user's configuration file:
+
+	$ geneos set user Geneos=/path/to/geneos
+
+3. Set the Geneos path in the global configuration file (usually as root):
+
+	# echo '{ "Geneos": "/path/to/geneos" }' > /etc/geneos/geneos.json
+`)
+			}
+		}
+
 		parseArgs(cmd, args)
+		return
 	},
 }
 
@@ -115,12 +149,10 @@ func initConfig() {
 		viper.SetConfigName("geneos")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	viper.BindEnv("geneos", "ITRS_HOME")
+	viper.AutomaticEnv()
+	viper.ReadInConfig()
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
 	// initialise after config loaded
 	host.Init()
 }

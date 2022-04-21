@@ -1,11 +1,11 @@
 package fa2
 
 import (
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
@@ -21,37 +21,31 @@ var FA2 geneos.Component = geneos.Component{
 	PortRange:        "FA2PortRange",
 	CleanList:        "FA2CleanList",
 	PurgeList:        "FA2PurgeList",
+	Defaults: []string{
+		"binsuffix=fix-analyser2-netprobe.linux_64",
+		"fa2home={{join .remoteroot \"fa2\" \"fa2s\" .instancename}}",
+		"fa2bins={{join .remoteroot \"packages\" \"fa2\"}}",
+		"fa2base=active_prod",
+		"fa2exec={{join .fa2bins .fa2base .binsuffix}}",
+		"fa2logf=fa2.log",
+		"fa2port=7036",
+		"fa2libs={{join .fa2bins .fa2base \"lib64\"}}:{{join .fa2bins .fa2base}}",
+	},
 	GlobalSettings: map[string]string{
 		"FA2PortRange": "7030,7100-",
 		"FA2CleanList": "*.old",
 		"FA2PurgeList": "fa2.log:fa2.txt:*.snooze:*.user_assignment",
 	},
+	Directories: []string{
+		"packages/fa2",
+		"fa2/fa2s",
+	},
 }
 
-type FA2s struct {
-	instance.Instance
-	BinSuffix string `default:"fix-analyser2-netprobe.linux_64"`
-	FA2Home   string `default:"{{join .RemoteRoot \"fa2\" \"fa2s\" .InstanceName}}"`
-	FA2Bins   string `default:"{{join .RemoteRoot \"packages\" \"fa2\"}}"`
-	FA2Base   string `default:"active_prod"`
-	FA2Exec   string `default:"{{join .FA2Bins .FA2Base .BinSuffix}}"`
-	FA2LogD   string `json:",omitempty"`
-	FA2LogF   string `default:"fa2.log"`
-	FA2Port   int    `default:"7036"`
-	FA2Mode   string `json:",omitempty"`
-	FA2Opts   string `json:",omitempty"`
-	FA2Libs   string `default:"{{join .FA2Bins .FA2Base \"lib64\"}}:{{join .FA2Bins .FA2Base}}"`
-	FA2User   string `json:",omitempty"`
-	FA2Cert   string `json:",omitempty"`
-	FA2Key    string `json:",omitempty"`
-}
+type FA2s instance.Instance
 
 func init() {
 	geneos.RegisterComponent(&FA2, New)
-	FA2.RegisterDirs([]string{
-		"packages/fa2",
-		"fa2/fa2s",
-	})
 }
 
 var fa2s sync.Map
@@ -66,8 +60,9 @@ func New(name string) geneos.Instance {
 		}
 	}
 	c := &FA2s{}
+	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.Geneos
+	c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &FA2
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -94,20 +89,16 @@ func (n *FA2s) Location() host.Name {
 }
 
 func (n *FA2s) Home() string {
-	return n.FA2Home
+	return n.V().GetString("fa2Home")
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
 func (n *FA2s) Prefix(field string) string {
-	return strings.ToLower("FA2" + field)
+	return strings.ToLower("fa2" + field)
 }
 
 func (n *FA2s) Remote() *host.Host {
 	return n.InstanceRemote
-}
-
-func (n *FA2s) Base() *instance.Instance {
-	return &n.Instance
 }
 
 func (n *FA2s) String() string {
@@ -133,9 +124,13 @@ func (n *FA2s) Loaded() bool {
 	return n.ConfigLoaded
 }
 
+func (n *FA2s) V() *viper.Viper {
+	return n.Conf
+}
+
 func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
-	n.FA2Port = instance.NextPort(n.InstanceRemote, &FA2)
-	n.FA2User = username
+	n.V().Set("fa2port", instance.NextPort(n.InstanceRemote, &FA2))
+	n.V().Set("fa2user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		return
@@ -164,16 +159,16 @@ func (n *FA2s) Command() (args, env []string) {
 	logFile := instance.LogFile(n)
 	args = []string{
 		n.Name(),
-		"-port", strconv.Itoa(n.FA2Port),
+		"-port", n.V().GetString("fa2port"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if n.FA2Cert != "" {
-		args = append(args, "-secure", "-ssl-certificate", n.FA2Cert)
+	if n.V().GetString("fa2cert") != "" {
+		args = append(args, "-secure", "-ssl-certificate", n.V().GetString("fa2cert"))
 	}
 
-	if n.FA2Key != "" {
-		args = append(args, "-ssl-certificate-key", n.FA2Key)
+	if n.V().GetString("fa2key") != "" {
+		args = append(args, "-ssl-certificate-key", n.V().GetString("fa2key"))
 	}
 
 	return

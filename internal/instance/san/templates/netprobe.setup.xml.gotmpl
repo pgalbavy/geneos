@@ -7,27 +7,27 @@
 		<enabled>true</enabled>
 		<retryInterval>60</retryInterval>
 		<requireReverseConnection>true</requireReverseConnection>
-		<probeName>{{.SanName}}</probeName>
+		<probeName>{{.sanname}}</probeName>
 		<managedEntities>
 			<managedEntity>
-				<name>{{.SanName}}</name>
-				{{if .Attributes -}}
+				<name>{{.sanname}}</name>
+				{{if .attributes -}}
 				<attributes>
-					{{range $key, $value := .Attributes -}}
+					{{range $key, $value := .attributes -}}
 					<attribute name="{{$key}}">{{$value}}</attribute>
 					{{end}}
 				</attributes>
 				{{- end}}
-				{{if .Variables -}}
+				{{if .variables -}}
 				<variables>
-					{{range $key, $value := .Variables -}}
+					{{range $key, $value := .variables -}}
 					<var name="{{$key}}">
 						<{{keyOf $value ":"}}>{{valueOf $value ":"}}</{{keyOf $value ":"}}>
 					</var>
 					{{end}}
 				</variables>
 				{{- end}}
-				{{if .Types -}}
+				{{if .types -}}
 				<types>
 					{{range .Types -}}<type>{{.}}</type>
 					{{end}}
@@ -37,10 +37,10 @@
 		</managedEntities>
 		<gateways>
 			{{- with $data := . }}
-			{{range $key, $value := $data.Gateways -}}<gateway>
+			{{range $key, $value := $data.gateways -}}<gateway>
 				<hostname>{{$key}}</hostname>
 				<port>{{$value}}</port>
-				<secure>{{if $data.SanCert}}true{{else}}false{{end}}</secure>
+				<secure>{{if $data.sancert}}true{{else}}false{{end}}</secure>
 			</gateway>
 			{{else -}}<gateway>
 				<hostname>localhost</hostname>

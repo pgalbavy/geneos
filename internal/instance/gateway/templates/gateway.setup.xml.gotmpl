@@ -7,7 +7,7 @@
 			<required>false</required>
 			<location>instance.setup.xml</location>
 		</include>
-		{{range $key, $value := .Includes -}}
+		{{range $key, $value := .includes -}}
 		<include>
 			<priority>{{$key}}</priority>
 			<required>true</required>
@@ -41,17 +41,17 @@
 		<disconnectedProbeTimeout>3600</disconnectedProbeTimeout>
 	</selfAnnouncingProbes>
 	<operatingEnvironment>
-		<gatewayName>{{.GateName}}</gatewayName>
+		<gatewayName>{{.gatename}}</gatewayName>
 		<listenPorts>
-		{{- if .GateCert}}
-			{{if eq .GatePort 7039 -}}
+		{{- if .gatecert}}
+			{{if eq .gateport 7039 -}}
 			<secure>7038</secure>
 			<insecure>7039</insecure>
 			{{- else -}}
-			<secure>{{.GatePort}}</secure>
+			<secure>{{.gateport}}</secure>
 			{{- end}}
 		{{- else}}
-			<insecure>{{.GatePort}}</insecure>
+			<insecure>{{.gateport}}</insecure>
 		{{- end}}
 		</listenPorts>
 		<var name="gatewayName">
@@ -95,7 +95,7 @@
 			</macro>
 		</var>
 		<writeStatsToFile>
-			<filename>{{.GateHome}}/stats.xml</filename>
+			<filename>{{.gatehome}}/stats.xml</filename>
 			<enablePeriodicWrite>true</enablePeriodicWrite>
 			<writeInterval>5</writeInterval>
 		</writeStatsToFile>

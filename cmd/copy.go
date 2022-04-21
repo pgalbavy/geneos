@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -43,8 +41,12 @@ var copyCmd = &cobra.Command{
 	before the restart. This allows SANs to be updated as expected.
 	
 	Moving across remotes is supported.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("copy called")
+	Annotations: map[string]string{
+		"wildcard": "false",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandCopy(ct, args, params)
 	},
 }
 

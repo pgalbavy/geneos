@@ -22,9 +22,8 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 )
 
 // setGlobalCmd represents the setGlobal command
@@ -32,8 +31,12 @@ var setGlobalCmd = &cobra.Command{
 	Use:   "global KEY=VALUE [KEY=VALUE...]",
 	Short: "Set global configuration parameters",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("setGlobal called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandSetGlobal(ct, args, params)
 	},
 }
 
@@ -41,6 +44,6 @@ func init() {
 	setCmd.AddCommand(setGlobalCmd)
 }
 
-func commandSetGlobal() error {
+func commandSetGlobal(ct *geneos.Component, args, params []string) error {
 	return writeConfigParams("/etc/geneos/geneos.json", []string{})
 }

@@ -11,9 +11,10 @@ package fileagent
 //
 
 import (
-	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
@@ -29,37 +30,31 @@ var FileAgent geneos.Component = geneos.Component{
 	PortRange:        "FAPortRange",
 	CleanList:        "FACleanList",
 	PurgeList:        "FAPurgeList",
+	Defaults: []string{
+		"binsuffix=agent.linux_64",
+		"fahome={{join .remoteroot \"fileagent\" \"fileagents\" .instancename}}",
+		"fabins={{join .remoteroot \"packages\" \"fileagent\"}}",
+		"fabase=active_prod",
+		"faexec={{join .fabins .fabase .binsuffix}}",
+		"falogf=fileagent.log",
+		"faport=7030",
+		"falibs={{join .fabins .fabase \"lib64\"}}:{{join .fabins .fabase}}",
+	},
 	GlobalSettings: map[string]string{
 		"FAPortRange": "7030,7100-",
 		"FACleanList": "*.old",
 		"FAPurgeList": "fileagent.log:fileagent.txt",
 	},
+	Directories: []string{
+		"packages/fileagent",
+		"fileagent/fileagents",
+	},
 }
 
-type FileAgents struct {
-	instance.Instance
-	BinSuffix string `default:"agent.linux_64"`
-	FAHome    string `default:"{{join .RemoteRoot \"fileagent\" \"fileagents\" .InstanceName}}"`
-	FABins    string `default:"{{join .RemoteRoot \"packages\" \"fileagent\"}}"`
-	FABase    string `default:"active_prod"`
-	FAExec    string `default:"{{join .FABins .FABase .BinSuffix}}"`
-	FALogD    string `json:",omitempty"`
-	FALogF    string `default:"fileagent.log"`
-	FAPort    int    `default:"7030"`
-	FAMode    string `json:",omitempty"`
-	FAOpts    string `json:",omitempty"`
-	FALibs    string `default:"{{join .FABins .FABase \"lib64\"}}:{{join .FABins .FABase}}"`
-	FAUser    string `json:",omitempty"`
-	FACert    string `json:",omitempty"`
-	FAKey     string `json:",omitempty"`
-}
+type FileAgents instance.Instance
 
 func init() {
 	geneos.RegisterComponent(&FileAgent, New)
-	FileAgent.RegisterDirs([]string{
-		"packages/fileagent",
-		"fileagent/fileagents",
-	})
 }
 
 var fileagents sync.Map
@@ -74,8 +69,9 @@ func New(name string) geneos.Instance {
 		}
 	}
 	c := &FileAgents{}
+	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.Geneos
+	c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &FileAgent
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -102,20 +98,16 @@ func (n *FileAgents) Location() host.Name {
 }
 
 func (n *FileAgents) Home() string {
-	return n.FAHome
+	return n.V().GetString("fahome")
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
 func (n *FileAgents) Prefix(field string) string {
-	return "FA" + field
+	return strings.ToLower("fa" + field)
 }
 
 func (n *FileAgents) Remote() *host.Host {
 	return n.InstanceRemote
-}
-
-func (n *FileAgents) Base() *instance.Instance {
-	return &n.Instance
 }
 
 func (n *FileAgents) String() string {
@@ -141,9 +133,13 @@ func (n *FileAgents) Loaded() bool {
 	return n.ConfigLoaded
 }
 
+func (n *FileAgents) V() *viper.Viper {
+	return n.Conf
+}
+
 func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
-	n.FAPort = instance.NextPort(n.Remote(), &FileAgent)
-	n.FAUser = username
+	n.V().Set("faport", instance.NextPort(n.Remote(), &FileAgent))
+	n.V().Set("fauser", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		logger.Error.Fatalln(err)
@@ -172,7 +168,7 @@ func (c *FileAgents) Command() (args, env []string) {
 	logFile := instance.LogFile(c)
 	args = []string{
 		c.Name(),
-		"-port", strconv.Itoa(c.FAPort),
+		"-port", c.V().GetString("faport"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 

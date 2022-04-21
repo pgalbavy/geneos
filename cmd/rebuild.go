@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -34,23 +32,18 @@ var rebuildCmd = &cobra.Command{
 	Use:   "rebuild [-F] [-r] [TYPE] [NAME...]",
 	Short: "Rebuild instance configuration files",
 	Long:  `Rebuild instance configuration files based on current templates and instance configuration values.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("rebuild called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandRebuild(ct, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(rebuildCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// rebuildCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// rebuildCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rebuildCmd.Flags().BoolVarP(&rebuildCmdForce, "force", "F", false, "Force rebuild")
 	rebuildCmd.Flags().BoolVarP(&rebuildCmdReload, "reload", "r", false, "Reload instances after rebuild")
 }

@@ -3,7 +3,6 @@ package san
 import (
 	_ "embed"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -26,42 +25,30 @@ var San geneos.Component = geneos.Component{
 	PortRange:        "SanPortRange",
 	CleanList:        "SanCleanList",
 	PurgeList:        "SanPurgeList",
+	Defaults: []string{
+		"binsuffix={{if eq .santype \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64",
+		"sanhome={{join .remoteroot \"san\" \"sans\" .instancename}}",
+		"sanbins={{join .remoteroot \"packages\" .santype}}",
+		"sanbase=active_prod",
+		"sanexec={{join .sanbins .sanbase .binsuffix}}",
+		"sanlogf=san.log",
+		"sanport=7036",
+		"sanlibs={{join .sanbins .sanbase \"lib64\"}}:{{join .sanbins .sanbase}}",
+		"sanname={{.instancename}}",
+	},
 	GlobalSettings: map[string]string{
 		"SanPortRange": "7036,7100-",
 		"SanCleanList": "*.old",
 		"SanPurgeList": "san.log:san.txt:*.snooze:*.user_assignment",
 	},
+	Directories: []string{
+		"packages/netprobe",
+		"san/sans",
+		"san/templates",
+	},
 }
 
-type Sans struct {
-	instance.Instance
-	// The SanType is used to select the base netprobe type - either Netprobe or FA2
-	SanType *geneos.Component
-
-	BinSuffix string `default:"{{if eq .SanType \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64"`
-	SanHome   string `default:"{{join .RemoteRoot \"san\" \"sans\" .InstanceName}}"`
-	SanBins   string `default:"{{join .RemoteRoot \"packages\" .SanType}}"`
-	SanBase   string `default:"active_prod"`
-	SanExec   string `default:"{{join .SanBins .SanBase .BinSuffix}}"`
-	SanLogD   string `json:",omitempty"`
-	SanLogF   string `default:"san.log"`
-	SanPort   int    `default:"7036"`
-	SanMode   string `json:",omitempty"`
-	SanOpts   string `json:",omitempty"`
-	SanLibs   string `default:"{{join .SanBins .SanBase \"lib64\"}}:{{join .SanBins .SanBase}}"`
-	SanUser   string `json:",omitempty"`
-	SanCert   string `json:",omitempty"`
-	SanKey    string `json:",omitempty"`
-
-	// The SAN configuration name may be diffrent to the instance name
-	SanName string `default:"{{.InstanceName}}"`
-
-	// These fields are for templating the netprobe.setup.xml file but only as placeholders
-	Attributes map[string]string
-	Variables  map[string]string // key = name, value = type:value (names must be unique)
-	Gateways   map[string]int
-	Types      []string
-}
+type Sans instance.Instance
 
 //go:embed templates/netprobe.setup.xml.gotmpl
 var SanTemplate []byte
@@ -70,11 +57,6 @@ const SanDefaultTemplate = "netprobe.setup.xml.gotmpl"
 
 func init() {
 	geneos.RegisterComponent(&San, New)
-	San.RegisterDirs([]string{
-		"packages/netprobe",
-		"san/sans",
-		"san/templates",
-	})
 }
 
 func Init(r *host.Host, ct *geneos.Component) {
@@ -101,12 +83,12 @@ func New(name string) geneos.Instance {
 	c := &Sans{}
 	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.Geneos
+	c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &San
 	c.InstanceName = local
-	c.SanType = &netprobe.Netprobe
+	c.V().Set("santype", "netprobe")
 	if ct != nil {
-		c.SanType = ct
+		c.V().Set("santype", ct.Name)
 	}
 	if err := instance.SetDefaults(c); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
@@ -132,20 +114,16 @@ func (s *Sans) Location() host.Name {
 }
 
 func (s *Sans) Home() string {
-	return s.SanHome
+	return s.V().GetString("sanhome")
 }
 
 // Prefix() takes the string argument and adds any component type specific prefix
 func (s *Sans) Prefix(field string) string {
-	return strings.ToLower("San" + field)
+	return strings.ToLower("san" + field)
 }
 
 func (s *Sans) Remote() *host.Host {
 	return s.InstanceRemote
-}
-
-func (s *Sans) Base() *instance.Instance {
-	return &s.Instance
 }
 
 func (s *Sans) String() string {
@@ -171,15 +149,19 @@ func (s *Sans) Loaded() bool {
 	return s.ConfigLoaded
 }
 
-func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
-	s.SanPort = instance.NextPort(s.InstanceRemote, &San)
-	s.SanUser = username
-	s.ConfigRebuild = "always"
+func (s *Sans) V() *viper.Viper {
+	return s.Conf
+}
 
-	s.Types = []string{}
-	s.Attributes = make(map[string]string)
-	s.Variables = make(map[string]string)
-	s.Gateways = make(map[string]int)
+func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
+	s.V().Set("sanport", instance.NextPort(s.InstanceRemote, &San))
+	s.V().Set("sanuser", username)
+	s.V().Set("configrebuild", "always")
+
+	s.V().Set("types", []string{})
+	s.V().Set("attributes", make(map[string]string))
+	s.V().Set("variables", make(map[string]string))
+	s.V().Set("gateways", make(map[string]int))
 
 	// if initFlags.Name != "" {
 	// 	s.SanName = initFlags.Name
@@ -219,19 +201,24 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 //
 // we do a dance if there is a change in TLS setup and we use default ports
 func (s *Sans) Rebuild(initial bool) (err error) {
-	if s.ConfigRebuild == "never" {
+	configrebuild := s.V().GetString("configrebuild")
+	if configrebuild == "never" {
 		return
 	}
 
-	if !(s.ConfigRebuild == "always" || (initial && s.ConfigRebuild == "initial")) {
+	if !(configrebuild == "always" || (initial && configrebuild == "initial")) {
 		return
 	}
 
 	// recheck check certs/keys
 	var changed bool
-	secure := s.SanCert != "" && s.SanKey != ""
-	for gw := range s.Gateways {
-		port := s.Gateways[gw]
+	secure := s.V().GetString("sancert") != "" && s.V().GetString("sankey") != ""
+	gws, ok := s.V().Get("gateways").(map[string]int)
+	if !ok {
+		return geneos.ErrInvalidArgs
+	}
+	for gw := range gws {
+		port := gws[gw]
 		if secure && port == 7039 {
 			port = 7038
 			changed = true
@@ -239,9 +226,10 @@ func (s *Sans) Rebuild(initial bool) (err error) {
 			port = 7039
 			changed = true
 		}
-		s.Gateways[gw] = port
+		gws[gw] = port
 	}
 	if changed {
+		s.V().Set("gateways", gws)
 		if err := instance.WriteConfig(s); err != nil {
 			return err
 		}
@@ -254,7 +242,7 @@ func (s *Sans) Command() (args, env []string) {
 	args = []string{
 		s.Name(),
 		"-listenip", "none",
-		"-port", strconv.Itoa(s.SanPort),
+		"-port", s.V().GetString("sanport"),
 		"-setup", "netprobe.setup.xml",
 		"-setup-interval", "300",
 	}
@@ -262,12 +250,12 @@ func (s *Sans) Command() (args, env []string) {
 	// add environment variables to use in setup file substitution
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if s.SanCert != "" {
-		args = append(args, "-secure", "-ssl-certificate", s.SanCert)
+	if s.V().GetString("sancert") != "" {
+		args = append(args, "-secure", "-ssl-certificate", s.V().GetString("sancert"))
 	}
 
-	if s.SanKey != "" {
-		args = append(args, "-ssl-certificate-key", s.SanKey)
+	if s.V().GetString("sankey") != "" {
+		args = append(args, "-ssl-certificate-key", s.V().GetString("sankey"))
 	}
 
 	return

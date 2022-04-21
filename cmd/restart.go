@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -36,8 +35,12 @@ var restartCmd = &cobra.Command{
 	Use:   "restart [-a] [-K] [-l] [TYPE] [NAME...]",
 	Short: "Restart one or more instances",
 	Long:  `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("restart called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandRestart(ct, args, params)
 	},
 }
 

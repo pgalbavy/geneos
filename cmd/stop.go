@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -34,8 +32,12 @@ var stopCmd = &cobra.Command{
 	Use:   "stop [-K] [TYPE] [NAME...]",
 	Short: "Stop one or more instances",
 	Long:  `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and if the instance is still running after a few seconds then a SIGKILL is sent. If the -f flag is given the instance(s) are immediately terminated with a SIGKILL.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stop called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandStop(ct, args, params)
 	},
 }
 

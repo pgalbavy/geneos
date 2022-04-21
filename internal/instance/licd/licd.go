@@ -1,7 +1,6 @@
 package licd
 
 import (
-	"strconv"
 	"strings"
 	"sync"
 
@@ -21,37 +20,31 @@ var Licd geneos.Component = geneos.Component{
 	PortRange:        "LicdPortRange",
 	CleanList:        "LicdCleanList",
 	PurgeList:        "LicdPurgeList",
+	Defaults: []string{
+		"binsuffix=licd.linux_64",
+		"licdhome={{join .remoteroot \"licd\" \"licds\" .instancename}}",
+		"licdbins={{join .remoteroot \"packages\" \"licd\"}}",
+		"licdbase=active_prod",
+		"licdexec={{join .licdbins .licdbase .binsuffix}}",
+		"licdlogf=licd.log",
+		"licdport=7041",
+		"licdlibs={{join .licdbins .licdbase \"lib64\"}}",
+	},
 	GlobalSettings: map[string]string{
 		"LicdPortRange": "7041,7100-",
 		"LicdCleanList": "*.old",
 		"LicdPurgeList": "licd.log:licd.txt",
 	},
+	Directories: []string{
+		"packages/licd",
+		"licd/licds",
+	},
 }
 
-type Licds struct {
-	instance.Instance
-	BinSuffix string `default:"licd.linux_64"`
-	LicdHome  string `default:"{{join .RemoteRoot \"licd\" \"licds\" .InstanceName}}"`
-	LicdBins  string `default:"{{join .RemoteRoot \"packages\" \"licd\"}}"`
-	LicdBase  string `default:"active_prod"`
-	LicdExec  string `default:"{{join .LicdBins .LicdBase .BinSuffix}}"`
-	LicdLogD  string `json:",omitempty"`
-	LicdLogF  string `default:"licd.log"`
-	LicdMode  string `json:",omitempty"`
-	LicdPort  int    `default:"7041"`
-	LicdOpts  string `json:",omitempty"`
-	LicdLibs  string `default:"{{join .LicdBins .LicdBase \"lib64\"}}"`
-	LicdUser  string `json:",omitempty"`
-	LicdCert  string `json:",omitempty"`
-	LicdKey   string `json:",omitempty"`
-}
+type Licds instance.Instance
 
 func init() {
 	geneos.RegisterComponent(&Licd, New)
-	Licd.RegisterDirs([]string{
-		"packages/licd",
-		"licd/licds",
-	})
 }
 
 var licds sync.Map
@@ -68,7 +61,7 @@ func New(name string) geneos.Instance {
 	c := &Licds{}
 	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.Geneos
+	c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &Licd
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -95,7 +88,7 @@ func (l *Licds) Location() host.Name {
 }
 
 func (l *Licds) Home() string {
-	return l.LicdHome
+	return l.V().GetString("licdhome")
 }
 
 func (l *Licds) Prefix(field string) string {
@@ -104,10 +97,6 @@ func (l *Licds) Prefix(field string) string {
 
 func (l *Licds) Remote() *host.Host {
 	return l.InstanceRemote
-}
-
-func (l *Licds) Base() *instance.Instance {
-	return &l.Instance
 }
 
 func (l *Licds) String() string {
@@ -133,9 +122,13 @@ func (l *Licds) Loaded() bool {
 	return l.ConfigLoaded
 }
 
+func (l *Licds) V() *viper.Viper {
+	return l.Conf
+}
+
 func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
-	l.LicdPort = instance.NextPort(l.InstanceRemote, &Licd)
-	l.LicdUser = username
+	l.V().Set("licdport", instance.NextPort(l.InstanceRemote, &Licd))
+	l.V().Set("licduser", username)
 
 	if err = instance.WriteConfig(l); err != nil {
 		logger.Error.Fatalln(err)
@@ -163,16 +156,16 @@ func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
 func (l *Licds) Command() (args, env []string) {
 	args = []string{
 		l.Name(),
-		"-port", strconv.Itoa(l.LicdPort),
-		"-log", instance.LogFile(l.Instance),
+		"-port", l.V().GetString("licdport"),
+		"-log", instance.LogFile(l),
 	}
 
-	if l.LicdCert != "" {
-		args = append(args, "-secure", "-ssl-certificate", l.LicdCert)
+	if l.V().GetString("licdcert") != "" {
+		args = append(args, "-secure", "-ssl-certificate", l.V().GetString("licdcert"))
 	}
 
-	if l.LicdKey != "" {
-		args = append(args, "-ssl-certificate-key", l.LicdKey)
+	if l.V().GetString("licdkey") != "" {
+		args = append(args, "-ssl-certificate-key", l.V().GetString("licdkey"))
 	}
 
 	return

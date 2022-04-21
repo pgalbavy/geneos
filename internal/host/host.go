@@ -31,15 +31,9 @@ type Host struct {
 	Name Name   `json:"Name,omitempty"`    // name, as opposed to hostname
 	Home string `json:"HomeDir,omitempty"` // Remote configuration directory
 
-	Geneos string `json:"Geneos,omitempty"` // Geneos root directory
+	// Geneos string `json:"Geneos,omitempty"` // Geneos root directory
 
 	Conf *viper.Viper `json:"-"`
-
-	// Type   string `default:"ssh"`
-	// Hostname string `json:"Hostname,omitempty"`
-	// Port int `default:"22" json:"Port,omitempty"`
-	// Username string `json:"Username,omitempty"`
-	// OSInfo   map[string]string `json:"OSInfo,omitempty"`
 }
 
 // this is called from cmd root
@@ -74,18 +68,13 @@ func New(name Name) *Host {
 	c := &Host{}
 	c.Conf = viper.New()
 	c.Name = name
-	c.Home = filepath.Join(c.Geneos, "remote", string(c.Name))
-	c.Geneos = viper.GetString("geneos") // default is same as local
+	c.Home = filepath.Join(c.V().GetString("geneos"), "remote", string(c.Name))
+	c.V().Set("geneos", viper.GetString("geneos"))
 
 	// fill this in directly as there is no config file to load
 	if c.Name == LOCALHOST {
 		c.getOSReleaseEnv()
 	}
-
-	// these are pseudo remotes and always exist
-	// if c.InstanceName == string(LOCAL) || c.InstanceName == string(ALL) {
-	// 	c.ConfigLoaded = true
-	// }
 
 	remotes.Store(name, c)
 	return c
@@ -109,7 +98,7 @@ func (h *Host) Loaded() bool {
 }
 
 func (h *Host) Unload() {
-
+	remotes.Delete(h.Name)
 }
 
 func (host Name) String() string {
@@ -169,13 +158,12 @@ func (r *Host) Add(username string, params []string, tmpl string) (err error) {
 	r.V().Set("username", username)
 
 	// XXX default to remote user's home dir, not local
-	r.Geneos = viper.GetString("Geneos")
+	r.V().Set("geneos", viper.GetString("geneos"))
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
-		r.Geneos = u.Path
+		r.V().Set("geneos", u.Path)
 	}
-	// r.Geneos = homepath
 
 	if err = WriteConfig(r); err != nil {
 		return
@@ -270,7 +258,7 @@ func GetRemote(remote Name) (r *Host) {
 // return an absolute path anchored in the root directory of the remote
 // this can also be LOCAL
 func (r *Host) GeneosPath(paths ...string) string {
-	return filepath.Join(append([]string{r.Geneos}, paths...)...)
+	return filepath.Join(append([]string{r.V().GetString("geneos")}, paths...)...)
 }
 
 func (r *Host) FullName(name string) string {

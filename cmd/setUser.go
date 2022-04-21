@@ -22,11 +22,11 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 )
 
 // setUserCmd represents the setUser command
@@ -34,8 +34,12 @@ var setUserCmd = &cobra.Command{
 	Use:   "user KEY=VALUE [KEY=VALUE...]",
 	Short: "Set user configuration parameters",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("setUser called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandSetUser(ct, args, params)
 	},
 }
 
@@ -43,7 +47,7 @@ func init() {
 	setCmd.AddCommand(setUserCmd)
 }
 
-func commandSetUser() error {
+func commandSetUser(ct *geneos.Component, args, params []string) error {
 	userConfDir, _ := os.UserConfigDir()
 	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), []string{})
 }

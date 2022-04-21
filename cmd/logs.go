@@ -24,7 +24,6 @@ package cmd
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -60,8 +59,12 @@ var logsCmd = &cobra.Command{
 	-n is ignored when -c is given
 	
 	When more than one instance matches each output block is prefixed by instance details.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("logs called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandLogs(ct, args, params)
 	},
 }
 

@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os/user"
 
@@ -45,8 +44,12 @@ var addCmd = &cobra.Command{
 	these need to be changed before starting, see the edit command.
 	
 	Gateways are given a minimal configuration file.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
+	Annotations: map[string]string{
+		"wildcard": "false",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandAdd(ct, args, params)
 	},
 }
 
@@ -81,7 +84,7 @@ func commandAdd(ct *geneos.Component, args []string, params []string) (err error
 	}
 
 	if utils.IsSuperuser() {
-		username = viper.GetString("DefaultUser")
+		username = viper.GetString("defaultuser")
 	} else {
 		u, _ := user.Current()
 		username = u.Username
@@ -105,7 +108,7 @@ func commandAdd(ct *geneos.Component, args []string, params []string) (err error
 	// reload config as instance data is not updated by Add() as an interface value
 	c.Unload()
 	c.Load()
-	log.Printf("%s added, port %d\n", c, c.V().GetInt(c.Prefix("Port")))
+	log.Printf("%s added, port %d\n", c, c.V().GetInt(c.Prefix("port")))
 
 	if addCmdStart || initCmdSAN {
 		instance.Start(c, nil)

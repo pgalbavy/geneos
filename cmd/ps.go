@@ -40,8 +40,12 @@ var psCmd = &cobra.Command{
 	Use:   "ps [-c|-j [-i]] [TYPE] [NAMES...]",
 	Short: "List process information for instances, optionally in CSV or JSON format",
 	Long:  `Show the status of the matching instances.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ps called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandPS(ct, args, params)
 	},
 }
 

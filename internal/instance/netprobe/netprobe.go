@@ -1,10 +1,10 @@
 package netprobe
 
 import (
-	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
@@ -20,37 +20,30 @@ var Netprobe geneos.Component = geneos.Component{
 	PortRange:        "NetprobePortRange",
 	CleanList:        "NetprobeCleanList",
 	PurgeList:        "NetprobePurgeList",
+	Defaults: []string{
+		"binsuffix=netprobe.linux_64",
+		"netphome={{join .remoteroot \"netprobe\" \"netprobes\" .instancename}}",
+		"netpbins={{join .remoteroot \"packages\" \"netprobe\"}}",
+		"netpbase=active_prod",
+		"netpexec={{join .netpbins .netpbase .binsuffix}}",
+		"netplogf=netprobe.log",
+		"netplibs={{join .netpbins .netpbase \"lib64\"}}:{{join .netpbins .netpbase}}",
+	},
 	GlobalSettings: map[string]string{
 		"NetprobePortRange": "7036,7100-",
 		"NetprobeCleanList": "*.old",
 		"NetprobePurgeList": "netprobe.log:netprobe.txt:*.snooze:*.user_assignment",
 	},
+	Directories: []string{
+		"packages/netprobe",
+		"netprobe/netprobes",
+	},
 }
 
-type Netprobes struct {
-	instance.Instance
-	BinSuffix string `default:"netprobe.linux_64"`
-	NetpHome  string `default:"{{join .RemoteRoot \"netprobe\" \"netprobes\" .InstanceName}}"`
-	NetpBins  string `default:"{{join .RemoteRoot \"packages\" \"netprobe\"}}"`
-	NetpBase  string `default:"active_prod"`
-	NetpExec  string `default:"{{join .NetpBins .NetpBase .BinSuffix}}"`
-	NetpLogD  string `json:",omitempty"`
-	NetpLogF  string `default:"netprobe.log"`
-	NetpPort  int    `default:"7036"`
-	NetpMode  string `json:",omitempty"`
-	NetpOpts  string `json:",omitempty"`
-	NetpLibs  string `default:"{{join .NetpBins .NetpBase \"lib64\"}}:{{join .NetpBins .NetpBase}}"`
-	NetpUser  string `json:",omitempty"`
-	NetpCert  string `json:",omitempty"`
-	NetpKey   string `json:",omitempty"`
-}
+type Netprobes instance.Instance
 
 func init() {
 	geneos.RegisterComponent(&Netprobe, New)
-	Netprobe.RegisterDirs([]string{
-		"packages/netprobe",
-		"netprobe/netprobes",
-	})
 }
 
 var netprobes sync.Map
@@ -65,8 +58,9 @@ func New(name string) geneos.Instance {
 		}
 	}
 	c := &Netprobes{}
+	c.Conf = viper.New()
 	c.InstanceRemote = r
-	c.RemoteRoot = r.Geneos
+	c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &Netprobe
 	c.InstanceName = local
 	if err := instance.SetDefaults(c); err != nil {
@@ -93,19 +87,15 @@ func (n *Netprobes) Location() host.Name {
 }
 
 func (n *Netprobes) Home() string {
-	return n.NetpHome
+	return n.V().GetString("netphome")
 }
 
 func (n *Netprobes) Prefix(field string) string {
-	return strings.ToLower("Netp" + field)
+	return strings.ToLower("netp" + field)
 }
 
 func (n *Netprobes) Remote() *host.Host {
 	return n.InstanceRemote
-}
-
-func (n *Netprobes) Base() *instance.Instance {
-	return &n.Instance
 }
 
 func (n *Netprobes) String() string {
@@ -131,9 +121,13 @@ func (n *Netprobes) Loaded() bool {
 	return n.ConfigLoaded
 }
 
+func (n *Netprobes) V() *viper.Viper {
+	return n.Conf
+}
+
 func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
-	n.NetpPort = instance.NextPort(n.Remote(), &Netprobe)
-	n.NetpUser = username
+	n.V().Set("netpport", instance.NextPort(n.Remote(), &Netprobe))
+	n.V().Set("netpuser", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		return
@@ -166,16 +160,16 @@ func (n *Netprobes) Command() (args, env []string) {
 	logFile := instance.LogFile(n)
 	args = []string{
 		n.Name(),
-		"-port", strconv.Itoa(n.NetpPort),
+		"-port", n.V().GetString("netpport"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if n.NetpCert != "" {
-		args = append(args, "-secure", "-ssl-certificate", n.NetpCert)
+	if n.V().GetString("netpcert") != "" {
+		args = append(args, "-secure", "-ssl-certificate", n.V().GetString("netpcert"))
 	}
 
-	if n.NetpKey != "" {
-		args = append(args, "-ssl-certificate-key", n.NetpKey)
+	if n.V().GetString("netpkey") != "" {
+		args = append(args, "-ssl-certificate-key", n.V().GetString("netpkey"))
 	}
 
 	return

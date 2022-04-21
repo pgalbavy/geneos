@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -36,8 +35,12 @@ var enableCmd = &cobra.Command{
 	Use:   "enable [-S] [TYPE] [NAME...]",
 	Short: "Enable one or more instances. Only previously disabled instances are started",
 	Long:  `Mark any matching instances as enabled and if this changes status then start the instance.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("enable called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandEnable(ct, args, params)
 	},
 }
 
@@ -51,7 +54,7 @@ var enableCmdStart bool
 
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
-func commandEneable(ct *geneos.Component, args []string, params []string) (err error) {
+func commandEnable(ct *geneos.Component, args []string, params []string) (err error) {
 	return instance.LoopCommand(ct, enableInstance, args, params)
 }
 

@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
@@ -44,8 +42,12 @@ var homeCmd = &cobra.Command{
 	Because of the intended use no errors are logged and no other output.
 	An error in the examples above result in the user's home
 	directory being selected.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("home called")
+	Annotations: map[string]string{
+		"wildcard": "false",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandHome(ct, args, params)
 	},
 }
 

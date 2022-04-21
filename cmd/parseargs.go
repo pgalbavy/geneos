@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -25,13 +26,16 @@ import (
 //
 // a bare argument with a '@' prefix means all instance of type on a remote
 //
-func parseArgs(cmd *cobra.Command, rawargs []string) (ct *geneos.Component, args []string, params []string) {
+func parseArgs(cmd *cobra.Command, rawargs []string) {
 	var wild bool
 	var newnames []string
 
+	var ct *geneos.Component
+	var args, params []string
+
 	a := cmd.Annotations
 
-	if len(rawargs) == 0 && a["Wildcard"] != "true" {
+	if len(rawargs) == 0 && a["wildcard"] != "true" {
 		return
 	}
 
@@ -53,15 +57,17 @@ func parseArgs(cmd *cobra.Command, rawargs []string) (ct *geneos.Component, args
 
 	a["ct"] = "none"
 
-	if a["Wildcard"] == "false" {
+	if a["wildcard"] == "false" {
 		if len(rawargs) == 0 {
-			ct = nil
+			// ct = nil
 			return
 		}
 		if ct = geneos.ParseComponentName(rawargs[0]); ct == nil {
-			args = rawargs
+			jsonargs, _ := json.Marshal(args)
+			a["args"] = string(jsonargs)
 			return
 		}
+		a["ct"] = rawargs[0]
 		args = rawargs[1:]
 	} else {
 		// work through wildcard options
@@ -70,14 +76,14 @@ func parseArgs(cmd *cobra.Command, rawargs []string) (ct *geneos.Component, args
 			ct = nil
 		} else if ct = geneos.ParseComponentName(rawargs[0]); ct == nil {
 			// first arg is not a known type, so treat the rest as instance names
-			ct = nil
+			// ct = nil
 			args = rawargs
 		} else {
 			a["ct"] = rawargs[0]
 			args = rawargs[1:]
 		}
 
-		if a["ComponentOnly"] == "true" {
+		if a["componentonly"] == "true" {
 			return
 		}
 
@@ -174,19 +180,33 @@ func parseArgs(cmd *cobra.Command, rawargs []string) (ct *geneos.Component, args
 	}
 	args = newnames
 
-	a["args"] = strings.Join(args, ",")
-	a["params"] = strings.Join(params, ",")
+	jsonargs, _ := json.Marshal(args)
+	a["args"] = string(jsonargs)
+	jsonparams, _ := json.Marshal(params)
+	a["params"] = string(jsonparams)
 
-	if a["Wildcard"] == "false" {
+	if a["wildcard"] == "false" {
 		return
 	}
 
 	// if args is empty, find them all again. ct == None too?
 	if len(args) == 0 && Geneos() != "" && !wild {
 		args = instance.FindNames(host.ALL, ct)
-		a["args"] = strings.Join(args, ",")
+		jsonargs, _ := json.Marshal(args)
+		a["args"] = string(jsonargs)
 	}
 
 	logger.Debug.Println("ct, args, params", ct, args, params)
+}
+
+func processArgs(cmd *cobra.Command) (ct *geneos.Component, args, params []string) {
+	logDebug.Println("ct", cmd.Annotations["ct"], ct)
+	ct = geneos.ParseComponentName(cmd.Annotations["ct"])
+	if err := json.Unmarshal([]byte(cmd.Annotations["args"]), &args); err != nil {
+		logDebug.Println(err)
+	}
+	if err := json.Unmarshal([]byte(cmd.Annotations["params"]), &params); err != nil {
+		logDebug.Println(err)
+	}
 	return
 }

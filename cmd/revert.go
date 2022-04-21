@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -37,8 +35,12 @@ var revertCmd = &cobra.Command{
 	file still exists. Any changes to the instance configuration since
 	initial migration will be lost as the contents of the .rc file is
 	never changed.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("revert called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandRevert(ct, args, params)
 	},
 }
 

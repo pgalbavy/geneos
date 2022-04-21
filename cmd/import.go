@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
@@ -56,8 +54,12 @@ var importCmd = &cobra.Command{
 	If run as root, directories and files ownership is set to the user in
 	the instance configuration or the default user. Currently only one
 	file can be imported at a time.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("import called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandImport(ct, args, params)
 	},
 }
 

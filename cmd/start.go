@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -35,8 +33,12 @@ var startCmd = &cobra.Command{
 	Short: "Start one or more instances",
 	Long: `Start one or more matching instances. All instances are run in the background and
 	STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("start called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandStart(ct, args, params)
 	},
 }
 

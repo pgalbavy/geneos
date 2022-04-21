@@ -38,8 +38,12 @@ var lsRemoteCmd = &cobra.Command{
 	Use:   "remote [-c|-j [-i]] [TYPE] [NAME...]",
 	Short: "List remotes, optionally in CSV or JSON format",
 	Long:  `List the matching remotes.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("lsRemote called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandLSRemote(ct, args, params)
 	},
 }
 

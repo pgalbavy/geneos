@@ -22,7 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -62,8 +61,12 @@ var setCmd = &cobra.Command{
 	Other special names include Gateways for a comma separated list of host:port values for Sans,
 	Attributes as name=value pairs again for Sans and Types a comma separated list of Types for Sans.
 	Variables (for San config templates) cannot be set from the command line at this time.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("set called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandSet(ct, args, params)
 	},
 }
 

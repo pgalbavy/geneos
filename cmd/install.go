@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
@@ -61,8 +59,12 @@ applies when using -U.
 "geneos update gateway -b active_prod"
 
 `,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("install called")
+	Annotations: map[string]string{
+		"wildcard": "false",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandInstall(ct, args, params)
 	},
 }
 

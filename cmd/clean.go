@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	geneos "wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -34,22 +32,27 @@ var cleanCmd = &cobra.Command{
 	Use:   "clean [-F] [TYPE] [NAME...]",
 	Short: "Clean-up instance directory",
 	Long:  `Clean-up instance directories, restarting instances if doing a 'purge' clean.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("clean called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandClean(ct, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(cleanCmd)
 
-	cleanCmd.Flags().BoolP("purge", "F", false, "Perform a full clean. Removes more files than basic clean and restarts instances")
+	cleanCmd.Flags().BoolVarP(&cleanCmdPurge, "purge", "F", false, "Perform a full clean. Removes more files than basic clean and restarts instances")
 }
+
+var cleanCmdPurge bool
 
 func commandClean(ct *geneos.Component, args []string, params []string) error {
 	return instance.LoopCommand(ct, cleanInstance, args, params)
 }
 
 func cleanInstance(c geneos.Instance, params []string) (err error) {
-	purge, err := cleanCmd.Flags().GetBool("purge")
-	return instance.Clean(c, purge, params)
+	return instance.Clean(c, cleanCmdPurge, params)
 }

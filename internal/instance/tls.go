@@ -29,7 +29,7 @@ func CreateCert(c geneos.Instance) (err error) {
 
 	hostname, _ := os.Hostname()
 	if c.Remote() != host.LOCAL {
-		hostname = c.Remote().V().GetString("Hostname")
+		hostname = c.Remote().V().GetString("hostname")
 	}
 
 	serial, err := rand.Prime(rand.Reader, 64)

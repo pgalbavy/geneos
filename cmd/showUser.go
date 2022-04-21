@@ -22,17 +22,17 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
 // showUserCmd represents the showUser command
 var showUserCmd = &cobra.Command{
-	Use:   "showUser",
+	Use:   "user",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -40,29 +40,23 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("showUser called")
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandShowUser(ct, args, params)
 	},
 }
 
 func init() {
 	showCmd.AddCommand(showUserCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// showUserCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// showUserCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func commandShowUser() {
+func commandShowUser(ct *geneos.Component, args, params []string) (err error) {
 	var c interface{}
 	userConfDir, _ := os.UserConfigDir()
 	host.ReadLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
 	printConfigJSON(c)
-
+	return
 }
