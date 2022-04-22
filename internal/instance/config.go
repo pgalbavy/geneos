@@ -11,7 +11,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/spf13/afero/sftpfs"
 	"wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/host"
 )
 
 // return the KEY from "[TYPE:]KEY=VALUE"
@@ -154,20 +156,38 @@ func ConfigPathWithExt(c geneos.Instance, extension string) (path string) {
 	return filepath.Join(c.Home(), c.Type().String()+"."+extension)
 }
 
-// check for rc file? migrate?
-// func writeInstanceConfig(c geneos.Instance) (err error) {
-// 	return c.Remote().writeConfigFile(ConfigPathWithExt(c, "json"), c.Prefix("User"), 0664, c)
-// }
-
+// write out an instance configuration file. XXX check if existing
+// config is an .rc file and if so rename it after successful write to
+// match migrate
+//
+// remote configuration files are supported using afero.Fs through
+// viper but rely on host.DialSFTP to dial and cache the client
 func WriteConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
-	c.Host().MkdirAll(filepath.Dir(file), 0775)
+	if err = c.Host().MkdirAll(filepath.Dir(file), 0775); err != nil {
+		logError.Println(err)
+	}
+	if c.Host() != host.LOCAL {
+		client, err := c.Host().DialSFTP()
+		if err != nil {
+			logError.Println(err)
+		}
+		c.V().SetFs(sftpfs.New(client))
+	}
 	return c.V().WriteConfigAs(file)
 }
 
 func ReadConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
+	logDebug.Printf("reading %q on %s", file, c.Host())
 	c.V().SetConfigFile(file)
+	if c.Host() != host.LOCAL {
+		client, err := c.Host().DialSFTP()
+		if err != nil {
+			logError.Println(err)
+		}
+		c.V().SetFs(sftpfs.New(client))
+	}
 	return c.V().MergeInConfig()
 }
 

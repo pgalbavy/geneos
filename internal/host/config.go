@@ -23,15 +23,18 @@ func (h *Host) ReadConfigFile(file string, config interface{}) (jsonFile []byte,
 	return jsonFile, json.Unmarshal(jsonFile, &config)
 }
 
-func WriteConfig(c *Host) (err error) {
-	file := ConfigFile(c, "json")
-	return c.V().WriteConfigAs(file)
-}
-
+// read a host configuration file. the host passed as an
+// argument must already have been initialised with New()
 func ReadConfig(c *Host) (err error) {
 	file := ConfigFile(c, "json")
 	c.V().SetConfigFile(file)
 	return c.V().MergeInConfig()
+}
+
+// write out a host configuration file.
+func WriteConfig(c *Host) (err error) {
+	file := ConfigFile(c, "json")
+	return c.V().WriteConfigAs(file)
 }
 
 // return the full path to the host configuration file with the

@@ -33,18 +33,18 @@ func Start(c geneos.Instance, params []string) (err error) {
 		return fmt.Errorf("buildCommand returned nil")
 	}
 
-	if !utils.CanControl(c.V().GetString(c.Prefix("User"))) {
+	if !utils.CanControl(c.V().GetString(c.Prefix("user"))) {
 		return os.ErrPermission
 	}
 
 	// set underlying user for child proc
-	username := c.V().GetString(c.Prefix("User"))
+	username := c.V().GetString(c.Prefix("user"))
 	errfile := ConfigPathWithExt(c, "txt")
 
 	if c.Host() != host.LOCAL {
 		r := c.Host()
 		rUsername := r.V().GetString("username")
-		if rUsername != username {
+		if rUsername != username && username != "" {
 			return fmt.Errorf("cannot run remote process as a different user (%q != %q)", rUsername, username)
 		}
 		rem, err := r.Dial()

@@ -27,9 +27,9 @@ const ALLHOSTS Name = "all"
 var LOCAL, ALL *Host
 
 type Host struct {
-	Name Name   `json:"Name,omitempty"`    // name, as opposed to hostname
-	Home string `json:"HomeDir,omitempty"` // Remote configuration directory
-
+	Name         Name   `json:"Name,omitempty"`    // name, as opposed to hostname
+	Home         string `json:"HomeDir,omitempty"` // Remote configuration directory
+	ConfigLoaded bool   `json:"-"`
 	// Geneos string `json:"Geneos,omitempty"` // Geneos root directory
 
 	Conf *viper.Viper `json:"-"`
@@ -96,17 +96,19 @@ func (h *Host) Load() {
 	if err := ReadConfig(h); err != nil {
 		logError.Println(err)
 	}
+	h.ConfigLoaded = true
 }
 
 func (h *Host) Loaded() bool {
 	if h == LOCAL || h == ALL {
 		return true
 	}
-	return false
+	return h.ConfigLoaded
 }
 
 func (h *Host) Unload() {
 	remotes.Delete(h.Name)
+	h.ConfigLoaded = false
 }
 
 func (host Name) String() string {

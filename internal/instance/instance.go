@@ -254,7 +254,8 @@ func GetAll(r *host.Host, ct *geneos.Component) (confs []geneos.Instance) {
 	return
 }
 
-// return an instance of component ct. loads the config.
+// return an instance of component ct, loads the config.
+// it is an error if the config cannot be loaded
 func Get(ct *geneos.Component, name string) (c geneos.Instance, err error) {
 	if ct == nil {
 		return nil, geneos.ErrInvalidArgs
@@ -273,7 +274,7 @@ func Get(ct *geneos.Component, name string) (c geneos.Instance, err error) {
 func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 	_, local, r := SplitName(name, host.ALL)
 	if !r.Loaded() {
-		logDebug.Println("remote", r, "not loaded")
+		logDebug.Printf("host %s not loaded", r)
 		return
 	}
 
@@ -292,7 +293,7 @@ func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 		if filepath.Base(ldir) == local {
 			i, err := Get(ct, name)
 			if err != nil {
-				logError.Println(err)
+				logDebug.Println(err)
 				continue
 			}
 			c = append(c, i)
