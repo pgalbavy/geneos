@@ -38,35 +38,28 @@ import (
 
 // tlsRenewCmd represents the tlsRenew command
 var tlsRenewCmd = &cobra.Command{
-	Use:   "tlsRenew",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("tlsRenew called")
+	Use:   "renew",
+	Short: "Renew certificates",
+	Long:  `Renew certificates.`,
+	Annotations: map[string]string{
+		"wildcard": "true",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandTLSRenew(ct, args, params)
 	},
 }
 
 func init() {
 	tlsCmd.AddCommand(tlsRenewCmd)
+}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// tlsRenewCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// tlsRenewCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func commandTLSRenew(ct *geneos.Component, args []string, params []string) (err error) {
+	return instance.LoopCommand(ct, renewInstanceCert, args, params)
 }
 
 // renew an instance certificate, use private key if it exists
-func renewInstanceCert(c geneos.Instance) (err error) {
+func renewInstanceCert(c geneos.Instance, _ []string) (err error) {
 	tlsDir := filepath.Join(Geneos(), "tls")
 
 	hostname, _ := os.Hostname()

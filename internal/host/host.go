@@ -68,8 +68,8 @@ func New(name Name) *Host {
 	c := &Host{}
 	c.Conf = viper.New()
 	c.Name = name
-	c.Home = filepath.Join(c.V().GetString("geneos"), "remote", string(c.Name))
 	c.V().Set("geneos", viper.GetString("geneos"))
+	c.Home = filepath.Join(c.V().GetString("geneos"), "remotes", string(c.Name))
 
 	// fill this in directly as there is no config file to load
 	if c.Name == LOCALHOST {
@@ -273,8 +273,9 @@ func AllHosts() (remotes []*Host) {
 	if utils.IsSuperuser() {
 		return
 	}
-	// for _, r := range GetInstancesForComponent(LOCAL, geneos.Remote) {
-	// 	remotes = append(remotes, r.(*Remotes))
-	// }
+
+	for _, d := range FindHostDirs() {
+		remotes = append(remotes, GetRemote(Name(d)))
+	}
 	return
 }

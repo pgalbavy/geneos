@@ -37,14 +37,15 @@ import (
 
 // tlsImportCmd represents the tlsImport command
 var tlsImportCmd = &cobra.Command{
-	Use:   "tlsImport",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "import",
+	Short: "Import root and signing certificates",
+	Long: `Import non-instance certificates. A root certificate is
+one where the subject is the same as the issuer. All other
+certificates are imported as signing certs. Only the last one, if
+multiple are given, is used. Private keys must be supplied,
+either as individual files on in the certificate files and cannot
+be password protected. Only certificates with matching private
+keys are imported.`,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -56,16 +57,6 @@ to quickly create a Cobra application.`,
 
 func init() {
 	tlsCmd.AddCommand(tlsImportCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// tlsImportCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// tlsImportCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // import root and signing certs

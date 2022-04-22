@@ -32,14 +32,11 @@ import (
 
 // tlsSyncCmd represents the tlsSync command
 var tlsSyncCmd = &cobra.Command{
-	Use:   "tlsSync",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "sync",
+	Short: "Sync remote hosts certificate chain files",
+	Long: `Create a chain.pem file made up of the root and signing
+certificates and then copy them to all remote hosts. This can
+then be used to verify connections from components.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("tlsSync called")
 	},
@@ -47,16 +44,6 @@ to quickly create a Cobra application.`,
 
 func init() {
 	tlsCmd.AddCommand(tlsSyncCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// tlsSyncCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// tlsSyncCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // if there is a local tls/chain.pem file then copy it to all remotes
