@@ -34,6 +34,8 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	var args, params []string
 
 	a := cmd.Annotations
+	a["args"] = "[]"
+	a["params"] = "[]"
 
 	if len(rawargs) == 0 && a["wildcard"] != "true" {
 		return
@@ -59,7 +61,6 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 
 	if a["wildcard"] == "false" {
 		if len(rawargs) == 0 {
-			// ct = nil
 			return
 		}
 		if ct = geneos.ParseComponentName(rawargs[0]); ct == nil {
@@ -72,25 +73,19 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	} else {
 		// work through wildcard options
 		if len(rawargs) == 0 {
-			// no more arguments? wildcard everything
-			ct = nil
+			// nothing
 		} else if ct = geneos.ParseComponentName(rawargs[0]); ct == nil {
 			// first arg is not a known type, so treat the rest as instance names
-			// ct = nil
 			args = rawargs
 		} else {
 			a["ct"] = rawargs[0]
 			args = rawargs[1:]
 		}
 
-		if a["componentonly"] == "true" {
-			return
-		}
-
 		if len(args) == 0 {
 			// no args means all instances
 			wild = true
-			args = instance.FindNames(host.ALL, ct)
+			args = instance.AllNames(host.ALL, ct)
 		} else {
 			// expand each arg and save results to a new slice
 			// if local == "", then all instances on remote (e.g. @remote)
@@ -117,7 +112,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 				if local == "" {
 					// only a '@remote' in arg
 					if r.Loaded() {
-						rargs := instance.FindNames(r, ct)
+						rargs := instance.AllNames(r, ct)
 						nargs = append(nargs, rargs...)
 						wild = true
 					}
@@ -130,12 +125,12 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 						name := local + "@" + rem.String()
 						if ct == nil {
 							for _, cr := range geneos.RealComponents() {
-								if i, err := instance.GetInstance(cr, name); err == nil && i.Loaded() {
+								if i, err := instance.Get(cr, name); err == nil && i.Loaded() {
 									nargs = append(nargs, name)
 									matched = true
 								}
 							}
-						} else if i, err := instance.GetInstance(ct, name); err == nil && i.Loaded() {
+						} else if i, err := instance.Get(ct, name); err == nil && i.Loaded() {
 							nargs = append(nargs, name)
 							matched = true
 						}
@@ -190,8 +185,8 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	}
 
 	// if args is empty, find them all again. ct == None too?
-	if len(args) == 0 && Geneos() != "" && !wild {
-		args = instance.FindNames(host.ALL, ct)
+	if len(args) == 0 && host.Geneos() != "" && !wild {
+		args = instance.AllNames(host.ALL, ct)
 		jsonargs, _ := json.Marshal(args)
 		a["args"] = string(jsonargs)
 	}

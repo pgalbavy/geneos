@@ -29,6 +29,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/pkg/logger"
 )
@@ -61,7 +62,7 @@ to quickly create a Cobra application.`,
 	Annotations: make(map[string]string),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 		// check initialisation
-		geneosdir := viper.GetString("geneos")
+		geneosdir := host.Geneos()
 		if geneosdir == "" {
 			// only allow init through
 			if cmd != initCmd {
@@ -88,8 +89,7 @@ You can fix this by doing one of the following:
 
 3. Set the Geneos path in the global configuration file (usually as root):
 
-	# echo '{ "Geneos": "/path/to/geneos" }' > /etc/geneos/geneos.json
-`)
+	# echo '{ "Geneos": "/path/to/geneos" }' > `+geneos.GlobalConfig)
 			}
 		}
 
@@ -116,7 +116,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (defaults are $HOME/.config/geneos.json, /etc/geneos/geneos.json)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (defaults are $HOME/.config/geneos.json, "+geneos.GlobalConfig+")")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -155,13 +155,4 @@ func initConfig() {
 
 	// initialise after config loaded
 	host.Init()
-}
-
-func Geneos() string {
-	home := viper.GetString("Geneos")
-	if home == "" {
-		// fallback to support breaking change
-		return viper.GetString("ITRSHome")
-	}
-	return home
 }

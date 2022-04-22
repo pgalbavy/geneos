@@ -27,14 +27,14 @@ var San geneos.Component = geneos.Component{
 	PurgeList:        "SanPurgeList",
 	Defaults: []string{
 		"binsuffix={{if eq .santype \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64",
-		"sanhome={{join .remoteroot \"san\" \"sans\" .instancename}}",
+		"sanhome={{join .remoteroot \"san\" \"sans\" .name}}",
 		"sanbins={{join .remoteroot \"packages\" .santype}}",
 		"sanbase=active_prod",
 		"sanexec={{join .sanbins .sanbase .binsuffix}}",
 		"sanlogf=san.log",
 		"sanport=7036",
 		"sanlibs={{join .sanbins .sanbase \"lib64\"}}:{{join .sanbins .sanbase}}",
-		"sanname={{.instancename}}",
+		"sanname={{.name}}",
 	},
 	GlobalSettings: map[string]string{
 		"SanPortRange": "7036,7100-",
@@ -82,18 +82,16 @@ func New(name string) geneos.Instance {
 	}
 	c := &Sans{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &San
-	c.InstanceName = local
-	c.V().Set("santype", "netprobe")
+	c.V().SetDefault("santype", "netprobe")
 	if ct != nil {
-		c.V().Set("santype", ct.Name)
+		c.V().SetDefault("santype", ct.Name)
 	}
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	sans.Store(r.FullName(local), c)
 	return c
 }
@@ -106,11 +104,7 @@ func (s *Sans) Type() *geneos.Component {
 }
 
 func (s *Sans) Name() string {
-	return s.InstanceName
-}
-
-func (s *Sans) Location() host.Name {
-	return s.InstanceHost
+	return s.V().GetString("name")
 }
 
 func (s *Sans) Home() string {
@@ -122,12 +116,12 @@ func (s *Sans) Prefix(field string) string {
 	return strings.ToLower("san" + field)
 }
 
-func (s *Sans) Remote() *host.Host {
-	return s.InstanceRemote
+func (s *Sans) Host() *host.Host {
+	return s.InstanceHost
 }
 
 func (s *Sans) String() string {
-	return s.Type().String() + ":" + s.InstanceName + "@" + s.Location().String()
+	return s.Type().String() + ":" + s.Name() + "@" + s.Host().String()
 }
 
 func (s *Sans) Load() (err error) {
@@ -140,7 +134,7 @@ func (s *Sans) Load() (err error) {
 }
 
 func (s *Sans) Unload() (err error) {
-	sans.Delete(s.Name() + "@" + s.Location().String())
+	sans.Delete(s.Name() + "@" + s.Host().String())
 	s.ConfigLoaded = false
 	return
 }
@@ -154,7 +148,7 @@ func (s *Sans) V() *viper.Viper {
 }
 
 func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
-	s.V().Set("sanport", instance.NextPort(s.InstanceRemote, &San))
+	s.V().Set("sanport", instance.NextPort(s.InstanceHost, &San))
 	s.V().Set("sanuser", username)
 	s.V().Set("configrebuild", "always")
 

@@ -20,7 +20,7 @@ import (
 //
 // skip if certificate exists (no expiry check)
 func CreateCert(c geneos.Instance) (err error) {
-	tlsDir := filepath.Join(geneos.Geneos(), "tls")
+	tlsDir := filepath.Join(host.Geneos(), "tls")
 
 	// skip if we can load an existing certificate
 	if _, err = ReadCert(c); err == nil {
@@ -28,8 +28,8 @@ func CreateCert(c geneos.Instance) (err error) {
 	}
 
 	hostname, _ := os.Hostname()
-	if c.Remote() != host.LOCAL {
-		hostname = c.Remote().V().GetString("hostname")
+	if c.Host() != host.LOCAL {
+		hostname = c.Host().V().GetString("hostname")
 	}
 
 	serial, err := rand.Prime(rand.Reader, 64)
@@ -83,7 +83,7 @@ func WriteCert(c geneos.Instance, cert *x509.Certificate) (err error) {
 		return geneos.ErrInvalidArgs
 	}
 	certfile := c.Type().String() + ".pem"
-	if err = c.Remote().WriteCert(filepath.Join(c.Home(), certfile), cert); err != nil {
+	if err = c.Host().WriteCert(filepath.Join(c.Home(), certfile), cert); err != nil {
 		return
 	}
 	if c.V().GetString(c.Prefix("Cert")) == certfile {
@@ -100,7 +100,7 @@ func WriteKey(c geneos.Instance, key *rsa.PrivateKey) (err error) {
 	}
 
 	keyfile := c.Type().String() + ".key"
-	if err = c.Remote().WriteKey(filepath.Join(c.Home(), keyfile), key); err != nil {
+	if err = c.Host().WriteKey(filepath.Join(c.Home(), keyfile), key); err != nil {
 		return
 	}
 	if c.V().GetString(c.Prefix("Key")) == keyfile {
@@ -112,13 +112,13 @@ func WriteKey(c geneos.Instance, key *rsa.PrivateKey) (err error) {
 
 // read the rootCA certificate from the installation directory
 func ReadRootCert() (cert *x509.Certificate, err error) {
-	tlsDir := filepath.Join(geneos.Geneos(), "tls")
+	tlsDir := filepath.Join(host.Geneos(), "tls")
 	return host.LOCAL.ReadCert(filepath.Join(tlsDir, geneos.RootCAFile+".pem"))
 }
 
 // read the signing certificate from the installation directory
 func ReadSigningCert() (cert *x509.Certificate, err error) {
-	tlsDir := filepath.Join(geneos.Geneos(), "tls")
+	tlsDir := filepath.Join(host.Geneos(), "tls")
 	return host.LOCAL.ReadCert(filepath.Join(tlsDir, geneos.SigningCertFile+".pem"))
 }
 
@@ -131,7 +131,7 @@ func ReadCert(c geneos.Instance) (cert *x509.Certificate, err error) {
 	if c.V().GetString(c.Prefix("Cert")) == "" {
 		return nil, os.ErrNotExist
 	}
-	return c.Remote().ReadCert(AbsPath(c, c.V().GetString(c.Prefix("Cert"))))
+	return c.Host().ReadCert(Abs(c, c.V().GetString(c.Prefix("Cert"))))
 }
 
 // read the instance RSA private key
@@ -140,7 +140,7 @@ func ReadKey(c geneos.Instance) (key *rsa.PrivateKey, err error) {
 		return nil, geneos.ErrInvalidArgs
 	}
 
-	return c.Remote().ReadKey(AbsPath(c, c.V().GetString(c.Prefix("Key"))))
+	return c.Host().ReadKey(Abs(c, c.V().GetString(c.Prefix("Key"))))
 }
 
 // wrapper to create a new certificate given the sign cert and private key and an optional private key to (re)use

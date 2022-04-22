@@ -22,7 +22,7 @@ var Licd geneos.Component = geneos.Component{
 	PurgeList:        "LicdPurgeList",
 	Defaults: []string{
 		"binsuffix=licd.linux_64",
-		"licdhome={{join .remoteroot \"licd\" \"licds\" .instancename}}",
+		"licdhome={{join .remoteroot \"licd\" \"licds\" .name}}",
 		"licdbins={{join .remoteroot \"packages\" \"licd\"}}",
 		"licdbase=active_prod",
 		"licdexec={{join .licdbins .licdbase .binsuffix}}",
@@ -60,14 +60,12 @@ func New(name string) geneos.Instance {
 	}
 	c := &Licds{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &Licd
-	c.InstanceName = local
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	licds.Store(r.FullName(local), c)
 	return c
 }
@@ -80,11 +78,7 @@ func (l *Licds) Type() *geneos.Component {
 }
 
 func (l *Licds) Name() string {
-	return l.InstanceName
-}
-
-func (l *Licds) Location() host.Name {
-	return l.InstanceHost
+	return l.V().GetString("name")
 }
 
 func (l *Licds) Home() string {
@@ -95,12 +89,12 @@ func (l *Licds) Prefix(field string) string {
 	return strings.ToLower("Licd" + field)
 }
 
-func (l *Licds) Remote() *host.Host {
-	return l.InstanceRemote
+func (l *Licds) Host() *host.Host {
+	return l.InstanceHost
 }
 
 func (l *Licds) String() string {
-	return l.Type().String() + ":" + l.InstanceName + "@" + l.Location().String()
+	return l.Type().String() + ":" + l.Name() + "@" + l.Host().String()
 }
 
 func (l *Licds) Load() (err error) {
@@ -113,7 +107,7 @@ func (l *Licds) Load() (err error) {
 }
 
 func (l *Licds) Unload() (err error) {
-	licds.Delete(l.Name() + "@" + l.Location().String())
+	licds.Delete(l.Name() + "@" + l.Host().String())
 	l.ConfigLoaded = false
 	return
 }
@@ -127,7 +121,7 @@ func (l *Licds) V() *viper.Viper {
 }
 
 func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
-	l.V().Set("licdport", instance.NextPort(l.InstanceRemote, &Licd))
+	l.V().Set("licdport", instance.NextPort(l.InstanceHost, &Licd))
 	l.V().Set("licduser", username)
 
 	if err = instance.WriteConfig(l); err != nil {

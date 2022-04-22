@@ -50,7 +50,7 @@ func init() {
 var cleanCmdPurge bool
 
 func commandClean(ct *geneos.Component, args []string, params []string) error {
-	return instance.LoopCommand(ct, cleanInstance, args, params)
+	return instance.ForAll(ct, cleanInstance, args, params)
 }
 
 func cleanInstance(c geneos.Instance, params []string) (err error) {

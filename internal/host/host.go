@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -42,6 +41,15 @@ func Init() {
 	ALL = New(ALLHOSTS)
 }
 
+func Geneos() string {
+	home := viper.GetString("Geneos")
+	if home == "" {
+		// fallback to support breaking change
+		return viper.GetString("ITRSHome")
+	}
+	return home
+}
+
 // interface method set
 
 // cache instances of remotes as they get used frequently
@@ -68,12 +76,12 @@ func New(name Name) *Host {
 	c := &Host{}
 	c.Conf = viper.New()
 	c.Name = name
-	c.V().Set("geneos", viper.GetString("geneos"))
+	c.V().Set("geneos", Geneos())
 	c.Home = filepath.Join(c.V().GetString("geneos"), "remotes", string(c.Name))
 
 	// fill this in directly as there is no config file to load
 	if c.Name == LOCALHOST {
-		c.getOSReleaseEnv()
+		c.GetOSReleaseEnv()
 	}
 
 	remotes.Store(name, c)
@@ -109,112 +117,7 @@ func (h *Host) String() string {
 	return string(h.Name)
 }
 
-//
-// 'geneos add remote NAME [SSH-URL] [init opts]'
-//
-func (r *Host) Add(username string, params []string, tmpl string) (err error) {
-	if len(params) == 0 {
-		// default - try ssh to a host with the same name as remote
-		params = []string{"ssh://" + string(r.Name)}
-	}
-
-	var remurl string
-	if strings.HasPrefix(params[0], "ssh://") {
-		remurl = params[0]
-		params = params[1:]
-	} else if strings.HasPrefix(params[0], "/") {
-		remurl = "ssh://" + r.String() + params[0]
-		params = params[1:]
-	} else {
-		remurl = "ssh://" + r.String()
-	}
-
-	// if err = initFlagSet.Parse(params); err != nil {
-	// 	return
-	// }
-
-	u, err := url.Parse(remurl)
-	if err != nil {
-		return
-	}
-
-	if u.Scheme != "ssh" {
-		return fmt.Errorf("unsupported scheme (only ssh at the moment): %q", u.Scheme)
-	}
-
-	// if no hostname in URL fall back to remote name (e.g. ssh:///path)
-	r.V().Set("hostname", u.Host)
-	if u.Host == "" {
-		r.V().Set("hostname", r.Name)
-	}
-
-	if u.Port() != "" {
-		r.V().Set("port", u.Port())
-	}
-
-	if u.User.Username() != "" {
-		username = u.User.Username()
-	}
-	r.V().Set("username", username)
-
-	// XXX default to remote user's home dir, not local
-	r.V().Set("geneos", viper.GetString("geneos"))
-	if u.Path != "" {
-		// XXX check and adopt local setting for remote user and/or remote global settings
-		// - only if ssh URL does not contain explicit path
-		r.V().Set("geneos", u.Path)
-	}
-
-	if err = WriteConfig(r); err != nil {
-		return
-	}
-
-	// once we are bootstrapped, read os-release info and re-write config
-	if err = r.getOSReleaseEnv(); err != nil {
-		return
-	}
-
-	if err = WriteConfig(r); err != nil {
-		return
-	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(Remote, []string{r.String()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	r.Unload()
-	// 	r.Load()
-	// }
-
-	// initialise the remote directory structure, but perhaps ignore errors
-	// as we may simply be adding an existing installation
-	// if err = geneos.Init(r, []string{r.Geneos}); err != nil {
-	// 	return err
-	// }
-
-	// for _, c := range components {
-	// 	if c.Initialise != nil {
-	// 		c.Initialise(r)
-	// 	}
-	// }
-
-	return
-}
-
-func (r *Host) Command() (args, env []string) {
-	return
-}
-
-func (r *Host) Reload(params []string) (err error) {
-	return ErrNotSupported
-}
-
-func (r *Host) Rebuild(initial bool) error {
-	return ErrNotSupported
-}
-
-func (h *Host) getOSReleaseEnv() (err error) {
+func (h *Host) GetOSReleaseEnv() (err error) {
 	osinfo := make(map[string]string)
 	f, err := h.ReadFile("/etc/os-release")
 	if err != nil {
@@ -242,7 +145,7 @@ func (h *Host) getOSReleaseEnv() (err error) {
 	return
 }
 
-func GetRemote(remote Name) (r *Host) {
+func Get(remote Name) (r *Host) {
 	switch remote {
 	case LOCALHOST:
 		return LOCAL
@@ -275,7 +178,7 @@ func AllHosts() (remotes []*Host) {
 	}
 
 	for _, d := range FindHostDirs() {
-		remotes = append(remotes, GetRemote(Name(d)))
+		remotes = append(remotes, Get(Name(d)))
 	}
 	return
 }

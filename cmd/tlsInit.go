@@ -59,7 +59,7 @@ func init() {
 //
 // later options to allow import of a DCA
 func TLSInit() (err error) {
-	tlsPath := filepath.Join(Geneos(), "tls")
+	tlsPath := filepath.Join(host.Geneos(), "tls")
 	// directory permissions do not need to be restrictive
 	err = host.LOCAL.MkdirAll(tlsPath, 0775)
 	if err != nil {

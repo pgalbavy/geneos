@@ -51,7 +51,7 @@ func init() {
 var stopCmdKill bool
 
 func commandStop(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, stopInstance, args, params)
+	return instance.ForAll(ct, stopInstance, args, params)
 }
 
 func stopInstance(c geneos.Instance, params []string) error {

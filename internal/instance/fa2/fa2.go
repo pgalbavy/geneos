@@ -3,7 +3,6 @@ package fa2
 import (
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
@@ -23,7 +22,7 @@ var FA2 geneos.Component = geneos.Component{
 	PurgeList:        "FA2PurgeList",
 	Defaults: []string{
 		"binsuffix=fix-analyser2-netprobe.linux_64",
-		"fa2home={{join .remoteroot \"fa2\" \"fa2s\" .instancename}}",
+		"fa2home={{join .remoteroot \"fa2\" \"fa2s\" .name}}",
 		"fa2bins={{join .remoteroot \"packages\" \"fa2\"}}",
 		"fa2base=active_prod",
 		"fa2exec={{join .fa2bins .fa2base .binsuffix}}",
@@ -61,14 +60,12 @@ func New(name string) geneos.Instance {
 	}
 	c := &FA2s{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &FA2
-	c.InstanceName = local
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	fa2s.Store(r.FullName(local), c)
 	return c
 }
@@ -81,11 +78,7 @@ func (n *FA2s) Type() *geneos.Component {
 }
 
 func (n *FA2s) Name() string {
-	return n.InstanceName
-}
-
-func (n *FA2s) Location() host.Name {
-	return n.InstanceHost
+	return n.V().GetString("name")
 }
 
 func (n *FA2s) Home() string {
@@ -97,12 +90,12 @@ func (n *FA2s) Prefix(field string) string {
 	return strings.ToLower("fa2" + field)
 }
 
-func (n *FA2s) Remote() *host.Host {
-	return n.InstanceRemote
+func (n *FA2s) Host() *host.Host {
+	return n.InstanceHost
 }
 
 func (n *FA2s) String() string {
-	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+	return n.Type().String() + ":" + n.Name() + "@" + n.Host().String()
 }
 
 func (n *FA2s) Load() (err error) {
@@ -115,7 +108,7 @@ func (n *FA2s) Load() (err error) {
 }
 
 func (n *FA2s) Unload() (err error) {
-	fa2s.Delete(n.Name() + "@" + n.Location().String())
+	fa2s.Delete(n.Name() + "@" + n.Host().String())
 	n.ConfigLoaded = false
 	return
 }
@@ -129,7 +122,7 @@ func (n *FA2s) V() *viper.Viper {
 }
 
 func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
-	n.V().Set("fa2port", instance.NextPort(n.InstanceRemote, &FA2))
+	n.V().Set("fa2port", instance.NextPort(n.InstanceHost, &FA2))
 	n.V().Set("fa2user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
@@ -180,8 +173,4 @@ func (n *FA2s) Reload(params []string) (err error) {
 
 func (n *FA2s) Rebuild(initial bool) error {
 	return geneos.ErrNotSupported
-}
-
-func (n *FA2s) Signal(s syscall.Signal) error {
-	return instance.Signal(n, s)
 }

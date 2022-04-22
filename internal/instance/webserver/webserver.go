@@ -23,7 +23,7 @@ var Webserver geneos.Component = geneos.Component{
 	CleanList:        "WebserverCleanList",
 	PurgeList:        "WebserverPurgeList",
 	Defaults: []string{
-		"webshome={{join .remoteroot \"webserver\" \"webservers\" .instancename}}",
+		"webshome={{join .remoteroot \"webserver\" \"webservers\" .name}}",
 		"websbins={{join .remoteroot \"packages\" \"webserver\"}}",
 		"websbase=active_prod",
 		"websexec={{join .websbins .websbase \"jre/bin/java\"}}",
@@ -64,14 +64,12 @@ func New(name string) geneos.Instance {
 	}
 	c := &Webservers{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &Webserver
-	c.InstanceName = local
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	webservers.Store(r.FullName(local), c)
 	return c
 }
@@ -99,11 +97,7 @@ func (w *Webservers) Type() *geneos.Component {
 }
 
 func (w *Webservers) Name() string {
-	return w.InstanceName
-}
-
-func (w *Webservers) Location() host.Name {
-	return w.InstanceHost
+	return w.V().GetString("name")
 }
 
 func (w *Webservers) Home() string {
@@ -114,12 +108,12 @@ func (w *Webservers) Prefix(field string) string {
 	return strings.ToLower("Webs" + field)
 }
 
-func (w *Webservers) Remote() *host.Host {
-	return w.InstanceRemote
+func (w *Webservers) Host() *host.Host {
+	return w.InstanceHost
 }
 
 func (w *Webservers) String() string {
-	return w.Type().String() + ":" + w.InstanceName + "@" + w.Location().String()
+	return w.Type().String() + ":" + w.Name() + "@" + w.Host().String()
 }
 
 func (w *Webservers) Load() (err error) {
@@ -132,7 +126,7 @@ func (w *Webservers) Load() (err error) {
 }
 
 func (w *Webservers) Unload() (err error) {
-	webservers.Delete(w.Name() + "@" + w.Location().String())
+	webservers.Delete(w.Name() + "@" + w.Host().String())
 	w.ConfigLoaded = false
 	return
 }
@@ -146,7 +140,7 @@ func (w *Webservers) V() *viper.Viper {
 }
 
 func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
-	w.V().Set("websport", instance.NextPort(w.InstanceRemote, &Webserver))
+	w.V().Set("websport", instance.NextPort(w.InstanceHost, &Webserver))
 	w.V().Set("websuser", username)
 
 	if err = instance.WriteConfig(w); err != nil {
@@ -176,12 +170,12 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 		return
 	}
 
-	if err = w.Remote().MkdirAll(filepath.Join(w.Home(), "webapps"), 0775); err != nil {
+	if err = w.Host().MkdirAll(filepath.Join(w.Home(), "webapps"), 0775); err != nil {
 		return
 	}
 
 	for _, source := range webserverFiles {
-		if err = instance.ImportFile(w.Remote(), w.Home(), w.V().GetString(w.Prefix("User")), source); err != nil {
+		if err = instance.ImportFile(w.Host(), w.Home(), w.V().GetString(w.Prefix("User")), source); err != nil {
 			return
 		}
 	}

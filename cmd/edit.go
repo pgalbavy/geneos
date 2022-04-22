@@ -82,14 +82,14 @@ func commandEdit(ct *geneos.Component, args []string, params []string) (err erro
 	// XXX allow for RC files again
 	var cs []string
 	for _, name := range args {
-		for _, c := range instance.FindInstances(ct, name) {
-			if c.Remote() != host.LOCAL {
+		for _, c := range instance.MatchAll(ct, name) {
+			if c.Host() != host.LOCAL {
 				logError.Println("remote edit of", c, ErrNotSupported)
 				continue
 			}
 			if _, err = host.LOCAL.Stat(instance.ConfigPathWithExt(c, "rc")); err == nil {
 				cs = append(cs, instance.ConfigPathWithExt(c, "rc"))
-			} else if _, err = c.Remote().Stat(instance.ConfigPathWithExt(c, "json")); err == nil {
+			} else if _, err = c.Host().Stat(instance.ConfigPathWithExt(c, "json")); err == nil {
 				cs = append(cs, instance.ConfigPathWithExt(c, "json"))
 			} else {
 				logError.Println("no configuration file found for", c)

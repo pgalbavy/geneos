@@ -55,16 +55,16 @@ func init() {
 }
 
 func commandTLSRenew(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, renewInstanceCert, args, params)
+	return instance.ForAll(ct, renewInstanceCert, args, params)
 }
 
 // renew an instance certificate, use private key if it exists
 func renewInstanceCert(c geneos.Instance, _ []string) (err error) {
-	tlsDir := filepath.Join(Geneos(), "tls")
+	tlsDir := filepath.Join(host.Geneos(), "tls")
 
 	hostname, _ := os.Hostname()
-	if c.Remote() != host.LOCAL {
-		hostname = c.Remote().V().GetString("hostname")
+	if c.Host() != host.LOCAL {
+		hostname = c.Host().V().GetString("hostname")
 	}
 
 	serial, err := rand.Prime(rand.Reader, 64)

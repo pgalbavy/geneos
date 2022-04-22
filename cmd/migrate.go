@@ -57,7 +57,7 @@ func init() {
 }
 
 func commandMigrate(ct *geneos.Component, names []string, params []string) (err error) {
-	return instance.LoopCommand(ct, migrateInstance, names, params)
+	return instance.ForAll(ct, migrateInstance, names, params)
 }
 
 func migrateInstance(c geneos.Instance, params []string) (err error) {

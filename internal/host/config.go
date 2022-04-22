@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-
-	"github.com/spf13/viper"
 )
 
 func ReadLocalConfigFile(file string, config interface{}) (err error) {
@@ -43,7 +41,7 @@ func ConfigFile(c *Host, extension string) (path string) {
 }
 
 func FindHostDirs() (hosts []string) {
-	dir := filepath.Join(viper.GetString("geneos"), "remotes")
+	dir := filepath.Join(Geneos(), "remotes")
 	dirs, err := LOCAL.ReadDir(dir)
 	if err != nil {
 		logError.Println(err)

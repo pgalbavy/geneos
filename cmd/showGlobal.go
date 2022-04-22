@@ -52,7 +52,7 @@ func init() {
 
 func commandShowGlobal(ct *geneos.Component, args, params []string) (err error) {
 	var c interface{}
-	host.ReadLocalConfigFile("/etc/geneos/geneos.json", &c)
+	host.ReadLocalConfigFile(geneos.GlobalConfig, &c)
 	printConfigJSON(c)
 	return
 }

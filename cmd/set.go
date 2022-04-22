@@ -89,12 +89,12 @@ func commandSet(ct *geneos.Component, args []string, params []string) (err error
 
 	if ct != nil && len(args) == 0 {
 		// if all args have no become params (e.g. 'set gateway X=Y') then reprocess args here
-		args = instance.FindNames(host.ALL, ct)
+		args = instance.AllNames(host.ALL, ct)
 	}
 
 	// loop through named instances
 	for _, arg := range args {
-		instances = append(instances, instance.FindInstances(ct, arg)...)
+		instances = append(instances, instance.MatchAll(ct, arg)...)
 	}
 
 	for _, arg := range params {
@@ -305,14 +305,14 @@ func writeConfigParams(filename string, params []string) (err error) {
 
 	// fix breaking change
 	if viper.IsSet("ITRSHome") {
-		if !viper.IsSet("Geneos") {
-			viper.Set("Geneos", viper.GetString("ITRSHome"))
+		if !viper.IsSet("geneos") {
+			viper.Set("geneos", viper.GetString("itrshome"))
 		}
-		viper.Set("ITRSHome", nil)
+		viper.Set("itrshome", nil)
 	}
 
 	// XXX fix permissions assumptions here
-	if filename == "/etc/geneos/geneos.json" {
+	if filename == geneos.GlobalConfig {
 		return host.LOCAL.WriteConfigFile(filename, "root", 0664, c)
 	}
 	return host.LOCAL.WriteConfigFile(filename, "", 0664, c)

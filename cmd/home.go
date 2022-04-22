@@ -58,7 +58,7 @@ func init() {
 func commandHome(_ *geneos.Component, args []string, params []string) error {
 	var ct *geneos.Component
 	if len(args) == 0 {
-		log.Println(Geneos())
+		log.Println(host.Geneos())
 		return nil
 	}
 
@@ -71,13 +71,13 @@ func commandHome(_ *geneos.Component, args []string, params []string) error {
 
 	var i []geneos.Instance
 	if len(args) == 0 {
-		i = instance.GetInstancesForComponent(host.LOCAL, ct)
+		i = instance.GetAll(host.LOCAL, ct)
 	} else {
-		i = instance.FindInstances(ct, args[0])
+		i = instance.MatchAll(ct, args[0])
 	}
 
 	if len(i) == 0 {
-		log.Println(Geneos())
+		log.Println(host.Geneos())
 		return nil
 	}
 

@@ -33,47 +33,48 @@ import (
 	"wonderland.org/geneos/internal/host"
 )
 
-// lsRemoteCmd represents the lsRemote command
-var lsRemoteCmd = &cobra.Command{
-	Use:   "remote [-c|-j [-i]] [TYPE] [NAME...]",
-	Short: "List remotes, optionally in CSV or JSON format",
-	Long:  `List the matching remotes.`,
+// lsHostCmd represents the lsRemote command
+var lsHostCmd = &cobra.Command{
+	Use:     "host [-c|-j [-i]] [TYPE] [NAME...]",
+	Aliases: []string{"hosts", "remote", "remotes"},
+	Short:   "List hosts, optionally in CSV or JSON format",
+	Long:    `List the matching remote hosts.`,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandLSRemote(ct, args, params)
+		return commandLSHost(ct, args, params)
 	},
 }
 
 func init() {
-	lsCmd.AddCommand(lsRemoteCmd)
+	lsCmd.AddCommand(lsHostCmd)
 
-	lsRemoteCmd.PersistentFlags().BoolVarP(&lsRemoteCmdJSON, "json", "j", false, "Output JSON")
-	lsRemoteCmd.PersistentFlags().BoolVarP(&lsRemoteCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
-	lsRemoteCmd.PersistentFlags().BoolVarP(&lsRemoteCmdCSV, "csv", "c", false, "Output CSV")
+	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdJSON, "json", "j", false, "Output JSON")
+	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
+	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdCSV, "csv", "c", false, "Output CSV")
 }
 
-var lsRemoteCmdJSON, lsRemoteCmdCSV, lsRemoteCmdIndent bool
+var lsHostCmdJSON, lsHostCmdCSV, lsHostCmdIndent bool
 
-func commandLSRemote(ct *geneos.Component, args []string, params []string) (err error) {
+func commandLSHost(ct *geneos.Component, args []string, params []string) (err error) {
 	switch {
-	case lsRemoteCmdJSON:
+	case lsHostCmdJSON:
 		jsonEncoder = json.NewEncoder(log.Writer())
-		if lsRemoteCmdIndent {
+		if lsHostCmdIndent {
 			jsonEncoder.SetIndent("", "    ")
 		}
-		err = loopHosts(lsInstanceJSONRemotes)
-	case lsRemoteCmdCSV:
+		err = loopHosts(lsInstanceJSONHosts)
+	case lsHostCmdCSV:
 		csvWriter = csv.NewWriter(log.Writer())
 		csvWriter.Write([]string{"Type", "Name", "Disabled", "Username", "Hostname", "Port", "Geneos"})
-		err = loopHosts(lsInstanceCSVRemotes)
+		err = loopHosts(lsInstanceCSVHosts)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
 		fmt.Fprintf(lsTabWriter, "Name\tUsername\tHostname\tPort\tITRSHome\n")
-		err = loopHosts(lsInstancePlainRemotes)
+		err = loopHosts(lsInstancePlainHosts)
 		lsTabWriter.Flush()
 	}
 	if err == os.ErrNotExist {
@@ -92,17 +93,17 @@ func loopHosts(fn func(*host.Host) error) error {
 	return nil
 }
 
-func lsInstancePlainRemotes(h *host.Host) (err error) {
+func lsInstancePlainHosts(h *host.Host) (err error) {
 	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s\n", h.Name, h.V().GetString("username"), h.V().GetString("hostname"), h.V().GetInt("port"), h.V().GetString("geneos"))
 	return
 }
 
-func lsInstanceCSVRemotes(c *host.Host) (err error) {
+func lsInstanceCSVHosts(c *host.Host) (err error) {
 	csvWriter.Write([]string{c.String(), c.V().GetString("username"), c.V().GetString("hostname"), fmt.Sprint(c.V().GetInt("port")), c.V().GetString("geneos")})
 	return
 }
 
-type lsTypeRemotes struct {
+type lsTypeHosts struct {
 	Name     string
 	Username string
 	Hostname string
@@ -110,7 +111,7 @@ type lsTypeRemotes struct {
 	Geneos   string
 }
 
-func lsInstanceJSONRemotes(c *host.Host) (err error) {
-	jsonEncoder.Encode(lsTypeRemotes{c.String(), c.V().GetString("username"), c.V().GetString("hostname"), c.V().GetInt64("port"), c.V().GetString("geneos")})
+func lsInstanceJSONHosts(c *host.Host) (err error) {
+	jsonEncoder.Encode(lsTypeHosts{c.String(), c.V().GetString("username"), c.V().GetString("hostname"), c.V().GetInt64("port"), c.V().GetString("geneos")})
 	return
 }

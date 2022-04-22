@@ -71,7 +71,7 @@ func commandShow(ct *geneos.Component, args []string, params []string) (err erro
 	//
 	cs := make(map[host.Name][]geneos.Instance)
 	for _, name := range args {
-		cs[host.LOCALHOST] = instance.FindInstances(ct, name)
+		cs[host.LOCALHOST] = instance.MatchAll(ct, name)
 		logDebug.Println(cs[host.LOCALHOST])
 		for _, c := range cs[host.LOCALHOST] {
 			config := c.V().AllSettings()

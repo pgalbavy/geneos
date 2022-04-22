@@ -32,7 +32,7 @@ var FileAgent geneos.Component = geneos.Component{
 	PurgeList:        "FAPurgeList",
 	Defaults: []string{
 		"binsuffix=agent.linux_64",
-		"fahome={{join .remoteroot \"fileagent\" \"fileagents\" .instancename}}",
+		"fahome={{join .remoteroot \"fileagent\" \"fileagents\" .name}}",
 		"fabins={{join .remoteroot \"packages\" \"fileagent\"}}",
 		"fabase=active_prod",
 		"faexec={{join .fabins .fabase .binsuffix}}",
@@ -70,14 +70,12 @@ func New(name string) geneos.Instance {
 	}
 	c := &FileAgents{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &FileAgent
-	c.InstanceName = local
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	fileagents.Store(r.FullName(local), c)
 	return c
 }
@@ -90,11 +88,7 @@ func (n *FileAgents) Type() *geneos.Component {
 }
 
 func (n *FileAgents) Name() string {
-	return n.InstanceName
-}
-
-func (n *FileAgents) Location() host.Name {
-	return n.InstanceHost
+	return n.V().GetString("name")
 }
 
 func (n *FileAgents) Home() string {
@@ -106,12 +100,12 @@ func (n *FileAgents) Prefix(field string) string {
 	return strings.ToLower("fa" + field)
 }
 
-func (n *FileAgents) Remote() *host.Host {
-	return n.InstanceRemote
+func (n *FileAgents) Host() *host.Host {
+	return n.InstanceHost
 }
 
 func (n *FileAgents) String() string {
-	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+	return n.Type().String() + ":" + n.Name() + "@" + n.Host().String()
 }
 
 func (n *FileAgents) Load() (err error) {
@@ -124,7 +118,7 @@ func (n *FileAgents) Load() (err error) {
 }
 
 func (n *FileAgents) Unload() (err error) {
-	fileagents.Delete(n.Name() + "@" + n.Location().String())
+	fileagents.Delete(n.Name() + "@" + n.Host().String())
 	n.ConfigLoaded = false
 	return
 }
@@ -138,7 +132,7 @@ func (n *FileAgents) V() *viper.Viper {
 }
 
 func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
-	n.V().Set("faport", instance.NextPort(n.Remote(), &FileAgent))
+	n.V().Set("faport", instance.NextPort(n.Host(), &FileAgent))
 	n.V().Set("fauser", username)
 
 	if err = instance.WriteConfig(n); err != nil {

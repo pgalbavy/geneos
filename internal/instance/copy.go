@@ -30,16 +30,16 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 		if srcremote == dstremote {
 			return fmt.Errorf("%w: src and destination remotes must be different", geneos.ErrInvalidArgs)
 		}
-		sr := host.GetRemote(host.Name(srcremote))
+		sr := host.Get(host.Name(srcremote))
 		if !sr.Loaded() {
 			return fmt.Errorf("%w: source remote %q not found", os.ErrNotExist, srcremote)
 		}
-		dr := host.GetRemote(host.Name(dstremote))
+		dr := host.Get(host.Name(dstremote))
 		if !dr.Loaded() {
 			return fmt.Errorf("%w: destination remote %q not found", os.ErrNotExist, dstremote)
 		}
 		// they both exist, now loop through all instances on src and try to move/copy
-		for _, name := range FindNames(sr, ct) {
+		for _, name := range AllNames(sr, ct) {
 			CopyInstance(ct, name, dstname, remove)
 		}
 		return nil
@@ -55,7 +55,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 		return nil
 	}
 
-	src, err := FindInstance(ct, srcname)
+	src, err := Match(ct, srcname)
 	if err != nil {
 		return fmt.Errorf("%w: %q %q", err, ct, srcname)
 	}
@@ -69,7 +69,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 		dstname = src.Name() + dstname
 	}
 
-	dst, err := GetInstance(ct, dstname)
+	dst, err := Get(ct, dstname)
 	if err != nil {
 		logDebug.Println(err)
 	}
@@ -112,7 +112,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 	// ib.InstanceName = ds
 
 	// move directory
-	if err = host.CopyAll(src.Remote(), src.Home(), dr, dst.Home()); err != nil {
+	if err = host.CopyAll(src.Host(), src.Home(), dr, dst.Home()); err != nil {
 		return
 	}
 
@@ -130,9 +130,9 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 		} else {
 			// remove new instance
 			logDebug.Println("removing new instance", dst)
-			dst.Remote().RemoveAll(dst.Home())
+			dst.Host().RemoveAll(dst.Home())
 		}
-	}(src.String(), src.Remote(), src.Home(), dst)
+	}(src.String(), src.Host(), src.Home(), dst)
 
 	// XXX update src here and then write that out as if it were dst
 	// this gets around the defaults set in dst being incomplete (and hence wrong)
@@ -146,7 +146,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 	// dst.Unload()
 
 	// fetch a new port if remotes are different and port is already used
-	if src.Remote() != dr {
+	if src.Host() != dr {
 		srcport := src.V().GetInt64(src.Prefix("Port"))
 		dstports := GetPorts(dr)
 		if _, ok := dstports[int(srcport)]; ok {

@@ -59,24 +59,24 @@ func init() {
 }
 
 func commandRevert(ct *geneos.Component, names []string, params []string) (err error) {
-	return instance.LoopCommand(ct, revertInstance, names, params)
+	return instance.ForAll(ct, revertInstance, names, params)
 }
 
 func revertInstance(c geneos.Instance, params []string) (err error) {
 	// if *.rc file exists, remove rc.orig+JSON, continue
-	if _, err := c.Remote().Stat(instance.ConfigPathWithExt(c, "rc")); err == nil {
+	if _, err := c.Host().Stat(instance.ConfigPathWithExt(c, "rc")); err == nil {
 		// ignore errors
-		if c.Remote().Remove(instance.ConfigPathWithExt(c, "rc.orig")) == nil || c.Remote().Remove(instance.ConfigPathWithExt(c, "json")) == nil {
+		if c.Host().Remove(instance.ConfigPathWithExt(c, "rc.orig")) == nil || c.Host().Remove(instance.ConfigPathWithExt(c, "json")) == nil {
 			logDebug.Println(c, "removed extra config file(s)")
 		}
 		return err
 	}
 
-	if err = c.Remote().Rename(instance.ConfigPathWithExt(c, "rc.orig"), instance.ConfigPathWithExt(c, "rc")); err != nil {
+	if err = c.Host().Rename(instance.ConfigPathWithExt(c, "rc.orig"), instance.ConfigPathWithExt(c, "rc")); err != nil {
 		return
 	}
 
-	if err = c.Remote().Remove(instance.ConfigPathWithExt(c, "json")); err != nil {
+	if err = c.Host().Remove(instance.ConfigPathWithExt(c, "json")); err != nil {
 		return
 	}
 

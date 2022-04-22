@@ -55,7 +55,7 @@ func init() {
 var restartCmdAll, restartCmdKill, restartCmdLogs bool
 
 func commandRestart(ct *geneos.Component, args []string, params []string) (err error) {
-	if err = instance.LoopCommand(ct, restartInstance, args, params); err != nil {
+	if err = instance.ForAll(ct, restartInstance, args, params); err != nil {
 		logDebug.Println(err)
 		return
 	}

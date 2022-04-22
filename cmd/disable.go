@@ -50,7 +50,7 @@ func init() {
 }
 
 func commandDisable(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, disableInstance, args, params)
+	return instance.ForAll(ct, disableInstance, args, params)
 }
 
 func disableInstance(c geneos.Instance, params []string) (err error) {
@@ -69,13 +69,13 @@ func disableInstance(c geneos.Instance, params []string) (err error) {
 
 	disablePath := instance.ConfigPathWithExt(c, geneos.DisableExtension)
 
-	f, err := c.Remote().Create(disablePath, 0664)
+	f, err := c.Host().Create(disablePath, 0664)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if err = c.Remote().Chown(disablePath, uid, gid); err != nil {
-		c.Remote().Remove(disablePath)
+	if err = c.Host().Chown(disablePath, uid, gid); err != nil {
+		c.Host().Remove(disablePath)
 	}
 
 	return

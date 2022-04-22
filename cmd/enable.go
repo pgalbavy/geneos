@@ -55,11 +55,11 @@ var enableCmdStart bool
 // simpler than disable, just try to remove the flag file
 // we do also start the component(s)
 func commandEnable(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, enableInstance, args, params)
+	return instance.ForAll(ct, enableInstance, args, params)
 }
 
 func enableInstance(c geneos.Instance, params []string) (err error) {
-	err = c.Remote().Remove(instance.ConfigPathWithExt(c, geneos.DisableExtension))
+	err = c.Host().Remove(instance.ConfigPathWithExt(c, geneos.DisableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableCmdStart {
 		instance.Start(c, params)
 	}

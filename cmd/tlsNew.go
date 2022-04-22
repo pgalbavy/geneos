@@ -46,7 +46,7 @@ func init() {
 }
 
 func commandTLSNew(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, newInstanceCert, args, params)
+	return instance.ForAll(ct, newInstanceCert, args, params)
 }
 
 func newInstanceCert(c geneos.Instance, _ []string) (err error) {

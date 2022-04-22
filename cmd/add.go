@@ -67,8 +67,6 @@ var addCmdStart bool
 //
 // XXX argument validation is minimal
 //
-// remote support would be of the form name@remotename
-//
 func commandAdd(ct *geneos.Component, args []string, params []string) (err error) {
 	var username string
 	if len(args) == 0 {
@@ -90,7 +88,7 @@ func commandAdd(ct *geneos.Component, args []string, params []string) (err error
 		username = u.Username
 	}
 
-	c, err := instance.GetInstance(ct, name)
+	c, err := instance.Get(ct, name)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return
 	}

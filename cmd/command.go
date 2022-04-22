@@ -49,7 +49,7 @@ func init() {
 }
 
 func commandCommand(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, commandInstance, args, params)
+	return instance.ForAll(ct, commandInstance, args, params)
 }
 
 func commandInstance(c geneos.Instance, params []string) (err error) {

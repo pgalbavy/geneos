@@ -71,8 +71,7 @@ var initCmd = &cobra.Command{
 	Any PARAMS provided are passed to the 'add' command called for
 	components created.`,
 	Annotations: map[string]string{
-		"wildcard":      "false",
-		"componentonly": "false",
+		"wildcard": "false",
 	},
 	Run: func(cmd *cobra.Command, _ []string) {
 		// ct := geneos.ParseComponentName(cmd.Annotations["ct"])

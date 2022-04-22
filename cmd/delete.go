@@ -53,7 +53,7 @@ func init() {
 var deleteCmdForce bool
 
 func commandDelete(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, deleteInstance, args, params)
+	return instance.ForAll(ct, deleteInstance, args, params)
 }
 
 func deleteInstance(c geneos.Instance, params []string) (err error) {
@@ -66,10 +66,10 @@ func deleteInstance(c geneos.Instance, params []string) (err error) {
 	}
 
 	if deleteCmdForce || instance.IsDisabled(c) {
-		if err = c.Remote().RemoveAll(c.Home()); err != nil {
+		if err = c.Host().RemoveAll(c.Home()); err != nil {
 			return
 		}
-		log.Printf("%s deleted %s:%s", c, c.Remote().String(), c.Home())
+		log.Printf("%s deleted %s:%s", c, c.Host().String(), c.Home())
 		c.Unload()
 		return nil
 	}

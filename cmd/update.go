@@ -76,8 +76,8 @@ func commandUpdate(ct *geneos.Component, args []string, params []string) (err er
 	if len(args) > 0 {
 		version = args[0]
 	}
-	r := host.GetRemote(host.Name(cmdUpdateRemote))
-	if err = geneos.UpdateToVersion(r, ct, version, cmdUpdateBase, true); err != nil && errors.Is(err, os.ErrNotExist) {
+	r := host.Get(host.Name(cmdUpdateRemote))
+	if err = geneos.Update(r, ct, version, cmdUpdateBase, true); err != nil && errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	return

@@ -46,7 +46,7 @@ func init() {
 }
 
 func commandReload(ct *geneos.Component, args []string, params []string) error {
-	return instance.LoopCommand(ct, reloadInstance, args, params)
+	return instance.ForAll(ct, reloadInstance, args, params)
 }
 
 func reloadInstance(c geneos.Instance, params []string) (err error) {

@@ -22,7 +22,7 @@ var Netprobe geneos.Component = geneos.Component{
 	PurgeList:        "NetprobePurgeList",
 	Defaults: []string{
 		"binsuffix=netprobe.linux_64",
-		"netphome={{join .remoteroot \"netprobe\" \"netprobes\" .instancename}}",
+		"netphome={{join .remoteroot \"netprobe\" \"netprobes\" .name}}",
 		"netpbins={{join .remoteroot \"packages\" \"netprobe\"}}",
 		"netpbase=active_prod",
 		"netpexec={{join .netpbins .netpbase .binsuffix}}",
@@ -59,14 +59,12 @@ func New(name string) geneos.Instance {
 	}
 	c := &Netprobes{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &Netprobe
-	c.InstanceName = local
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	netprobes.Store(r.FullName(local), c)
 	return c
 }
@@ -79,11 +77,7 @@ func (n *Netprobes) Type() *geneos.Component {
 }
 
 func (n *Netprobes) Name() string {
-	return n.InstanceName
-}
-
-func (n *Netprobes) Location() host.Name {
-	return n.InstanceHost
+	return n.V().GetString("name")
 }
 
 func (n *Netprobes) Home() string {
@@ -94,12 +88,12 @@ func (n *Netprobes) Prefix(field string) string {
 	return strings.ToLower("netp" + field)
 }
 
-func (n *Netprobes) Remote() *host.Host {
-	return n.InstanceRemote
+func (n *Netprobes) Host() *host.Host {
+	return n.InstanceHost
 }
 
 func (n *Netprobes) String() string {
-	return n.Type().String() + ":" + n.InstanceName + "@" + n.Location().String()
+	return n.Type().String() + ":" + n.Name() + "@" + n.Host().String()
 }
 
 func (n *Netprobes) Load() (err error) {
@@ -112,7 +106,7 @@ func (n *Netprobes) Load() (err error) {
 }
 
 func (n *Netprobes) Unload() (err error) {
-	netprobes.Delete(n.Name() + "@" + n.Location().String())
+	netprobes.Delete(n.Name() + "@" + n.Host().String())
 	n.ConfigLoaded = false
 	return
 }
@@ -126,7 +120,7 @@ func (n *Netprobes) V() *viper.Viper {
 }
 
 func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
-	n.V().Set("netpport", instance.NextPort(n.Remote(), &Netprobe))
+	n.V().Set("netpport", instance.NextPort(n.Host(), &Netprobe))
 	n.V().Set("netpuser", username)
 
 	if err = instance.WriteConfig(n); err != nil {

@@ -51,7 +51,7 @@ func init() {
 var rebuildCmdForce, rebuildCmdReload bool
 
 func commandRebuild(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.LoopCommand(ct, rebuildInstance, args, params)
+	return instance.ForAll(ct, rebuildInstance, args, params)
 }
 
 func rebuildInstance(c geneos.Instance, params []string) (err error) {

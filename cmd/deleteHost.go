@@ -27,10 +27,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// deleteRemoteCmd represents the deleteRemote command
-var deleteRemoteCmd = &cobra.Command{
-	Use:   "deleteRemote",
-	Short: "A brief description of your command",
+// deleteHostCmd represents the delete host command
+var deleteHostCmd = &cobra.Command{
+	Use:     "host [-F] [TYPE] NAME...",
+	Aliases: []string{"hosts", "remote", "remotes"},
+	Short:   "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -38,10 +39,10 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("deleteRemote called")
+		fmt.Println("delete host called")
 	},
 }
 
 func init() {
-	deleteCmd.AddCommand(deleteRemoteCmd)
+	deleteCmd.AddCommand(deleteHostCmd)
 }

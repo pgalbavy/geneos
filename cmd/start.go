@@ -51,7 +51,7 @@ func init() {
 var startCmdLogs bool
 
 func commandStart(ct *geneos.Component, args []string, params []string) (err error) {
-	if err = instance.LoopCommand(ct, instance.Start, args, params); err != nil {
+	if err = instance.ForAll(ct, instance.Start, args, params); err != nil {
 		return
 	}
 

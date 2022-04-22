@@ -31,14 +31,14 @@ var Gateway geneos.Component = geneos.Component{
 	PurgeList:        "GatewayPurgeList",
 	Defaults: []string{
 		"binsuffix=gateway2.linux_64",
-		"gatehome={{join .remoteroot \"gateway\" \"gateways\" .instancename}}",
+		"gatehome={{join .remoteroot \"gateway\" \"gateways\" .name}}",
 		"gatebins={{join .remoteroot \"packages\" \"gateway\"}}",
 		"gatebase=active_prod",
 		"gateexec={{join .gatebins .gatebase .binsuffix}}",
 		"gatelogf=gateway.log",
 		"gateport=7039",
 		"gatelibs={{join .gatebins .gatebase \"lib64\"}}:/usr/lib64",
-		"gatename={{.instancename}}",
+		"gatename={{.name}}",
 	},
 	GlobalSettings: map[string]string{
 		"GatewayPortRange": "7039,7100-",
@@ -95,14 +95,12 @@ func New(name string) geneos.Instance {
 	}
 	c := &Gateways{}
 	c.Conf = viper.New()
-	c.InstanceRemote = r
-	c.RemoteRoot = r.V().GetString("geneos")
+	c.InstanceHost = r
+	// c.RemoteRoot = r.V().GetString("geneos")
 	c.Component = &Gateway
-	c.InstanceName = local
-	if err := instance.SetDefaults(c); err != nil {
+	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)
 	}
-	c.InstanceHost = host.Name(r.String())
 	gateways.Store(r.FullName(local), c)
 	return c
 }
@@ -115,11 +113,7 @@ func (g *Gateways) Type() *geneos.Component {
 }
 
 func (g *Gateways) Name() string {
-	return g.InstanceName
-}
-
-func (g *Gateways) Location() host.Name {
-	return g.InstanceHost
+	return g.V().GetString("name")
 }
 
 func (g *Gateways) Home() string {
@@ -130,12 +124,12 @@ func (g *Gateways) Prefix(field string) string {
 	return strings.ToLower("gate" + field)
 }
 
-func (g *Gateways) Remote() *host.Host {
-	return g.InstanceRemote
+func (g *Gateways) Host() *host.Host {
+	return g.InstanceHost
 }
 
 func (g *Gateways) String() string {
-	return g.Type().String() + ":" + g.InstanceName + "@" + g.Location().String()
+	return g.Type().String() + ":" + g.Name() + "@" + g.Host().String()
 }
 
 func (g *Gateways) Load() (err error) {
@@ -148,7 +142,7 @@ func (g *Gateways) Load() (err error) {
 }
 
 func (g *Gateways) Unload() (err error) {
-	gateways.Delete(g.Name() + "@" + g.Location().String())
+	gateways.Delete(g.Name() + "@" + g.Host().String())
 	g.ConfigLoaded = false
 	return
 }
@@ -162,7 +156,7 @@ func (g *Gateways) V() *viper.Viper {
 }
 
 func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
-	g.V().Set("gatePort", instance.NextPort(g.InstanceRemote, &Gateway))
+	g.V().Set("gatePort", instance.NextPort(g.InstanceHost, &Gateway))
 	g.V().Set("gateUser", username)
 	g.V().Set("configrebuild", "initial")
 	g.V().Set("includes", make(map[int]string))
@@ -227,8 +221,8 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 	}
 
 	// use getPorts() to check valid change, else go up one
-	ports := instance.GetPorts(g.Remote())
-	nextport := instance.NextPort(g.Remote(), &Gateway)
+	ports := instance.GetPorts(g.Host())
+	nextport := instance.NextPort(g.Host(), &Gateway)
 	if secure && g.V().GetInt64("gatePort") == 7039 {
 		if _, ok := ports[7038]; !ok {
 			g.V().Set("gatePort", 7038)
@@ -292,7 +286,7 @@ func (g *Gateways) Command() (args, env []string) {
 			args = append(args, "-licd-secure")
 		}
 		args = append(args, "-ssl-certificate", g.V().GetString("gateCert"))
-		chainfile := g.Remote().GeneosPath("tls", "chain.pem")
+		chainfile := g.Host().GeneosPath("tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
 	} else if g.V().GetString("gateLicS") != "" && g.V().GetString("gateLicS") == "true" {
 		args = append(args, "-licd-secure")
@@ -310,11 +304,7 @@ func (g *Gateways) Command() (args, env []string) {
 }
 
 func (g *Gateways) Reload(params []string) (err error) {
-	return g.Signal(syscall.SIGUSR1)
-}
-
-func (g *Gateways) Signal(s syscall.Signal) error {
-	return instance.Signal(g, s)
+	return instance.Signal(g, syscall.SIGUSR1)
 }
 
 // create a gateway key file for secure passwords as per
@@ -333,7 +323,7 @@ func createAESKeyFile(c geneos.Instance) (err error) {
 	key := md[:32]
 	iv := md[32:]
 
-	if err = c.Remote().WriteFile(instance.ConfigPathWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
+	if err = c.Host().WriteFile(instance.ConfigPathWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
 		return
 	}
 	c.V().Set(c.Prefix("AES"), c.Type().String()+".aes")

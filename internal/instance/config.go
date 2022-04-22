@@ -56,16 +56,16 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 	// var t *template.Template
 
 	t := template.New("").Funcs(fnmap).Option("missingkey=zero")
-	if t, err = t.ParseGlob(c.Remote().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
+	if t, err = t.ParseGlob(c.Host().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
 		t = template.New(name).Funcs(fnmap).Option("missingkey=zero")
 		// if there are no templates, use internal as a fallback
-		log.Printf("No templates found in %s, using internal defaults", c.Remote().GeneosPath(c.Type().String(), "templates"))
+		log.Printf("No templates found in %s, using internal defaults", c.Host().GeneosPath(c.Type().String(), "templates"))
 		t = template.Must(t.Parse(string(defaultTemplate)))
 	}
 
 	// XXX backup old file - use same scheme as writeConfigFile()
 
-	if out, err = c.Remote().Create(path, 0660); err != nil {
+	if out, err = c.Host().Create(path, 0660); err != nil {
 		log.Printf("Cannot create configuration file for %s %s", c, path)
 		return err
 	}
@@ -73,8 +73,8 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 
 	// m := make(map[string]string)
 	m := c.V().AllSettings()
-	m["remoteroot"] = c.Remote().V().GetString("geneos")
-	m["instancename"] = c.Name()
+	m["remoteroot"] = c.Host().V().GetString("geneos")
+	m["name"] = c.Name()
 	// m["env"] =
 
 	if err = t.ExecuteTemplate(out, name, m); err != nil {
@@ -106,7 +106,7 @@ func LoadConfig(c geneos.Instance) (err error) {
 //
 // No processing of shell variables. should there be?
 func readRCConfig(c geneos.Instance) (err error) {
-	rcdata, err := c.Remote().ReadFile(ConfigPathWithExt(c, "rc"))
+	rcdata, err := c.Host().ReadFile(ConfigPathWithExt(c, "rc"))
 	if err != nil {
 		return
 	}
@@ -161,7 +161,7 @@ func ConfigPathWithExt(c geneos.Instance, extension string) (path string) {
 
 func WriteConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
-	c.Remote().MkdirAll(filepath.Dir(file), 0775)
+	c.Host().MkdirAll(filepath.Dir(file), 0775)
 	return c.V().WriteConfigAs(file)
 }
 
@@ -174,12 +174,12 @@ func ReadConfig(c geneos.Instance) (err error) {
 // migrate config from .rc to .json, but check first
 func Migrate(c geneos.Instance) (err error) {
 	// if no .rc, return
-	if _, err = c.Remote().Stat(ConfigPathWithExt(c, "rc")); errors.Is(err, fs.ErrNotExist) {
+	if _, err = c.Host().Stat(ConfigPathWithExt(c, "rc")); errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
 
 	// if .json exists, return
-	if _, err = c.Remote().Stat(ConfigPathWithExt(c, "json")); err == nil {
+	if _, err = c.Host().Stat(ConfigPathWithExt(c, "json")); err == nil {
 		return nil
 	}
 
@@ -190,7 +190,7 @@ func Migrate(c geneos.Instance) (err error) {
 	}
 
 	// back-up .rc
-	if err = c.Remote().Rename(ConfigPathWithExt(c, "rc"), ConfigPathWithExt(c, "rc.orig")); err != nil {
+	if err = c.Host().Rename(ConfigPathWithExt(c, "rc"), ConfigPathWithExt(c, "rc.orig")); err != nil {
 		logError.Println("failed to rename old config:", err)
 	}
 
