@@ -62,7 +62,7 @@ func (h *Host) WriteConfigFile(file string, username string, perms fs.FileMode, 
 				}
 			}
 		} else {
-			uid, gid, _, _ = utils.GetUser(username)
+			uid, gid, _, _ = utils.GetIDs(username)
 		}
 	}
 

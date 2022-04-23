@@ -73,22 +73,19 @@ var initCmd = &cobra.Command{
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
-	Run: func(cmd *cobra.Command, _ []string) {
-		// ct := geneos.ParseComponentName(cmd.Annotations["ct"])
-		// newargs := strings.Split(cmd.Annotations["args"], ",")
-		// params := strings.Split(cmd.Annotations["params"], ",")
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		commandInit(ct, args, params)
+		return commandInit(ct, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
 
-	initCmd.Flags().StringVarP(&initCmdAll, "all", "A", "",
-		"Perform initialisation steps using provided license file and start environment")
+	initCmd.Flags().StringVarP(&initCmdAll, "all", "A", "", "Perform initialisation steps using provided license file and starts environment")
 	initCmd.Flags().BoolVarP(&initCmdMakeCerts, "makecerts", "C", false, "Create default certificates for TLS support")
 	initCmd.Flags().BoolVarP(&initCmdDemo, "demo", "D", false, "Perform initialisation steps for a demo setup and start environment")
+	initCmd.Flags().BoolVarP(&initCmdForce, "force", "F", false, "Force init, ignore existing directories.")
 	initCmd.Flags().BoolVarP(&initCmdSAN, "san", "S", false, "Create a SAN and start")
 	initCmd.Flags().BoolVarP(&initCmdTemplates, "templates", "T", false, "Overwrite/create templates from embedded (for version upgrades)")
 
@@ -102,7 +99,7 @@ func init() {
 }
 
 var initCmdAll string
-var initCmdMakeCerts, initCmdDemo, initCmdSAN, initCmdTemplates bool
+var initCmdMakeCerts, initCmdDemo, initCmdForce, initCmdSAN, initCmdTemplates bool
 var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, initCmdSANTemplate string
 
 //
@@ -134,11 +131,13 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		if err := host.LOCAL.WriteFile(filepath.Join(gatewayTemplates, gateway.GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
+		log.Println("gateway template written to", filepath.Join(gatewayTemplates, gateway.GatewayDefaultTemplate))
 
 		tmpl = gateway.InstanceTemplate
 		if err := host.LOCAL.WriteFile(filepath.Join(gatewayTemplates, gateway.GatewayInstanceTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
+		log.Println("gateway instance template written to", filepath.Join(gatewayTemplates, gateway.GatewayInstanceTemplate))
 
 		sanTemplates := host.LOCAL.GeneosPath(san.San.String(), "templates")
 		host.LOCAL.MkdirAll(sanTemplates, 0775)
@@ -151,6 +150,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		if err := host.LOCAL.WriteFile(filepath.Join(sanTemplates, san.SanDefaultTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
+		log.Println("san template written to", filepath.Join(sanTemplates, san.SanDefaultTemplate))
 
 		return
 	}
@@ -171,7 +171,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 	}
 
 	logDebug.Println(args)
-	if err = geneos.Init(host.LOCAL, args); err != nil {
+	if err = geneos.Init(host.LOCAL, initCmdForce, args); err != nil {
 		logError.Fatalln(err)
 	}
 
@@ -224,10 +224,8 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		commandAdd(&san.San, n, []string{"Gateways=localhost"})
 		commandInstall(&webserver.Webserver, e, e)
 		commandAdd(&webserver.Webserver, w, params)
-		// call parseArgs() on an empty list to populate for loopCommand()
-		// ct, args, params := parseArgs(commands["start"], rem)
-		// commandStart(ct, args, params)
-		// commandPS(ct, args, params)
+		commandStart(nil, e, e)
+		commandPS(nil, e, e)
 		return
 	}
 
@@ -244,8 +242,10 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 			sanname = sanname + "@" + r.String()
 		}
 		s = []string{sanname}
-		// Add will also install the right package
 		commandAdd(&san.San, s, params)
+		commandStart(nil, e, e)
+		commandPS(nil, e, e)
+
 		return nil
 	}
 
@@ -268,10 +268,8 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		commandAdd(&netprobe.Netprobe, localhost, params)
 		commandInstall(&webserver.Webserver, e, e)
 		commandAdd(&webserver.Webserver, name, params)
-		// call parseArgs() on an empty list to populate for loopCommand()
-		// ct, args, params := parseArgs(commands["start"], rem)
-		// commandStart(ct, args, params)
-		// commandPS(ct, args, params)
+		commandStart(nil, e, e)
+		commandPS(nil, e, e)
 		return nil
 	}
 

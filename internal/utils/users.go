@@ -11,11 +11,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func GetUser(username string) (uid, gid int, gids []int, err error) {
+func GetIDs(username string) (uid, gid int, gids []int, err error) {
 	uid, gid = math.MaxUint32, math.MaxUint32
 
 	if username == "" {
-		username = viper.GetString("DefaultUser")
+		username = viper.GetString("defaultuser")
 	}
 
 	u, err := user.Lookup(username)
@@ -54,7 +54,7 @@ func IsSuperuser() bool {
 // Note: does not change stdout etc. which is done later
 //
 func SetUser(cmd *exec.Cmd, username string) (err error) {
-	uid, gid, gids, err := GetUser(username)
+	uid, gid, gids, err := GetIDs(username)
 	if err != nil {
 		return
 	}

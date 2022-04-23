@@ -444,6 +444,10 @@ func Version(c geneos.Instance) (base string, underlying string, err error) {
 func ForAll(ct *geneos.Component, fn func(geneos.Instance, []string) error, args []string, params []string) (err error) {
 	n := 0
 	logDebug.Println("args, params", args, params)
+	// if args is empty, get all matching instances?
+	if len(args) == 0 {
+		args = AllNames(host.ALL, ct)
+	}
 	for _, name := range args {
 		cs := MatchAll(ct, name)
 		if len(cs) == 0 {

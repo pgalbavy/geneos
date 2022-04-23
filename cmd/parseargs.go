@@ -46,6 +46,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	// filter in place - pull out all args containing '=' into params
 	n := 0
 	for _, a := range rawargs {
+		// if !instance.ValidInstanceName(a) {
 		if strings.Contains(a, "=") {
 			params = append(params, a)
 		} else {
@@ -58,13 +59,15 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	logger.Debug.Println("rawargs, params", rawargs, params)
 
 	a["ct"] = "none"
+	jsonargs, _ := json.Marshal(params)
+	a["params"] = string(jsonargs)
 
 	if a["wildcard"] == "false" {
 		if len(rawargs) == 0 {
 			return
 		}
 		if ct = geneos.ParseComponentName(rawargs[0]); ct == nil {
-			jsonargs, _ := json.Marshal(args)
+			jsonargs, _ := json.Marshal(rawargs)
 			a["args"] = string(jsonargs)
 			return
 		}
@@ -175,7 +178,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	}
 	args = newnames
 
-	jsonargs, _ := json.Marshal(args)
+	jsonargs, _ = json.Marshal(args)
 	a["args"] = string(jsonargs)
 	jsonparams, _ := json.Marshal(params)
 	a["params"] = string(jsonparams)

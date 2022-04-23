@@ -25,7 +25,7 @@ func ImportFile(r *host.Host, home string, user string, source string) (err erro
 		return geneos.ErrInvalidArgs
 	}
 
-	uid, gid, _, err := utils.GetUser(user)
+	uid, gid, _, err := utils.GetIDs(user)
 	if err != nil {
 		return err
 	}
