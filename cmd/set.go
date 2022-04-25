@@ -305,7 +305,7 @@ func writeConfigParams(filename string, params []string) (err error) {
 	}
 
 	// fix breaking change
-	if viper.IsSet("ITRSHome") {
+	if viper.IsSet("itrshome") {
 		if !viper.IsSet("geneos") {
 			viper.Set("geneos", viper.GetString("itrshome"))
 		}

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -128,26 +129,33 @@ func initConfig() {
 		logger.EnableDebugLog()
 	}
 
+	viper.BindEnv("geneos", "ITRS_HOME")
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
+		viper.ReadInConfig()
 	} else {
 		// Find home directory.
 		home, err := os.UserConfigDir()
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name "geneos" (without extension).
-		viper.AddConfigPath(home)
-		viper.AddConfigPath("/etc/geneos")
-		viper.SetConfigType("json")
-		viper.SetConfigName("geneos")
+		viper.SetConfigFile(geneos.GlobalConfig)
+		viper.ReadInConfig()
+
+		// merge in home config
+		viper.SetConfigFile(filepath.Join(home, "geneos.json"))
+		viper.MergeInConfig()
 	}
 
-	// u, _ := user.Current()
-	// viper.SetDefault("defaultuser", u.Name)
-	viper.BindEnv("geneos", "ITRS_HOME")
-	viper.AutomaticEnv()
-	viper.ReadInConfig()
+	// manual alias+remove as the viper.RegisterAlias doesn't work as expected
+	if viper.IsSet("itrshome") {
+		if !viper.IsSet("geneos") {
+			viper.Set("geneos", viper.GetString("itrshome"))
+		}
+		viper.Set("itrshome", nil)
+	}
 
 	// initialise after config loaded
 	host.Init()

@@ -42,10 +42,10 @@ func Init() {
 }
 
 func Geneos() string {
-	home := viper.GetString("Geneos")
+	home := viper.GetString("geneos")
 	if home == "" {
 		// fallback to support breaking change
-		return viper.GetString("ITRSHome")
+		return viper.GetString("itrshome")
 	}
 	return home
 }
