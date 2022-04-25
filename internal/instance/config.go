@@ -134,15 +134,15 @@ func readRCConfig(c geneos.Instance) (err error) {
 
 	var env []string
 	for k, v := range confs {
-		k = strings.ToLower(k)
-		if k == "binsuffix" {
+		lk := strings.ToLower(k)
+		if lk == "binsuffix" {
 			c.V().Set(k, v)
 			continue
 		}
 		// this doesn't work if Prefix is empty
 		// XXX last place Prefix is needed?
-		if strings.HasPrefix(k, c.Prefix("")) {
-			c.V().Set(k, v)
+		if strings.HasPrefix(lk, c.Prefix("")) {
+			c.V().Set(lk, v)
 		} else {
 			// set env var
 			env = append(env, fmt.Sprintf("%s=%s", k, v))
