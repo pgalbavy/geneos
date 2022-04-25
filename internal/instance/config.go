@@ -112,7 +112,7 @@ func readRCConfig(c geneos.Instance) (err error) {
 	if err != nil {
 		return
 	}
-	logDebug.Printf("loading config from %s/%s.rc", c.Home(), c.Type())
+	logDebug.Printf("loading config from %q", ConfigPathWithExt(c, "rc"))
 
 	confs := make(map[string]string)
 
@@ -134,7 +134,8 @@ func readRCConfig(c geneos.Instance) (err error) {
 
 	var env []string
 	for k, v := range confs {
-		if k == "BinSuffix" {
+		k = strings.ToLower(k)
+		if k == "binsuffix" {
 			c.V().Set(k, v)
 			continue
 		}
