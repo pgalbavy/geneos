@@ -31,15 +31,16 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
 // psCmd represents the ps command
 var psCmd = &cobra.Command{
-	Use:   "ps [-c|-j [-i]] [TYPE] [NAMES...]",
-	Short: "List process information for instances, optionally in CSV or JSON format",
-	Long:  `Show the status of the matching instances.`,
+	Use:          "ps [-c|-j [-i]] [TYPE] [NAMES...]",
+	Short:        "List process information for instances, optionally in CSV or JSON format",
+	Long:         `Show the status of the matching instances.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

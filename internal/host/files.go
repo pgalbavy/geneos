@@ -497,6 +497,9 @@ func (h *Host) CreateTempFile(path string, perms fs.FileMode) (f io.WriteCloser,
 	}
 }
 
+// given a path return a cleaned version. If the cleaning results in and
+// absolute path or one that tries to ascend the tree then return an
+// error
 func CleanRelativePath(path string) (clean string, err error) {
 	clean = filepath.Clean(path)
 	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "../") {

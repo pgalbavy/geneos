@@ -38,24 +38,21 @@ import (
 
 // tlsRenewCmd represents the tlsRenew command
 var tlsRenewCmd = &cobra.Command{
-	Use:   "renew",
-	Short: "Renew certificates",
-	Long:  `Renew certificates.`,
+	Use:          "renew",
+	Short:        "Renew certificates",
+	Long:         `Renew certificates.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandTLSRenew(ct, args, params)
+		return instance.ForAll(ct, renewInstanceCert, args, params)
 	},
 }
 
 func init() {
 	tlsCmd.AddCommand(tlsRenewCmd)
-}
-
-func commandTLSRenew(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, renewInstanceCert, args, params)
 }
 
 // renew an instance certificate, use private key if it exists

@@ -14,9 +14,6 @@
 # cobra-cli add delete
 # cobra-cli add deleteRemote -p deleteCmd
 # cobra-cli add disable
-# cobra-cli add editUser -p editCmd
-# cobra-cli add editGlobal -p editCmd
-# cobra-cli add edit
 # cobra-cli add enable
 # cobra-cli add home
 # cobra-cli add import

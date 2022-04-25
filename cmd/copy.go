@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -32,15 +32,16 @@ var copyCmd = &cobra.Command{
 	Use:   "copy [TYPE] SOURCE DESTINATION",
 	Short: "Copy instances",
 	Long: `Copy instances. As any existing legacy .rc file is never changed,
-	this will migrate the instance from .rc to JSON. The instance is
-	stopped and restarted after the instance is moved. It is an error to
-	try to copy an instance to one that already exists with the same
-	name.
-	
-	If the component support Rebuild then this is run after the move but
-	before the restart. This allows SANs to be updated as expected.
-	
-	Moving across remotes is supported.`,
+this will migrate the instance from .rc to JSON. The instance is
+stopped and restarted after the instance is moved. It is an error to
+try to copy an instance to one that already exists with the same
+name.
+
+If the component support Rebuild then this is run after the move but
+before the restart. This allows SANs to be updated as expected.
+
+Moving across remotes is supported.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -54,7 +55,7 @@ func init() {
 	rootCmd.AddCommand(copyCmd)
 }
 
-// XXX use case:
+// use case:
 // gateway standby instance copy
 // distribute common config netprobe across multiple remotes
 // also create remotes as required?

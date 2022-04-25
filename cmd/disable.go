@@ -33,24 +33,21 @@ import (
 
 // disableCmd represents the disable command
 var disableCmd = &cobra.Command{
-	Use:   "disable [TYPE] [NAME...]",
-	Short: "Stop and disable matching instances",
-	Long:  `Mark any matching instances as disabled. The instances are also stopped.`,
+	Use:          "disable [TYPE] [NAME...]",
+	Short:        "Stop and disable matching instances",
+	Long:         `Mark any matching instances as disabled. The instances are also stopped.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandDisable(ct, args, params)
+		return instance.ForAll(ct, disableInstance, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(disableCmd)
-}
-
-func commandDisable(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, disableInstance, args, params)
 }
 
 func disableInstance(c geneos.Instance, params []string) (err error) {

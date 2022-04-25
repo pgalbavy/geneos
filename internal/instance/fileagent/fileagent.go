@@ -32,8 +32,8 @@ var FileAgent geneos.Component = geneos.Component{
 	PurgeList:        "FAPurgeList",
 	Defaults: []string{
 		"binsuffix=agent.linux_64",
-		"fahome={{join .remoteroot \"fileagent\" \"fileagents\" .name}}",
-		"fabins={{join .remoteroot \"packages\" \"fileagent\"}}",
+		"fahome={{join .root \"fileagent\" \"fileagents\" .name}}",
+		"fabins={{join .root \"packages\" \"fileagent\"}}",
 		"fabase=active_prod",
 		"faexec={{join .fabins .fabase .binsuffix}}",
 		"falogf=fileagent.log",
@@ -71,7 +71,7 @@ func New(name string) geneos.Instance {
 	c := &FileAgents{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
+	// c.root = r.V().GetString("geneos")
 	c.Component = &FileAgent
 	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)

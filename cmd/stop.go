@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -31,13 +31,18 @@ import (
 var stopCmd = &cobra.Command{
 	Use:   "stop [-K] [TYPE] [NAME...]",
 	Short: "Stop one or more instances",
-	Long:  `Stop one or more matching instances. Unless the -f flag is given, first a SIGTERM is sent and if the instance is still running after a few seconds then a SIGKILL is sent. If the -f flag is given the instance(s) are immediately terminated with a SIGKILL.`,
+	Long: `Stop one or more matching instances. Unless the -f
+flag is given, first a SIGTERM is sent and if the instance is
+still running after a few seconds then a SIGKILL is sent. If the
+-f flag is given the instance(s) are immediately terminated with
+a SIGKILL.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandStop(ct, args, params)
+		return instance.ForAll(ct, stopInstance, args, params)
 	},
 }
 
@@ -45,14 +50,9 @@ func init() {
 	rootCmd.AddCommand(stopCmd)
 
 	stopCmd.Flags().BoolVarP(&stopCmdKill, "kill", "K", false, "Force immediate stop by sending an immediate SIGKILL")
-
 }
 
 var stopCmdKill bool
-
-func commandStop(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, stopInstance, args, params)
-}
 
 func stopInstance(c geneos.Instance, params []string) error {
 	return instance.Stop(c, stopCmdKill, params)

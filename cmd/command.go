@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -31,25 +31,24 @@ import (
 var commandCmd = &cobra.Command{
 	Use:   "command [TYPE] [NAME...]",
 	Short: "Show command arguments and environment for instances",
-	Long: `Show the full command line for the matching instances along with any environment variables
-	explicitly set for execution.
+	Long: `Show the full command line for the matching instances
+along with any environment variables explicitly set for
+execution.
 	
-	Future releases may support CSV or JSON output formats for automation and monitoring.`,
+Note: Future releases may support CSV or JSON output formats for automation
+and monitoring.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandCommand(ct, args, params)
+		return instance.ForAll(ct, commandInstance, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(commandCmd)
-}
-
-func commandCommand(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, commandInstance, args, params)
 }
 
 func commandInstance(c geneos.Instance, params []string) (err error) {

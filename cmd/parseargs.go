@@ -33,6 +33,9 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	var ct *geneos.Component
 	var args, params []string
 
+	if cmd.Annotations == nil {
+		cmd.Annotations = make(map[string]string)
+	}
 	a := cmd.Annotations
 	a["args"] = "[]"
 	a["params"] = "[]"

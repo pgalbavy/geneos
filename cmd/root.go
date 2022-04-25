@@ -52,14 +52,12 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "geneos",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Annotations: make(map[string]string),
+	Short: "Control your Geneos environment",
+	Long: `Control your Geneos environment. With 'geneos' you can initialise
+a new installation, add and remove components, control processes and build
+template based configuration files for SANs and new gateways.`,
+	SilenceUsage: true,
+	Annotations:  make(map[string]string),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 		// check initialisation
 		geneosdir := host.Geneos()
@@ -116,11 +114,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (defaults are $HOME/.config/geneos.json, "+geneos.GlobalConfig+")")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "G", "", "config file (defaults are $HOME/.config/geneos.json, "+geneos.GlobalConfig+")")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable extra debug output")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
 	rootCmd.Flags().MarkHidden("debug")
@@ -149,6 +143,8 @@ func initConfig() {
 		viper.SetConfigName("geneos")
 	}
 
+	// u, _ := user.Current()
+	// viper.SetDefault("defaultuser", u.Name)
 	viper.BindEnv("geneos", "ITRS_HOME")
 	viper.AutomaticEnv()
 	viper.ReadInConfig()

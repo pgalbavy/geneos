@@ -29,15 +29,16 @@ import (
 
 // cleanCmd represents the clean command
 var cleanCmd = &cobra.Command{
-	Use:   "clean [-F] [TYPE] [NAME...]",
-	Short: "Clean-up instance directory",
-	Long:  `Clean-up instance directories, restarting instances if doing a 'purge' clean.`,
+	Use:          "clean [-F] [TYPE] [NAME...]",
+	Short:        "Clean-up instance directories",
+	Long:         `Clean-up instance directories, also restarting instances if doing a 'purge' clean.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandClean(ct, args, params)
+		return instance.ForAll(ct, cleanInstance, args, params)
 	},
 }
 
@@ -48,10 +49,6 @@ func init() {
 }
 
 var cleanCmdPurge bool
-
-func commandClean(ct *geneos.Component, args []string, params []string) error {
-	return instance.ForAll(ct, cleanInstance, args, params)
-}
 
 func cleanInstance(c geneos.Instance, params []string) (err error) {
 	return instance.Clean(c, cleanCmdPurge, params)

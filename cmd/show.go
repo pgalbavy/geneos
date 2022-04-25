@@ -26,7 +26,7 @@ import (
 	"regexp"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -51,6 +51,7 @@ var showCmd = &cobra.Command{
 	
 	Passwords and secrets are redacted in a very simplistic manner simply
 	to prevent visibility in casual viewing.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

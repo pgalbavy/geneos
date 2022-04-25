@@ -29,10 +29,16 @@ var Gateway geneos.Component = geneos.Component{
 	PortRange:        "GatewayPortRange",
 	CleanList:        "GatewayCleanList",
 	PurgeList:        "GatewayPurgeList",
+	Aliases: map[string]string{
+		"gatehome": "homedir",
+		"gatebins": "bindir",
+		"gateport": "port",
+		"gatelibs": "libpath",
+	},
 	Defaults: []string{
 		"binsuffix=gateway2.linux_64",
-		"gatehome={{join .remoteroot \"gateway\" \"gateways\" .name}}",
-		"gatebins={{join .remoteroot \"packages\" \"gateway\"}}",
+		"gatehome={{join .root \"gateway\" \"gateways\" .name}}",
+		"gatebins={{join .root \"packages\" \"gateway\"}}",
 		"gatebase=active_prod",
 		"gateexec={{join .gatebins .gatebase .binsuffix}}",
 		"gatelogf=gateway.log",
@@ -85,24 +91,21 @@ func Init(r *host.Host, ct *geneos.Component) {
 var gateways sync.Map
 
 func New(name string) geneos.Instance {
-	_, local, r := instance.SplitName(name, host.LOCAL)
-	g, ok := gateways.Load(r.FullName(local))
-	if ok {
-		gw, ok := g.(*Gateways)
-		if ok {
-			return gw
+	_, local, h := instance.SplitName(name, host.LOCAL)
+	if i, ok := gateways.Load(h.FullName(local)); ok {
+		if g, ok := i.(*Gateways); ok {
+			return g
 		}
 	}
-	c := &Gateways{}
-	c.Conf = viper.New()
-	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
-	c.Component = &Gateway
-	if err := instance.SetDefaults(c, local); err != nil {
-		logger.Error.Fatalln(c, "setDefaults():", err)
+	g := &Gateways{}
+	g.Conf = viper.New()
+	g.InstanceHost = h
+	g.Component = &Gateway
+	if err := instance.SetDefaults(g, local); err != nil {
+		logger.Error.Fatalln(g, "setDefaults():", err)
 	}
-	gateways.Store(r.FullName(local), c)
-	return c
+	gateways.Store(h.FullName(local), g)
+	return g
 }
 
 // interface method set
@@ -156,8 +159,8 @@ func (g *Gateways) V() *viper.Viper {
 }
 
 func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
-	g.V().Set("gatePort", instance.NextPort(g.InstanceHost, &Gateway))
-	g.V().Set("gateUser", username)
+	g.V().Set("gateport", instance.NextPort(g.InstanceHost, &Gateway))
+	g.V().Set("gateuser", username)
 	g.V().Set("configrebuild", "initial")
 	g.V().Set("includes", make(map[int]string))
 
@@ -225,16 +228,16 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 	nextport := instance.NextPort(g.Host(), &Gateway)
 	if secure && g.V().GetInt64("gatePort") == 7039 {
 		if _, ok := ports[7038]; !ok {
-			g.V().Set("gatePort", 7038)
+			g.V().Set("gateport", 7038)
 		} else {
-			g.V().Set("gatePort", nextport)
+			g.V().Set("gateport", nextport)
 		}
 		changed = true
 	} else if !secure && g.V().GetInt64("gatePort") == 7038 {
 		if _, ok := ports[7039]; !ok {
-			g.V().Set("gatePort", 7039)
+			g.V().Set("gateport", 7039)
 		} else {
-			g.V().Set("gatePort", nextport)
+			g.V().Set("gateport", nextport)
 		}
 		changed = true
 	}

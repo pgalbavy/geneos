@@ -23,30 +23,27 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
 // reloadCmd represents the reload command
 var reloadCmd = &cobra.Command{
-	Use:   "reload [TYPE] [NAME...]",
-	Short: "Signal the instance to reload it's configuration, if supported",
-	Long:  `Signal the matching instances to reload their configurations, depending on the component TYPE.`,
+	Use:          "reload [TYPE] [NAME...]",
+	Short:        "Signal the instance to reload it's configuration, if supported",
+	Long:         `Signal the matching instances to reload their configurations, depending on the component TYPE.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandReload(ct, args, params)
+		return instance.ForAll(ct, reloadInstance, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(reloadCmd)
-}
-
-func commandReload(ct *geneos.Component, args []string, params []string) error {
-	return instance.ForAll(ct, reloadInstance, args, params)
 }
 
 func reloadInstance(c geneos.Instance, params []string) (err error) {

@@ -29,24 +29,21 @@ import (
 
 // tlsNewCmd represents the tlsNew command
 var tlsNewCmd = &cobra.Command{
-	Use:   "new",
-	Short: "Create new certificates",
-	Long:  `Create new certificates for instances.`,
+	Use:          "new",
+	Short:        "Create new certificates",
+	Long:         `Create new certificates for instances.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandTLSNew(ct, args, params)
+		return instance.ForAll(ct, newInstanceCert, args, params)
 	},
 }
 
 func init() {
 	tlsCmd.AddCommand(tlsNewCmd)
-}
-
-func commandTLSNew(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, newInstanceCert, args, params)
 }
 
 func newInstanceCert(c geneos.Instance, _ []string) (err error) {

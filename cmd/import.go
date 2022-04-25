@@ -54,6 +54,7 @@ var importCmd = &cobra.Command{
 	If run as root, directories and files ownership is set to the user in
 	the instance configuration or the default user. Currently only one
 	file can be imported at a time.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -132,7 +133,7 @@ func importCommons(r *host.Host, ct *geneos.Component, params []string) (err err
 
 	dir := r.GeneosPath(ct.String(), ct.String()+"_"+common)
 	for _, source := range params {
-		if err = instance.ImportFile(r, dir, viper.GetString("DefaultUser"), source); err != nil {
+		if err = instance.ImportFile(r, dir, viper.GetString("defaultuser"), source); err != nil {
 			return
 		}
 	}

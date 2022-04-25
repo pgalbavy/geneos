@@ -26,21 +26,22 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
 // enableCmd represents the enable command
 var enableCmd = &cobra.Command{
-	Use:   "enable [-S] [TYPE] [NAME...]",
-	Short: "Enable one or more instances. Only previously disabled instances are started",
-	Long:  `Mark any matching instances as enabled and if this changes status then start the instance.`,
+	Use:          "enable [-S] [TYPE] [NAME...]",
+	Short:        "Enable one or more instances. Only previously disabled instances are started",
+	Long:         `Mark any matching instances as enabled and if this changes status then start the instance.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandEnable(ct, args, params)
+		return instance.ForAll(ct, enableInstance, args, params)
 	},
 }
 
@@ -51,12 +52,6 @@ func init() {
 }
 
 var enableCmdStart bool
-
-// simpler than disable, just try to remove the flag file
-// we do also start the component(s)
-func commandEnable(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, enableInstance, args, params)
-}
 
 func enableInstance(c geneos.Instance, params []string) (err error) {
 	err = c.Host().Remove(instance.ConfigPathWithExt(c, geneos.DisableExtension))

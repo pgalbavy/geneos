@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
 
@@ -59,6 +59,7 @@ applies when using -U.
 "geneos update gateway -b active_prod"
 
 `,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -41,6 +41,7 @@ var moveCmd = &cobra.Command{
 	before the restart. This allows SANs to be updated as expected.
 	
 	Moving across remotes is supported.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -31,16 +31,18 @@ import (
 var deleteCmd = &cobra.Command{
 	Use:   "delete [-F] [TYPE] [NAME...]",
 	Short: "Delete an instance. Instance must be stopped",
-	Long: `Delete the matching instances. This will only work on instances that are disabled to prevent accidental deletion. The instance directory
-	is removed without being backed-up. The user running the command must
-	have the appropriate permissions and a partial deletion cannot be
-	protected against.`,
+	Long: `Delete the matching instances. This will only work on
+instances that are disabled to prevent accidental deletion. The
+instance directory is removed without being backed-up. The user
+running the command must have the appropriate permissions and a
+partial deletion cannot be protected against.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandDelete(ct, args, params)
+		return instance.ForAll(ct, deleteInstance, args, params)
 	},
 }
 
@@ -51,10 +53,6 @@ func init() {
 }
 
 var deleteCmdForce bool
-
-func commandDelete(ct *geneos.Component, args []string, params []string) (err error) {
-	return instance.ForAll(ct, deleteInstance, args, params)
-}
 
 func deleteInstance(c geneos.Instance, params []string) (err error) {
 	if deleteCmdForce {

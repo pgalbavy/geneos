@@ -94,7 +94,8 @@ func (h *Host) V() *viper.Viper {
 
 func (h *Host) Load() {
 	if err := ReadConfig(h); err != nil {
-		logError.Println(err)
+		// logError.Println(err)
+		return
 	}
 	h.ConfigLoaded = true
 }

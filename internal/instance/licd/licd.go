@@ -22,8 +22,8 @@ var Licd geneos.Component = geneos.Component{
 	PurgeList:        "LicdPurgeList",
 	Defaults: []string{
 		"binsuffix=licd.linux_64",
-		"licdhome={{join .remoteroot \"licd\" \"licds\" .name}}",
-		"licdbins={{join .remoteroot \"packages\" \"licd\"}}",
+		"licdhome={{join .root \"licd\" \"licds\" .name}}",
+		"licdbins={{join .root \"packages\" \"licd\"}}",
 		"licdbase=active_prod",
 		"licdexec={{join .licdbins .licdbase .binsuffix}}",
 		"licdlogf=licd.log",
@@ -61,7 +61,7 @@ func New(name string) geneos.Instance {
 	c := &Licds{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
+	// c.root = r.V().GetString("geneos")
 	c.Component = &Licd
 	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)

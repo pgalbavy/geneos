@@ -29,21 +29,22 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
-	Use:   "ls [-c|-j [-i]] [TYPE] [NAME...]",
-	Short: "List instances, optionally in CSV or JSON format",
-	Long:  `List the matching instances and their component type.`,
+	Use:          "ls [-c|-j [-i]] [TYPE] [NAME...]",
+	Short:        "List instances, optionally in CSV or JSON format",
+	Long:         `List the matching instances and their component type.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
-	Run: func(cmd *cobra.Command, _ []string) {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		commandLS(ct, args, params)
+		return commandLS(ct, args, params)
 	},
 }
 

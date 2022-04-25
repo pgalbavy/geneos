@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -33,6 +33,7 @@ var startCmd = &cobra.Command{
 	Short: "Start one or more instances",
 	Long: `Start one or more matching instances. All instances are run in the background and
 	STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

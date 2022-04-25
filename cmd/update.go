@@ -53,6 +53,7 @@ var updateCmd = &cobra.Command{
 	directory starts 'GA' it will be selected over a directory with the
 	same numerical versions. All other directories name formats will
 	result in unexpected behaviour.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

@@ -31,9 +31,10 @@ import (
 
 // setUserCmd represents the setUser command
 var setUserCmd = &cobra.Command{
-	Use:   "user KEY=VALUE [KEY=VALUE...]",
-	Short: "Set user configuration parameters",
-	Long:  ``,
+	Use:          "user KEY=VALUE [KEY=VALUE...]",
+	Short:        "Set user configuration parameters",
+	Long:         ``,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

@@ -27,8 +27,8 @@ var San geneos.Component = geneos.Component{
 	PurgeList:        "SanPurgeList",
 	Defaults: []string{
 		"binsuffix={{if eq .santype \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64",
-		"sanhome={{join .remoteroot \"san\" \"sans\" .name}}",
-		"sanbins={{join .remoteroot \"packages\" .santype}}",
+		"sanhome={{join .root \"san\" \"sans\" .name}}",
+		"sanbins={{join .root \"packages\" .santype}}",
 		"sanbase=active_prod",
 		"sanexec={{join .sanbins .sanbase .binsuffix}}",
 		"sanlogf=san.log",
@@ -83,7 +83,7 @@ func New(name string) geneos.Instance {
 	c := &Sans{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
+	// c.root = r.V().GetString("geneos")
 	c.Component = &San
 	c.V().SetDefault("santype", "netprobe")
 	if ct != nil {

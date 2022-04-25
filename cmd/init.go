@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance/gateway"
 	"wonderland.org/geneos/internal/instance/licd"
@@ -41,35 +41,36 @@ var initCmd = &cobra.Command{
 	Use:   "init [-A FILE|URL|-D|-S|-T] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY] [PARAMS]",
 	Short: "Initialise a Geneos installation",
 	Long: `Initialise a Geneos installation by creating the directory
-	hierarchy and user configuration file, with the USERNAME and
-	DIRECTORY if supplied. DIRECTORY must be an absolute path and
-	this is used to distinguish it from USERNAME.
-	
-	DIRECTORY defaults to ${HOME}/geneos for the selected user unless
-	the last component of ${HOME} is 'geneos' in which case the home
-	directory is used. e.g. if the user is 'geneos' and the home
-	directory is '/opt/geneos' then that is used, but if it were a
-	user 'itrs' which a home directory of '/home/itrs' then the
-	directory 'home/itrs/geneos' would be used. This only applies
-	when no DIRECTORY is explicitly supplied.
-	
-	When DIRECTORY is given it must be an absolute path and the
-	parent directory must be writable by the user - either running
-	the command or given as USERNAME.
-	
-	DIRECTORY, whether explicit or implied, must not exist or be
-	empty of all except "dot" files and directories.
-	
-	When run with superuser privileges a USERNAME must be supplied
-	and only the configuration file for that user is created. e.g.:
-	
-		sudo geneos init geneos /opt/itrs
-	
-	When USERNAME is supplied then the command must either be run
-	with superuser privileges or be run by the same user.
-	
-	Any PARAMS provided are passed to the 'add' command called for
-	components created.`,
+hierarchy and user configuration file, with the USERNAME and
+DIRECTORY if supplied. DIRECTORY must be an absolute path and
+this is used to distinguish it from USERNAME.
+
+DIRECTORY defaults to ${HOME}/geneos for the selected user unless
+the last component of ${HOME} is 'geneos' in which case the home
+directory is used. e.g. if the user is 'geneos' and the home
+directory is '/opt/geneos' then that is used, but if it were a
+user 'itrs' which a home directory of '/home/itrs' then the
+directory 'home/itrs/geneos' would be used. This only applies
+when no DIRECTORY is explicitly supplied.
+
+When DIRECTORY is given it must be an absolute path and the
+parent directory must be writable by the user - either running
+the command or given as USERNAME.
+
+DIRECTORY, whether explicit or implied, must not exist or be
+empty of all except "dot" files and directories.
+
+When run with superuser privileges a USERNAME must be supplied
+and only the configuration file for that user is created. e.g.:
+
+	sudo geneos init geneos /opt/itrs
+
+When USERNAME is supplied then the command must either be run
+with superuser privileges or be run by the same user.
+
+Any PARAMS provided are passed to the 'add' command called for
+components created.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

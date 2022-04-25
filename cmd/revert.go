@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -35,31 +35,18 @@ var revertCmd = &cobra.Command{
 	file still exists. Any changes to the instance configuration since
 	initial migration will be lost as the contents of the .rc file is
 	never changed.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandRevert(ct, args, params)
+		return instance.ForAll(ct, revertInstance, args, params)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(revertCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// revertCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// revertCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-func commandRevert(ct *geneos.Component, names []string, params []string) (err error) {
-	return instance.ForAll(ct, revertInstance, names, params)
 }
 
 func revertInstance(c geneos.Instance, params []string) (err error) {

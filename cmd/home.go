@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -42,6 +42,7 @@ var homeCmd = &cobra.Command{
 	Because of the intended use no errors are logged and no other output.
 	An error in the examples above result in the user's home
 	directory being selected.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

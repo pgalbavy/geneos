@@ -26,15 +26,16 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
-	Use:   "restart [-a] [-K] [-l] [TYPE] [NAME...]",
-	Short: "Restart one or more instances",
-	Long:  `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`,
+	Use:          "restart [-a] [-K] [-l] [TYPE] [NAME...]",
+	Short:        "Restart one or more instances",
+	Long:         `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

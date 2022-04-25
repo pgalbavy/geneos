@@ -26,7 +26,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
@@ -61,6 +61,7 @@ var setCmd = &cobra.Command{
 	Other special names include Gateways for a comma separated list of host:port values for Sans,
 	Attributes as name=value pairs again for Sans and Types a comma separated list of Types for Sans.
 	Variables (for San config templates) cannot be set from the command line at this time.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

@@ -1,5 +1,9 @@
 # `geneos` management program
 
+| :warning: Breaking Changes v1.1+ |
+|:--|
+| v1.1 is pretty much a complete rewrite of the program and there will be breaking changes. Most of these will be around configuration file handling and support for old, obscure options. The trigger for many of these changes is the move to use well-known and mature packages for configuration handling (viper) and command line options (cobra) as well as the untangling of internal spaghetti code which made calls in and out of multiple layers of functionality. I have attempted to update this documentation to match the new functionality and to also highlight known changes for you, but it is highly probable that some things have been missed. |
+
 | :memo: PLEASE NOTE |
 |:--|
 | As with many "spare time" projects, the desire to get v1.0.0 out of the door has left less time to update the documentation. Some of the details below may be out-of-date and apologies for that. |
@@ -67,18 +71,17 @@ If you have an existing Geneos installation that you manage with the command lik
 
 You can use an environment variable `ITRS_HOME` pointing to the top-level directory of your installation or set the location in the (user or global) configuration file:
 
-    geneos set Geneos=/path/to/install
+    geneos set geneos=/path/to/install
 
 This is the directory is where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation that follows this pattern then you can create a fresh layout further below.
 
 You can now check your installation with some simple commands:
 
-    geneos ls - list instances
-    geneos ps - show their running status
-    geneos show - show the default configuration values
+    geneos ls     - list instances
+    geneos ps     - show their running status
+    geneos show   - show the default configuration values
 
 None of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
-
 
 ### New Installation
 
@@ -86,13 +89,13 @@ None of these commands should have any side-effects but others will not only sta
 
 You can set-up a Demo environment like this:
 
-    geneos init -D /path/to/empty/dir
+    geneos init -D /path/to/geneos/dir
 
 This one line command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Netprobe and Webserver for dashboards. However, no configuration is done to connect these up, that's up to you!
 
 Under-the-hood, the command does exactly this for you:
 
-    geneos init /path/to/empty/dit
+    geneos init /path/to/geneos/dir
     geneos install 
     geneos add gateway 'Demo Gateway'
     geneos add netprobe localhost
@@ -139,33 +142,33 @@ This program has been written in such a way that is *should* be safe to install 
 
 ## Instance Settings
 
-### `Env=` parameters
+### `env=` parameters
 
 All instances support customer environment variables being set or unset. This is done through the `set` command below, alongside the standard configuration parameters for ech instance type.
 
 To set an environment variable use this syntax:
 
-    geneos set netprobe example1 Env=PATH_TO_SOMETHING=/this/way
+    geneos set netprobe example1 env=PATH_TO_SOMETHING=/this/way
 
 If an entry already exists it is overwritten.
 
 To remove an entry, prefix the name with a minus (`-`) sign, e.g.
 
-    geneos set netprobe examples1 Env=-PATH_TO_SOMETHING
+    geneos set netprobe examples1 env=-PATH_TO_SOMETHING
 
 You can also remove multiple entries with a very simply wildcard syntax `NAME*` - this is only supported as the last character of the name and will remove all entries that start with `NAME` in this case.
 
 You can specify multiple entries by comma separating them:
 
-    geneos set netprobe example1 Env=JAVA_HOME=/path,ORACLE_HOME=/path2
+    geneos set netprobe example1 env=JAVA_HOME=/path,ORACLE_HOME=/path2
 
 Note that this means you cannot insert commas into values as there is no supported escape mechanism. For this you must edit the instance configuration file directly, which you can also do with the command `edit`.
 
 Finally, if your environment variable value contains spaces then use quotes as appropriate to your shell to prevent those spaces being processed. In bash you can do any of these to achieve the same result:
 
-    geneos set netprobe example1 Env=MYVAR="a string with spaces"
-    geneos set netprobe example1 Env="MYVAR=a string with spaces"
-    geneos set netprobe example1 "Env=MYVAR=a string with spaces"
+    geneos set netprobe example1 env=MYVAR="a string with spaces"
+    geneos set netprobe example1 env="MYVAR=a string with spaces"
+    geneos set netprobe example1 "env=MYVAR=a string with spaces"
 
 You can review the environment for any instance using the `show` command:
 
@@ -311,7 +314,6 @@ The following commands are available (taken from `geneos help`):
   copy       Copy instances
   delete     Delete an instance. Instance must be stopped.
   disable    Stop and disable matching instances.
-  edit       Open an editor for instance configuration file.
   enable     Enable one or more instances. Only previously disabled
              instances are started.
   help       Show help text for command.
@@ -473,9 +475,6 @@ These commands either move or copy instance(s). If the source and destination ar
 * `geneos delete [-F] component name`
 Deletes the disabled component given. Only works on components that have been disabled beforehand.
 
-* `geneos edit [user|[TYPE] NAME...]`
-Open an editor for the selected instances or user JSON config file. Will accept wild or multiple instance names.
-
 * `geneos import [TYPE] name [file|url|-]`
 Import a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
 
@@ -531,14 +530,14 @@ The root and signing certificates are only kept on the local server and the `tls
 
 General options are loaded from the global config file first, then the user level one. The current options are:
 
-* `Geneos`
+* `geneos`
 The home directory for all other commands. See [Directory Layout](#directory-layout) below. If set the environment variable ITRS_HOME overrides any settings in the files. This is to maintain backward compatibility with older tools. The default, if not set anywhere else, is the home directory of the user running the command or, if running as root, the home directory of the `geneos` or `itrs` users (in that order). (To be fully implemented)
 
-* `DownloadURL`
+* `downloadurl`
 The base URL for downloads for automating installations. Not yet used.
 If files are locally downloaded then this can either be a `file://` style URL or a directory path.
 
-* `DefaultUser`
+* `defaultuser`
 Principally used when running with elevated privilege (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.
 
 * `GatewayPortRange` & `NetprobePortRange` & `LicdPortRange`

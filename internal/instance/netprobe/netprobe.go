@@ -22,8 +22,8 @@ var Netprobe geneos.Component = geneos.Component{
 	PurgeList:        "NetprobePurgeList",
 	Defaults: []string{
 		"binsuffix=netprobe.linux_64",
-		"netphome={{join .remoteroot \"netprobe\" \"netprobes\" .name}}",
-		"netpbins={{join .remoteroot \"packages\" \"netprobe\"}}",
+		"netphome={{join .root \"netprobe\" \"netprobes\" .name}}",
+		"netpbins={{join .root \"packages\" \"netprobe\"}}",
 		"netpbase=active_prod",
 		"netpexec={{join .netpbins .netpbase .binsuffix}}",
 		"netplogf=netprobe.log",
@@ -60,7 +60,7 @@ func New(name string) geneos.Instance {
 	c := &Netprobes{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
+	// c.root = r.V().GetString("geneos")
 	c.Component = &Netprobe
 	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)

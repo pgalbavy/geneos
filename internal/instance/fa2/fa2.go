@@ -22,8 +22,8 @@ var FA2 geneos.Component = geneos.Component{
 	PurgeList:        "FA2PurgeList",
 	Defaults: []string{
 		"binsuffix=fix-analyser2-netprobe.linux_64",
-		"fa2home={{join .remoteroot \"fa2\" \"fa2s\" .name}}",
-		"fa2bins={{join .remoteroot \"packages\" \"fa2\"}}",
+		"fa2home={{join .root \"fa2\" \"fa2s\" .name}}",
+		"fa2bins={{join .root \"packages\" \"fa2\"}}",
 		"fa2base=active_prod",
 		"fa2exec={{join .fa2bins .fa2base .binsuffix}}",
 		"fa2logf=fa2.log",
@@ -61,7 +61,7 @@ func New(name string) geneos.Instance {
 	c := &FA2s{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
+	// c.root = r.V().GetString("geneos")
 	c.Component = &FA2
 	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)

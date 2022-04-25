@@ -45,6 +45,7 @@ var tlsLsCmd = &cobra.Command{
 certs are only shown in the -a flag is given. A list with more
 details can be seen with the -l flag, otherwise options are the
 same as for the main ls command.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

@@ -34,10 +34,11 @@ import (
 
 // addHostCmd represents the addRemote command
 var addHostCmd = &cobra.Command{
-	Use:     "host NAME [SSHURL]",
-	Aliases: []string{"remote"},
-	Short:   "Add a remote host",
-	Long:    `Add a remote host for integration with other commands. The`,
+	Use:          "host [-I] NAME [SSHURL]",
+	Aliases:      []string{"remote"},
+	Short:        "Add a remote host",
+	Long:         `Add a remote host for integration with other commands.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -46,6 +47,7 @@ var addHostCmd = &cobra.Command{
 		if len(args) == 0 {
 			return geneos.ErrInvalidArgs
 		}
+		logDebug.Println(args[0])
 		h := host.Get(host.Name(args[0]))
 		if h.Loaded() {
 			return fmt.Errorf("host %q already exists", args[0])
@@ -56,26 +58,29 @@ var addHostCmd = &cobra.Command{
 
 func init() {
 	addCmd.AddCommand(addHostCmd)
+
+	addHostCmd.Flags().BoolVarP(&addHostCmdInit, "init", "I", false, "Initialise the remote host directories and component files")
 }
 
-//
-// 'geneos add remote NAME [SSH-URL] [init opts]'
-//
-func addHost(r *host.Host, username string, params []string) (err error) {
+var addHostCmdInit bool
+
+func addHost(h *host.Host, username string, params []string) (err error) {
 	if len(params) == 0 {
 		// default - try ssh to a host with the same name as remote
-		params = []string{"ssh://" + string(r.Name)}
+		params = []string{"ssh://" + string(h.Name)}
 	}
 
 	var remurl string
+	h.V().SetDefault("port", 22)
+
 	if strings.HasPrefix(params[0], "ssh://") {
 		remurl = params[0]
 		params = params[1:]
 	} else if strings.HasPrefix(params[0], "/") {
-		remurl = "ssh://" + r.String() + params[0]
+		remurl = "ssh://" + h.String() + params[0]
 		params = params[1:]
 	} else {
-		remurl = "ssh://" + r.String()
+		remurl = "ssh://" + h.String()
 	}
 
 	// if err = initFlagSet.Parse(params); err != nil {
@@ -92,38 +97,38 @@ func addHost(r *host.Host, username string, params []string) (err error) {
 	}
 
 	// if no hostname in URL fall back to remote name (e.g. ssh:///path)
-	r.V().Set("hostname", u.Host)
+	h.V().Set("hostname", u.Host)
 	if u.Host == "" {
-		r.V().Set("hostname", r.Name)
+		h.V().Set("hostname", h.Name)
 	}
 
 	if u.Port() != "" {
-		r.V().Set("port", u.Port())
+		h.V().Set("port", u.Port())
 	}
 
 	if u.User.Username() != "" {
 		username = u.User.Username()
 	}
-	r.V().Set("username", username)
+	h.V().Set("username", username)
 
 	// XXX default to remote user's home dir, not local
-	r.V().Set("geneos", host.Geneos())
+	h.V().Set("geneos", host.Geneos())
 	if u.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
-		r.V().Set("geneos", u.Path)
+		h.V().Set("geneos", u.Path)
 	}
 
-	if err = host.WriteConfig(r); err != nil {
+	if err = host.WriteConfig(h); err != nil {
 		return
 	}
 
 	// once we are bootstrapped, read os-release info and re-write config
-	if err = r.GetOSReleaseEnv(); err != nil {
+	if err = h.GetOSReleaseEnv(); err != nil {
 		return
 	}
 
-	if err = host.WriteConfig(r); err != nil {
+	if err = host.WriteConfig(h); err != nil {
 		return
 	}
 
@@ -136,17 +141,13 @@ func addHost(r *host.Host, username string, params []string) (err error) {
 	// 	r.Load()
 	// }
 
-	// initialise the remote directory structure, but perhaps ignore errors
-	// as we may simply be adding an existing installation
-	// if err = geneos.Init(r, []string{r.Geneos}); err != nil {
-	// 	return err
-	// }
-
-	// for _, c := range components {
-	// 	if c.Initialise != nil {
-	// 		c.Initialise(r)
-	// 	}
-	// }
+	if addHostCmdInit {
+		// initialise the remote directory structure, but perhaps ignore errors
+		// as we may simply be adding an existing installation
+		if err = geneos.Init(h, addHostCmdInit, []string{h.V().GetString("geneos")}); err != nil {
+			return
+		}
+	}
 
 	return
 }

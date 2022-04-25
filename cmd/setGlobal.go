@@ -28,9 +28,10 @@ import (
 
 // setGlobalCmd represents the setGlobal command
 var setGlobalCmd = &cobra.Command{
-	Use:   "global KEY=VALUE [KEY=VALUE...]",
-	Short: "Set global configuration parameters",
-	Long:  ``,
+	Use:          "global KEY=VALUE [KEY=VALUE...]",
+	Short:        "Set global configuration parameters",
+	Long:         ``,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

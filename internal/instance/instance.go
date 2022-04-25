@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"text/template"
 
 	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
@@ -49,7 +48,7 @@ var (
 // this is subject to races, but not much we can do
 func GetPID(c geneos.Instance) (pid int, err error) {
 	var pids []int
-	binsuffix := c.V().GetString("BinSuffix")
+	binsuffix := c.V().GetString("binsuffix")
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
@@ -132,9 +131,9 @@ func ReservedName(in string) (ok bool) {
 	return
 }
 
-// spaces are valid - dumb, but valid - for now
-// if the name starts with  number then the next character cannot be a number or '.'
-// to help distinguish from versions
+// spaces are valid - dumb, but valid - for now. If the name starts with
+// number then the next character cannot be a number or '.' to help
+// distinguish from versions
 var validStringRE = regexp.MustCompile(`^\w[\w-]+[:@\.\w -]*$`)
 
 // return true while a string is considered a valid instance name
@@ -235,6 +234,21 @@ func Signal(c geneos.Instance, signal syscall.Signal) (err error) {
 	return nil
 }
 
+// return an instance of component ct, loads the config.
+// it is an error if the config cannot be loaded
+func Get(ct *geneos.Component, name string) (c geneos.Instance, err error) {
+	if ct == nil {
+		return nil, geneos.ErrInvalidArgs
+	}
+
+	c = ct.New(name)
+	if c == nil {
+		return nil, geneos.ErrInvalidArgs
+	}
+	err = c.Load()
+	return
+}
+
 // return a slice instances for a given component type
 func GetAll(r *host.Host, ct *geneos.Component) (confs []geneos.Instance) {
 	if ct == nil {
@@ -254,18 +268,19 @@ func GetAll(r *host.Host, ct *geneos.Component) (confs []geneos.Instance) {
 	return
 }
 
-// return an instance of component ct, loads the config.
-// it is an error if the config cannot be loaded
-func Get(ct *geneos.Component, name string) (c geneos.Instance, err error) {
-	if ct == nil {
-		return nil, geneos.ErrInvalidArgs
+// Looks for exactly one matching instance across types and remotes
+// returns Invalid Args if zero of more than 1 match
+func Match(ct *geneos.Component, name string) (c geneos.Instance, err error) {
+	list := MatchAll(ct, name)
+	if len(list) == 0 {
+		err = os.ErrNotExist
+		return
 	}
-
-	c = ct.New(name)
-	if c == nil {
-		return nil, geneos.ErrInvalidArgs
+	if len(list) == 1 {
+		c = list[0]
+		return
 	}
-	err = c.Load()
+	err = geneos.ErrInvalidArgs
 	return
 }
 
@@ -286,8 +301,6 @@ func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 	}
 
 	for _, name := range AllNames(r, ct) {
-		logDebug.Println("ct, name =", ct, name)
-
 		// for case insensitive match change to EqualFold here
 		_, ldir, _ := SplitName(name, host.ALL)
 		if filepath.Base(ldir) == local {
@@ -300,22 +313,6 @@ func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 		}
 	}
 
-	return
-}
-
-// Looks for exactly one matching instance across types and remotes
-// returns Invalid Args if zero of more than 1 match
-func Match(ct *geneos.Component, name string) (c geneos.Instance, err error) {
-	list := MatchAll(ct, name)
-	if len(list) == 0 {
-		err = os.ErrNotExist
-		return
-	}
-	if len(list) == 1 {
-		c = list[0]
-		return
-	}
-	err = geneos.ErrInvalidArgs
 	return
 }
 
@@ -444,7 +441,9 @@ func Version(c geneos.Instance) (base string, underlying string, err error) {
 func ForAll(ct *geneos.Component, fn func(geneos.Instance, []string) error, args []string, params []string) (err error) {
 	n := 0
 	logDebug.Println("args, params", args, params)
-	// if args is empty, get all matching instances?
+	// if args is empty, get all matching instances this allows internal
+	// calls with an empty arg list without having to do the parsargs()
+	// dance
 	if len(args) == 0 {
 		args = AllNames(host.ALL, ct)
 	}
@@ -468,14 +467,12 @@ func ForAll(ct *geneos.Component, fn func(geneos.Instance, []string) error, args
 	return nil
 }
 
-// Return a slice of all instanceNames for a given geneos. No
+// Return a slice of all instance names for a given component. No
 // checking is done to validate that the directory is a populated
 // instance.
-//
 func AllNames(r *host.Host, ct *geneos.Component) (names []string) {
 	var files []fs.DirEntry
 
-	logDebug.Println("host, ct:", r, ct)
 	if r == host.ALL {
 		for _, r := range host.AllHosts() {
 			names = append(names, AllNames(r, ct)...)
@@ -543,43 +540,6 @@ func BuildCmd(c geneos.Instance) (cmd *exec.Cmd, env []string) {
 	env = append(env, c.V().GetStringSlice("Env")...)
 	env = append(env, "LD_LIBRARY_PATH="+c.V().GetString(c.Prefix("Libs")))
 	cmd = exec.Command(binary, args...)
-
-	return
-}
-
-// a template function to support "{{join .X .Y}}"
-var textJoinFuncs = template.FuncMap{"join": filepath.Join}
-
-// SetDefaults() is a common function called by component factory
-// functions to iterate over the component specific instance
-// struct and set the defaults as defined in the 'defaults'
-// struct tags.
-func SetDefaults(c geneos.Instance, name string) (err error) {
-	c.V().SetDefault("name", name)
-	if c.Type().Defaults != nil {
-		// set bootstrap values used by templates
-		c.V().Set("remoteroot", c.Host().V().GetString("geneos"))
-		for _, s := range c.Type().Defaults {
-			p := strings.SplitN(s, "=", 2)
-			k, v := p[0], p[1]
-			val, err := template.New(k).Funcs(textJoinFuncs).Parse(v)
-			if err != nil {
-				log.Println(c, "setDefaults parse error:", v)
-				return err
-			}
-			var b bytes.Buffer
-			if c.V() == nil {
-				logError.Println("no viper found")
-			}
-			if err = val.Execute(&b, c.V().AllSettings()); err != nil {
-				log.Println(c, "cannot set defaults:", v)
-				return err
-			}
-			c.V().SetDefault(k, b.String())
-		}
-		// remove these so they don't pollute written out files
-		c.V().Set("remoteroot", nil)
-	}
 
 	return
 }

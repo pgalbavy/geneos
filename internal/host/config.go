@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+// read a local configuration file without the need for a host
+// connection, primarily for boostrapping
 func ReadLocalConfigFile(file string, config interface{}) (err error) {
 	jsonFile, err := os.ReadFile(file)
 	if err != nil {
@@ -26,20 +28,21 @@ func (h *Host) ReadConfigFile(file string, config interface{}) (jsonFile []byte,
 // read a host configuration file. the host passed as an
 // argument must already have been initialised with New()
 func ReadConfig(c *Host) (err error) {
-	file := ConfigFile(c, "json")
+	file := configFile(c, "json")
 	c.V().SetConfigFile(file)
 	return c.V().MergeInConfig()
 }
 
 // write out a host configuration file.
 func WriteConfig(c *Host) (err error) {
-	file := ConfigFile(c, "json")
+	file := configFile(c, "json")
+	LOCAL.MkdirAll(filepath.Dir(file), 0775)
 	return c.V().WriteConfigAs(file)
 }
 
 // return the full path to the host configuration file with the
 // extension given
-func ConfigFile(c *Host, extension string) (path string) {
+func configFile(c *Host, extension string) (path string) {
 	return filepath.Join(c.Home, "remote."+extension)
 }
 

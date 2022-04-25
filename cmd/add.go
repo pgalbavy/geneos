@@ -40,10 +40,10 @@ var addCmd = &cobra.Command{
 	Use:   "add [-t FILE] TYPE NAME",
 	Short: "Add a new instance",
 	Long: `Add a new instance called NAME with the TYPE supplied. The details will depends on the
-	TYPE. Currently the listening port is selected automatically and other options are defaulted. If
-	these need to be changed before starting, see the edit command.
+	TYPE. Currently the listening port is selected automatically and other options are defaulted.
 	
 	Gateways are given a minimal configuration file.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

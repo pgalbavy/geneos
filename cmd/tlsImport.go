@@ -46,6 +46,7 @@ multiple are given, is used. Private keys must be supplied,
 either as individual files on in the certificate files and cannot
 be password protected. Only certificates with matching private
 keys are imported.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

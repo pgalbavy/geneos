@@ -22,9 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/instance"
 )
 
 // deleteHostCmd represents the delete host command
@@ -38,11 +39,74 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete host called")
+	SilenceUsage: true,
+	Annotations: map[string]string{
+		"wildcard": "false",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		ct, args, params := processArgs(cmd)
+		return commandDeleteHost(ct, args, params)
 	},
 }
 
 func init() {
 	deleteCmd.AddCommand(deleteHostCmd)
+
+	deleteHostCmd.Flags().BoolVarP(&deleteHostCmdForce, "force", "F", false, "Delete instances without checking if disabled")
+	deleteHostCmd.Flags().BoolVarP(&deleteHostCmdRecurse, "all", "R", false, "Recursively delete all instances on the host before removing the host config")
+	deleteHostCmd.Flags().BoolVarP(&deleteHostCmdStop, "stop", "S", false, "Stop all instances on the host before deleting the local entry")
+}
+
+var deleteHostCmdForce, deleteHostCmdRecurse, deleteHostCmdStop bool
+
+func commandDeleteHost(_ *geneos.Component, args []string, params []string) (err error) {
+	if len(args) == 0 {
+		return geneos.ErrInvalidArgs
+	}
+
+	// check args are hosts ('all' means all non-local ?)
+	var hosts []*host.Host
+	for _, hostname := range args {
+		h := host.Get(host.Name(hostname))
+		if !h.Loaded() {
+			logError.Printf("%q is not a known host", hostname)
+			return
+		}
+		hosts = append(hosts, h)
+	}
+
+	if deleteHostCmdRecurse {
+		deleteHostCmdStop = true
+	}
+
+	for _, h := range hosts {
+		// stop and/or delete instances on host
+		if deleteHostCmdStop {
+			for _, c := range instance.GetAll(h, nil) {
+				if err = instance.Stop(c, false, nil); err != nil {
+					return
+				}
+				if deleteHostCmdRecurse {
+					if deleteHostCmdForce || instance.IsDisabled(c) {
+						if err = c.Host().RemoveAll(c.Home()); err != nil {
+							return
+						}
+						log.Printf("%s deleted %s:%s", c, c.Host().String(), c.Home())
+						c.Unload()
+					} else {
+						log.Printf("not deleting %q as it is not disabled and no --force flag given", c)
+						return geneos.ErrInvalidArgs
+					}
+				}
+			}
+		}
+
+		// remove host config
+		if err = host.LOCAL.RemoveAll(h.Home); err != nil {
+			return
+		}
+		log.Printf("%q deleted", h)
+	}
+
+	return nil
 }

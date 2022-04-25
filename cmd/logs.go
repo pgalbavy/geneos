@@ -33,7 +33,7 @@ import (
 	"unicode"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -59,6 +59,7 @@ var logsCmd = &cobra.Command{
 	-n is ignored when -c is given
 	
 	When more than one instance matches each output block is prefixed by instance details.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},

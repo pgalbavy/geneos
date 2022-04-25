@@ -35,10 +35,11 @@ import (
 
 // lsHostCmd represents the lsRemote command
 var lsHostCmd = &cobra.Command{
-	Use:     "host [-c|-j [-i]] [TYPE] [NAME...]",
-	Aliases: []string{"hosts", "remote", "remotes"},
-	Short:   "List hosts, optionally in CSV or JSON format",
-	Long:    `List the matching remote hosts.`,
+	Use:          "host [-c|-j [-i]] [TYPE] [NAME...]",
+	Aliases:      []string{"hosts", "remote", "remotes"},
+	Short:        "List hosts, optionally in CSV or JSON format",
+	Long:         `List the matching remote hosts.`,
+	SilenceUsage: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},

@@ -23,8 +23,8 @@ var Webserver geneos.Component = geneos.Component{
 	CleanList:        "WebserverCleanList",
 	PurgeList:        "WebserverPurgeList",
 	Defaults: []string{
-		"webshome={{join .remoteroot \"webserver\" \"webservers\" .name}}",
-		"websbins={{join .remoteroot \"packages\" \"webserver\"}}",
+		"webshome={{join .root \"webserver\" \"webservers\" .name}}",
+		"websbins={{join .root \"packages\" \"webserver\"}}",
 		"websbase=active_prod",
 		"websexec={{join .websbins .websbase \"jre/bin/java\"}}",
 		"webslogd=logs",
@@ -65,7 +65,7 @@ func New(name string) geneos.Instance {
 	c := &Webservers{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.RemoteRoot = r.V().GetString("geneos")
+	// c.root = r.V().GetString("geneos")
 	c.Component = &Webserver
 	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)

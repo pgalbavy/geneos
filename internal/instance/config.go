@@ -75,7 +75,7 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 
 	// m := make(map[string]string)
 	m := c.V().AllSettings()
-	m["remoteroot"] = c.Host().V().GetString("geneos")
+	m["root"] = c.Host().V().GetString("geneos")
 	m["name"] = c.Name()
 	// m["env"] =
 
@@ -174,13 +174,17 @@ func WriteConfig(c geneos.Instance) (err error) {
 		}
 		c.V().SetFs(sftpfs.New(client))
 	}
+	logDebug.Printf("writing config for %s as %q", c, file)
 	return c.V().WriteConfigAs(file)
 }
 
 func ReadConfig(c geneos.Instance) (err error) {
-	file := ConfigPathWithExt(c, "json")
-	logDebug.Printf("reading %q on %s", file, c.Host())
-	c.V().SetConfigFile(file)
+	// file := ConfigPathWithExt(c, "json")
+	// c.V().SetConfigFile(file)
+	// logDebug.Printf("reading %q on %s", file, c.Host())
+	c.V().AddConfigPath(c.Home())
+	c.V().SetConfigName(c.Type().String())
+	c.V().SetConfigType("json")
 	if c.Host() != host.LOCAL {
 		client, err := c.Host().DialSFTP()
 		if err != nil {
@@ -188,7 +192,11 @@ func ReadConfig(c geneos.Instance) (err error) {
 		}
 		c.V().SetFs(sftpfs.New(client))
 	}
-	return c.V().MergeInConfig()
+	err = c.V().MergeInConfig()
+	if err == nil {
+		logDebug.Printf("config loaded for %s from %q", c, c.V().ConfigFileUsed())
+	}
+	return
 }
 
 // migrate config from .rc to .json, but check first
@@ -215,5 +223,42 @@ func Migrate(c geneos.Instance) (err error) {
 	}
 
 	logDebug.Printf("migrated %s to JSON config", c)
+	return
+}
+
+// a template function to support "{{join .X .Y}}"
+var textJoinFuncs = template.FuncMap{"join": filepath.Join}
+
+// SetDefaults() is a common function called by component factory
+// functions to iterate over the component specific instance
+// struct and set the defaults as defined in the 'defaults'
+// struct tags.
+func SetDefaults(c geneos.Instance, name string) (err error) {
+	c.V().SetDefault("name", name)
+	if c.Type().Defaults != nil {
+		// set bootstrap values used by templates
+		c.V().Set("root", c.Host().V().GetString("geneos"))
+		for _, s := range c.Type().Defaults {
+			p := strings.SplitN(s, "=", 2)
+			k, v := p[0], p[1]
+			val, err := template.New(k).Funcs(textJoinFuncs).Parse(v)
+			if err != nil {
+				logError.Println(c, "parse error:", v)
+				return err
+			}
+			var b bytes.Buffer
+			if c.V() == nil {
+				logError.Println("no viper found")
+			}
+			if err = val.Execute(&b, c.V().AllSettings()); err != nil {
+				log.Println(c, "cannot set defaults:", v)
+				return err
+			}
+			c.V().SetDefault(k, b.String())
+		}
+		// remove these so they don't pollute written out files
+		c.V().Set("root", nil)
+	}
+
 	return
 }
