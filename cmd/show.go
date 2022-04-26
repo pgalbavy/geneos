@@ -26,8 +26,8 @@ import (
 	"regexp"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
-	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -63,50 +63,47 @@ var showCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(showCmd)
+
+	// showCmd.Flags().BoolVarP(&showCmdYAML, "yaml", "y", false, "Show as YAML")
 }
+
+// var showCmdYAML bool
 
 func commandShow(ct *geneos.Component, args []string, params []string) (err error) {
-	var buffer []byte
-	// loop instances - parse the args again and load/print the config,
-	// but allow for RC files again
-	//
-	cs := make(map[host.Name][]geneos.Instance)
-	for _, name := range args {
-		cs[host.LOCALHOST] = instance.MatchAll(ct, name)
-		logDebug.Println(cs[host.LOCALHOST])
-		for _, c := range cs[host.LOCALHOST] {
-			config := c.V().AllSettings()
-			if buffer, err = json.MarshalIndent(config, "", "    "); err != nil {
-				return
-			}
-			j := string(buffer)
-			j = opaqueJSONSecrets(j)
-			log.Printf("%s\n", j)
-		}
-
-		// for _, i := range instance.FindInstances(ct, name) {
-		// 	cs[i.Remote().String()] = append(cs[i.Remote().String()], i)
-		// }
-	}
-
-	// if len(cs) > 0 {
-	// 	printConfigJSON(cs)
-	// 	return
-	// }
-
-	// log.Println("no matches to show")
-
-	return
+	return instance.ForAll(ct, showInstance, args, params)
 }
 
-func printConfigJSON(Config interface{}) (err error) {
+type config struct {
+	Name   string      `json:"name,omitempty"`
+	Host   string      `json:"host,omitempty"`
+	Config interface{} `json:"config,omitempty"`
+}
+
+func showInstance(c geneos.Instance, params []string) (err error) {
 	var buffer []byte
-	if buffer, err = json.MarshalIndent(Config, "", "    "); err != nil {
+
+	// remove aliases
+	nv := viper.New()
+	for _, k := range c.V().AllKeys() {
+		if _, ok := c.Type().Aliases[k]; !ok {
+			nv.Set(k, c.V().Get(k))
+		}
+	}
+
+	// XXX wrap in location and type
+	cf := &config{Name: c.Name(), Host: c.Host().String(), Config: nv.AllSettings()}
+
+	// if showCmdYAML {
+	// 	buffer, err = yaml.Marshal(cf)
+	// } else {
+
+	if buffer, err = json.MarshalIndent(cf, "", "    "); err != nil {
 		return
 	}
-	j := string(buffer)
-	j = opaqueJSONSecrets(j)
-	log.Printf("%s\n", j)
+	buffer = opaqueJSONSecrets(buffer)
+	// }
+	log.Printf("%s\n", string(buffer))
+
 	return
 }
 
@@ -117,9 +114,9 @@ func printConfigJSON(Config interface{}) (err error) {
 var red1 = regexp.MustCompile(`"(.*((?i)pass|password|secret))": "(.*)"`)
 var red2 = regexp.MustCompile(`"(.*((?i)pass|password|secret))=(.*)"`)
 
-func opaqueJSONSecrets(j string) string {
+func opaqueJSONSecrets(j []byte) []byte {
 	// simple redact - and left field with "Pass" in it gets the right replaced
-	j = red1.ReplaceAllString(j, `"$1": "********"`)
-	j = red2.ReplaceAllString(j, `"$1=********"`)
+	j = red1.ReplaceAll(j, []byte(`"$1": "********"`))
+	j = red2.ReplaceAll(j, []byte(`"$1=********"`))
 	return j
 }

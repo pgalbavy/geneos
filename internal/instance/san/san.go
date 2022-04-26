@@ -147,6 +147,10 @@ func (s *Sans) V() *viper.Viper {
 	return s.Conf
 }
 
+func (s *Sans) SetConf(v *viper.Viper) {
+	s.Conf = v
+}
+
 func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 	s.V().Set("sanport", instance.NextPort(s.InstanceHost, &San))
 	s.V().Set("sanuser", username)
@@ -155,7 +159,7 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 	s.V().Set("types", []string{})
 	s.V().Set("attributes", make(map[string]string))
 	s.V().Set("variables", make(map[string]string))
-	s.V().Set("gateways", make(map[string]int))
+	s.V().Set("gateways", make(map[string]string))
 
 	// if initFlags.Name != "" {
 	// 	s.SanName = initFlags.Name

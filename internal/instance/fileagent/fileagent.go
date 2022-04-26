@@ -131,6 +131,10 @@ func (n *FileAgents) V() *viper.Viper {
 	return n.Conf
 }
 
+func (n *FileAgents) SetConf(v *viper.Viper) {
+	n.Conf = v
+}
+
 func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
 	n.V().Set("faport", instance.NextPort(n.Host(), &FileAgent))
 	n.V().Set("fauser", username)

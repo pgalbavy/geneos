@@ -30,10 +30,23 @@ var Gateway geneos.Component = geneos.Component{
 	CleanList:        "GatewayCleanList",
 	PurgeList:        "GatewayPurgeList",
 	Aliases: map[string]string{
-		"gatehome": "homedir",
-		"gatebins": "bindir",
-		"gateport": "port",
-		"gatelibs": "libpath",
+		"binsuffix": "binary",
+		"gatehome":  "home",
+		"gatebins":  "install",
+		"gatebase":  "version",
+		"gateexec":  "program",
+		"gatelogd":  "logdir",
+		"gatelogf":  "logfile",
+		"gateport":  "port",
+		"gatelibs":  "libpaths",
+		"gatecert":  "certificate",
+		"gatekey":   "privatekey",
+		"gateaes":   "aesfile",
+		"gatename":  "gatewayname",
+		"gatelich":  "licdhost",
+		"gatelicp":  "licdport",
+		"gatelics":  "licdsecure",
+		"gateuser":  "user",
 	},
 	Defaults: []string{
 		"binsuffix=gateway2.linux_64",
@@ -99,8 +112,11 @@ func New(name string) geneos.Instance {
 	}
 	g := &Gateways{}
 	g.Conf = viper.New()
-	g.InstanceHost = h
 	g.Component = &Gateway
+	for k, v := range Gateway.Aliases {
+		g.V().RegisterAlias(k, v)
+	}
+	g.InstanceHost = h
 	if err := instance.SetDefaults(g, local); err != nil {
 		logger.Error.Fatalln(g, "setDefaults():", err)
 	}
@@ -156,6 +172,10 @@ func (g *Gateways) Loaded() bool {
 
 func (g *Gateways) V() *viper.Viper {
 	return g.Conf
+}
+
+func (g *Gateways) SetConf(v *viper.Viper) {
+	g.Conf = v
 }
 
 func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
@@ -215,25 +235,25 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 	secure := g.V().GetString("gatecert") != "" && g.V().GetString("gatekey") != ""
 
 	// if we have certs then connect to Licd securely
-	if secure && g.V().GetString("gateLicS") != "true" {
-		g.V().Set("gateLicS", "true")
+	if secure && g.V().GetString("gatelics") != "true" {
+		g.V().Set("gatelics", "true")
 		changed = true
-	} else if !secure && g.V().GetString("gateLicS") == "true" {
-		g.V().Set("gateLicS", "false")
+	} else if !secure && g.V().GetString("gatelics") == "true" {
+		g.V().Set("gatelics", "false")
 		changed = true
 	}
 
 	// use getPorts() to check valid change, else go up one
 	ports := instance.GetPorts(g.Host())
 	nextport := instance.NextPort(g.Host(), &Gateway)
-	if secure && g.V().GetInt64("gatePort") == 7039 {
+	if secure && g.V().GetInt64("gateport") == 7039 {
 		if _, ok := ports[7038]; !ok {
 			g.V().Set("gateport", 7038)
 		} else {
 			g.V().Set("gateport", nextport)
 		}
 		changed = true
-	} else if !secure && g.V().GetInt64("gatePort") == 7038 {
+	} else if !secure && g.V().GetInt64("gateport") == 7038 {
 		if _, ok := ports[7039]; !ok {
 			g.V().Set("gateport", 7039)
 		} else {
@@ -258,11 +278,11 @@ func (g *Gateways) Command() (args, env []string) {
 	args = []string{
 		g.Name(),
 		"-resources-dir",
-		filepath.Join(g.V().GetString("gateBins"), g.V().GetString("gateBase"), "resources"),
+		filepath.Join(g.V().GetString("gatebins"), g.V().GetString("gatebase"), "resources"),
 		"-log",
 		instance.LogFile(g),
 		"-setup",
-		filepath.Join(g.V().GetString("gateHome"), "gateway.setup.xml"),
+		filepath.Join(g.V().GetString("gatehome"), "gateway.setup.xml"),
 		// enable stats by default
 		"-stats",
 	}
@@ -270,33 +290,33 @@ func (g *Gateways) Command() (args, env []string) {
 	// check version
 	// "-gateway-name",
 
-	if g.V().GetString("gateName") != g.Name() {
-		args = append([]string{g.V().GetString("gateName")}, args...)
+	if g.V().GetString("gatename") != g.Name() {
+		args = append([]string{g.V().GetString("gatename")}, args...)
 	}
 
-	args = append([]string{"-port", fmt.Sprint(g.V().GetString("gatePort"))}, args...)
+	args = append([]string{"-port", fmt.Sprint(g.V().GetString("gateport"))}, args...)
 
-	if g.V().GetString("gateLicH") != "" {
-		args = append(args, "-licd-host", g.V().GetString("gateLicH"))
+	if g.V().GetString("gatelich") != "" {
+		args = append(args, "-licd-host", g.V().GetString("gatelich"))
 	}
 
-	if g.V().GetInt64("gateLicP") != 0 {
-		args = append(args, "-licd-port", fmt.Sprint(g.V().GetString("gateLicP")))
+	if g.V().GetInt64("gatelicp") != 0 {
+		args = append(args, "-licd-port", fmt.Sprint(g.V().GetString("gatelicp")))
 	}
 
-	if g.V().GetString("gateCert") != "" {
-		if g.V().GetString("gateLicS") == "" || g.V().GetString("gateLicS") != "false" {
+	if g.V().GetString("gatecert") != "" {
+		if g.V().GetString("gatelics") == "" || g.V().GetString("gatelics") != "false" {
 			args = append(args, "-licd-secure")
 		}
-		args = append(args, "-ssl-certificate", g.V().GetString("gateCert"))
+		args = append(args, "-ssl-certificate", g.V().GetString("gatecert"))
 		chainfile := g.Host().GeneosPath("tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
-	} else if g.V().GetString("gateLicS") != "" && g.V().GetString("gateLicS") == "true" {
+	} else if g.V().GetString("gatelics") != "" && g.V().GetString("gatelics") == "true" {
 		args = append(args, "-licd-secure")
 	}
 
-	if g.V().GetString("GateKey") != "" {
-		args = append(args, "-ssl-certificate-key", g.V().GetString("GateKey"))
+	if g.V().GetString("gatekey") != "" {
+		args = append(args, "-ssl-certificate-key", g.V().GetString("gatekey"))
 	}
 
 	// if c.GateAES != "" {

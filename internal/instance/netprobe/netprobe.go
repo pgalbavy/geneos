@@ -119,6 +119,10 @@ func (n *Netprobes) V() *viper.Viper {
 	return n.Conf
 }
 
+func (n *Netprobes) SetConf(v *viper.Viper) {
+	n.Conf = v
+}
+
 func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
 	n.V().Set("netpport", instance.NextPort(n.Host(), &Netprobe))
 	n.V().Set("netpuser", username)

@@ -120,6 +120,10 @@ func (l *Licds) V() *viper.Viper {
 	return l.Conf
 }
 
+func (l *Licds) SetConf(v *viper.Viper) {
+	l.Conf = v
+}
+
 func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
 	l.V().Set("licdport", instance.NextPort(l.InstanceHost, &Licd))
 	l.V().Set("licduser", username)

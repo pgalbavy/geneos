@@ -121,6 +121,10 @@ func (n *FA2s) V() *viper.Viper {
 	return n.Conf
 }
 
+func (n *FA2s) SetConf(v *viper.Viper) {
+	n.Conf = v
+}
+
 func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
 	n.V().Set("fa2port", instance.NextPort(n.InstanceHost, &FA2))
 	n.V().Set("fa2user", username)

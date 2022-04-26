@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 
@@ -56,8 +57,16 @@ func init() {
 
 func commandShowUser(ct *geneos.Component, args, params []string) (err error) {
 	var c interface{}
+	var buffer []byte
+
 	userConfDir, _ := os.UserConfigDir()
 	host.ReadLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
-	printConfigJSON(c)
+
+	if buffer, err = json.MarshalIndent(c, "", "    "); err != nil {
+		return
+	}
+	j := opaqueJSONSecrets(buffer)
+	log.Printf("%s\n", string(j))
+
 	return
 }

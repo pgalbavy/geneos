@@ -139,6 +139,10 @@ func (w *Webservers) V() *viper.Viper {
 	return w.Conf
 }
 
+func (w *Webservers) SetConf(v *viper.Viper) {
+	w.Conf = v
+}
+
 func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
 	w.V().Set("websport", instance.NextPort(w.InstanceHost, &Webserver))
 	w.V().Set("websuser", username)

@@ -22,6 +22,8 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/json"
+
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
@@ -53,7 +55,13 @@ func init() {
 
 func commandShowGlobal(ct *geneos.Component, args, params []string) (err error) {
 	var c interface{}
+	var buffer []byte
+
 	host.ReadLocalConfigFile(geneos.GlobalConfig, &c)
-	printConfigJSON(c)
+	if buffer, err = json.MarshalIndent(c, "", "    "); err != nil {
+		return
+	}
+	j := opaqueJSONSecrets(buffer)
+	log.Printf("%s\n", string(j))
 	return
 }

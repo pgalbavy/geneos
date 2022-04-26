@@ -12,6 +12,7 @@ import (
 	"text/template"
 
 	"github.com/spf13/afero/sftpfs"
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 )
@@ -164,26 +165,31 @@ func ConfigPathWithExt(c geneos.Instance, extension string) (path string) {
 //
 // remote configuration files are supported using afero.Fs through
 // viper but rely on host.DialSFTP to dial and cache the client
+//
+// delete any aliases fields before writing
 func WriteConfig(c geneos.Instance) (err error) {
 	file := ConfigPathWithExt(c, "json")
 	if err = c.Host().MkdirAll(filepath.Dir(file), 0775); err != nil {
 		logError.Println(err)
+	}
+	nv := viper.New()
+	for _, k := range c.V().AllKeys() {
+		if _, ok := c.Type().Aliases[k]; !ok {
+			nv.Set(k, c.V().Get(k))
+		}
 	}
 	if c.Host() != host.LOCAL {
 		client, err := c.Host().DialSFTP()
 		if err != nil {
 			logError.Println(err)
 		}
-		c.V().SetFs(sftpfs.New(client))
+		nv.SetFs(sftpfs.New(client))
 	}
 	logDebug.Printf("writing config for %s as %q", c, file)
-	return c.V().WriteConfigAs(file)
+	return nv.WriteConfigAs(file)
 }
 
 func ReadConfig(c geneos.Instance) (err error) {
-	// file := ConfigPathWithExt(c, "json")
-	// c.V().SetConfigFile(file)
-	// logDebug.Printf("reading %q on %s", file, c.Host())
 	c.V().AddConfigPath(c.Home())
 	c.V().SetConfigName(c.Type().String())
 	c.V().SetConfigType("json")
@@ -236,6 +242,7 @@ var textJoinFuncs = template.FuncMap{"join": filepath.Join}
 // struct and set the defaults as defined in the 'defaults'
 // struct tags.
 func SetDefaults(c geneos.Instance, name string) (err error) {
+	aliases := c.Type().Aliases
 	c.V().SetDefault("name", name)
 	if c.Type().Defaults != nil {
 		// set bootstrap values used by templates
@@ -255,6 +262,12 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 			if err = val.Execute(&b, c.V().AllSettings()); err != nil {
 				log.Println(c, "cannot set defaults:", v)
 				return err
+			}
+			if aliases != nil {
+				nk, ok := aliases[k]
+				if ok {
+					k = nk
+				}
 			}
 			c.V().SetDefault(k, b.String())
 		}
