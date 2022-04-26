@@ -77,6 +77,7 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 	m := c.V().AllSettings()
 	m["root"] = c.Host().V().GetString("geneos")
 	m["name"] = c.Name()
+	logDebug.Printf("template data: %#v", m)
 	// m["env"] =
 
 	if err = t.ExecuteTemplate(out, name, m); err != nil {

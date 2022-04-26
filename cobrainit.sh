@@ -44,5 +44,8 @@
 # cobra-cli add tlsNew -p tlsCmd
 # cobra-cli add tlsRenew -p tlsCmd
 # cobra-cli add tlsSync -p tlsCmd
+# cobra-cli add unset
+# cobra-cli add unsetUser -p unsetCmd
+# cobra-cli add unsetGlobal -p unsetCmd
 # cobra-cli add update
 

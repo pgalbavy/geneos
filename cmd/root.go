@@ -136,8 +136,8 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 		viper.ReadInConfig()
 	} else {
-		// Find home directory.
-		home, err := os.UserConfigDir()
+		// Find userConfDir directory.
+		userConfDir, err := os.UserConfigDir()
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name "geneos" (without extension).
@@ -145,7 +145,7 @@ func initConfig() {
 		viper.ReadInConfig()
 
 		// merge in home config
-		viper.SetConfigFile(filepath.Join(home, "geneos.json"))
+		viper.SetConfigFile(filepath.Join(userConfDir, "geneos.json"))
 		viper.MergeInConfig()
 	}
 

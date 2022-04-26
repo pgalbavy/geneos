@@ -207,17 +207,14 @@ func (s *Sans) Rebuild(initial bool) (err error) {
 	// recheck check certs/keys
 	var changed bool
 	secure := s.V().GetString("sancert") != "" && s.V().GetString("sankey") != ""
-	gws, ok := s.V().Get("gateways").(map[string]int)
-	if !ok {
-		return geneos.ErrInvalidArgs
-	}
+	gws := s.V().GetStringMapString("gateways")
 	for gw := range gws {
 		port := gws[gw]
-		if secure && port == 7039 {
-			port = 7038
+		if secure && port == "7039" {
+			port = "7038"
 			changed = true
-		} else if !secure && port == 7038 {
-			port = 7039
+		} else if !secure && port == "7038" {
+			port = "7039"
 			changed = true
 		}
 		gws[gw] = port

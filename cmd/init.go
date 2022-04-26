@@ -31,7 +31,6 @@ import (
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance/gateway"
 	"wonderland.org/geneos/internal/instance/licd"
-	"wonderland.org/geneos/internal/instance/netprobe"
 	"wonderland.org/geneos/internal/instance/san"
 	"wonderland.org/geneos/internal/instance/webserver"
 )
@@ -216,13 +215,13 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 	// create a demo environment
 	if initCmdDemo {
 		g := []string{"Demo Gateway@" + r.String()}
-		n := []string{"localhost@" + r.String()}
+		localhost := []string{"localhost@" + r.String()}
 		w := []string{"demo@" + r.String()}
 		commandInstall(&gateway.Gateway, e, e)
 		commandAdd(&gateway.Gateway, g, params)
 		commandSet(&gateway.Gateway, g, []string{"GateOpts=-demo"})
 		commandInstall(&san.San, e, e)
-		commandAdd(&san.San, n, []string{"Gateways=localhost"})
+		commandAdd(&san.San, localhost, []string{"Gateways=localhost"})
 		commandInstall(&webserver.Webserver, e, e)
 		commandAdd(&webserver.Webserver, w, params)
 		commandStart(nil, e, e)
@@ -265,8 +264,8 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		commandImport(&licd.Licd, name, []string{"geneos.lic=" + initCmdAll})
 		commandInstall(&gateway.Gateway, e, e)
 		commandAdd(&gateway.Gateway, name, params)
-		commandInstall(&netprobe.Netprobe, e, e)
-		commandAdd(&netprobe.Netprobe, localhost, params)
+		commandInstall(&san.San, e, e)
+		commandAdd(&san.San, localhost, []string{"Gateways=localhost"})
 		commandInstall(&webserver.Webserver, e, e)
 		commandAdd(&webserver.Webserver, name, params)
 		commandStart(nil, e, e)

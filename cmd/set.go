@@ -27,7 +27,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
-	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
 )
 
@@ -61,7 +60,8 @@ var setCmd = &cobra.Command{
 	Other special names include Gateways for a comma separated list of host:port values for Sans,
 	Attributes as name=value pairs again for Sans and Types a comma separated list of Types for Sans.
 	Variables (for San config templates) cannot be set from the command line at this time.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -73,30 +73,33 @@ var setCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(setCmd)
+
+	setCmd.Flags().VarP(&setCmdEnvs, "env", "e", "Add an environment variable in the format NAME=VALUE")
+	setCmd.Flags().VarP(&setCmdIncludes, "include", "i", "Add an include file in the format PRIORITY:PATH")
+	setCmd.Flags().VarP(&setCmdGateways, "gateway", "g", "Add a gateway in the format NAME:PORT")
+	setCmd.Flags().VarP(&setCmdAttributes, "attribute", "a", "Add an attribute in the format NAME=VALUE")
+	setCmd.Flags().VarP(&setCmdTypes, "type", "t", "Add a gateway in the format NAME:PORT")
+	setCmd.Flags().VarP(&setCmdVariables, "variable", "v", "Add a variable in the format [TYPE:]NAME=VALUE")
+	setCmd.Flags().MarkHidden("help")
+	setCmd.Flags().SortFlags = false
 }
 
-// components - parse the args again and load/print the config,
-// but allow for RC files again
-//
-// consume component names, stop at first parameter, error out if more names
-func commandSet(ct *geneos.Component, args []string, params []string) (err error) {
-	var instances []geneos.Instance
+var setCmdIncludes = make(IncludeValues)
+var setCmdGateways = make(GatewayValues)
+var setCmdAttributes = make(NamedValues)
+var setCmdEnvs = make(NamedValues)
+var setCmdVariables = make(VarValues)
+var setCmdTypes = TypeValues{}
 
-	logDebug.Println("args", args, "params", params)
+func commandSet(ct *geneos.Component, args, params []string) error {
+	return instance.ForAll(ct, setInstance, args, params)
+}
 
-	if len(args) == 0 && len(params) == 0 {
-		return ErrInvalidArgs
-	}
+func setInstance(c geneos.Instance, params []string) (err error) {
+	logDebug.Println("c", c, "params", params)
 
-	if ct != nil && len(args) == 0 {
-		// if all args have no become params (e.g. 'set gateway X=Y') then reprocess args here
-		args = instance.AllNames(host.ALL, ct)
-	}
-
-	// loop through named instances
-	for _, arg := range args {
-		instances = append(instances, instance.MatchAll(ct, arg)...)
-	}
+	// walk through any flags passed
+	setMaps(c)
 
 	for _, arg := range params {
 		s := strings.SplitN(arg, "=", 2)
@@ -107,23 +110,19 @@ func commandSet(ct *geneos.Component, args []string, params []string) (err error
 		k, v := s[0], s[1]
 
 		// loop through all provided instances, set the parameter(s)
-		for _, c := range instances {
-			for _, vs := range strings.Split(v, ",") {
-				if err = setValue(c, k, vs); err != nil {
-					log.Printf("%s: cannot set %q", c, k)
-				}
+		for _, vs := range strings.Split(v, ",") {
+			if err = setValue(c, k, vs); err != nil {
+				log.Printf("%s: cannot set %q", c, k)
 			}
 		}
 	}
 
 	// now loop through the collected results and write out
-	for _, c := range instances {
-		if err = instance.Migrate(c); err != nil {
-			logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
-		}
-		if err = instance.WriteConfig(c); err != nil {
-			logError.Fatalln(err)
-		}
+	if err = instance.Migrate(c); err != nil {
+		logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
+	}
+	if err = instance.WriteConfig(c); err != nil {
+		logError.Fatalln(err)
 	}
 
 	return
@@ -136,12 +135,57 @@ var pluralise = map[string]string{
 	"Include":   "s",
 }
 
-func setValue(c geneos.Instance, tag, v string) (err error) {
-	defaults := map[string]string{
-		"Includes": "100",
-		"Gateways": "7039",
+var defaults = map[string]string{
+	"Includes": "100",
+	"Gateways": "7039",
+}
+
+// XXX abstract this for a general case
+func setMaps(c geneos.Instance) (err error) {
+	if len(setCmdAttributes) > 0 {
+		attr := c.V().GetStringMapString("attributes")
+		for k, v := range setCmdAttributes {
+			attr[k] = v
+		}
+		c.V().Set("attributes", attr)
 	}
 
+	if len(setCmdTypes) > 0 {
+		types := c.V().GetStringSlice("types")
+		for _, v := range setCmdTypes {
+			types = append(types, v)
+		}
+		c.V().Set("types", types)
+	}
+
+	if len(setCmdEnvs) > 0 {
+		envs := c.V().GetStringMapString("env")
+		for k, v := range setCmdEnvs {
+			envs[k] = v
+		}
+		c.V().Set("env", envs)
+	}
+
+	if len(setCmdGateways) > 0 {
+		gateways := c.V().GetStringMapString("gateways")
+		for k, v := range setCmdGateways {
+			gateways[k] = v
+		}
+		c.V().Set("gateways", gateways)
+	}
+
+	if len(setCmdVariables) > 0 {
+		vars := c.V().GetStringMapString("variables")
+		for k, v := range setCmdVariables {
+			vars[k] = v
+		}
+		c.V().Set("variables", vars)
+	}
+
+	return nil
+}
+
+func setValue(c geneos.Instance, tag, v string) (err error) {
 	if pluralise[tag] != "" {
 		tag = tag + pluralise[tag]
 	}
@@ -289,10 +333,12 @@ func setStructMap(c geneos.Instance, field, key, value string) {
 
 }
 
+// XXX muddled - fix
 func writeConfigParams(filename string, params []string) (err error) {
-	var c interface{}
-	// ignore err - config may not exist, but that's OK
-	_ = host.ReadLocalConfigFile(filename, &c)
+	vp := viper.New()
+	vp.SetConfigFile(filename)
+	vp.ReadInConfig()
+
 	// change here
 	for _, set := range params {
 		// skip all non '=' args
@@ -301,20 +347,153 @@ func writeConfigParams(filename string, params []string) (err error) {
 		}
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
-		viper.Set(k, v)
+		vp.Set(k, v)
 	}
 
 	// fix breaking change
-	if viper.IsSet("itrshome") {
-		if !viper.IsSet("geneos") {
-			viper.Set("geneos", viper.GetString("itrshome"))
+	if vp.IsSet("itrshome") {
+		if !vp.IsSet("geneos") {
+			vp.Set("geneos", vp.GetString("itrshome"))
 		}
-		viper.Set("itrshome", nil)
+		vp.Set("itrshome", nil)
 	}
 
-	// XXX fix permissions assumptions here
-	if filename == geneos.GlobalConfig {
-		return host.LOCAL.WriteConfigFile(filename, "root", 0664, c)
+	vp.WriteConfig()
+	return nil
+}
+
+// Value types for multiple flags - also used by unset?
+
+// include file - priority:url|path
+type IncludeValues map[string]string
+
+func (i *IncludeValues) String() string {
+	return ""
+}
+
+func (i *IncludeValues) Set(value string) error {
+	e := strings.SplitN(value, ":", 2)
+	val := "100"
+	if len(e) > 1 {
+		val = e[1]
+	} else {
+		// XXX check two values and first is a number
+		logDebug.Println("second value missing after ':', using default", val)
 	}
-	return host.LOCAL.WriteConfigFile(filename, "", 0664, c)
+	(*i)[e[0]] = val
+	return nil
+}
+
+func (i *IncludeValues) Type() string {
+	return "PRIORITY:{URL|PATH}"
+}
+
+// gateway - name:port
+type GatewayValues map[string]string
+
+func (i *GatewayValues) String() string {
+	return ""
+}
+
+func (i *GatewayValues) Set(value string) error {
+	e := strings.SplitN(value, ":", 2)
+	val := "7039"
+	if len(e) > 1 {
+		val = e[1]
+	} else {
+		// XXX check two values and first is a number
+		logDebug.Println("second value missing after ':', using default", val)
+	}
+	(*i)[e[0]] = val
+	return nil
+}
+
+func (i *GatewayValues) Type() string {
+	return "HOSTNAME:PORT"
+}
+
+// attribute - name=value
+type NamedValues map[string]string
+
+func (i *NamedValues) String() string {
+	return ""
+}
+
+func (i *NamedValues) Set(value string) error {
+	e := strings.SplitN(value, "=", 2)
+	if len(e) < 2 {
+		logError.Println("attributes must be in the format NAME=VALUE")
+		return geneos.ErrInvalidArgs
+	}
+	(*i)[e[0]] = e[1]
+	return nil
+}
+
+func (i *NamedValues) Type() string {
+	return "NAME=VALUE"
+}
+
+// attribute - name=value
+type TypeValues []string
+
+func (i *TypeValues) String() string {
+	return ""
+}
+
+func (i *TypeValues) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func (i *TypeValues) Type() string {
+	return "NAME"
+}
+
+// variables - [TYPE:]NAME=VALUE
+type VarValues map[string]string
+
+func (i *VarValues) String() string {
+	return ""
+}
+
+func (i *VarValues) Set(value string) error {
+	var t, k, v string
+
+	e := strings.SplitN(value, ":", 2)
+	if len(e) == 1 {
+		t = "string"
+		s := strings.SplitN(e[0], "=", 2)
+		k = s[0]
+		if len(s) > 1 {
+			v = s[1]
+		}
+	} else {
+		t = e[0]
+		s := strings.SplitN(e[1], "=", 2)
+		k = s[0]
+		if len(s) > 1 {
+			v = s[1]
+		}
+	}
+
+	// XXX check types here - e[0] options type, default string
+	var validtypes map[string]string = map[string]string{
+		"string":             "",
+		"integer":            "",
+		"double":             "",
+		"boolean":            "",
+		"activeTime":         "",
+		"externalConfigFile": "",
+	}
+	if _, ok := validtypes[t]; !ok {
+		logError.Printf("invalid type %q for variable", t)
+		return ErrInvalidArgs
+	}
+	val := t + ":" + v
+	(*i)[k] = val
+	return nil
+}
+
+func (i *VarValues) Type() string {
+	return "[TYPE:]NAME=VALUE"
 }

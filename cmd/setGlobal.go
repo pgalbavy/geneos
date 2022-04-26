@@ -28,12 +28,12 @@ import (
 
 // setGlobalCmd represents the setGlobal command
 var setGlobalCmd = &cobra.Command{
-	Use:          "global KEY=VALUE [KEY=VALUE...]",
+	Use:          "global KEY=VALUE...",
 	Short:        "Set global configuration parameters",
 	Long:         ``,
 	SilenceUsage: true,
 	Annotations: map[string]string{
-		"wildcard": "true",
+		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
@@ -46,5 +46,5 @@ func init() {
 }
 
 func commandSetGlobal(ct *geneos.Component, args, params []string) error {
-	return writeConfigParams(geneos.GlobalConfig, []string{})
+	return writeConfigParams(geneos.GlobalConfig, params)
 }

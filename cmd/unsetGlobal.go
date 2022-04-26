@@ -22,17 +22,14 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
 )
 
-// setUserCmd represents the setUser command
-var setUserCmd = &cobra.Command{
-	Use:          "user KEY=VALUE...",
-	Short:        "Set user configuration parameters",
+// unsetGlobalCmd represents the unsetGlobal command
+var unsetGlobalCmd = &cobra.Command{
+	Use:          "unsetGlobal",
+	Short:        "",
 	Long:         ``,
 	SilenceUsage: true,
 	Annotations: map[string]string{
@@ -40,15 +37,14 @@ var setUserCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandSetUser(ct, args, params)
+		return commandUnsetGlobal(ct, args, params)
 	},
 }
 
 func init() {
-	setCmd.AddCommand(setUserCmd)
+	unsetCmd.AddCommand(unsetGlobalCmd)
 }
 
-func commandSetUser(ct *geneos.Component, args, params []string) error {
-	userConfDir, _ := os.UserConfigDir()
-	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
+func commandUnsetGlobal(ct *geneos.Component, args, params []string) error {
+	return writeConfigParams(geneos.GlobalConfig, params)
 }

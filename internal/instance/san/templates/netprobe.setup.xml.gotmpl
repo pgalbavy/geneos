@@ -44,8 +44,8 @@
 			</gateway>
 			{{else -}}<gateway>
 				<hostname>localhost</hostname>
-				<port>7039</port>
-				<secure>false</secure>
+				<port>{{if $data.sancert}}7038{{else}}7039{{end}}</port>
+				<secure>{{if $data.sancert}}true{{else}}false{{end}}</secure>
 			</gateway>
 		{{end -}}{{end -}}</gateways>
 	</selfAnnounce>

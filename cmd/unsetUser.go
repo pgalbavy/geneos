@@ -29,10 +29,10 @@ import (
 	"wonderland.org/geneos/internal/geneos"
 )
 
-// setUserCmd represents the setUser command
-var setUserCmd = &cobra.Command{
-	Use:          "user KEY=VALUE...",
-	Short:        "Set user configuration parameters",
+// unsetUserCmd represents the unsetUser command
+var unsetUserCmd = &cobra.Command{
+	Use:          "unsetUser",
+	Short:        "",
 	Long:         ``,
 	SilenceUsage: true,
 	Annotations: map[string]string{
@@ -40,15 +40,15 @@ var setUserCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandSetUser(ct, args, params)
+		return commandUnsetUser(ct, args, params)
 	},
 }
 
 func init() {
-	setCmd.AddCommand(setUserCmd)
+	unsetCmd.AddCommand(unsetUserCmd)
 }
 
-func commandSetUser(ct *geneos.Component, args, params []string) error {
+func commandUnsetUser(ct *geneos.Component, args, params []string) error {
 	userConfDir, _ := os.UserConfigDir()
 	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
 }
