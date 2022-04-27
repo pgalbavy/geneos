@@ -1,5 +1,8 @@
 # To Do list
 
+
+## `geneos` command
+
 (unordered)
 
 * Positive confirmations of all commands unless quiet mode - PARTIAL
@@ -37,3 +40,15 @@
 * move/copy - need to update ports when moving to another remote or copying to same remote
 * explore gRPC and other options over ssh for remotes (required daemon mode)
 * passing templates to 'add' (or init) doesn't work - the code is missing! d'oh!
+
+## Other
+
+### XML-RPC API
+
+* Reconnection support
+* Clean up error handling
+* Clean up logging, remove unnecessary debug printfs 
+* Look at contexts
+* Heartbeat support by default
+* Add higher level methods to update small sets of data, e.g. rows
+* REST Command API support
