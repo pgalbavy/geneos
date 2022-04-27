@@ -14,7 +14,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var San geneos.Component = geneos.Component{
+var San = geneos.Component{
 	Initialise:       Init,
 	Name:             "san",
 	RelatedTypes:     []*geneos.Component{&netprobe.Netprobe, &fa2.FA2},

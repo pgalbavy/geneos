@@ -10,7 +10,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var Netprobe geneos.Component = geneos.Component{
+var Netprobe = geneos.Component{
 	Name:             "netprobe",
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},

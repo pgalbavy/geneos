@@ -10,7 +10,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var FA2 geneos.Component = geneos.Component{
+var FA2 = geneos.Component{
 	Name:             "fa2",
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"fa2", "fixanalyser", "fixanalyzer", "fixanalyser2-netprobe"},

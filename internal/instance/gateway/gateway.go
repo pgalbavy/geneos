@@ -18,7 +18,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var Gateway geneos.Component = geneos.Component{
+var Gateway = geneos.Component{
 	Initialise:       Init,
 	Name:             "gateway",
 	RelatedTypes:     nil,

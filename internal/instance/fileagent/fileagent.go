@@ -20,7 +20,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var FileAgent geneos.Component = geneos.Component{
+var FileAgent = geneos.Component{
 	Name:             "fileagent",
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"fileagent", "fileagents", "file-agent"},

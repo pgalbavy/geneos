@@ -10,7 +10,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var Licd geneos.Component = geneos.Component{
+var Licd = geneos.Component{
 	Name:             "licd",
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"licd", "licds"},

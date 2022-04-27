@@ -12,7 +12,7 @@ import (
 	"wonderland.org/geneos/pkg/logger"
 )
 
-var Webserver geneos.Component = geneos.Component{
+var Webserver = geneos.Component{
 	Name:             "webserver",
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"web-server", "webserver", "webservers", "webdashboard", "dashboards"},
