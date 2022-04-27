@@ -108,6 +108,16 @@ func commandLogs(ct *geneos.Component, args []string, params []string) (err erro
 	return
 }
 
+func followLog(c geneos.Instance) (err error) {
+	done := make(chan bool)
+	tails = watchLogs()
+	if err = logFollowInstance(c, nil); err != nil {
+		log.Println(err)
+	}
+	<-done
+	return
+}
+
 func followLogs(ct *geneos.Component, args, params []string) (err error) {
 	done := make(chan bool)
 	tails = watchLogs()
@@ -241,7 +251,7 @@ func filterOutput(c geneos.Instance, reader io.ReadSeeker) (sz int64) {
 	return
 }
 
-func logCatInstance(c geneos.Instance, params []string) (err error) {
+func logCatInstance(c geneos.Instance, _ []string) (err error) {
 	logfile := instance.LogFile(c)
 
 	lines, err := c.Host().Open(logfile)
@@ -261,7 +271,7 @@ func logCatInstance(c geneos.Instance, params []string) (err error) {
 // add local logs to a watcher list
 // for remote logs, spawn a go routine for each log, watch using stat etc.
 // and output changes
-func logFollowInstance(c geneos.Instance, params []string) (err error) {
+func logFollowInstance(c geneos.Instance, _ []string) (err error) {
 	logfile := instance.LogFile(c)
 
 	// store a placeholder

@@ -40,7 +40,7 @@ var startCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
-		return commandStart(ct, args, params)
+		return commandStart(ct, startCmdLogs, args, params)
 	},
 }
 
@@ -53,16 +53,17 @@ func init() {
 
 var startCmdLogs bool
 
-func commandStart(ct *geneos.Component, args []string, params []string) (err error) {
+func commandStart(ct *geneos.Component, watchlogs bool, args []string, params []string) (err error) {
 	if err = instance.ForAll(ct, func(c geneos.Instance, _ []string) error {
 		return instance.Start(c)
 	}, args, params); err != nil {
 		return
 	}
 
-	if startCmdLogs {
+	if watchlogs {
 		// never returns
 		return followLogs(ct, args, params)
 	}
+
 	return
 }

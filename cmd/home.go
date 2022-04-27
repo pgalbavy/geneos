@@ -58,18 +58,10 @@ func init() {
 	homeCmd.Flags().SortFlags = false
 }
 
-func commandHome(_ *geneos.Component, args []string, params []string) error {
-	var ct *geneos.Component
-	if len(args) == 0 {
+func commandHome(ct *geneos.Component, args []string, params []string) error {
+	if ct == nil && len(args) == 0 {
 		log.Println(host.Geneos())
 		return nil
-	}
-
-	// check if first arg is a type, if not set to None else pop first arg
-	if ct = geneos.ParseComponentName(args[0]); ct == nil {
-		ct = nil
-	} else {
-		args = args[1:]
 	}
 
 	var i []geneos.Instance

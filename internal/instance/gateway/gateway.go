@@ -211,7 +211,7 @@ func (g *Gateways) Add(username string, params []string, tmpl string) (err error
 		return
 	}
 
-	return g.Rebuild(true)
+	return nil // g.Rebuild(true)
 }
 
 func (g *Gateways) Rebuild(initial bool) (err error) {

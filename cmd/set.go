@@ -74,21 +74,23 @@ var setCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(setCmd)
 
-	setCmd.Flags().VarP(&setCmdEnvs, "env", "e", "Add an environment variable in the format NAME=VALUE")
-	setCmd.Flags().VarP(&setCmdIncludes, "include", "i", "Add an include file in the format PRIORITY:PATH")
-	setCmd.Flags().VarP(&setCmdGateways, "gateway", "g", "Add a gateway in the format NAME:PORT")
-	setCmd.Flags().VarP(&setCmdAttributes, "attribute", "a", "Add an attribute in the format NAME=VALUE")
-	setCmd.Flags().VarP(&setCmdTypes, "type", "t", "Add a gateway in the format NAME:PORT")
-	setCmd.Flags().VarP(&setCmdVariables, "variable", "v", "Add a variable in the format [TYPE:]NAME=VALUE")
+	setCmd.Flags().VarP(&setCmdExtras.Envs, "env", "e", "(all components) Add an environment variable in the format NAME=VALUE")
+	setCmd.Flags().VarP(&setCmdExtras.Includes, "include", "i", "(gateways) Add an include file in the format PRIORITY:PATH")
+	setCmd.Flags().VarP(&setCmdExtras.Gateways, "gateway", "g", "(sans) Add a gateway in the format NAME:PORT")
+	setCmd.Flags().VarP(&setCmdExtras.Attributes, "attribute", "a", "(sans) Add an attribute in the format NAME=VALUE")
+	setCmd.Flags().VarP(&setCmdExtras.Types, "type", "t", "(sans) Add a gateway in the format NAME:PORT")
+	setCmd.Flags().VarP(&setCmdExtras.Variables, "variable", "v", "(sans) Add a variable in the format [TYPE:]NAME=VALUE")
 	setCmd.Flags().SortFlags = false
 }
 
-var setCmdIncludes = make(IncludeValues)
-var setCmdGateways = make(GatewayValues)
-var setCmdAttributes = make(NamedValues)
-var setCmdEnvs = make(NamedValues)
-var setCmdVariables = make(VarValues)
-var setCmdTypes = TypeValues{}
+var setCmdExtras = instance.ExtraConfigValues{
+	Includes:   instance.IncludeValues{},
+	Gateways:   instance.GatewayValues{},
+	Attributes: instance.NamedValues{},
+	Envs:       instance.NamedValues{},
+	Variables:  instance.VarValues{},
+	Types:      instance.TypeValues{},
+}
 
 func commandSet(ct *geneos.Component, args, params []string) error {
 	return instance.ForAll(ct, setInstance, args, params)
@@ -98,7 +100,7 @@ func setInstance(c geneos.Instance, params []string) (err error) {
 	logDebug.Println("c", c, "params", params)
 
 	// walk through any flags passed
-	setMaps(c)
+	instance.SetMaps(c, setCmdExtras)
 
 	for _, arg := range params {
 		s := strings.SplitN(arg, "=", 2)
@@ -137,51 +139,6 @@ var pluralise = map[string]string{
 var defaults = map[string]string{
 	"Includes": "100",
 	"Gateways": "7039",
-}
-
-// XXX abstract this for a general case
-func setMaps(c geneos.Instance) (err error) {
-	if len(setCmdAttributes) > 0 {
-		attr := c.V().GetStringMapString("attributes")
-		for k, v := range setCmdAttributes {
-			attr[k] = v
-		}
-		c.V().Set("attributes", attr)
-	}
-
-	if len(setCmdTypes) > 0 {
-		types := c.V().GetStringSlice("types")
-		for _, v := range setCmdTypes {
-			types = append(types, v)
-		}
-		c.V().Set("types", types)
-	}
-
-	if len(setCmdEnvs) > 0 {
-		envs := c.V().GetStringMapString("env")
-		for k, v := range setCmdEnvs {
-			envs[k] = v
-		}
-		c.V().Set("env", envs)
-	}
-
-	if len(setCmdGateways) > 0 {
-		gateways := c.V().GetStringMapString("gateways")
-		for k, v := range setCmdGateways {
-			gateways[k] = v
-		}
-		c.V().Set("gateways", gateways)
-	}
-
-	if len(setCmdVariables) > 0 {
-		vars := c.V().GetStringMapString("variables")
-		for k, v := range setCmdVariables {
-			vars[k] = v
-		}
-		c.V().Set("variables", vars)
-	}
-
-	return nil
 }
 
 func setValue(c geneos.Instance, tag, v string) (err error) {
@@ -359,140 +316,4 @@ func writeConfigParams(filename string, params []string) (err error) {
 
 	vp.WriteConfig()
 	return nil
-}
-
-// Value types for multiple flags - also used by unset?
-
-// include file - priority:url|path
-type IncludeValues map[string]string
-
-func (i *IncludeValues) String() string {
-	return ""
-}
-
-func (i *IncludeValues) Set(value string) error {
-	e := strings.SplitN(value, ":", 2)
-	val := "100"
-	if len(e) > 1 {
-		val = e[1]
-	} else {
-		// XXX check two values and first is a number
-		logDebug.Println("second value missing after ':', using default", val)
-	}
-	(*i)[e[0]] = val
-	return nil
-}
-
-func (i *IncludeValues) Type() string {
-	return "PRIORITY:{URL|PATH}"
-}
-
-// gateway - name:port
-type GatewayValues map[string]string
-
-func (i *GatewayValues) String() string {
-	return ""
-}
-
-func (i *GatewayValues) Set(value string) error {
-	e := strings.SplitN(value, ":", 2)
-	val := "7039"
-	if len(e) > 1 {
-		val = e[1]
-	} else {
-		// XXX check two values and first is a number
-		logDebug.Println("second value missing after ':', using default", val)
-	}
-	(*i)[e[0]] = val
-	return nil
-}
-
-func (i *GatewayValues) Type() string {
-	return "HOSTNAME:PORT"
-}
-
-// attribute - name=value
-type NamedValues map[string]string
-
-func (i *NamedValues) String() string {
-	return ""
-}
-
-func (i *NamedValues) Set(value string) error {
-	e := strings.SplitN(value, "=", 2)
-	if len(e) < 2 {
-		logError.Println("attributes must be in the format NAME=VALUE")
-		return geneos.ErrInvalidArgs
-	}
-	(*i)[e[0]] = e[1]
-	return nil
-}
-
-func (i *NamedValues) Type() string {
-	return "NAME=VALUE"
-}
-
-// attribute - name=value
-type TypeValues []string
-
-func (i *TypeValues) String() string {
-	return ""
-}
-
-func (i *TypeValues) Set(value string) error {
-	*i = append(*i, value)
-	return nil
-}
-
-func (i *TypeValues) Type() string {
-	return "NAME"
-}
-
-// variables - [TYPE:]NAME=VALUE
-type VarValues map[string]string
-
-func (i *VarValues) String() string {
-	return ""
-}
-
-func (i *VarValues) Set(value string) error {
-	var t, k, v string
-
-	e := strings.SplitN(value, ":", 2)
-	if len(e) == 1 {
-		t = "string"
-		s := strings.SplitN(e[0], "=", 2)
-		k = s[0]
-		if len(s) > 1 {
-			v = s[1]
-		}
-	} else {
-		t = e[0]
-		s := strings.SplitN(e[1], "=", 2)
-		k = s[0]
-		if len(s) > 1 {
-			v = s[1]
-		}
-	}
-
-	// XXX check types here - e[0] options type, default string
-	var validtypes map[string]string = map[string]string{
-		"string":             "",
-		"integer":            "",
-		"double":             "",
-		"boolean":            "",
-		"activeTime":         "",
-		"externalConfigFile": "",
-	}
-	if _, ok := validtypes[t]; !ok {
-		logError.Printf("invalid type %q for variable", t)
-		return ErrInvalidArgs
-	}
-	val := t + ":" + v
-	(*i)[k] = val
-	return nil
-}
-
-func (i *VarValues) Type() string {
-	return "[TYPE:]NAME=VALUE"
 }

@@ -41,17 +41,17 @@
 		<disconnectedProbeTimeout>3600</disconnectedProbeTimeout>
 	</selfAnnouncingProbes>
 	<operatingEnvironment>
-		<gatewayName>{{.gatename}}</gatewayName>
+		<gatewayName>{{.gatewayname}}</gatewayName>
 		<listenPorts>
-		{{- if .gatecert}}
-			{{if eq .gateport 7039 -}}
+		{{- if .certificate}}
+			{{if eq .port 7039 -}}
 			<secure>7038</secure>
 			<insecure>7039</insecure>
 			{{- else -}}
-			<secure>{{.gateport}}</secure>
+			<secure>{{.port}}</secure>
 			{{- end}}
 		{{- else}}
-			<insecure>{{.gateport}}</insecure>
+			<insecure>{{.port}}</insecure>
 		{{- end}}
 		</listenPorts>
 		<var name="gatewayName">
@@ -95,7 +95,7 @@
 			</macro>
 		</var>
 		<writeStatsToFile>
-			<filename>{{.gatehome}}/stats.xml</filename>
+			<filename>{{.home}}/stats.xml</filename>
 			<enablePeriodicWrite>true</enablePeriodicWrite>
 			<writeInterval>5</writeInterval>
 		</writeStatsToFile>

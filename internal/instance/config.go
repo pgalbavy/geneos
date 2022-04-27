@@ -19,6 +19,15 @@ import (
 	"wonderland.org/geneos/internal/host"
 )
 
+type ExtraConfigValues struct {
+	Includes   IncludeValues
+	Gateways   GatewayValues
+	Attributes NamedValues
+	Envs       NamedValues
+	Variables  VarValues
+	Types      TypeValues
+}
+
 // return the KEY from "[TYPE:]KEY=VALUE"
 func keyOf(s string, sep string) string {
 	r := strings.SplitN(s, sep, 2)
@@ -298,4 +307,185 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 	}
 
 	return
+}
+
+// Value types for multiple flags
+
+// XXX abstract this for a general case
+func SetMaps(c geneos.Instance, x ExtraConfigValues) (err error) {
+	if len(x.Attributes) > 0 {
+		attr := c.V().GetStringMapString("attributes")
+		for k, v := range x.Attributes {
+			attr[k] = v
+		}
+		c.V().Set("attributes", attr)
+	}
+
+	if len(x.Types) > 0 {
+		types := c.V().GetStringSlice("types")
+		for _, v := range x.Types {
+			types = append(types, v)
+		}
+		c.V().Set("types", types)
+	}
+
+	if len(x.Envs) > 0 {
+		envs := c.V().GetStringMapString("env")
+		for k, v := range x.Envs {
+			envs[k] = v
+		}
+		c.V().Set("env", envs)
+	}
+
+	if len(x.Gateways) > 0 {
+		gateways := c.V().GetStringMapString("gateways")
+		for k, v := range x.Gateways {
+			gateways[k] = v
+		}
+		c.V().Set("gateways", gateways)
+	}
+
+	if len(x.Variables) > 0 {
+		vars := c.V().GetStringMapString("variables")
+		for k, v := range x.Variables {
+			vars[k] = v
+		}
+		c.V().Set("variables", vars)
+	}
+
+	return nil
+}
+
+// include file - priority:url|path
+type IncludeValues map[string]string
+
+func (i *IncludeValues) String() string {
+	return ""
+}
+
+func (i *IncludeValues) Set(value string) error {
+	e := strings.SplitN(value, ":", 2)
+	val := "100"
+	if len(e) > 1 {
+		val = e[1]
+	} else {
+		// XXX check two values and first is a number
+		logDebug.Println("second value missing after ':', using default", val)
+	}
+	(*i)[e[0]] = val
+	return nil
+}
+
+func (i *IncludeValues) Type() string {
+	return "PRIORITY:{URL|PATH}"
+}
+
+// gateway - name:port
+type GatewayValues map[string]string
+
+func (i *GatewayValues) String() string {
+	return ""
+}
+
+func (i *GatewayValues) Set(value string) error {
+	e := strings.SplitN(value, ":", 2)
+	val := "7039"
+	if len(e) > 1 {
+		val = e[1]
+	} else {
+		// XXX check two values and first is a number
+		logDebug.Println("second value missing after ':', using default", val)
+	}
+	(*i)[e[0]] = val
+	return nil
+}
+
+func (i *GatewayValues) Type() string {
+	return "HOSTNAME:PORT"
+}
+
+// attribute - name=value
+type NamedValues map[string]string
+
+func (i *NamedValues) String() string {
+	return ""
+}
+
+func (i *NamedValues) Set(value string) error {
+	e := strings.SplitN(value, "=", 2)
+	if len(e) < 2 {
+		logError.Println("attributes must be in the format NAME=VALUE")
+		return geneos.ErrInvalidArgs
+	}
+	(*i)[e[0]] = e[1]
+	return nil
+}
+
+func (i *NamedValues) Type() string {
+	return "NAME=VALUE"
+}
+
+// attribute - name=value
+type TypeValues []string
+
+func (i *TypeValues) String() string {
+	return ""
+}
+
+func (i *TypeValues) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func (i *TypeValues) Type() string {
+	return "NAME"
+}
+
+// variables - [TYPE:]NAME=VALUE
+type VarValues map[string]string
+
+func (i *VarValues) String() string {
+	return ""
+}
+
+func (i *VarValues) Set(value string) error {
+	var t, k, v string
+
+	e := strings.SplitN(value, ":", 2)
+	if len(e) == 1 {
+		t = "string"
+		s := strings.SplitN(e[0], "=", 2)
+		k = s[0]
+		if len(s) > 1 {
+			v = s[1]
+		}
+	} else {
+		t = e[0]
+		s := strings.SplitN(e[1], "=", 2)
+		k = s[0]
+		if len(s) > 1 {
+			v = s[1]
+		}
+	}
+
+	// XXX check types here - e[0] options type, default string
+	var validtypes map[string]string = map[string]string{
+		"string":             "",
+		"integer":            "",
+		"double":             "",
+		"boolean":            "",
+		"activeTime":         "",
+		"externalConfigFile": "",
+	}
+	if _, ok := validtypes[t]; !ok {
+		logError.Printf("invalid type %q for variable", t)
+		return geneos.ErrInvalidArgs
+	}
+	val := t + ":" + v
+	(*i)[k] = val
+	return nil
+}
+
+func (i *VarValues) Type() string {
+	return "[TYPE:]NAME=VALUE"
 }

@@ -174,22 +174,9 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 	s.V().Set("variables", make(map[string]string))
 	s.V().Set("gateways", make(map[string]string))
 
-	// if initFlags.Name != "" {
-	// 	s.SanName = initFlags.Name
-	// }
-
 	if err = instance.WriteConfig(s); err != nil {
 		return
 	}
-
-	// apply any extra args to settings
-	// names := []string{s.Name()}
-	// if len(params) > 0 {
-	// 	if err = commandSet(San, names, params); err != nil {
-	// 		return
-	// 	}
-	// 	s.Load()
-	// }
 
 	// check tls config, create certs if found
 	if _, err = instance.ReadSigningCert(); err == nil {
@@ -198,12 +185,7 @@ func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
 		}
 	}
 
-	s.Rebuild(true)
-
-	// e := []string{}
-	// if initFlags.StartSAN {
-	// 	commandInstall(s.SanType, e, e)
-	// }
+	// s.Rebuild(true)
 
 	return nil
 }

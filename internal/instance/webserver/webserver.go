@@ -78,7 +78,6 @@ func New(name string) geneos.Instance {
 	c := &Webservers{}
 	c.Conf = viper.New()
 	c.InstanceHost = r
-	// c.root = r.V().GetString("geneos")
 	c.Component = &Webserver
 	if err := instance.SetDefaults(c, local); err != nil {
 		logger.Error.Fatalln(c, "setDefaults():", err)

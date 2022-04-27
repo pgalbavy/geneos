@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/instance"
 	"wonderland.org/geneos/internal/instance/gateway"
 	"wonderland.org/geneos/internal/instance/licd"
 	"wonderland.org/geneos/internal/instance/san"
@@ -84,25 +85,42 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 
 	initCmd.Flags().StringVarP(&initCmdAll, "all", "A", "", "Perform initialisation steps using provided license file and starts environment")
-	initCmd.Flags().BoolVarP(&initCmdMakeCerts, "makecerts", "C", false, "Create default certificates for TLS support")
 	initCmd.Flags().BoolVarP(&initCmdDemo, "demo", "D", false, "Perform initialisation steps for a demo setup and start environment")
-	initCmd.Flags().BoolVarP(&initCmdSAN, "san", "S", false, "Create a SAN and start")
+	initCmd.Flags().BoolVarP(&initCmdSAN, "san", "S", false, "Create a SAN and start SAN")
 
+	initCmd.Flags().BoolVarP(&initCmdMakeCerts, "makecerts", "C", false, "Create default certificates for TLS support")
+	initCmd.Flags().BoolVarP(&initCmdLogs, "log", "l", false, "Run 'logs -f' after starting instance(s)")
 	initCmd.Flags().BoolVarP(&initCmdForce, "force", "F", false, "Force init, ignore existing directories.")
 	initCmd.Flags().StringVarP(&initCmdName, "name", "n", "", "Use the given name for instances and configurations instead of the hostname")
 
 	initCmd.Flags().StringVarP(&initCmdImportCert, "importcert", "c", "", "signing certificate file with optional embedded private key")
 	initCmd.Flags().StringVarP(&initCmdImportKey, "importkey", "k", "", "signing private key file")
-	initCmd.Flags().BoolVarP(&initCmdTemplates, "templates", "T", false, "Overwrite/create templates from embedded (for version upgrades)")
+	initCmd.Flags().BoolVarP(&initCmdTemplates, "writetemplates", "T", false, "Overwrite/create templates from embedded (for version upgrades)")
 
-	initCmd.Flags().StringVarP(&initCmdGatewayTemplate, "gatewaytemplate", "g", "", "A gateway template file")
+	initCmd.Flags().StringVarP(&initCmdGatewayTemplate, "gatewaytemplate", "w", "", "A gateway template file")
 	initCmd.Flags().StringVarP(&initCmdSANTemplate, "santemplate", "s", "", "A san template file")
+
+	initCmd.Flags().VarP(&initCmdExtras.Envs, "env", "e", "(all components) Add an environment variable in the format NAME=VALUE")
+	initCmd.Flags().VarP(&initCmdExtras.Includes, "include", "i", "(gateways) Add an include file in the format PRIORITY:PATH")
+	initCmd.Flags().VarP(&initCmdExtras.Gateways, "gateway", "g", "(sans) Add a gateway in the format NAME:PORT")
+	initCmd.Flags().VarP(&initCmdExtras.Attributes, "attribute", "a", "(sans) Add an attribute in the format NAME=VALUE")
+	initCmd.Flags().VarP(&initCmdExtras.Types, "type", "t", "(sans) Add a gateway in the format NAME:PORT")
+	initCmd.Flags().VarP(&initCmdExtras.Variables, "variable", "v", "(sans) Add a variable in the format [TYPE:]NAME=VALUE")
+
 	initCmd.Flags().SortFlags = false
 }
 
 var initCmdAll string
-var initCmdMakeCerts, initCmdDemo, initCmdForce, initCmdSAN, initCmdTemplates bool
+var initCmdLogs, initCmdMakeCerts, initCmdDemo, initCmdForce, initCmdSAN, initCmdTemplates bool
 var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, initCmdSANTemplate string
+var initCmdExtras = instance.ExtraConfigValues{
+	Includes:   instance.IncludeValues{},
+	Gateways:   instance.GatewayValues{},
+	Attributes: instance.NamedValues{},
+	Envs:       instance.NamedValues{},
+	Variables:  instance.VarValues{},
+	Types:      instance.TypeValues{},
+}
 
 //
 // initialise a geneos installation
@@ -220,13 +238,13 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		localhost := []string{"localhost@" + r.String()}
 		w := []string{"demo@" + r.String()}
 		commandInstall(&gateway.Gateway, e, e)
-		commandAdd(&gateway.Gateway, g, params)
+		commandAdd(&gateway.Gateway, initCmdExtras, g, params)
 		commandSet(&gateway.Gateway, g, []string{"GateOpts=-demo"})
 		commandInstall(&san.San, e, e)
-		commandAdd(&san.San, localhost, []string{"Gateways=localhost"})
+		commandAdd(&san.San, initCmdExtras, localhost, []string{"Gateways=localhost"})
 		commandInstall(&webserver.Webserver, e, e)
-		commandAdd(&webserver.Webserver, w, params)
-		commandStart(nil, e, e)
+		commandAdd(&webserver.Webserver, initCmdExtras, w, params)
+		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 		return
 	}
@@ -244,8 +262,9 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 			sanname = sanname + "@" + r.String()
 		}
 		s = []string{sanname}
-		commandAdd(&san.San, s, params)
-		commandStart(nil, e, e)
+		commandInstall(&san.San, e, e)
+		commandAdd(&san.San, initCmdExtras, s, params)
+		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 
 		return nil
@@ -262,15 +281,15 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		name := []string{initCmdName}
 		localhost := []string{"localhost@" + r.String()}
 		commandInstall(&licd.Licd, e, e)
-		commandAdd(&licd.Licd, name, params)
+		commandAdd(&licd.Licd, initCmdExtras, name, params)
 		commandImport(&licd.Licd, name, []string{"geneos.lic=" + initCmdAll})
 		commandInstall(&gateway.Gateway, e, e)
-		commandAdd(&gateway.Gateway, name, params)
+		commandAdd(&gateway.Gateway, initCmdExtras, name, params)
 		commandInstall(&san.San, e, e)
-		commandAdd(&san.San, localhost, []string{"Gateways=localhost"})
+		commandAdd(&san.San, initCmdExtras, localhost, []string{"Gateways=localhost"})
 		commandInstall(&webserver.Webserver, e, e)
-		commandAdd(&webserver.Webserver, name, params)
-		commandStart(nil, e, e)
+		commandAdd(&webserver.Webserver, initCmdExtras, name, params)
+		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 		return nil
 	}
