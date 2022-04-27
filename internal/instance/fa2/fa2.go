@@ -1,7 +1,6 @@
 package fa2
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -20,15 +19,30 @@ var FA2 geneos.Component = geneos.Component{
 	PortRange:        "FA2PortRange",
 	CleanList:        "FA2CleanList",
 	PurgeList:        "FA2PurgeList",
+	Aliases: map[string]string{
+		"binsuffix": "binary",
+		"fa2home":   "home",
+		"fa2bins":   "install",
+		"fa2base":   "version",
+		"fa2exec":   "program",
+		"fa2logd":   "logdir",
+		"fa2logf":   "logfile",
+		"fa2port":   "port",
+		"fa2libs":   "libpaths",
+		"fa2cert":   "certificate",
+		"fa2key":    "privatekey",
+		"fa2user":   "user",
+		"fa2opts":   "options",
+	},
 	Defaults: []string{
-		"binsuffix=fix-analyser2-netprobe.linux_64",
-		"fa2home={{join .root \"fa2\" \"fa2s\" .name}}",
-		"fa2bins={{join .root \"packages\" \"fa2\"}}",
-		"fa2base=active_prod",
-		"fa2exec={{join .fa2bins .fa2base .binsuffix}}",
-		"fa2logf=fa2.log",
-		"fa2port=7036",
-		"fa2libs={{join .fa2bins .fa2base \"lib64\"}}:{{join .fa2bins .fa2base}}",
+		"binary=fix-analyser2-netprobe.linux_64",
+		"home={{join .root \"fa2\" \"fa2s\" .name}}",
+		"install={{join .root \"packages\" \"fa2\"}}",
+		"version=active_prod",
+		"program={{join .install .version .binary}}",
+		"logfile=fa2.log",
+		"port=7036",
+		"libpaths={{join .install .version \"lib64\"}}:{{join .install .version}}",
 	},
 	GlobalSettings: map[string]string{
 		"FA2PortRange": "7030,7100-",
@@ -82,12 +96,11 @@ func (n *FA2s) Name() string {
 }
 
 func (n *FA2s) Home() string {
-	return n.V().GetString("fa2Home")
+	return n.V().GetString("home")
 }
 
-// Prefix() takes the string argument and adds any component type specific prefix
-func (n *FA2s) Prefix(field string) string {
-	return strings.ToLower("fa2" + field)
+func (n *FA2s) Prefix() string {
+	return "fa2"
 }
 
 func (n *FA2s) Host() *host.Host {
@@ -126,8 +139,8 @@ func (n *FA2s) SetConf(v *viper.Viper) {
 }
 
 func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
-	n.V().Set("fa2port", instance.NextPort(n.InstanceHost, &FA2))
-	n.V().Set("fa2user", username)
+	n.V().Set("port", instance.NextPort(n.InstanceHost, &FA2))
+	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		return
@@ -156,16 +169,16 @@ func (n *FA2s) Command() (args, env []string) {
 	logFile := instance.LogFile(n)
 	args = []string{
 		n.Name(),
-		"-port", n.V().GetString("fa2port"),
+		"-port", n.V().GetString("port"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if n.V().GetString("fa2cert") != "" {
-		args = append(args, "-secure", "-ssl-certificate", n.V().GetString("fa2cert"))
+	if n.V().GetString("certificate") != "" {
+		args = append(args, "-secure", "-ssl-certificate", n.V().GetString("certificate"))
 	}
 
-	if n.V().GetString("fa2key") != "" {
-		args = append(args, "-ssl-certificate-key", n.V().GetString("fa2key"))
+	if n.V().GetString("privatekey") != "" {
+		args = append(args, "-ssl-certificate-key", n.V().GetString("privatekey"))
 	}
 
 	return

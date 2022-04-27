@@ -46,7 +46,8 @@ multiple are given, is used. Private keys must be supplied,
 either as individual files on in the certificate files and cannot
 be password protected. Only certificates with matching private
 keys are imported.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -58,6 +59,7 @@ keys are imported.`,
 
 func init() {
 	tlsCmd.AddCommand(tlsImportCmd)
+	tlsImportCmd.Flags().SortFlags = false
 }
 
 // import root and signing certs

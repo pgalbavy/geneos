@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 
@@ -47,17 +46,18 @@ var Gateway geneos.Component = geneos.Component{
 		"gatelicp":  "licdport",
 		"gatelics":  "licdsecure",
 		"gateuser":  "user",
+		"gateopts":  "options",
 	},
 	Defaults: []string{
-		"binsuffix=gateway2.linux_64",
-		"gatehome={{join .root \"gateway\" \"gateways\" .name}}",
-		"gatebins={{join .root \"packages\" \"gateway\"}}",
-		"gatebase=active_prod",
-		"gateexec={{join .gatebins .gatebase .binsuffix}}",
-		"gatelogf=gateway.log",
-		"gateport=7039",
-		"gatelibs={{join .gatebins .gatebase \"lib64\"}}:/usr/lib64",
-		"gatename={{.name}}",
+		"binary=gateway2.linux_64",
+		"home={{join .root \"gateway\" \"gateways\" .name}}",
+		"install={{join .root \"packages\" \"gateway\"}}",
+		"version=active_prod",
+		"program={{join .install .version .binary}}",
+		"logfile=gateway.log",
+		"port=7039",
+		"libpaths={{join .install .version \"lib64\"}}:/usr/lib64",
+		"gatewayname={{.name}}",
 	},
 	GlobalSettings: map[string]string{
 		"GatewayPortRange": "7039,7100-",
@@ -136,11 +136,11 @@ func (g *Gateways) Name() string {
 }
 
 func (g *Gateways) Home() string {
-	return g.V().GetString("gatehome")
+	return g.V().GetString("home")
 }
 
-func (g *Gateways) Prefix(field string) string {
-	return strings.ToLower("gate" + field)
+func (g *Gateways) Prefix() string {
+	return "gate"
 }
 
 func (g *Gateways) Host() *host.Host {
@@ -179,8 +179,8 @@ func (g *Gateways) SetConf(v *viper.Viper) {
 }
 
 func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
-	g.V().Set("gateport", instance.NextPort(g.InstanceHost, &Gateway))
-	g.V().Set("gateuser", username)
+	g.V().Set("port", instance.NextPort(g.InstanceHost, &Gateway))
+	g.V().Set("user", username)
 	g.V().Set("configrebuild", "initial")
 	g.V().Set("includes", make(map[int]string))
 
@@ -232,32 +232,32 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 
 	// recheck check certs/keys
 	var changed bool
-	secure := g.V().GetString("gatecert") != "" && g.V().GetString("gatekey") != ""
+	secure := g.V().GetString("certificate") != "" && g.V().GetString("privatekey") != ""
 
 	// if we have certs then connect to Licd securely
-	if secure && g.V().GetString("gatelics") != "true" {
-		g.V().Set("gatelics", "true")
+	if secure && g.V().GetString("licdsecure") != "true" {
+		g.V().Set("licsecure", "true")
 		changed = true
-	} else if !secure && g.V().GetString("gatelics") == "true" {
-		g.V().Set("gatelics", "false")
+	} else if !secure && g.V().GetString("licsecure") == "true" {
+		g.V().Set("licsecure", "false")
 		changed = true
 	}
 
 	// use getPorts() to check valid change, else go up one
 	ports := instance.GetPorts(g.Host())
 	nextport := instance.NextPort(g.Host(), &Gateway)
-	if secure && g.V().GetInt64("gateport") == 7039 {
+	if secure && g.V().GetInt64("port") == 7039 {
 		if _, ok := ports[7038]; !ok {
-			g.V().Set("gateport", 7038)
+			g.V().Set("port", 7038)
 		} else {
-			g.V().Set("gateport", nextport)
+			g.V().Set("port", nextport)
 		}
 		changed = true
-	} else if !secure && g.V().GetInt64("gateport") == 7038 {
+	} else if !secure && g.V().GetInt64("port") == 7038 {
 		if _, ok := ports[7039]; !ok {
-			g.V().Set("gateport", 7039)
+			g.V().Set("port", 7039)
 		} else {
-			g.V().Set("gateport", nextport)
+			g.V().Set("port", nextport)
 		}
 		changed = true
 	}
@@ -278,11 +278,11 @@ func (g *Gateways) Command() (args, env []string) {
 	args = []string{
 		g.Name(),
 		"-resources-dir",
-		filepath.Join(g.V().GetString("gatebins"), g.V().GetString("gatebase"), "resources"),
+		filepath.Join(g.V().GetString("install"), g.V().GetString("version"), "resources"),
 		"-log",
 		instance.LogFile(g),
 		"-setup",
-		filepath.Join(g.V().GetString("gatehome"), "gateway.setup.xml"),
+		filepath.Join(g.V().GetString("home"), "gateway.setup.xml"),
 		// enable stats by default
 		"-stats",
 	}
@@ -290,33 +290,33 @@ func (g *Gateways) Command() (args, env []string) {
 	// check version
 	// "-gateway-name",
 
-	if g.V().GetString("gatename") != g.Name() {
-		args = append([]string{g.V().GetString("gatename")}, args...)
+	if g.V().GetString("gatewayname") != g.Name() {
+		args = append([]string{g.V().GetString("gatewayname")}, args...)
 	}
 
-	args = append([]string{"-port", fmt.Sprint(g.V().GetString("gateport"))}, args...)
+	args = append([]string{"-port", fmt.Sprint(g.V().GetString("port"))}, args...)
 
-	if g.V().GetString("gatelich") != "" {
-		args = append(args, "-licd-host", g.V().GetString("gatelich"))
+	if g.V().GetString("licdhost") != "" {
+		args = append(args, "-licd-host", g.V().GetString("licdhost"))
 	}
 
-	if g.V().GetInt64("gatelicp") != 0 {
-		args = append(args, "-licd-port", fmt.Sprint(g.V().GetString("gatelicp")))
+	if g.V().GetInt64("licdport") != 0 {
+		args = append(args, "-licd-port", fmt.Sprint(g.V().GetString("licdport")))
 	}
 
-	if g.V().GetString("gatecert") != "" {
-		if g.V().GetString("gatelics") == "" || g.V().GetString("gatelics") != "false" {
+	if g.V().GetString("certificate") != "" {
+		if g.V().GetString("licdsecure") == "" || g.V().GetString("licdsecure") != "false" {
 			args = append(args, "-licd-secure")
 		}
-		args = append(args, "-ssl-certificate", g.V().GetString("gatecert"))
+		args = append(args, "-ssl-certificate", g.V().GetString("certificate"))
 		chainfile := g.Host().GeneosPath("tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
-	} else if g.V().GetString("gatelics") != "" && g.V().GetString("gatelics") == "true" {
+	} else if g.V().GetString("licdsecure") != "" && g.V().GetString("licdsecure") == "true" {
 		args = append(args, "-licd-secure")
 	}
 
-	if g.V().GetString("gatekey") != "" {
-		args = append(args, "-ssl-certificate-key", g.V().GetString("gatekey"))
+	if g.V().GetString("privatekey") != "" {
+		args = append(args, "-ssl-certificate-key", g.V().GetString("privatekey"))
 	}
 
 	// if c.GateAES != "" {
@@ -349,6 +349,6 @@ func createAESKeyFile(c geneos.Instance) (err error) {
 	if err = c.Host().WriteFile(instance.ConfigPathWithExt(c, "aes"), []byte(fmt.Sprintf("salt=%X\nkey=%X\niv =%X\n", salt, key, iv)), 0600); err != nil {
 		return
 	}
-	c.V().Set(c.Prefix("AES"), c.Type().String()+".aes")
+	c.V().Set("aesfile", c.Type().String()+".aes")
 	return
 }

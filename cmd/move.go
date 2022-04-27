@@ -41,7 +41,8 @@ var moveCmd = &cobra.Command{
 	before the restart. This allows SANs to be updated as expected.
 	
 	Moving across remotes is supported.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -53,6 +54,7 @@ var moveCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(moveCmd)
+	moveCmd.Flags().SortFlags = false
 }
 
 // XXX add more wildcard support - src = @remote for all instances, auto

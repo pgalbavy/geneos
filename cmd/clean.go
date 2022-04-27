@@ -29,10 +29,11 @@ import (
 
 // cleanCmd represents the clean command
 var cleanCmd = &cobra.Command{
-	Use:          "clean [-F] [TYPE] [NAME...]",
-	Short:        "Clean-up instance directories",
-	Long:         `Clean-up instance directories, also restarting instances if doing a 'purge' clean.`,
-	SilenceUsage: true,
+	Use:                   "clean [-F] [TYPE] [NAME...]",
+	Short:                 "Clean-up instance directories",
+	Long:                  `Clean-up instance directories, also restarting instances if doing a 'purge' clean.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -46,6 +47,7 @@ func init() {
 	rootCmd.AddCommand(cleanCmd)
 
 	cleanCmd.Flags().BoolVarP(&cleanCmdPurge, "purge", "F", false, "Perform a full clean. Removes more files than basic clean and restarts instances")
+	cleanCmd.Flags().SortFlags = false
 }
 
 var cleanCmdPurge bool

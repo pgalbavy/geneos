@@ -51,7 +51,8 @@ var showCmd = &cobra.Command{
 	
 	Passwords and secrets are redacted in a very simplistic manner simply
 	to prevent visibility in casual viewing.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -65,6 +66,7 @@ func init() {
 	rootCmd.AddCommand(showCmd)
 
 	// showCmd.Flags().BoolVarP(&showCmdYAML, "yaml", "y", false, "Show as YAML")
+	showCmd.Flags().SortFlags = false
 }
 
 // var showCmdYAML bool

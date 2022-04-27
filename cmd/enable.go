@@ -32,10 +32,11 @@ import (
 
 // enableCmd represents the enable command
 var enableCmd = &cobra.Command{
-	Use:          "enable [-S] [TYPE] [NAME...]",
-	Short:        "Enable one or more instances. Only previously disabled instances are started",
-	Long:         `Mark any matching instances as enabled and if this changes status then start the instance.`,
-	SilenceUsage: true,
+	Use:                   "enable [-S] [TYPE] [NAME...]",
+	Short:                 "Enable one or more instances. Only previously disabled instances are started",
+	Long:                  `Mark any matching instances as enabled and if this changes status then start the instance.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -49,6 +50,7 @@ func init() {
 	rootCmd.AddCommand(enableCmd)
 
 	enableCmd.Flags().BoolVarP(&enableCmdStart, "start", "S", false, "Start enabled instances")
+	enableCmd.Flags().SortFlags = false
 }
 
 var enableCmdStart bool
@@ -56,7 +58,7 @@ var enableCmdStart bool
 func enableInstance(c geneos.Instance, params []string) (err error) {
 	err = c.Host().Remove(instance.ConfigPathWithExt(c, geneos.DisableExtension))
 	if (err == nil || errors.Is(err, os.ErrNotExist)) && enableCmdStart {
-		instance.Start(c, params)
+		instance.Start(c)
 	}
 	return nil
 }

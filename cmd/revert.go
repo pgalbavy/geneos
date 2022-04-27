@@ -35,7 +35,8 @@ var revertCmd = &cobra.Command{
 	file still exists. Any changes to the instance configuration since
 	initial migration will be lost as the contents of the .rc file is
 	never changed.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -47,6 +48,7 @@ var revertCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(revertCmd)
+	revertCmd.Flags().SortFlags = false
 }
 
 func revertInstance(c geneos.Instance, params []string) (err error) {

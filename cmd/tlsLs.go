@@ -45,7 +45,8 @@ var tlsLsCmd = &cobra.Command{
 certs are only shown in the -a flag is given. A list with more
 details can be seen with the -l flag, otherwise options are the
 same as for the main ls command.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -63,6 +64,7 @@ func init() {
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdLong, "long", "l", false, "Long output")
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdCSV, "csv", "c", false, "Output CSV")
+	tlsLsCmd.Flags().SortFlags = false
 }
 
 var tlsCmdAll, tlsCmdCSV, tlsCmdJSON, tlsCmdIndent, tlsCmdLong bool

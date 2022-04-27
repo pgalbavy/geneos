@@ -1,7 +1,6 @@
 package netprobe
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -20,14 +19,29 @@ var Netprobe geneos.Component = geneos.Component{
 	PortRange:        "NetprobePortRange",
 	CleanList:        "NetprobeCleanList",
 	PurgeList:        "NetprobePurgeList",
+	Aliases: map[string]string{
+		"binsuffix": "binary",
+		"netphome":  "home",
+		"netpbins":  "install",
+		"netpbase":  "version",
+		"netpexec":  "program",
+		"netplogd":  "logdir",
+		"netplogf":  "logfile",
+		"netpport":  "port",
+		"netplibs":  "libpaths",
+		"netpcert":  "certificate",
+		"netpkey":   "privatekey",
+		"netpuser":  "user",
+		"netpopts":  "options",
+	},
 	Defaults: []string{
-		"binsuffix=netprobe.linux_64",
-		"netphome={{join .root \"netprobe\" \"netprobes\" .name}}",
-		"netpbins={{join .root \"packages\" \"netprobe\"}}",
-		"netpbase=active_prod",
-		"netpexec={{join .netpbins .netpbase .binsuffix}}",
-		"netplogf=netprobe.log",
-		"netplibs={{join .netpbins .netpbase \"lib64\"}}:{{join .netpbins .netpbase}}",
+		"binary=netprobe.linux_64",
+		"home={{join .root \"netprobe\" \"netprobes\" .name}}",
+		"install={{join .root \"packages\" \"netprobe\"}}",
+		"version=active_prod",
+		"program={{join .install .version .binary}}",
+		"logfile=netprobe.log",
+		"libpaths={{join .install .version \"lib64\"}}:{{join .install .version}}",
 	},
 	GlobalSettings: map[string]string{
 		"NetprobePortRange": "7036,7100-",
@@ -81,11 +95,11 @@ func (n *Netprobes) Name() string {
 }
 
 func (n *Netprobes) Home() string {
-	return n.V().GetString("netphome")
+	return n.V().GetString("home")
 }
 
-func (n *Netprobes) Prefix(field string) string {
-	return strings.ToLower("netp" + field)
+func (n *Netprobes) Prefix() string {
+	return "netp"
 }
 
 func (n *Netprobes) Host() *host.Host {
@@ -124,8 +138,8 @@ func (n *Netprobes) SetConf(v *viper.Viper) {
 }
 
 func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
-	n.V().Set("netpport", instance.NextPort(n.Host(), &Netprobe))
-	n.V().Set("netpuser", username)
+	n.V().Set("port", instance.NextPort(n.Host(), &Netprobe))
+	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		return
@@ -158,16 +172,16 @@ func (n *Netprobes) Command() (args, env []string) {
 	logFile := instance.LogFile(n)
 	args = []string{
 		n.Name(),
-		"-port", n.V().GetString("netpport"),
+		"-port", n.V().GetString("port"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if n.V().GetString("netpcert") != "" {
-		args = append(args, "-secure", "-ssl-certificate", n.V().GetString("netpcert"))
+	if n.V().GetString("certificate") != "" {
+		args = append(args, "-secure", "-ssl-certificate", n.V().GetString("certificate"))
 	}
 
-	if n.V().GetString("netpkey") != "" {
-		args = append(args, "-ssl-certificate-key", n.V().GetString("netpkey"))
+	if n.V().GetString("privatekey") != "" {
+		args = append(args, "-ssl-certificate-key", n.V().GetString("privatekey"))
 	}
 
 	return

@@ -33,7 +33,8 @@ var startCmd = &cobra.Command{
 	Short: "Start one or more instances",
 	Long: `Start one or more matching instances. All instances are run in the background and
 	STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -47,12 +48,15 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 
 	startCmd.Flags().BoolVarP(&startCmdLogs, "log", "l", false, "Run 'logs -f' after starting instance(s)")
+	startCmd.Flags().SortFlags = false
 }
 
 var startCmdLogs bool
 
 func commandStart(ct *geneos.Component, args []string, params []string) (err error) {
-	if err = instance.ForAll(ct, instance.Start, args, params); err != nil {
+	if err = instance.ForAll(ct, func(c geneos.Instance, _ []string) error {
+		return instance.Start(c)
+	}, args, params); err != nil {
 		return
 	}
 

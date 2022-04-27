@@ -31,10 +31,11 @@ import (
 
 // unsetUserCmd represents the unsetUser command
 var unsetUserCmd = &cobra.Command{
-	Use:          "unsetUser",
-	Short:        "",
-	Long:         ``,
-	SilenceUsage: true,
+	Use:                   "unsetUser",
+	Short:                 "",
+	Long:                  ``,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -46,6 +47,7 @@ var unsetUserCmd = &cobra.Command{
 
 func init() {
 	unsetCmd.AddCommand(unsetUserCmd)
+	unsetUserCmd.Flags().SortFlags = false
 }
 
 func commandUnsetUser(ct *geneos.Component, args, params []string) error {

@@ -3,7 +3,6 @@ package san
 import (
 	_ "embed"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -25,15 +24,30 @@ var San geneos.Component = geneos.Component{
 	PortRange:        "SanPortRange",
 	CleanList:        "SanCleanList",
 	PurgeList:        "SanPurgeList",
+	Aliases: map[string]string{
+		"binsuffix": "binary",
+		"sanhome":   "home",
+		"sanbins":   "install",
+		"sanbase":   "version",
+		"sanexec":   "program",
+		"sanlogd":   "logdir",
+		"sanlogf":   "logfile",
+		"sanport":   "port",
+		"sanlibs":   "libpaths",
+		"sancert":   "certificate",
+		"sankey":    "privatekey",
+		"sanuser":   "user",
+		"sanopts":   "options",
+	},
 	Defaults: []string{
-		"binsuffix={{if eq .santype \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64",
-		"sanhome={{join .root \"san\" \"sans\" .name}}",
-		"sanbins={{join .root \"packages\" .santype}}",
-		"sanbase=active_prod",
-		"sanexec={{join .sanbins .sanbase .binsuffix}}",
-		"sanlogf=san.log",
-		"sanport=7036",
-		"sanlibs={{join .sanbins .sanbase \"lib64\"}}:{{join .sanbins .sanbase}}",
+		"binary={{if eq .santype \"fa2\"}}fix-analyser2-{{end}}netprobe.linux_64",
+		"home={{join .root \"san\" \"sans\" .name}}",
+		"install={{join .root \"packages\" .santype}}",
+		"version=active_prod",
+		"program={{join .install .version .binary}}",
+		"logfile=san.log",
+		"port=7036",
+		"libpaths={{join .install .version \"lib64\"}}:{{join .install .version}}",
 		"sanname={{.name}}",
 	},
 	GlobalSettings: map[string]string{
@@ -108,12 +122,11 @@ func (s *Sans) Name() string {
 }
 
 func (s *Sans) Home() string {
-	return s.V().GetString("sanhome")
+	return s.V().GetString("home")
 }
 
-// Prefix() takes the string argument and adds any component type specific prefix
-func (s *Sans) Prefix(field string) string {
-	return strings.ToLower("san" + field)
+func (s *Sans) Prefix() string {
+	return "san"
 }
 
 func (s *Sans) Host() *host.Host {
@@ -152,8 +165,8 @@ func (s *Sans) SetConf(v *viper.Viper) {
 }
 
 func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
-	s.V().Set("sanport", instance.NextPort(s.InstanceHost, &San))
-	s.V().Set("sanuser", username)
+	s.V().Set("port", instance.NextPort(s.InstanceHost, &San))
+	s.V().Set("user", username)
 	s.V().Set("configrebuild", "always")
 
 	s.V().Set("types", []string{})
@@ -210,7 +223,7 @@ func (s *Sans) Rebuild(initial bool) (err error) {
 
 	// recheck check certs/keys
 	var changed bool
-	secure := s.V().GetString("sancert") != "" && s.V().GetString("sankey") != ""
+	secure := s.V().GetString("certificate") != "" && s.V().GetString("privatekey") != ""
 	gws := s.V().GetStringMapString("gateways")
 	for gw := range gws {
 		port := gws[gw]
@@ -237,7 +250,7 @@ func (s *Sans) Command() (args, env []string) {
 	args = []string{
 		s.Name(),
 		"-listenip", "none",
-		"-port", s.V().GetString("sanport"),
+		"-port", s.V().GetString("port"),
 		"-setup", "netprobe.setup.xml",
 		"-setup-interval", "300",
 	}
@@ -245,12 +258,12 @@ func (s *Sans) Command() (args, env []string) {
 	// add environment variables to use in setup file substitution
 	env = append(env, "LOG_FILENAME="+logFile)
 
-	if s.V().GetString("sancert") != "" {
-		args = append(args, "-secure", "-ssl-certificate", s.V().GetString("sancert"))
+	if s.V().GetString("certificate") != "" {
+		args = append(args, "-secure", "-ssl-certificate", s.V().GetString("certificate"))
 	}
 
-	if s.V().GetString("sankey") != "" {
-		args = append(args, "-ssl-certificate-key", s.V().GetString("sankey"))
+	if s.V().GetString("privatekey") != "" {
+		args = append(args, "-ssl-certificate-key", s.V().GetString("privatekey"))
 	}
 
 	return

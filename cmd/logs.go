@@ -42,24 +42,12 @@ var logsCmd = &cobra.Command{
 	Use:   "logs [FLAGS] [TYPE] [NAME...]",
 	Short: "Show log(s) for instances",
 	Long: `Show log(s) for instances. The default is to show the last 10 lines
-	for each matching instance. If either -g or -v are given without -f
-	to follow live logs, then -c to search the whole log is implied.
+for each matching instance. If either -g or -v are given without -f
+to follow live logs, then -c to search the whole log is implied.
 	
-	Follow (-f) only works for local log files and not for remote instances.
-	
-	FLAGS:
-		-n NUM		- show last NUM lines, default 10
-		-f		- follow in real time
-		-c		- 'cat' whole log file(s)
-		-g STRING	- "grep" STRING (plain, non-regexp)
-		-v STRING	- "grep -v" STRING (plain, non-regexp)
-	
-	-g and -v cannot be combined
-	-c and -f cannot be combined
-	-n is ignored when -c is given
-	
-	When more than one instance matches each output block is prefixed by instance details.`,
-	SilenceUsage: true,
+When more than one instance matches each output block is prefixed by instance details.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -77,6 +65,7 @@ func init() {
 	logsCmd.Flags().BoolVarP(&logCmdCat, "cat", "c", false, "Cat whole file")
 	logsCmd.Flags().StringVarP(&logCmdMatch, "match", "g", "", "Match lines with STRING")
 	logsCmd.Flags().StringVarP(&logCmdIgnore, "ignore", "v", "", "Match lines without STRING")
+	logsCmd.Flags().SortFlags = false
 }
 
 var logCmdLines int

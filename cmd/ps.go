@@ -37,10 +37,11 @@ import (
 
 // psCmd represents the ps command
 var psCmd = &cobra.Command{
-	Use:          "ps [-c|-j [-i]] [TYPE] [NAMES...]",
-	Short:        "List process information for instances, optionally in CSV or JSON format",
-	Long:         `Show the status of the matching instances.`,
-	SilenceUsage: true,
+	Use:                   "ps [-c|-j [-i]] [TYPE] [NAMES...]",
+	Short:                 "List process information for instances, optionally in CSV or JSON format",
+	Long:                  `Show the status of the matching instances.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -56,6 +57,7 @@ func init() {
 	psCmd.PersistentFlags().BoolVarP(&psCmdJSON, "json", "j", false, "Output JSON")
 	psCmd.PersistentFlags().BoolVarP(&psCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
 	psCmd.PersistentFlags().BoolVarP(&psCmdCSV, "csv", "c", false, "Output CSV")
+	psCmd.Flags().SortFlags = false
 }
 
 var psCmdJSON, psCmdIndent, psCmdCSV bool

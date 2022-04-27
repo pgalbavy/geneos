@@ -32,10 +32,11 @@ import (
 
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
-	Use:          "restart [-a] [-K] [-l] [TYPE] [NAME...]",
-	Short:        "Restart one or more instances",
-	Long:         `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`,
-	SilenceUsage: true,
+	Use:                   "restart [-a] [-K] [-l] [TYPE] [NAME...]",
+	Short:                 "Restart one or more instances",
+	Long:                  `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -51,6 +52,7 @@ func init() {
 	restartCmd.Flags().BoolVarP(&restartCmdAll, "all", "a", false, "Start all matcheing instances, not just those already running")
 	restartCmd.Flags().BoolVarP(&restartCmdKill, "kill", "K", false, "Force stop by sending an immediate SIGKILL")
 	restartCmd.Flags().BoolVarP(&restartCmdLogs, "log", "l", false, "Run 'logs -f' after starting instance(s)")
+	restartCmd.Flags().SortFlags = false
 }
 
 var restartCmdAll, restartCmdKill, restartCmdLogs bool
@@ -69,9 +71,9 @@ func commandRestart(ct *geneos.Component, args []string, params []string) (err e
 }
 
 func restartInstance(c geneos.Instance, params []string) (err error) {
-	err = instance.Stop(c, false, params)
+	err = instance.Stop(c, false)
 	if err == nil || (errors.Is(err, os.ErrProcessDone) && restartCmdAll) {
-		return instance.Start(c, params)
+		return instance.Start(c)
 	}
 	return
 }

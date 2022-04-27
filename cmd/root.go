@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -48,6 +49,9 @@ var (
 	ErrNotSupported error = errors.New("not supported")
 )
 
+//go:embed VERSION
+var VERSION string
+
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
@@ -57,8 +61,10 @@ var rootCmd = &cobra.Command{
 	Long: `Control your Geneos environment. With 'geneos' you can initialise
 a new installation, add and remove components, control processes and build
 template based configuration files for SANs and new gateways.`,
-	SilenceUsage: true,
-	Annotations:  make(map[string]string),
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
+	Annotations:           make(map[string]string),
+	Version:               VERSION,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 		// check initialisation
 		geneosdir := host.Geneos()
@@ -117,8 +123,10 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "G", "", "config file (defaults are $HOME/.config/geneos.json, "+geneos.GlobalConfig+")")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable extra debug output")
+	rootCmd.PersistentFlags().MarkHidden("debug")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
-	rootCmd.Flags().MarkHidden("debug")
+	rootCmd.PersistentFlags().SortFlags = false
+
 }
 
 // initConfig reads in config file and ENV variables if set.

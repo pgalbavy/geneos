@@ -33,7 +33,8 @@ var migrateCmd = &cobra.Command{
 	Short: "Migrate legacy .rc configuration to .json",
 	Long: `Migrate any legacy .rc configuration files to JSON format and
 	rename the .rc file to .rc.orig.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -45,6 +46,7 @@ var migrateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(migrateCmd)
+	migrateCmd.Flags().SortFlags = false
 }
 
 func migrateInstance(c geneos.Instance, params []string) (err error) {

@@ -29,10 +29,11 @@ import (
 
 // reloadCmd represents the reload command
 var reloadCmd = &cobra.Command{
-	Use:          "reload [TYPE] [NAME...]",
-	Short:        "Signal the instance to reload it's configuration, if supported",
-	Long:         `Signal the matching instances to reload their configurations, depending on the component TYPE.`,
-	SilenceUsage: true,
+	Use:                   "reload [TYPE] [NAME...]",
+	Short:                 "Signal the instance to reload it's configuration, if supported",
+	Long:                  `Signal the matching instances to reload their configurations, depending on the component TYPE.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -44,6 +45,7 @@ var reloadCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(reloadCmd)
+	reloadCmd.Flags().SortFlags = false
 }
 
 func reloadInstance(c geneos.Instance, params []string) (err error) {

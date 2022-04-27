@@ -11,7 +11,6 @@ package fileagent
 //
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -30,6 +29,21 @@ var FileAgent geneos.Component = geneos.Component{
 	PortRange:        "FAPortRange",
 	CleanList:        "FACleanList",
 	PurgeList:        "FAPurgeList",
+	Aliases: map[string]string{
+		"binsuffix": "binary",
+		"fahome":    "home",
+		"fabins":    "install",
+		"fabase":    "version",
+		"faexec":    "program",
+		"falogd":    "logdir",
+		"falogf":    "logfile",
+		"faport":    "port",
+		"falibs":    "libpaths",
+		"facert":    "certificate",
+		"fakey":     "privatekey",
+		"fauser":    "user",
+		"faopts":    "options",
+	},
 	Defaults: []string{
 		"binsuffix=agent.linux_64",
 		"fahome={{join .root \"fileagent\" \"fileagents\" .name}}",
@@ -92,12 +106,11 @@ func (n *FileAgents) Name() string {
 }
 
 func (n *FileAgents) Home() string {
-	return n.V().GetString("fahome")
+	return n.V().GetString("home")
 }
 
-// Prefix() takes the string argument and adds any component type specific prefix
-func (n *FileAgents) Prefix(field string) string {
-	return strings.ToLower("fa" + field)
+func (n *FileAgents) Prefix() string {
+	return "fa"
 }
 
 func (n *FileAgents) Host() *host.Host {
@@ -136,8 +149,8 @@ func (n *FileAgents) SetConf(v *viper.Viper) {
 }
 
 func (n *FileAgents) Add(username string, params []string, tmpl string) (err error) {
-	n.V().Set("faport", instance.NextPort(n.Host(), &FileAgent))
-	n.V().Set("fauser", username)
+	n.V().Set("port", instance.NextPort(n.Host(), &FileAgent))
+	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		logger.Error.Fatalln(err)
@@ -166,7 +179,7 @@ func (c *FileAgents) Command() (args, env []string) {
 	logFile := instance.LogFile(c)
 	args = []string{
 		c.Name(),
-		"-port", c.V().GetString("faport"),
+		"-port", c.V().GetString("port"),
 	}
 	env = append(env, "LOG_FILENAME="+logFile)
 

@@ -44,6 +44,7 @@ then be used to verify connections from components.`,
 
 func init() {
 	tlsCmd.AddCommand(tlsSyncCmd)
+	tlsSyncCmd.Flags().SortFlags = false
 }
 
 // if there is a local tls/chain.pem file then copy it to all remotes

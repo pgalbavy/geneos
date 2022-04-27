@@ -11,8 +11,7 @@ import (
 	"wonderland.org/geneos/internal/utils"
 )
 
-func Start(c geneos.Instance, params []string) (err error) {
-	logDebug.Println(c, params)
+func Start(c geneos.Instance) (err error) {
 	pid, err := GetPID(c)
 	if err == nil {
 		log.Println(c, "already running with PID", pid)
@@ -23,7 +22,7 @@ func Start(c geneos.Instance, params []string) (err error) {
 		return geneos.ErrDisabled
 	}
 
-	binary := c.V().GetString(c.Prefix("Exec"))
+	binary := c.V().GetString("program")
 	if _, err = c.Host().Stat(binary); err != nil {
 		return fmt.Errorf("%q %w", binary, err)
 	}
@@ -33,12 +32,12 @@ func Start(c geneos.Instance, params []string) (err error) {
 		return fmt.Errorf("buildCommand returned nil")
 	}
 
-	if !utils.CanControl(c.V().GetString(c.Prefix("user"))) {
+	if !utils.CanControl(c.V().GetString("user")) {
 		return os.ErrPermission
 	}
 
 	// set underlying user for child proc
-	username := c.V().GetString(c.Prefix("user"))
+	username := c.V().GetString("user")
 	errfile := ConfigPathWithExt(c, "txt")
 
 	if c.Host() != host.LOCAL {

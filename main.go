@@ -21,7 +21,9 @@ THE SOFTWARE.
 */
 package main
 
-import "wonderland.org/geneos/cmd"
+import (
+	"wonderland.org/geneos/cmd"
+)
 
 func main() {
 	cmd.Execute()

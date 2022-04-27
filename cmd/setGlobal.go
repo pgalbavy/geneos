@@ -28,10 +28,11 @@ import (
 
 // setGlobalCmd represents the setGlobal command
 var setGlobalCmd = &cobra.Command{
-	Use:          "global KEY=VALUE...",
-	Short:        "Set global configuration parameters",
-	Long:         ``,
-	SilenceUsage: true,
+	Use:                   "global KEY=VALUE...",
+	Short:                 "Set global configuration parameters",
+	Long:                  ``,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -43,6 +44,7 @@ var setGlobalCmd = &cobra.Command{
 
 func init() {
 	setCmd.AddCommand(setGlobalCmd)
+	setGlobalCmd.Flags().SortFlags = false
 }
 
 func commandSetGlobal(ct *geneos.Component, args, params []string) error {

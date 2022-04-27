@@ -86,10 +86,10 @@ func WriteCert(c geneos.Instance, cert *x509.Certificate) (err error) {
 	if err = c.Host().WriteCert(filepath.Join(c.Home(), certfile), cert); err != nil {
 		return
 	}
-	if c.V().GetString(c.Prefix("Cert")) == certfile {
+	if c.V().GetString("certificate") == certfile {
 		return
 	}
-	c.V().Set(c.Prefix("Cert"), certfile)
+	c.V().Set("certificate", certfile)
 
 	return WriteConfig(c)
 }
@@ -103,10 +103,10 @@ func WriteKey(c geneos.Instance, key *rsa.PrivateKey) (err error) {
 	if err = c.Host().WriteKey(filepath.Join(c.Home(), keyfile), key); err != nil {
 		return
 	}
-	if c.V().GetString(c.Prefix("Key")) == keyfile {
+	if c.V().GetString("privatekey") == keyfile {
 		return
 	}
-	c.V().Set(c.Prefix("Key"), keyfile)
+	c.V().Set("privatekey", keyfile)
 	return WriteConfig(c)
 }
 
@@ -128,10 +128,10 @@ func ReadCert(c geneos.Instance) (cert *x509.Certificate, err error) {
 		return nil, geneos.ErrInvalidArgs
 	}
 
-	if c.V().GetString(c.Prefix("Cert")) == "" {
+	if c.V().GetString("certificate") == "" {
 		return nil, os.ErrNotExist
 	}
-	return c.Host().ReadCert(Abs(c, c.V().GetString(c.Prefix("Cert"))))
+	return c.Host().ReadCert(Abs(c, c.V().GetString("certificate")))
 }
 
 // read the instance RSA private key
@@ -140,7 +140,7 @@ func ReadKey(c geneos.Instance) (key *rsa.PrivateKey, err error) {
 		return nil, geneos.ErrInvalidArgs
 	}
 
-	return c.Host().ReadKey(Abs(c, c.V().GetString(c.Prefix("Key"))))
+	return c.Host().ReadKey(Abs(c, c.V().GetString("privatekey")))
 }
 
 // wrapper to create a new certificate given the sign cert and private key and an optional private key to (re)use

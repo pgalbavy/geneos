@@ -9,7 +9,7 @@ import (
 	"wonderland.org/geneos/internal/geneos"
 )
 
-func Stop(c geneos.Instance, force bool, params []string) (err error) {
+func Stop(c geneos.Instance, force bool) (err error) {
 	if !force {
 		err = Signal(c, syscall.SIGTERM)
 		if err == os.ErrProcessDone {

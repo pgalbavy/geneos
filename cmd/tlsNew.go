@@ -29,10 +29,11 @@ import (
 
 // tlsNewCmd represents the tlsNew command
 var tlsNewCmd = &cobra.Command{
-	Use:          "new",
-	Short:        "Create new certificates",
-	Long:         `Create new certificates for instances.`,
-	SilenceUsage: true,
+	Use:                   "new",
+	Short:                 "Create new certificates",
+	Long:                  `Create new certificates for instances.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -44,6 +45,7 @@ var tlsNewCmd = &cobra.Command{
 
 func init() {
 	tlsCmd.AddCommand(tlsNewCmd)
+	tlsNewCmd.Flags().SortFlags = false
 }
 
 func newInstanceCert(c geneos.Instance, _ []string) (err error) {

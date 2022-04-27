@@ -59,7 +59,8 @@ applies when using -U.
 "geneos update gateway -b active_prod"
 
 `,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -80,6 +81,7 @@ func init() {
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")
 	installCmd.Flags().StringVarP(&installCmdOverride, "override", "T", "", "Override (set) the TYPE:VERSION for archive files with non-standard names")
+	installCmd.Flags().SortFlags = false
 }
 
 var installCmdLocal, installCmdNoSave, installCmdUpdate bool

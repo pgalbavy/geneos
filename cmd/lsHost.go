@@ -35,11 +35,12 @@ import (
 
 // lsHostCmd represents the lsRemote command
 var lsHostCmd = &cobra.Command{
-	Use:          "host [-c|-j [-i]] [TYPE] [NAME...]",
-	Aliases:      []string{"hosts", "remote", "remotes"},
-	Short:        "List hosts, optionally in CSV or JSON format",
-	Long:         `List the matching remote hosts.`,
-	SilenceUsage: true,
+	Use:                   "host [-c|-j [-i]] [TYPE] [NAME...]",
+	Aliases:               []string{"hosts", "remote", "remotes"},
+	Short:                 "List hosts, optionally in CSV or JSON format",
+	Long:                  `List the matching remote hosts.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -55,6 +56,7 @@ func init() {
 	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdJSON, "json", "j", false, "Output JSON")
 	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
 	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdCSV, "csv", "c", false, "Output CSV")
+	lsHostCmd.Flags().SortFlags = false
 }
 
 var lsHostCmdJSON, lsHostCmdCSV, lsHostCmdIndent bool

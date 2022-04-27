@@ -41,7 +41,8 @@ If the component support Rebuild then this is run after the move but
 before the restart. This allows SANs to be updated as expected.
 
 Moving across remotes is supported.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -53,6 +54,8 @@ Moving across remotes is supported.`,
 
 func init() {
 	rootCmd.AddCommand(copyCmd)
+	copyCmd.Flags().SortFlags = false
+
 }
 
 // use case:

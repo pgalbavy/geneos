@@ -36,7 +36,8 @@ flag is given, first a SIGTERM is sent and if the instance is
 still running after a few seconds then a SIGKILL is sent. If the
 -f flag is given the instance(s) are immediately terminated with
 a SIGKILL.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -50,10 +51,11 @@ func init() {
 	rootCmd.AddCommand(stopCmd)
 
 	stopCmd.Flags().BoolVarP(&stopCmdKill, "kill", "K", false, "Force immediate stop by sending an immediate SIGKILL")
+	stopCmd.Flags().SortFlags = false
 }
 
 var stopCmdKill bool
 
 func stopInstance(c geneos.Instance, params []string) error {
-	return instance.Stop(c, stopCmdKill, params)
+	return instance.Stop(c, stopCmdKill)
 }

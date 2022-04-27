@@ -33,8 +33,9 @@ var tlsCmd = &cobra.Command{
 Sub-commands allow for initialisation, create and renewal of
 certificates as well as listing details and copying a certificate
 chain to all other hosts.`,
-	SilenceUsage: true,
-	Annotations:  make(map[string]string),
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
+	Annotations:           make(map[string]string),
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Usage()
 	},

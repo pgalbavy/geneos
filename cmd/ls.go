@@ -35,10 +35,11 @@ import (
 
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
-	Use:          "ls [-c|-j [-i]] [TYPE] [NAME...]",
-	Short:        "List instances, optionally in CSV or JSON format",
-	Long:         `List the matching instances and their component type.`,
-	SilenceUsage: true,
+	Use:                   "ls [-c|-j [-i]] [TYPE] [NAME...]",
+	Short:                 "List instances, optionally in CSV or JSON format",
+	Long:                  `List the matching instances and their component type.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -54,6 +55,7 @@ func init() {
 	lsCmd.PersistentFlags().BoolVarP(&lsCmdJSON, "json", "j", false, "Output JSON")
 	lsCmd.PersistentFlags().BoolVarP(&lsCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
 	lsCmd.PersistentFlags().BoolVarP(&lsCmdCSV, "csv", "c", false, "Output CSV")
+	lsCmd.Flags().SortFlags = false
 }
 
 var lsCmdJSON, lsCmdCSV, lsCmdIndent bool
@@ -93,7 +95,7 @@ func lsInstancePlain(c geneos.Instance, params []string) (err error) {
 		suffix = "*"
 	}
 	base, underlying, _ := instance.Version(c)
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Host(), c.V().GetInt(c.Prefix("Port")), base, underlying, c.Home())
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s:%s\t%s\n", c.Type(), c.Name()+suffix, c.Host(), c.V().GetInt("port"), base, underlying, c.Home())
 	return
 }
 
@@ -103,7 +105,7 @@ func lsInstanceCSV(c geneos.Instance, params []string) (err error) {
 		dis = "Y"
 	}
 	base, underlying, _ := instance.Version(c)
-	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, c.Host().String(), fmt.Sprint(c.V().GetInt(c.Prefix("Port"))), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	csvWriter.Write([]string{c.Type().String(), c.Name(), dis, c.Host().String(), fmt.Sprint(c.V().GetInt("port")), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }
 
@@ -123,6 +125,6 @@ func lsInstanceJSON(c geneos.Instance, params []string) (err error) {
 		dis = "Y"
 	}
 	base, underlying, _ := instance.Version(c)
-	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, c.Host().String(), c.V().GetInt64(c.Prefix("Port")), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
+	jsonEncoder.Encode(lsType{c.Type().String(), c.Name(), dis, c.Host().String(), c.V().GetInt64("port"), fmt.Sprintf("%s:%s", base, underlying), c.Home()})
 	return
 }

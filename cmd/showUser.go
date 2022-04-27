@@ -41,7 +41,8 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -53,6 +54,7 @@ to quickly create a Cobra application.`,
 
 func init() {
 	showCmd.AddCommand(showUserCmd)
+	showUserCmd.Flags().SortFlags = false
 }
 
 func commandShowUser(ct *geneos.Component, args, params []string) (err error) {

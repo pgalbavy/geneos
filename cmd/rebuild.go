@@ -29,10 +29,11 @@ import (
 
 // rebuildCmd represents the rebuild command
 var rebuildCmd = &cobra.Command{
-	Use:          "rebuild [-F] [-r] [TYPE] [NAME...]",
-	Short:        "Rebuild instance configuration files",
-	Long:         `Rebuild instance configuration files based on current templates and instance configuration values.`,
-	SilenceUsage: true,
+	Use:                   "rebuild [-F] [-r] [TYPE] [NAME...]",
+	Short:                 "Rebuild instance configuration files",
+	Long:                  `Rebuild instance configuration files based on current templates and instance configuration values.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -47,6 +48,7 @@ func init() {
 
 	rebuildCmd.Flags().BoolVarP(&rebuildCmdForce, "force", "F", false, "Force rebuild")
 	rebuildCmd.Flags().BoolVarP(&rebuildCmdReload, "reload", "r", false, "Reload instances after rebuild")
+	rebuildCmd.Flags().SortFlags = false
 }
 
 var rebuildCmdForce, rebuildCmdReload bool

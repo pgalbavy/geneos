@@ -141,9 +141,7 @@ func readRCConfig(c geneos.Instance) (err error) {
 			c.V().Set(k, v)
 			continue
 		}
-		// this doesn't work if Prefix is empty
-		// XXX last place Prefix is needed?
-		if strings.HasPrefix(lk, c.Prefix("")) {
+		if strings.HasPrefix(lk, c.Prefix()) {
 			c.V().Set(lk, v)
 		} else {
 			// set env var

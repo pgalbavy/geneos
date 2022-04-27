@@ -37,7 +37,8 @@ execution.
 	
 Note: Future releases may support CSV or JSON output formats for automation
 and monitoring.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -49,6 +50,7 @@ and monitoring.`,
 
 func init() {
 	rootCmd.AddCommand(commandCmd)
+	commandCmd.Flags().SortFlags = false
 }
 
 func commandInstance(c geneos.Instance, params []string) (err error) {

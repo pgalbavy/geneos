@@ -3,7 +3,6 @@ package webserver
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -22,16 +21,30 @@ var Webserver geneos.Component = geneos.Component{
 	PortRange:        "WebserverPortRange",
 	CleanList:        "WebserverCleanList",
 	PurgeList:        "WebserverPurgeList",
+	Aliases: map[string]string{
+		"binsuffix": "binary",
+		"webshome":  "home",
+		"websbins":  "install",
+		"websbase":  "version",
+		"websexec":  "program",
+		"webslogd":  "logdir",
+		"webslogf":  "logfile",
+		"websport":  "port",
+		"webslibs":  "libpaths",
+		"webscert":  "certificate",
+		"webskey":   "privatekey",
+		"websuser":  "user",
+		"websopts":  "options",
+	},
 	Defaults: []string{
-		"webshome={{join .root \"webserver\" \"webservers\" .name}}",
-		"websbins={{join .root \"packages\" \"webserver\"}}",
-		"websbase=active_prod",
-		"websexec={{join .websbins .websbase \"JRE/bin/java\"}}",
-		"webslogd=logs",
-		"webslogf=webdashboard.log",
-		"websmode=background",
-		"websport=8080",
-		"webslibs={{join .websbins .websbase \"JRE/lib\"}}:{{join .websbins .websbase \"lib64\"}}",
+		"home={{join .root \"webserver\" \"webservers\" .name}}",
+		"install={{join .root \"packages\" \"webserver\"}}",
+		"version=active_prod",
+		"program={{join .install .version \"JRE/bin/java\"}}",
+		"logdir=logs",
+		"logfile=webdashboard.log",
+		"port=8080",
+		"libpaths={{join .install .version \"JRE/lib\"}}:{{join .install .version \"lib64\"}}",
 		"websxmx =1024m",
 	},
 	GlobalSettings: map[string]string{
@@ -101,11 +114,11 @@ func (w *Webservers) Name() string {
 }
 
 func (w *Webservers) Home() string {
-	return w.V().GetString("webshome")
+	return w.V().GetString("home")
 }
 
-func (w *Webservers) Prefix(field string) string {
-	return strings.ToLower("Webs" + field)
+func (w *Webservers) Prefix() string {
+	return "webs"
 }
 
 func (w *Webservers) Host() *host.Host {
@@ -144,8 +157,8 @@ func (w *Webservers) SetConf(v *viper.Viper) {
 }
 
 func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
-	w.V().Set("websport", instance.NextPort(w.InstanceHost, &Webserver))
-	w.V().Set("websuser", username)
+	w.V().Set("port", instance.NextPort(w.InstanceHost, &Webserver))
+	w.V().Set("user", username)
 
 	if err = instance.WriteConfig(w); err != nil {
 		return
@@ -169,7 +182,7 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 	// copy default configs - use existing import routines?
 	dir, err := os.Getwd()
 	defer os.Chdir(dir)
-	configSrc := filepath.Join(w.V().GetString("websbins"), w.V().GetString("websbase"), "config")
+	configSrc := filepath.Join(w.V().GetString("install"), w.V().GetString("version"), "config")
 	if err = os.Chdir(configSrc); err != nil {
 		return
 	}
@@ -179,7 +192,7 @@ func (w *Webservers) Add(username string, params []string, tmpl string) (err err
 	}
 
 	for _, source := range webserverFiles {
-		if err = instance.ImportFile(w.Host(), w.Home(), w.V().GetString(w.Prefix("User")), source); err != nil {
+		if err = instance.ImportFile(w.Host(), w.Home(), w.V().GetString("user"), source); err != nil {
 			return
 		}
 	}
@@ -192,25 +205,25 @@ func (w *Webservers) Rebuild(initial bool) error {
 }
 
 func (w *Webservers) Command() (args, env []string) {
-	WebsBase := filepath.Join(w.V().GetString("websbins"), w.V().GetString("websbase"))
+	WebsBase := filepath.Join(w.V().GetString("install"), w.V().GetString("version"))
 	args = []string{
 		// "-Duser.home=" + c.WebsHome,
 		"-XX:+UseConcMarkSweepGC",
 		"-Xmx" + w.V().GetString("websxmx"),
 		"-server",
-		"-Djava.io.tmpdir=" + w.V().GetString("webshome") + "/webapps",
+		"-Djava.io.tmpdir=" + w.V().GetString("home") + "/webapps",
 		"-Djava.awt.headless=true",
-		"-DsecurityConfig=" + w.V().GetString("webshome") + "/config/security.xml",
-		"-Dcom.itrsgroup.configuration.file=" + w.V().GetString("webshome") + "/config/config.xml",
+		"-DsecurityConfig=" + w.V().GetString("home") + "/config/security.xml",
+		"-Dcom.itrsgroup.configuration.file=" + w.V().GetString("home") + "/config/config.xml",
 		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
 		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
-		"-Djava.library.path=" + w.V().GetString("webslibs"),
-		"-Dlog4j2.configurationFile=file:" + w.V().GetString("webshome") + "/config/log4j2.properties",
-		"-Dworking.directory=" + w.V().GetString("webshome"),
+		"-Djava.library.path=" + w.V().GetString("libpath"),
+		"-Dlog4j2.configurationFile=file:" + w.V().GetString("home") + "/config/log4j2.properties",
+		"-Dworking.directory=" + w.V().GetString("home"),
 		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
 		// SSO
-		"-Dcom.itrsgroup.sso.config.file=" + w.V().GetString("webshome") + "/config/sso.properties",
-		"-Djava.security.auth.login.config=" + w.V().GetString("webshome") + "/config/login.conf",
+		"-Dcom.itrsgroup.sso.config.file=" + w.V().GetString("home") + "/config/sso.properties",
+		"-Djava.security.auth.login.config=" + w.V().GetString("home") + "/config/login.conf",
 		"-Djava.security.krb5.conf=/etc/krb5.conf",
 		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
 		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",
@@ -218,7 +231,7 @@ func (w *Webservers) Command() (args, env []string) {
 		"-XX:HeapDumpPath=/tmp",
 		"-jar", WebsBase + "/geneos-web-server.jar",
 		"-dir", WebsBase + "/webapps",
-		"-port", w.V().GetString("websport"),
+		"-port", w.V().GetString("port"),
 		// "-ssl true",
 		"-maxThreads 254",
 		// "-log", LogFile(c),

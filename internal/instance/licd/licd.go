@@ -1,7 +1,6 @@
 package licd
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -20,15 +19,30 @@ var Licd geneos.Component = geneos.Component{
 	PortRange:        "LicdPortRange",
 	CleanList:        "LicdCleanList",
 	PurgeList:        "LicdPurgeList",
+	Aliases: map[string]string{
+		"binsuffix": "binary",
+		"licdhome":  "home",
+		"licdbins":  "install",
+		"licdbase":  "version",
+		"licdexec":  "program",
+		"licdlogd":  "logdir",
+		"licdlogf":  "logfile",
+		"licdport":  "port",
+		"licdlibs":  "libpaths",
+		"licdcert":  "certificate",
+		"licdkey":   "privatekey",
+		"licduser":  "user",
+		"licdopts":  "options",
+	},
 	Defaults: []string{
-		"binsuffix=licd.linux_64",
-		"licdhome={{join .root \"licd\" \"licds\" .name}}",
-		"licdbins={{join .root \"packages\" \"licd\"}}",
-		"licdbase=active_prod",
-		"licdexec={{join .licdbins .licdbase .binsuffix}}",
-		"licdlogf=licd.log",
-		"licdport=7041",
-		"licdlibs={{join .licdbins .licdbase \"lib64\"}}",
+		"binary=licd.linux_64",
+		"home={{join .root \"licd\" \"licds\" .name}}",
+		"install={{join .root \"packages\" \"licd\"}}",
+		"version=active_prod",
+		"program={{join .install .version .binsuffix}}",
+		"logfile=licd.log",
+		"port=7041",
+		"libpaths={{join .install .version \"lib64\"}}",
 	},
 	GlobalSettings: map[string]string{
 		"LicdPortRange": "7041,7100-",
@@ -82,11 +96,11 @@ func (l *Licds) Name() string {
 }
 
 func (l *Licds) Home() string {
-	return l.V().GetString("licdhome")
+	return l.V().GetString("home")
 }
 
-func (l *Licds) Prefix(field string) string {
-	return strings.ToLower("Licd" + field)
+func (l *Licds) Prefix() string {
+	return "licd"
 }
 
 func (l *Licds) Host() *host.Host {
@@ -125,8 +139,8 @@ func (l *Licds) SetConf(v *viper.Viper) {
 }
 
 func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
-	l.V().Set("licdport", instance.NextPort(l.InstanceHost, &Licd))
-	l.V().Set("licduser", username)
+	l.V().Set("port", instance.NextPort(l.InstanceHost, &Licd))
+	l.V().Set("user", username)
 
 	if err = instance.WriteConfig(l); err != nil {
 		logger.Error.Fatalln(err)
@@ -154,16 +168,16 @@ func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
 func (l *Licds) Command() (args, env []string) {
 	args = []string{
 		l.Name(),
-		"-port", l.V().GetString("licdport"),
+		"-port", l.V().GetString("port"),
 		"-log", instance.LogFile(l),
 	}
 
-	if l.V().GetString("licdcert") != "" {
-		args = append(args, "-secure", "-ssl-certificate", l.V().GetString("licdcert"))
+	if l.V().GetString("certificate") != "" {
+		args = append(args, "-secure", "-ssl-certificate", l.V().GetString("certificate"))
 	}
 
-	if l.V().GetString("licdkey") != "" {
-		args = append(args, "-ssl-certificate-key", l.V().GetString("licdkey"))
+	if l.V().GetString("privatekey") != "" {
+		args = append(args, "-ssl-certificate-key", l.V().GetString("privatekey"))
 	}
 
 	return

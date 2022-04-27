@@ -36,7 +36,8 @@ var unsetCmd = &cobra.Command{
 	Long: `Unset a configuration value.
 	
 This command has been added to remove the confusing negation syntax in set`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -54,7 +55,6 @@ func init() {
 	unsetCmd.Flags().VarP(&unsetCmdAttributes, "attribute", "a", "Add an attribute in the format NAME=VALUE")
 	unsetCmd.Flags().VarP(&unsetCmdTypes, "type", "t", "Add a gateway in the format NAME:PORT")
 	unsetCmd.Flags().VarP(&unsetCmdVariables, "variable", "v", "Add a variable in the format [TYPE:]NAME=VALUE")
-	unsetCmd.Flags().MarkHidden("help")
 	unsetCmd.Flags().SortFlags = false
 }
 

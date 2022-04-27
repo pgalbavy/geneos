@@ -134,7 +134,7 @@ func ReservedName(in string) (ok bool) {
 // spaces are valid - dumb, but valid - for now. If the name starts with
 // number then the next character cannot be a number or '.' to help
 // distinguish from versions
-var validStringRE = regexp.MustCompile(`^\w[\w-]+[:@\.\w -]*$`)
+var validStringRE = regexp.MustCompile(`^\w[\w-]?[:@\.\w -]*$`)
 
 // return true while a string is considered a valid instance name
 //
@@ -186,7 +186,7 @@ func RemovePaths(c geneos.Instance, paths string) (err error) {
 
 // logdir = LogD relative to Home or absolute
 func LogFile(c geneos.Instance) (logfile string) {
-	logd := filepath.Clean(c.V().GetString(c.Prefix("logd")))
+	logd := filepath.Clean(c.V().GetString("logdir"))
 	switch {
 	case logd == "":
 		logfile = c.Home()
@@ -195,7 +195,7 @@ func LogFile(c geneos.Instance) (logfile string) {
 	default:
 		logfile = filepath.Join(c.Home(), logd)
 	}
-	logfile = filepath.Join(logfile, c.V().GetString(c.Prefix("logf")))
+	logfile = filepath.Join(logfile, c.V().GetString("logfile"))
 	return
 }
 
@@ -249,7 +249,7 @@ func Get(ct *geneos.Component, name string) (c geneos.Instance, err error) {
 	return
 }
 
-// return a slice instances for a given component type
+// return a slice of instances for a given component type
 func GetAll(r *host.Host, ct *geneos.Component) (confs []geneos.Instance) {
 	if ct == nil {
 		for _, c := range geneos.RealComponents() {
@@ -331,7 +331,7 @@ func GetPorts(r *host.Host) (ports map[int]*geneos.Component) {
 			log.Println("cannot load configuration for", c)
 			continue
 		}
-		if port := c.V().GetInt(c.Prefix("Port")); port != 0 {
+		if port := c.V().GetInt("port"); port != 0 {
 			ports[int(port)] = c.Type()
 		}
 	}
@@ -411,8 +411,8 @@ func NextPort(r *host.Host, ct *geneos.Component) int {
 // if not a link, then return the same
 // follow a limited number of links (10?)
 func Version(c geneos.Instance) (base string, underlying string, err error) {
-	basedir := c.V().GetString(c.Prefix("Bins"))
-	base = c.V().GetString(c.Prefix("Base"))
+	basedir := c.V().GetString("install")
+	base = c.V().GetString("version")
 	underlying = base
 	for {
 		basepath := filepath.Join(basedir, underlying)
@@ -530,15 +530,15 @@ func SplitName(in string, defaultRemote *host.Host) (ct *geneos.Component, name 
 // for an instance and returns an exec.Cmd, almost ready for execution. Callers
 // will add more details such as working directories, user and group etc.
 func BuildCmd(c geneos.Instance) (cmd *exec.Cmd, env []string) {
-	binary := c.V().GetString(c.Prefix("Exec"))
+	binary := c.V().GetString("program")
 
 	args, env := c.Command()
 
-	opts := strings.Fields(c.V().GetString(c.Prefix("Opts")))
+	opts := strings.Fields(c.V().GetString("options"))
 	args = append(args, opts...)
 	// XXX find common envs - JAVA_HOME etc.
 	env = append(env, c.V().GetStringSlice("Env")...)
-	env = append(env, "LD_LIBRARY_PATH="+c.V().GetString(c.Prefix("Libs")))
+	env = append(env, "LD_LIBRARY_PATH="+c.V().GetString("libpaths"))
 	cmd = exec.Command(binary, args...)
 
 	return

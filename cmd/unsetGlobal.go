@@ -28,10 +28,11 @@ import (
 
 // unsetGlobalCmd represents the unsetGlobal command
 var unsetGlobalCmd = &cobra.Command{
-	Use:          "unsetGlobal",
-	Short:        "",
-	Long:         ``,
-	SilenceUsage: true,
+	Use:                   "unsetGlobal",
+	Short:                 "",
+	Long:                  ``,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -43,6 +44,7 @@ var unsetGlobalCmd = &cobra.Command{
 
 func init() {
 	unsetCmd.AddCommand(unsetGlobalCmd)
+	unsetGlobalCmd.Flags().SortFlags = false
 }
 
 func commandUnsetGlobal(ct *geneos.Component, args, params []string) error {

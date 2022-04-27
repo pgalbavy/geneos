@@ -33,10 +33,11 @@ import (
 
 // disableCmd represents the disable command
 var disableCmd = &cobra.Command{
-	Use:          "disable [TYPE] [NAME...]",
-	Short:        "Stop and disable matching instances",
-	Long:         `Mark any matching instances as disabled. The instances are also stopped.`,
-	SilenceUsage: true,
+	Use:                   "disable [TYPE] [NAME...]",
+	Short:                 "Stop and disable matching instances",
+	Long:                  `Mark any matching instances as disabled. The instances are also stopped.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -48,6 +49,7 @@ var disableCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(disableCmd)
+	disableCmd.Flags().SortFlags = false
 }
 
 func disableInstance(c geneos.Instance, params []string) (err error) {
@@ -55,12 +57,12 @@ func disableInstance(c geneos.Instance, params []string) (err error) {
 		return nil
 	}
 
-	uid, gid, _, err := utils.GetIDs(c.V().GetString(c.Prefix("user")))
+	uid, gid, _, err := utils.GetIDs(c.V().GetString("user"))
 	if err != nil {
 		return
 	}
 
-	if err = instance.Stop(c, false, params); err != nil && !errors.Is(err, os.ErrProcessDone) {
+	if err = instance.Stop(c, false); err != nil && !errors.Is(err, os.ErrProcessDone) {
 		return
 	}
 

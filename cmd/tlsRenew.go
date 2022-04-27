@@ -38,10 +38,11 @@ import (
 
 // tlsRenewCmd represents the tlsRenew command
 var tlsRenewCmd = &cobra.Command{
-	Use:          "renew",
-	Short:        "Renew certificates",
-	Long:         `Renew certificates.`,
-	SilenceUsage: true,
+	Use:                   "renew",
+	Short:                 "Renew certificates",
+	Long:                  `Renew certificates.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -53,6 +54,7 @@ var tlsRenewCmd = &cobra.Command{
 
 func init() {
 	tlsCmd.AddCommand(tlsRenewCmd)
+	tlsRenewCmd.Flags().SortFlags = false
 }
 
 // renew an instance certificate, use private key if it exists

@@ -36,7 +36,8 @@ instances that are disabled to prevent accidental deletion. The
 instance directory is removed without being backed-up. The user
 running the command must have the appropriate permissions and a
 partial deletion cannot be protected against.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -50,6 +51,7 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 
 	deleteCmd.Flags().BoolVarP(&deleteCmdForce, "force", "F", false, "Force delete of instances")
+	deleteCmd.Flags().SortFlags = false
 }
 
 var deleteCmdForce bool
@@ -57,7 +59,7 @@ var deleteCmdForce bool
 func deleteInstance(c geneos.Instance, params []string) (err error) {
 	if deleteCmdForce {
 		if c.Type().RealComponent {
-			if err = instance.Stop(c, false, nil); err != nil {
+			if err = instance.Stop(c, false); err != nil {
 				return
 			}
 		}

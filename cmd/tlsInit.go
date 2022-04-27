@@ -42,7 +42,8 @@ var tlsInitCmd = &cobra.Command{
 root certificate to act as a CA and a signing certificate signed
 by the root. Any instances will have certificates created for
 them but configurations will not be rebuilt.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -54,6 +55,7 @@ them but configurations will not be rebuilt.`,
 
 func init() {
 	tlsCmd.AddCommand(tlsInitCmd)
+	tlsInitCmd.Flags().SortFlags = false
 }
 
 // create the tls/ directory in Geneos and a CA / DCA as required

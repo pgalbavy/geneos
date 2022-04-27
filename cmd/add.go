@@ -37,16 +37,18 @@ import (
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add [-t FILE] TYPE NAME",
+	Use:   "add [-t FILE] [-S] TYPE NAME",
 	Short: "Add a new instance",
-	Long: `Add a new instance called NAME with the TYPE supplied. The details will depends on the
-	TYPE. Currently the listening port is selected automatically and other options are defaulted.
+	Long: `Add a new component of TYPE with the name NAME. The details will depends on the
+TYPE. Currently the listening port is selected automatically and other options are defaulted.
 	
-	Gateways are given a minimal configuration file.`,
-	SilenceUsage: true,
+Gateways and SANs are given a minimal configuration file based on the templates configured.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := processArgs(cmd)
 		return commandAdd(ct, args, params)
@@ -58,20 +60,18 @@ func init() {
 
 	addCmd.Flags().StringVarP(&addCmdTemplate, "template", "t", "", "template file to use instead of default")
 	addCmd.Flags().BoolVarP(&addCmdStart, "start", "S", false, "Start new instance(s) after creation")
+	addCmd.Flags().SortFlags = false
 }
 
 var addCmdTemplate string
 var addCmdStart bool
 
-// Add a single instance
+// Add an instance
 //
 // XXX argument validation is minimal
 //
 func commandAdd(ct *geneos.Component, args []string, params []string) (err error) {
 	var username string
-	if len(args) == 0 {
-		logError.Fatalln("not enough args")
-	}
 
 	// check validity and reserved words here
 	name := args[0]
@@ -106,10 +106,10 @@ func commandAdd(ct *geneos.Component, args []string, params []string) (err error
 	// reload config as instance data is not updated by Add() as an interface value
 	c.Unload()
 	c.Load()
-	log.Printf("%s added, port %d\n", c, c.V().GetInt(c.Prefix("port")))
+	log.Printf("%s added, port %d\n", c, c.V().GetInt("port"))
 
 	if addCmdStart || initCmdSAN {
-		instance.Start(c, nil)
+		instance.Start(c)
 		// commandStart(c.Type(), []string{name}, []string{})
 	}
 

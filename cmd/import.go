@@ -54,7 +54,8 @@ var importCmd = &cobra.Command{
 	If run as root, directories and files ownership is set to the user in
 	the instance configuration or the default user. Currently only one
 	file can be imported at a time.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -69,6 +70,7 @@ func init() {
 
 	importCmd.Flags().StringVarP(&common, "common", "c", "", "Import into a common directory instead of matching instances.	If TYPE is 'gateway' and NAME is 'shared' then this common directory is 'gateway/gateway_shared'")
 	importCmd.Flags().StringVarP(&hostname, "remote", "r", "all", "Import to named remote, default is all")
+	importCmd.Flags().SortFlags = false
 }
 
 var common, hostname string
@@ -115,7 +117,7 @@ func importInstance(c geneos.Instance, params []string) (err error) {
 	}
 
 	for _, source := range params {
-		if err = instance.ImportFile(c.Host(), c.Home(), c.V().GetString(c.Prefix("User")), source); err != nil {
+		if err = instance.ImportFile(c.Host(), c.Home(), c.V().GetString("user"), source); err != nil {
 			return
 		}
 	}

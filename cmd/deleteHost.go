@@ -39,7 +39,8 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -55,6 +56,8 @@ func init() {
 	deleteHostCmd.Flags().BoolVarP(&deleteHostCmdForce, "force", "F", false, "Delete instances without checking if disabled")
 	deleteHostCmd.Flags().BoolVarP(&deleteHostCmdRecurse, "all", "R", false, "Recursively delete all instances on the host before removing the host config")
 	deleteHostCmd.Flags().BoolVarP(&deleteHostCmdStop, "stop", "S", false, "Stop all instances on the host before deleting the local entry")
+	deleteHostCmd.Flags().SortFlags = false
+
 }
 
 var deleteHostCmdForce, deleteHostCmdRecurse, deleteHostCmdStop bool
@@ -83,7 +86,7 @@ func commandDeleteHost(_ *geneos.Component, args []string, params []string) (err
 		// stop and/or delete instances on host
 		if deleteHostCmdStop {
 			for _, c := range instance.GetAll(h, nil) {
-				if err = instance.Stop(c, false, nil); err != nil {
+				if err = instance.Stop(c, false); err != nil {
 					return
 				}
 				if deleteHostCmdRecurse {

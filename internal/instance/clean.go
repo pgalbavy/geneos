@@ -24,7 +24,7 @@ func Clean(c geneos.Instance, purge bool, params []string) (err error) {
 
 	if _, err = GetPID(c); err == os.ErrProcessDone {
 		stopped = false
-	} else if err = Stop(c, false, params); err != nil {
+	} else if err = Stop(c, false); err != nil {
 		return
 	} else {
 		stopped = true
@@ -42,7 +42,7 @@ func Clean(c geneos.Instance, purge bool, params []string) (err error) {
 	}
 	logDebug.Println(c, "fully cleaned")
 	if stopped {
-		err = Start(c, params)
+		err = Start(c)
 	}
 	return
 }

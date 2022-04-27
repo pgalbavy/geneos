@@ -80,7 +80,6 @@ func init() {
 	setCmd.Flags().VarP(&setCmdAttributes, "attribute", "a", "Add an attribute in the format NAME=VALUE")
 	setCmd.Flags().VarP(&setCmdTypes, "type", "t", "Add a gateway in the format NAME:PORT")
 	setCmd.Flags().VarP(&setCmdVariables, "variable", "v", "Add a variable in the format [TYPE:]NAME=VALUE")
-	setCmd.Flags().MarkHidden("help")
 	setCmd.Flags().SortFlags = false
 }
 

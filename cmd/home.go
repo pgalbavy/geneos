@@ -42,7 +42,8 @@ var homeCmd = &cobra.Command{
 	Because of the intended use no errors are logged and no other output.
 	An error in the examples above result in the user's home
 	directory being selected.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -54,6 +55,7 @@ var homeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(homeCmd)
+	homeCmd.Flags().SortFlags = false
 }
 
 func commandHome(_ *geneos.Component, args []string, params []string) error {

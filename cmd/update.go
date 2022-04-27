@@ -53,7 +53,8 @@ var updateCmd = &cobra.Command{
 	directory starts 'GA' it will be selected over a directory with the
 	same numerical versions. All other directories name formats will
 	result in unexpected behaviour.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
@@ -68,6 +69,7 @@ func init() {
 
 	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Override the base active_prod link name")
 	updateCmd.Flags().StringVarP(&cmdUpdateRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" - the default - means all remotes and locally")
+	updateCmd.Flags().SortFlags = false
 }
 
 var cmdUpdateBase, cmdUpdateRemote string

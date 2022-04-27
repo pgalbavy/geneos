@@ -69,7 +69,8 @@ with superuser privileges or be run by the same user.
 
 Any PARAMS provided are passed to the 'add' command called for
 components created.`,
-	SilenceUsage: true,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -85,17 +86,18 @@ func init() {
 	initCmd.Flags().StringVarP(&initCmdAll, "all", "A", "", "Perform initialisation steps using provided license file and starts environment")
 	initCmd.Flags().BoolVarP(&initCmdMakeCerts, "makecerts", "C", false, "Create default certificates for TLS support")
 	initCmd.Flags().BoolVarP(&initCmdDemo, "demo", "D", false, "Perform initialisation steps for a demo setup and start environment")
-	initCmd.Flags().BoolVarP(&initCmdForce, "force", "F", false, "Force init, ignore existing directories.")
 	initCmd.Flags().BoolVarP(&initCmdSAN, "san", "S", false, "Create a SAN and start")
-	initCmd.Flags().BoolVarP(&initCmdTemplates, "templates", "T", false, "Overwrite/create templates from embedded (for version upgrades)")
 
+	initCmd.Flags().BoolVarP(&initCmdForce, "force", "F", false, "Force init, ignore existing directories.")
 	initCmd.Flags().StringVarP(&initCmdName, "name", "n", "", "Use the given name for instances and configurations instead of the hostname")
 
 	initCmd.Flags().StringVarP(&initCmdImportCert, "importcert", "c", "", "signing certificate file with optional embedded private key")
 	initCmd.Flags().StringVarP(&initCmdImportKey, "importkey", "k", "", "signing private key file")
+	initCmd.Flags().BoolVarP(&initCmdTemplates, "templates", "T", false, "Overwrite/create templates from embedded (for version upgrades)")
 
-	initCmd.Flags().StringVarP(&initCmdGatewayTemplate, "gatewaytemplate", "g", "", "A `gateway` template file")
-	initCmd.Flags().StringVarP(&initCmdSANTemplate, "santemplate", "s", "", "A `san` template file")
+	initCmd.Flags().StringVarP(&initCmdGatewayTemplate, "gatewaytemplate", "g", "", "A gateway template file")
+	initCmd.Flags().StringVarP(&initCmdSANTemplate, "santemplate", "s", "", "A san template file")
+	initCmd.Flags().SortFlags = false
 }
 
 var initCmdAll string

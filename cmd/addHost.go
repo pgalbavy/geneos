@@ -34,11 +34,12 @@ import (
 
 // addHostCmd represents the addRemote command
 var addHostCmd = &cobra.Command{
-	Use:          "host [-I] NAME [SSHURL]",
-	Aliases:      []string{"remote"},
-	Short:        "Add a remote host",
-	Long:         `Add a remote host for integration with other commands.`,
-	SilenceUsage: true,
+	Use:                   "host [-I] NAME [SSHURL]",
+	Aliases:               []string{"remote"},
+	Short:                 "Add a remote host",
+	Long:                  `Add a remote host for integration with other commands.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -60,6 +61,7 @@ func init() {
 	addCmd.AddCommand(addHostCmd)
 
 	addHostCmd.Flags().BoolVarP(&addHostCmdInit, "init", "I", false, "Initialise the remote host directories and component files")
+	addHostCmd.Flags().SortFlags = false
 }
 
 var addHostCmdInit bool

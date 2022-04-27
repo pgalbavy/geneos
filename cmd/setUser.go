@@ -31,10 +31,11 @@ import (
 
 // setUserCmd represents the setUser command
 var setUserCmd = &cobra.Command{
-	Use:          "user KEY=VALUE...",
-	Short:        "Set user configuration parameters",
-	Long:         ``,
-	SilenceUsage: true,
+	Use:                   "user KEY=VALUE...",
+	Short:                 "Set user configuration parameters",
+	Long:                  ``,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
@@ -46,6 +47,7 @@ var setUserCmd = &cobra.Command{
 
 func init() {
 	setCmd.AddCommand(setUserCmd)
+	setUserCmd.Flags().SortFlags = false
 }
 
 func commandSetUser(ct *geneos.Component, args, params []string) error {
