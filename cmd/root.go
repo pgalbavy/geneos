@@ -112,6 +112,10 @@ func Execute() {
 	}
 }
 
+func RootCmd() *cobra.Command {
+	return rootCmd
+}
+
 var debug, quiet bool
 
 func init() {
