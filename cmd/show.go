@@ -78,6 +78,7 @@ func commandShow(ct *geneos.Component, args []string, params []string) (err erro
 type config struct {
 	Name   string      `json:"name,omitempty"`
 	Host   string      `json:"host,omitempty"`
+	Type   string      `json:"type,omitempty"`
 	Config interface{} `json:"config,omitempty"`
 }
 
@@ -93,7 +94,7 @@ func showInstance(c geneos.Instance, params []string) (err error) {
 	}
 
 	// XXX wrap in location and type
-	cf := &config{Name: c.Name(), Host: c.Host().String(), Config: nv.AllSettings()}
+	cf := &config{Name: c.Name(), Host: c.Host().String(), Type: c.Type().String(), Config: nv.AllSettings()}
 
 	// if showCmdYAML {
 	// 	buffer, err = yaml.Marshal(cf)
