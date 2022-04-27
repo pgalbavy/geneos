@@ -45,11 +45,11 @@ var FileAgent geneos.Component = geneos.Component{
 		"faopts":    "options",
 	},
 	Defaults: []string{
-		"binsuffix=agent.linux_64",
+		"binary=agent.linux_64",
 		"fahome={{join .root \"fileagent\" \"fileagents\" .name}}",
 		"fabins={{join .root \"packages\" \"fileagent\"}}",
 		"fabase=active_prod",
-		"faexec={{join .fabins .fabase .binsuffix}}",
+		"faexec={{join .fabins .fabase .binary}}",
 		"falogf=fileagent.log",
 		"faport=7030",
 		"falibs={{join .fabins .fabase \"lib64\"}}:{{join .fabins .fabase}}",

@@ -50,7 +50,7 @@ func FindHostDirs() (hosts []string) {
 	dir := filepath.Join(Geneos(), "remotes")
 	dirs, err := LOCAL.ReadDir(dir)
 	if err != nil {
-		logError.Println(err)
+		return
 	}
 	for _, d := range dirs {
 		if d.IsDir() {

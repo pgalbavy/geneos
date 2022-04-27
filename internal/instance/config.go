@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -130,26 +132,48 @@ func readRCConfig(c geneos.Instance) (err error) {
 			return fmt.Errorf("invalid line (must be key=value) %q: %w", line, geneos.ErrInvalidArgs)
 		}
 		key, value := s[0], s[1]
-		value = strings.Trim(value, "\"")
+		// strip double and single quotes and tabs and spaces from value
+		value = strings.Trim(value, "\"' \t")
 		confs[key] = value
 	}
 
 	var env []string
 	for k, v := range confs {
+		// XXX eval ${xxx} - either a config setting or an env var
+		if strings.Contains(v, "${") {
+			v = evalOldVars(c, v)
+		}
 		lk := strings.ToLower(k)
-		if lk == "binsuffix" {
+		if lk == "binary" {
 			c.V().Set(k, v)
 			continue
 		}
 		if strings.HasPrefix(lk, c.Prefix()) {
-			c.V().Set(lk, v)
+			nk := c.Type().Aliases[lk]
+			c.V().Set(nk, v)
 		} else {
 			// set env var
 			env = append(env, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
 
-	c.V().Set("Env", env)
+	if len(env) > 0 {
+		c.V().Set("Env", env)
+	}
+	return
+}
+
+// first expand against viper, then env
+func evalOldVars(c geneos.Instance, in string) (out string) {
+	out = in
+	for k, v := range c.Type().Aliases {
+		re := regexp.MustCompile(`(?i)\$\{` + k + `\}`)
+		out = re.ReplaceAllString(out, `$${`+v+"}")
+	}
+	for _, k := range c.V().AllKeys() {
+		out = strings.ReplaceAll(out, "${"+k+"}", c.V().GetString(k))
+	}
+	out = os.ExpandEnv(out)
 	return
 }
 

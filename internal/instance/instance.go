@@ -48,7 +48,7 @@ var (
 // this is subject to races, but not much we can do
 func GetPID(c geneos.Instance) (pid int, err error) {
 	var pids []int
-	binsuffix := c.V().GetString("binsuffix")
+	binary := c.V().GetString("binary")
 
 	// safe to ignore error as it can only be bad pattern,
 	// which means no matches to range over
@@ -87,7 +87,7 @@ func GetPID(c geneos.Instance) (pid int, err error) {
 				}
 			}
 		default:
-			if strings.HasPrefix(execfile, binsuffix) {
+			if strings.HasPrefix(execfile, binary) {
 				for _, arg := range args[1:] {
 					// very simplistic - we look for a bare arg that matches the instance name
 					if string(arg) == c.Name() {
