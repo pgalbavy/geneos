@@ -30,9 +30,10 @@ import (
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
 	Use:   "migrate [TYPE] [NAME...]",
-	Short: "Migrate legacy .rc configuration to .json",
+	Short: "Migrate legacy .rc configuration to new .json format",
 	Long: `Migrate any legacy .rc configuration files to JSON format and
-	rename the .rc file to .rc.orig.`,
+rename the .rc file to .rc.orig. The entries in the new configuration
+take on the generic labels and are not a direct conversion.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

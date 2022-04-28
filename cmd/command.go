@@ -30,13 +30,10 @@ import (
 // commandCmd represents the command command
 var commandCmd = &cobra.Command{
 	Use:   "command [TYPE] [NAME...]",
-	Short: "Show command arguments and environment for instances",
-	Long: `Show the full command line for the matching instances
+	Short: "Show command line and environment for launching instances",
+	Long: `Show the command line for the matching instances
 along with any environment variables explicitly set for
-execution.
-	
-Note: Future releases may support CSV or JSON output formats for automation
-and monitoring.`,
+execution.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

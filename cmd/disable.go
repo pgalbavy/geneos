@@ -26,7 +26,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 	"wonderland.org/geneos/internal/utils"
 )
@@ -34,7 +34,7 @@ import (
 // disableCmd represents the disable command
 var disableCmd = &cobra.Command{
 	Use:                   "disable [TYPE] [NAME...]",
-	Short:                 "Stop and disable matching instances",
+	Short:                 "Stop and disable instances",
 	Long:                  `Mark any matching instances as disabled. The instances are also stopped.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
@@ -68,13 +68,18 @@ func disableInstance(c geneos.Instance, params []string) (err error) {
 
 	disablePath := instance.ConfigPathWithExt(c, geneos.DisableExtension)
 
-	f, err := c.Host().Create(disablePath, 0664)
+	h := c.Host()
+
+	f, err := h.Create(disablePath, 0664)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	if err = c.Host().Chown(disablePath, uid, gid); err != nil {
-		c.Host().Remove(disablePath)
+	f.Close()
+
+	if utils.IsSuperuser() {
+		if err = h.Chown(disablePath, uid, gid); err != nil {
+			h.Remove(disablePath)
+		}
 	}
 
 	return

@@ -62,7 +62,7 @@ func init() {
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdAll, "all", "a", false, "Show all certs, including global and signing certs")
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdJSON, "json", "j", false, "Output JSON")
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdLong, "long", "l", false, "Long output")
-	tlsLsCmd.Flags().BoolVarP(&tlsCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
+	tlsLsCmd.Flags().BoolVarP(&tlsCmdIndent, "pretty", "i", false, "Indent / pretty print JSON")
 	tlsLsCmd.Flags().BoolVarP(&tlsCmdCSV, "csv", "c", false, "Output CSV")
 	tlsLsCmd.Flags().SortFlags = false
 }

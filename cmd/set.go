@@ -35,31 +35,34 @@ var setCmd = &cobra.Command{
 	Use:   "set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]",
 	Short: "Set instance configuration parameters",
 	Long: `Set configuration item values in global, user, or for a specific
-	instance.
-	
-	Special Names:
-	
-	To set environment variables for an instance use the key Env and the
-	value var=value. Each new var=value is additive or overwrites an existing
-	entry for 'var', e.g.
-	
-		geneos set netprobe localhost Env=JAVA_HOME=/usr/lib/jre
-		geneos set netprobe localhost Env=ORACLE_HOME=/opt/oracle
-	
-	To remove an environment variable prefix the name with a hyphen '-', e.g.
-	
-		geneos set netprobe localhost Env=-JAVA_HOME
-	
-	To add an include file to an auto-generated gateway use a similar syntax to the above, but in the form:
-	
-		geneos set gateway gateway1 Includes=100:path/to/include.xml
-		geneos set gateway gateway1 Includes=-100
-	
-	Then rebuild the configuration as required.
-	
-	Other special names include Gateways for a comma separated list of host:port values for Sans,
-	Attributes as name=value pairs again for Sans and Types a comma separated list of Types for Sans.
-	Variables (for San config templates) cannot be set from the command line at this time.`,
+instance.
+
+Special Names:
+
+To set environment variables for an instance use the key Env and the
+value var=value. Each new var=value is additive or overwrites an existing
+entry for 'var', e.g.
+
+	geneos set netprobe localhost Env=JAVA_HOME=/usr/lib/jre
+	geneos set netprobe localhost Env=ORACLE_HOME=/opt/oracle
+
+To remove an environment variable prefix the name with a hyphen '-', e.g.
+
+	geneos set netprobe localhost Env=-JAVA_HOME
+
+To add an include file to an auto-generated gateway use a similar
+syntax to the above, but in the form:
+
+	geneos set gateway gateway1 Includes=100:path/to/include.xml
+	geneos set gateway gateway1 Includes=-100
+
+Then rebuild the configuration as required.
+
+Other special names include Gateways for a comma separated list of
+host:port values for Sans, Attributes as name=value pairs again for
+Sans and Types a comma separated list of Types for Sans. Variables
+(for San config templates) cannot be set from the command line at
+this time.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

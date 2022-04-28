@@ -29,9 +29,10 @@ import (
 
 // reloadCmd represents the reload command
 var reloadCmd = &cobra.Command{
-	Use:                   "reload [TYPE] [NAME...]",
-	Short:                 "Signal the instance to reload it's configuration, if supported",
-	Long:                  `Signal the matching instances to reload their configurations, depending on the component TYPE.`,
+	Use:   "reload [TYPE] [NAME...]",
+	Short: "Reload instance configuration, where supported",
+	Long: `Signal the matching instances to reload their configurations,
+depending on the component TYPE.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

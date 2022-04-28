@@ -54,7 +54,7 @@ func init() {
 	lsCmd.AddCommand(lsHostCmd)
 
 	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdJSON, "json", "j", false, "Output JSON")
-	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
+	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdIndent, "pretty", "i", false, "Indent / pretty print JSON")
 	lsHostCmd.PersistentFlags().BoolVarP(&lsHostCmdCSV, "csv", "c", false, "Output CSV")
 	lsHostCmd.Flags().SortFlags = false
 }

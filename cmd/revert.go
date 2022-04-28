@@ -31,10 +31,10 @@ import (
 var revertCmd = &cobra.Command{
 	Use:   "revert [TYPE] [NAME...]",
 	Short: "Revert migration of .rc files from backups",
-	Long: `Revert migration of legacy .rc files to JSON ir the .rc.orig backup
-	file still exists. Any changes to the instance configuration since
-	initial migration will be lost as the contents of the .rc file is
-	never changed.`,
+	Long: `Revert migration of legacy .rc files to JSON if the .rc.orig backup
+file still exists. Any changes to the instance configuration since
+initial migration will be lost as the contents of the .rc file is
+never changed.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

@@ -30,11 +30,11 @@ import (
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
 	Use:   "stop [-K] [TYPE] [NAME...]",
-	Short: "Stop one or more instances",
-	Long: `Stop one or more matching instances. Unless the -f
-flag is given, first a SIGTERM is sent and if the instance is
+	Short: "Stop instances",
+	Long: `Stop one or more matching instances. Unless the -K
+flag is given, a SIGTERM is sent and if the instance is
 still running after a few seconds then a SIGKILL is sent. If the
--f flag is given the instance(s) are immediately terminated with
+-K flag is given the instance(s) are immediately terminated with
 a SIGKILL.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,

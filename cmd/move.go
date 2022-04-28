@@ -32,15 +32,15 @@ var moveCmd = &cobra.Command{
 	Use:   "move [TYPE] SOURCE DESTINATION",
 	Short: "Move (or rename) instances",
 	Long: `Move (or rename) instances. As any existing legacy .rc
-	file is never changed, this will migrate the instance from .rc to
-	JSON. The instance is stopped and restarted after the instance is
-	moved. It is an error to try to move an instance to one that already
-	exists with the same name.
-	
-	If the component support Rebuild then this is run after the move but
-	before the restart. This allows SANs to be updated as expected.
-	
-	Moving across remotes is supported.`,
+file is never changed, this will migrate the instance from .rc to
+JSON. The instance is stopped and restarted after the instance is
+moved. It is an error to try to move an instance to one that already
+exists with the same name.
+
+If the component support Rebuild then this is run after the move but
+before the restart. This allows SANs to be updated as expected.
+
+Moving across remotes is supported.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

@@ -35,28 +35,34 @@ import (
 var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show runtime, global, user or instance configuration is JSON format",
-	Long: `Show the runtime, global, user or instance configuration.
+	Long: `Show the runtime or instance configuration. The loaded
+global or user configurations can be seen through the show global
+and show user sub-commands, respectively.
 
-	With no arguments show the resolved runtime configuration that
-	results from environment variables, loading built-in defaults and the
-	global and user configurations.
-	
-	If the sub-command 'global' or 'user' is supplied then any
-	on-disk configuration for the respective options will be shown.
-	
-	If a component TYPE and/or instance NAME(s) are supplied then the
-	configuration for those instances are output as JSON. This is
-	regardless of the instance using a legacy .rc file or a native JSON
-	configuration.
-	
-	Passwords and secrets are redacted in a very simplistic manner simply
-	to prevent visibility in casual viewing.`,
+With no arguments show the full runtime configuration that
+results from environment variables, loading built-in defaults and the
+global and user configurations.
+
+If a component TYPE and/or instance NAME(s) are given then the
+configuration for those instances are output as JSON. This is
+regardless of the instance using a legacy .rc file or a native JSON
+configuration.
+
+Passwords and secrets are redacted in a very simplistic manner simply
+to prevent visibility in casual viewing.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
-	RunE: func(cmd *cobra.Command, _ []string) error {
+	RunE: func(cmd *cobra.Command, origargs []string) (err error) {
+		if len(origargs) == 0 {
+			// running config
+			rc := viper.AllSettings()
+			j, _ := json.MarshalIndent(rc, "", "    ")
+			log.Println(string(j))
+			return nil
+		}
 		ct, args, params := processArgs(cmd)
 		return commandShow(ct, args, params)
 	},
@@ -65,7 +71,6 @@ var showCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(showCmd)
 
-	// showCmd.Flags().BoolVarP(&showCmdYAML, "yaml", "y", false, "Show as YAML")
 	showCmd.Flags().SortFlags = false
 }
 
@@ -75,7 +80,7 @@ func commandShow(ct *geneos.Component, args []string, params []string) (err erro
 	return instance.ForAll(ct, showInstance, args, params)
 }
 
-type config struct {
+type showCmdConfig struct {
 	Name   string      `json:"name,omitempty"`
 	Host   string      `json:"host,omitempty"`
 	Type   string      `json:"type,omitempty"`
@@ -94,25 +99,18 @@ func showInstance(c geneos.Instance, params []string) (err error) {
 	}
 
 	// XXX wrap in location and type
-	cf := &config{Name: c.Name(), Host: c.Host().String(), Type: c.Type().String(), Config: nv.AllSettings()}
-
-	// if showCmdYAML {
-	// 	buffer, err = yaml.Marshal(cf)
-	// } else {
+	cf := &showCmdConfig{Name: c.Name(), Host: c.Host().String(), Type: c.Type().String(), Config: nv.AllSettings()}
 
 	if buffer, err = json.MarshalIndent(cf, "", "    "); err != nil {
 		return
 	}
 	buffer = opaqueJSONSecrets(buffer)
-	// }
 	log.Printf("%s\n", string(buffer))
 
 	return
 }
 
 // XXX redact passwords - any field matching some regexp ?
-// also embedded Envs
-//
 //
 var red1 = regexp.MustCompile(`"(.*((?i)pass|password|secret))": "(.*)"`)
 var red2 = regexp.MustCompile(`"(.*((?i)pass|password|secret))=(.*)"`)

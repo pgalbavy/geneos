@@ -32,9 +32,13 @@ import (
 
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
-	Use:                   "restart [-a] [-K] [-l] [TYPE] [NAME...]",
-	Short:                 "Restart one or more instances",
-	Long:                  `Restart the matching instances. This is identical to running 'geneos stop' followed by 'geneos start'.`,
+	Use:   "restart [-a] [-K] [-l] [TYPE] [NAME...]",
+	Short: "Restart instances",
+	Long: `Restart the matching instances. This is identical to running 'geneos
+stop' followed by 'geneos start' except if the -a flag is given then
+all matching instances are started regardless of whether they were
+stopped by the command. The command also accepts the same flags as
+both start and stop.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

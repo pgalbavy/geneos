@@ -55,7 +55,7 @@ func init() {
 	rootCmd.AddCommand(psCmd)
 
 	psCmd.PersistentFlags().BoolVarP(&psCmdJSON, "json", "j", false, "Output JSON")
-	psCmd.PersistentFlags().BoolVarP(&psCmdIndent, "indent", "i", false, "Indent / pretty print JSON")
+	psCmd.PersistentFlags().BoolVarP(&psCmdIndent, "pretty", "i", false, "Indent / pretty print JSON")
 	psCmd.PersistentFlags().BoolVarP(&psCmdCSV, "csv", "c", false, "Output CSV")
 	psCmd.Flags().SortFlags = false
 }

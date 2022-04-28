@@ -34,26 +34,26 @@ var importCmd = &cobra.Command{
 	Use:   "import [TYPE] [FLAGS | NAME [NAME...]] [DEST=]SOURCE [[DEST=]SOURCE...]",
 	Short: "Import file(s) to an instance or a common directory",
 	Long: `Import file(s) to the instance or common directory. This can be used
-	to add configuration or license files or scripts for gateways and
-	netprobes to run. The SOURCE can be a local path or a url or a '-'
-	for stdin. DEST is local pathname ending in either a filename or a
-	directory. Is the SRC is '-' then a DEST must be provided. If DEST
-	includes a path then it must be relative and cannot contain '..'.
-	Examples:
-	
-		geneos import gateway example1 https://example.com/myfiles/gateway.setup.xml
-		geneos import licd example2 geneos.lic=license.txt
-		geneos import netprobe example3 scripts/=myscript.sh
-		geneos import san localhost ./netprobe.setup.xml
-		geneos import gateway -c shared common_include.xml
-	
-	To distinguish SOURCE from an instance name a bare filename in the
-	current directory MUST be prefixed with './'. A file in a directory
-	(relative or absolute) or a URL are seen as invalid instance names
-	and become paths automatically. Directories are created as required.
-	If run as root, directories and files ownership is set to the user in
-	the instance configuration or the default user. Currently only one
-	file can be imported at a time.`,
+to add configuration or license files or scripts for gateways and
+netprobes to run. The SOURCE can be a local path or a url or a '-'
+for stdin. DEST is local pathname ending in either a filename or a
+directory. Is the SRC is '-' then a DEST must be provided. If DEST
+includes a path then it must be relative and cannot contain '..'.
+Examples:
+
+	geneos import gateway example1 https://example.com/myfiles/gateway.setup.xml
+	geneos import licd example2 geneos.lic=license.txt
+	geneos import netprobe example3 scripts/=myscript.sh
+	geneos import san localhost ./netprobe.setup.xml
+	geneos import gateway -c shared common_include.xml
+
+To distinguish SOURCE from an instance name a bare filename in the
+current directory MUST be prefixed with './'. A file in a directory
+(relative or absolute) or a URL are seen as invalid instance names
+and become paths automatically. Directories are created as required.
+If run as root, directories and files ownership is set to the user in
+the instance configuration or the default user. Currently only one
+file can be imported at a time.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
@@ -68,8 +68,8 @@ var importCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(importCmd)
 
-	importCmd.Flags().StringVarP(&common, "common", "c", "", "Import into a common directory instead of matching instances.	If TYPE is 'gateway' and NAME is 'shared' then this common directory is 'gateway/gateway_shared'")
-	importCmd.Flags().StringVarP(&hostname, "remote", "r", "all", "Import to named remote, default is all")
+	importCmd.Flags().StringVarP(&common, "common", "c", "", "Import into a common directory instead of matching instances.	For example, if TYPE is 'gateway' and NAME is 'shared' then this common directory is 'gateway/gateway_shared'")
+	importCmd.Flags().StringVarP(&hostname, "remote", "r", "all", "Import only to named remote, default is all")
 	importCmd.Flags().SortFlags = false
 }
 

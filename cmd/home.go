@@ -31,17 +31,16 @@ import (
 // homeCmd represents the home command
 var homeCmd = &cobra.Command{
 	Use:   "home [TYPE] [NAME]",
-	Short: "Output the home directory of the installation or the first matching instance",
+	Short: "Print the home directory of the first instance or the Geneos home dir",
 	Long: `Output the home directory of the first matching instance or local
-	installation or the remote on stdout. This is intended for scripting,
-	e.g.
-	
-		cd $(geneos home)
-		cd $(geneos home gateway example1)
-			
-	Because of the intended use no errors are logged and no other output.
-	An error in the examples above result in the user's home
-	directory being selected.`,
+installation or the remote on stdout. This is intended for scripting,
+e.g.
+
+	cd $(geneos home)
+	cd $(geneos home gateway example1)
+		
+No errors are logged. An error, for example no matching instance found, result in the Geneos
+root directory being printed.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

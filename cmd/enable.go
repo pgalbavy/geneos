@@ -32,9 +32,11 @@ import (
 
 // enableCmd represents the enable command
 var enableCmd = &cobra.Command{
-	Use:                   "enable [-S] [TYPE] [NAME...]",
-	Short:                 "Enable one or more instances. Only previously disabled instances are started",
-	Long:                  `Mark any matching instances as enabled and if this changes status then start the instance.`,
+	Use:   "enable [-S] [TYPE] [NAME...]",
+	Short: "Enable instances. Only previously disabled instances are started",
+	Long: `Mark any matching instances as enabled and if the -S flag is given
+then start the instance. Only those instances that were disabled are started
+when the -S flag is used.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

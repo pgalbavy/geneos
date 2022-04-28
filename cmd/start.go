@@ -30,9 +30,11 @@ import (
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start [-l] [TYPE] [NAME...]",
-	Short: "Start one or more instances",
-	Long: `Start one or more matching instances. All instances are run in the background and
-	STDOUT and STDERR are redirected to a '.txt' file in the instance directory.`,
+	Short: "Start instances",
+	Long: `Start one or more matching instances. All instances are run in
+the background and STDOUT and STDERR are redirected to a '.txt' file
+in the instance directory. You can watch the resulting logs files with the
+-l flag.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

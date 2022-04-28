@@ -23,15 +23,20 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	geneos "wonderland.org/geneos/internal/geneos"
+	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
 )
 
 // cleanCmd represents the clean command
 var cleanCmd = &cobra.Command{
-	Use:                   "clean [-F] [TYPE] [NAME...]",
-	Short:                 "Clean-up instance directories",
-	Long:                  `Clean-up instance directories, also restarting instances if doing a 'purge' clean.`,
+	Use:   "clean [-F] [TYPE] [NAME...]",
+	Short: "Clean-up instance directories",
+	Long: `Clean-up instance directories, also restarting instances if doing a
+'purge' clean. The patterns of files and directories that are cleaned
+up are set in the global configuration as "TYPECleanList" and
+"TYPEPurgeList" and can be seen vis the show command, and changes
+using set. The format is a PathListSeperator (typicallally a colon)
+separated list of globs.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
