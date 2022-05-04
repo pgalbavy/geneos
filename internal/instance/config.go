@@ -22,14 +22,14 @@ import (
 type ExtraConfigValues struct {
 	Includes   IncludeValues
 	Gateways   GatewayValues
-	Attributes NamedValues
-	Envs       NamedValues
+	Attributes StringSliceValues
+	Envs       StringSliceValues
 	Variables  VarValues
-	Types      TypeValues
+	Types      StringSliceValues
 }
 
 // return the KEY from "[TYPE:]KEY=VALUE"
-func keyOf(s string, sep string) string {
+func nameOf(s string, sep string) string {
 	r := strings.SplitN(s, sep, 2)
 	return r[0]
 }
@@ -57,7 +57,7 @@ func first(d ...interface{}) string {
 var fnmap template.FuncMap = template.FuncMap{
 	"first":   first,
 	"join":    filepath.Join,
-	"keyOf":   keyOf,
+	"nameOf":  nameOf,
 	"valueOf": valueOf,
 }
 
@@ -70,10 +70,10 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 	// var t *template.Template
 
 	t := template.New("").Funcs(fnmap).Option("missingkey=zero")
-	if t, err = t.ParseGlob(c.Host().GeneosPath(c.Type().String(), "templates", "*")); err != nil {
+	if t, err = t.ParseGlob(c.Host().GeneosJoinPath(c.Type().String(), "templates", "*")); err != nil {
 		t = template.New(name).Funcs(fnmap).Option("missingkey=zero")
 		// if there are no templates, use internal as a fallback
-		log.Printf("No templates found in %s, using internal defaults", c.Host().GeneosPath(c.Type().String(), "templates"))
+		log.Printf("No templates found in %s, using internal defaults", c.Host().GeneosJoinPath(c.Type().String(), "templates"))
 		t = template.Must(t.Parse(string(defaultTemplate)))
 	}
 
@@ -108,11 +108,14 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 // error check core values - e.g. Name
 func LoadConfig(c geneos.Instance) (err error) {
 	if err = ReadConfig(c); err == nil {
-		// XXX validation of paths in case people move configs
 		return
 	}
 
-	return readRCConfig(c)
+	err = readRCConfig(c)
+	if err != nil {
+		return os.ErrNotExist
+	}
+	return
 }
 
 // read an old style .rc file. parameters are one-per-line and are key=value
@@ -129,8 +132,7 @@ func readRCConfig(c geneos.Instance) (err error) {
 
 	confs := make(map[string]string)
 
-	rcFile := bytes.NewBuffer(rcdata)
-	scanner := bufio.NewScanner(rcFile)
+	scanner := bufio.NewScanner(bytes.NewBuffer(rcdata))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if len(line) == 0 || strings.HasPrefix(line, "#") {
@@ -141,14 +143,13 @@ func readRCConfig(c geneos.Instance) (err error) {
 			return fmt.Errorf("invalid line (must be key=value) %q: %w", line, geneos.ErrInvalidArgs)
 		}
 		key, value := s[0], s[1]
-		// strip double and single quotes and tabs and spaces from value
+		// trim double and single quotes and tabs and spaces from value
 		value = strings.Trim(value, "\"' \t")
 		confs[key] = value
 	}
 
 	var env []string
 	for k, v := range confs {
-		// XXX eval ${xxx} - either a config setting or an env var
 		if strings.Contains(v, "${") {
 			v = evalOldVars(c, v)
 		}
@@ -175,13 +176,21 @@ func readRCConfig(c geneos.Instance) (err error) {
 // first expand against viper, then env
 func evalOldVars(c geneos.Instance, in string) (out string) {
 	out = in
+
+	// replace aliases in output with kew keys
 	for k, v := range c.Type().Aliases {
+		// aliases are hardcoded, they will compile
+		// we could cache these, but it's probably not worth it
 		re := regexp.MustCompile(`(?i)\$\{` + k + `\}`)
 		out = re.ReplaceAllString(out, `$${`+v+"}")
 	}
+
+	// replace resulting keys with values
 	for _, k := range c.V().AllKeys() {
 		out = strings.ReplaceAll(out, "${"+k+"}", c.V().GetString(k))
 	}
+
+	// finally expand env vars
 	out = os.ExpandEnv(out)
 	return
 }
@@ -227,7 +236,8 @@ func ReadConfig(c geneos.Instance) (err error) {
 	if c.Host() != host.LOCAL {
 		client, err := c.Host().DialSFTP()
 		if err != nil {
-			logError.Println(err)
+			logError.Printf("connection to %s failed", c.Host().Name)
+			return err
 		}
 		c.V().SetFs(sftpfs.New(client))
 	}
@@ -312,11 +322,12 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 // Value types for multiple flags
 
 // XXX abstract this for a general case
-func SetMaps(c geneos.Instance, x ExtraConfigValues) (err error) {
+func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
+	// XXX attribute names MUST be case sensitive
 	if len(x.Attributes) > 0 {
-		attr := c.V().GetStringMapString("attributes")
-		for k, v := range x.Attributes {
-			attr[k] = v
+		attr := c.V().GetStringSlice("attributes")
+		for _, v := range x.Attributes {
+			attr = append(attr, v)
 		}
 		c.V().Set("attributes", attr)
 	}
@@ -330,7 +341,7 @@ func SetMaps(c geneos.Instance, x ExtraConfigValues) (err error) {
 	}
 
 	if len(x.Envs) > 0 {
-		envs := c.V().GetStringMapString("env")
+		envs := c.V().GetStringSlice("env")
 		for k, v := range x.Envs {
 			envs[k] = v
 		}
@@ -405,39 +416,18 @@ func (i *GatewayValues) Type() string {
 }
 
 // attribute - name=value
-type NamedValues map[string]string
+type StringSliceValues []string
 
-func (i *NamedValues) String() string {
+func (i *StringSliceValues) String() string {
 	return ""
 }
 
-func (i *NamedValues) Set(value string) error {
-	e := strings.SplitN(value, "=", 2)
-	if len(e) < 2 {
-		logError.Println("attributes must be in the format NAME=VALUE")
-		return geneos.ErrInvalidArgs
-	}
-	(*i)[e[0]] = e[1]
-	return nil
-}
-
-func (i *NamedValues) Type() string {
-	return "NAME=VALUE"
-}
-
-// attribute - name=value
-type TypeValues []string
-
-func (i *TypeValues) String() string {
-	return ""
-}
-
-func (i *TypeValues) Set(value string) error {
+func (i *StringSliceValues) Set(value string) error {
 	*i = append(*i, value)
 	return nil
 }
 
-func (i *TypeValues) Type() string {
+func (i *StringSliceValues) Type() string {
 	return "NAME"
 }
 

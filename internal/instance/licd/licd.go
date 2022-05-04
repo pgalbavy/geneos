@@ -138,21 +138,13 @@ func (l *Licds) SetConf(v *viper.Viper) {
 	l.Conf = v
 }
 
-func (l *Licds) Add(username string, params []string, tmpl string) (err error) {
+func (l *Licds) Add(username string, tmpl string) (err error) {
 	l.V().Set("port", instance.NextPort(l.InstanceHost, &Licd))
 	l.V().Set("user", username)
 
 	if err = instance.WriteConfig(l); err != nil {
 		logger.Error.Fatalln(err)
 	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(Licd, []string{l.Name()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	l.Load()
-	// }
 
 	// check tls config, create certs if found
 	if _, err = instance.ReadSigningCert(); err == nil {

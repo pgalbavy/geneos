@@ -155,21 +155,13 @@ func (w *Webservers) SetConf(v *viper.Viper) {
 	w.Conf = v
 }
 
-func (w *Webservers) Add(username string, params []string, tmpl string) (err error) {
+func (w *Webservers) Add(username string, tmpl string) (err error) {
 	w.V().Set("port", instance.NextPort(w.InstanceHost, &Webserver))
 	w.V().Set("user", username)
 
 	if err = instance.WriteConfig(w); err != nil {
 		return
 	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(Webserver, []string{w.Name()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	w.Load()
-	// }
 
 	// check tls config, create certs if found
 	if _, err = instance.ReadSigningCert(); err == nil {

@@ -18,7 +18,7 @@
 			<string>{{$dir := first .logdir .gatehome}}{{join $dir .logfile}}</string>
 		</var>
 		{{range $key, $value := .env -}}
-		<var name="_{{keyOf $value "="}}">
+		<var name="_{{nameOf $value "="}}">
 			<string>{{valueOf $value "="}}</string>
 		</var>
 		{{end}}

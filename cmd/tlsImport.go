@@ -52,7 +52,7 @@ keys are imported.`,
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		_, args, _ := processArgs(cmd)
+		_, args, _ := cmdArgsParams(cmd)
 		return TLSImport(args...)
 	},
 }

@@ -29,8 +29,9 @@ import (
 
 // moveCmd represents the move command
 var moveCmd = &cobra.Command{
-	Use:   "move [TYPE] SOURCE DESTINATION",
-	Short: "Move (or rename) instances",
+	Use:     "move [TYPE] SOURCE DESTINATION",
+	Aliases: []string{"mv"},
+	Short:   "Move (or rename) instances",
 	Long: `Move (or rename) instances. As any existing legacy .rc
 file is never changed, this will migrate the instance from .rc to
 JSON. The instance is stopped and restarted after the instance is
@@ -47,7 +48,7 @@ Moving across remotes is supported.`,
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandMove(ct, args, params)
 	},
 }

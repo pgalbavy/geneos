@@ -29,8 +29,9 @@ import (
 
 // copyCmd represents the copy command
 var copyCmd = &cobra.Command{
-	Use:   "copy [TYPE] SOURCE DESTINATION",
-	Short: "Copy instances",
+	Use:     "copy [TYPE] SOURCE DESTINATION",
+	Aliases: []string{"cp"},
+	Short:   "Copy instances",
 	Long: `Copy instances. As any existing legacy .rc file is never changed,
 this will migrate the instance from .rc to JSON. The instance is
 stopped and restarted after the instance is moved. It is an error to
@@ -47,7 +48,7 @@ Moving across remotes is supported.`,
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandCopy(ct, args, params)
 	},
 }

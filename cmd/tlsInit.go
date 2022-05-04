@@ -48,7 +48,7 @@ them but configurations will not be rebuilt.`,
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		// _, _, params := processArgs(cmd)
+		// _, _, params := processArgsParams(cmd)
 		return TLSInit()
 	},
 }
@@ -69,37 +69,30 @@ func TLSInit() (err error) {
 		logError.Fatalln(err)
 	}
 
-	rootCert, err := newRootCA(tlsPath)
-	if err != nil {
+	if err := newRootCA(tlsPath); err != nil {
 		logError.Fatalln(err)
 	}
 
-	interCert, err := newIntrCA(tlsPath)
-	if err != nil {
+	if err := newIntrCA(tlsPath); err != nil {
 		logError.Fatalln(err)
 	}
-
-	// concatenate a chain
-	if err = host.LOCAL.WriteCerts(filepath.Join(tlsPath, "chain.pem"), rootCert, interCert); err != nil {
-		logError.Fatalln(err)
-	}
-	log.Println("created chain.pem")
 
 	return TLSSync()
 }
 
-func newRootCA(dir string) (cert *x509.Certificate, err error) {
+func newRootCA(dir string) (err error) {
 	// create rootCA.pem / rootCA.key
+	var cert *x509.Certificate
 	rootCertPath := filepath.Join(dir, geneos.RootCAFile+".pem")
 	rootKeyPath := filepath.Join(dir, geneos.RootCAFile+".key")
 
-	if cert, err = instance.ReadRootCert(); err == nil {
+	if _, err = instance.ReadRootCert(); err == nil {
 		log.Println(geneos.RootCAFile, "already exists")
 		return
 	}
 	serial, err := rand.Prime(rand.Reader, 64)
 	if err != nil {
-		return nil, err
+		return
 	}
 	template := x509.Certificate{
 		SerialNumber: serial,
@@ -130,11 +123,12 @@ func newRootCA(dir string) (cert *x509.Certificate, err error) {
 	return
 }
 
-func newIntrCA(dir string) (cert *x509.Certificate, err error) {
+func newIntrCA(dir string) (err error) {
+	var cert *x509.Certificate
 	intrCertPath := filepath.Join(dir, geneos.SigningCertFile+".pem")
 	intrKeyPath := filepath.Join(dir, geneos.SigningCertFile+".key")
 
-	if cert, err = instance.ReadSigningCert(); err == nil {
+	if _, err = instance.ReadSigningCert(); err == nil {
 		log.Println(geneos.SigningCertFile, "already exists")
 		return
 	}

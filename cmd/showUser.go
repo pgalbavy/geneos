@@ -47,7 +47,7 @@ to quickly create a Cobra application.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandShowUser(ct, args, params)
 	},
 }

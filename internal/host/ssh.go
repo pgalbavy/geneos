@@ -105,7 +105,6 @@ func (h *Host) Dial() (s *ssh.Client, err error) {
 		}
 		logDebug.Println("remote opened", h.String(), dest, user)
 		sshSessions.Store(user+"@"+dest, s)
-		// r.sshClient = s
 	}
 	return
 }

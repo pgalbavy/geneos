@@ -45,7 +45,7 @@ var lsHostCmd = &cobra.Command{
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandLSHost(ct, args, params)
 	},
 }

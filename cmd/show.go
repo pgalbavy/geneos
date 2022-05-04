@@ -63,7 +63,7 @@ to prevent visibility in casual viewing.`,
 			log.Println(string(j))
 			return nil
 		}
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandShow(ct, args, params)
 	},
 }

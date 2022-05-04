@@ -22,7 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -36,9 +36,17 @@ var tlsSyncCmd = &cobra.Command{
 	Short: "Sync remote hosts certificate chain files",
 	Long: `Create a chain.pem file made up of the root and signing
 certificates and then copy them to all remote hosts. This can
-then be used to verify connections from components.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("tlsSync called")
+then be used to verify connections from components.
+
+The root certificate is optional, b ut the signing certificate must
+exist.`,
+	SilenceUsage:          true,
+	DisableFlagsInUseLine: true,
+	Annotations: map[string]string{
+		"wildcard": "false",
+	},
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		return TLSSync()
 	},
 }
 
@@ -49,19 +57,24 @@ func init() {
 
 // if there is a local tls/chain.pem file then copy it to all remotes
 // overwriting any existing versions
+//
+// XXX Should we do more with certpools ?
 func TLSSync() (err error) {
-	rootCert, _ := instance.ReadRootCert()
-	geneosCert, _ := instance.ReadSigningCert()
+	rootCert, err := instance.ReadRootCert()
+	if err != nil {
+		rootCert = nil
+	}
+	geneosCert, err := instance.ReadSigningCert()
+	if err != nil {
+		return os.ErrNotExist
+	}
 
 	if rootCert == nil && geneosCert == nil {
 		return
 	}
 
 	for _, r := range host.AllHosts() {
-		if r == host.LOCAL {
-			continue
-		}
-		tlsPath := r.GeneosPath("tls")
+		tlsPath := r.GeneosJoinPath("tls")
 		if err = r.MkdirAll(tlsPath, 0775); err != nil {
 			return
 		}

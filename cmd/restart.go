@@ -45,7 +45,7 @@ both start and stop.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandRestart(ct, args, params)
 	},
 }

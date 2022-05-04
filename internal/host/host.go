@@ -163,7 +163,7 @@ func Get(remote Name) (r *Host) {
 
 // return an absolute path anchored in the root directory of the remote
 // this can also be LOCAL
-func (r *Host) GeneosPath(paths ...string) string {
+func (r *Host) GeneosJoinPath(paths ...string) string {
 	return filepath.Join(append([]string{r.V().GetString("geneos")}, paths...)...)
 }
 

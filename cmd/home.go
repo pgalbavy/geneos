@@ -47,7 +47,7 @@ root directory being printed.`,
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandHome(ct, args, params)
 	},
 }

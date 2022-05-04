@@ -29,8 +29,9 @@ import (
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete [-F] [TYPE] [NAME...]",
-	Short: "Delete an instance. Instance must be stopped",
+	Use:     "delete [-F] [TYPE] [NAME...]",
+	Aliases: []string{"rm"},
+	Short:   "Delete an instance. Instance must be stopped",
 	Long: `Delete the matching instances. This will only work on
 instances that are disabled to prevent accidental deletion. The
 instance directory is removed without being backed-up. The user
@@ -42,7 +43,7 @@ partial deletion cannot be protected against.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return instance.ForAll(ct, deleteInstance, args, params)
 	},
 }

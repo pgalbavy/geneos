@@ -51,7 +51,7 @@ same as for the main ls command.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandTLSLs(ct, args, params)
 	},
 }

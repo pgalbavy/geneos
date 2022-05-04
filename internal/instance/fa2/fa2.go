@@ -138,21 +138,13 @@ func (n *FA2s) SetConf(v *viper.Viper) {
 	n.Conf = v
 }
 
-func (n *FA2s) Add(username string, params []string, tmpl string) (err error) {
+func (n *FA2s) Add(username string, tmpl string) (err error) {
 	n.V().Set("port", instance.NextPort(n.InstanceHost, &FA2))
 	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		return
 	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(san.San, []string{n.Name()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	n.Load()
-	// }
 
 	// check tls config, create certs if found
 	if _, err = instance.ReadSigningCert(); err == nil {

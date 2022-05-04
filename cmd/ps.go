@@ -46,7 +46,7 @@ var psCmd = &cobra.Command{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandPS(ct, args, params)
 	},
 }

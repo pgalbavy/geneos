@@ -69,7 +69,7 @@ this time.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandSet(ct, args, params)
 	},
 }
@@ -89,10 +89,10 @@ func init() {
 var setCmdExtras = instance.ExtraConfigValues{
 	Includes:   instance.IncludeValues{},
 	Gateways:   instance.GatewayValues{},
-	Attributes: instance.NamedValues{},
-	Envs:       instance.NamedValues{},
+	Attributes: instance.StringSliceValues{},
+	Envs:       instance.StringSliceValues{},
 	Variables:  instance.VarValues{},
-	Types:      instance.TypeValues{},
+	Types:      instance.StringSliceValues{},
 }
 
 func commandSet(ct *geneos.Component, args, params []string) error {
@@ -103,7 +103,7 @@ func setInstance(c geneos.Instance, params []string) (err error) {
 	logDebug.Println("c", c, "params", params)
 
 	// walk through any flags passed
-	instance.SetMaps(c, setCmdExtras)
+	instance.SetExtendedValues(c, setCmdExtras)
 
 	for _, arg := range params {
 		s := strings.SplitN(arg, "=", 2)

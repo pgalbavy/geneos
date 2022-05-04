@@ -76,7 +76,7 @@ components created.`,
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandInit(ct, args, params)
 	},
 }
@@ -116,10 +116,10 @@ var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, in
 var initCmdExtras = instance.ExtraConfigValues{
 	Includes:   instance.IncludeValues{},
 	Gateways:   instance.GatewayValues{},
-	Attributes: instance.NamedValues{},
-	Envs:       instance.NamedValues{},
+	Attributes: instance.StringSliceValues{},
+	Envs:       instance.StringSliceValues{},
 	Variables:  instance.VarValues{},
-	Types:      instance.TypeValues{},
+	Types:      instance.StringSliceValues{},
 }
 
 //
@@ -140,7 +140,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 
 	// rewrite local templates and exit
 	if initCmdTemplates {
-		gatewayTemplates := host.LOCAL.GeneosPath(gateway.Gateway.String(), "templates")
+		gatewayTemplates := host.LOCAL.GeneosJoinPath(gateway.Gateway.String(), "templates")
 		host.LOCAL.MkdirAll(gatewayTemplates, 0775)
 		tmpl := gateway.GatewayTemplate
 		if initCmdGatewayTemplate != "" {
@@ -159,7 +159,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		}
 		log.Println("gateway instance template written to", filepath.Join(gatewayTemplates, gateway.GatewayInstanceTemplate))
 
-		sanTemplates := host.LOCAL.GeneosPath(san.San.String(), "templates")
+		sanTemplates := host.LOCAL.GeneosJoinPath(san.San.String(), "templates")
 		host.LOCAL.MkdirAll(sanTemplates, 0775)
 		tmpl = san.SanTemplate
 		if initCmdSANTemplate != "" {
@@ -200,7 +200,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		if tmpl, err = geneos.ReadLocalFileOrURL(initCmdGatewayTemplate); err != nil {
 			return
 		}
-		if err := host.LOCAL.WriteFile(host.LOCAL.GeneosPath(gateway.Gateway.String(), "templates", gateway.GatewayDefaultTemplate), tmpl, 0664); err != nil {
+		if err := host.LOCAL.WriteFile(host.LOCAL.GeneosJoinPath(gateway.Gateway.String(), "templates", gateway.GatewayDefaultTemplate), tmpl, 0664); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -210,7 +210,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		if tmpl, err = geneos.ReadLocalFileOrURL(initCmdSANTemplate); err != nil {
 			return
 		}
-		if err = host.LOCAL.WriteFile(host.LOCAL.GeneosPath(san.San.String(), "templates", san.SanDefaultTemplate), tmpl, 0664); err != nil {
+		if err = host.LOCAL.WriteFile(host.LOCAL.GeneosJoinPath(san.San.String(), "templates", san.SanDefaultTemplate), tmpl, 0664); err != nil {
 			return
 		}
 	}
@@ -238,12 +238,15 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		localhost := []string{"localhost@" + r.String()}
 		w := []string{"demo@" + r.String()}
 		commandInstall(&gateway.Gateway, e, e)
-		commandAdd(&gateway.Gateway, initCmdExtras, g, params)
+		commandAdd(&gateway.Gateway, initCmdExtras, g)
 		commandSet(&gateway.Gateway, g, []string{"GateOpts=-demo"})
 		commandInstall(&san.San, e, e)
-		commandAdd(&san.San, initCmdExtras, localhost, []string{"Gateways=localhost"})
+		if len(initCmdExtras.Gateways) == 0 {
+			initCmdExtras.Gateways.Set("localhost")
+		}
+		commandAdd(&san.San, initCmdExtras, localhost)
 		commandInstall(&webserver.Webserver, e, e)
-		commandAdd(&webserver.Webserver, initCmdExtras, w, params)
+		commandAdd(&webserver.Webserver, initCmdExtras, w)
 		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 		return
@@ -263,7 +266,7 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		}
 		s = []string{sanname}
 		commandInstall(&san.San, e, e)
-		commandAdd(&san.San, initCmdExtras, s, params)
+		commandAdd(&san.San, initCmdExtras, s)
 		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 
@@ -281,14 +284,17 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 		name := []string{initCmdName}
 		localhost := []string{"localhost@" + r.String()}
 		commandInstall(&licd.Licd, e, e)
-		commandAdd(&licd.Licd, initCmdExtras, name, params)
+		commandAdd(&licd.Licd, initCmdExtras, name)
 		commandImport(&licd.Licd, name, []string{"geneos.lic=" + initCmdAll})
 		commandInstall(&gateway.Gateway, e, e)
-		commandAdd(&gateway.Gateway, initCmdExtras, name, params)
+		commandAdd(&gateway.Gateway, initCmdExtras, name)
 		commandInstall(&san.San, e, e)
-		commandAdd(&san.San, initCmdExtras, localhost, []string{"Gateways=localhost"})
+		if len(initCmdExtras.Gateways) == 0 {
+			initCmdExtras.Gateways.Set("localhost")
+		}
+		commandAdd(&san.San, initCmdExtras, localhost)
 		commandInstall(&webserver.Webserver, e, e)
-		commandAdd(&webserver.Webserver, initCmdExtras, name, params)
+		commandAdd(&webserver.Webserver, initCmdExtras, name)
 		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 		return nil

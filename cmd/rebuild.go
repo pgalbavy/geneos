@@ -38,7 +38,7 @@ var rebuildCmd = &cobra.Command{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return instance.ForAll(ct, rebuildInstance, args, params)
 	},
 }
@@ -57,7 +57,7 @@ func rebuildInstance(c geneos.Instance, params []string) (err error) {
 	if err = c.Rebuild(rebuildCmdForce); err != nil {
 		return
 	}
-	log.Println(c, "configuration rebuilt (if supported)")
+	logDebug.Println(c, "configuration rebuilt (if supported)")
 	if !rebuildCmdReload {
 		return
 	}

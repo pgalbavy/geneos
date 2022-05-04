@@ -452,7 +452,6 @@ func ForAll(ct *geneos.Component, fn func(geneos.Instance, []string) error, args
 		if len(cs) == 0 {
 			log.Println("no matches for", ct, name)
 			continue
-			// return os.ErrNotExist
 		}
 		n++
 		for _, c := range cs {

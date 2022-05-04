@@ -93,10 +93,10 @@ func Init(r *host.Host, ct *geneos.Component) {
 	if err := geneos.MakeComponentDirs(r, ct); err != nil {
 		logger.Error.Fatalln(err)
 	}
-	if err := r.WriteFile(r.GeneosPath("gateway", "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
+	if err := r.WriteFile(r.GeneosJoinPath("gateway", "templates", GatewayDefaultTemplate), GatewayTemplate, 0664); err != nil {
 		logger.Error.Fatalln(err)
 	}
-	if err := r.WriteFile(r.GeneosPath("gateway", "templates", GatewayInstanceTemplate), InstanceTemplate, 0664); err != nil {
+	if err := r.WriteFile(r.GeneosJoinPath("gateway", "templates", GatewayInstanceTemplate), InstanceTemplate, 0664); err != nil {
 		logger.Error.Fatalln(err)
 	}
 }
@@ -178,27 +178,17 @@ func (g *Gateways) SetConf(v *viper.Viper) {
 	g.Conf = v
 }
 
-func (g *Gateways) Add(username string, params []string, tmpl string) (err error) {
+func (g *Gateways) Add(username string, tmpl string) (err error) {
 	g.V().Set("port", instance.NextPort(g.InstanceHost, &Gateway))
 	g.V().Set("user", username)
 	g.V().Set("configrebuild", "initial")
 	g.V().Set("includes", make(map[int]string))
-
-	logger.Debug.Println(g, username, params)
 
 	// try to save config early
 	if err = instance.WriteConfig(g); err != nil {
 		log.Fatalln(err)
 		return
 	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(Gateway, []string{g.Name()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	g.Load()
-	// }
 
 	// check tls config, create certs if found
 	if _, err = instance.ReadSigningCert(); err == nil {
@@ -236,10 +226,10 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 
 	// if we have certs then connect to Licd securely
 	if secure && g.V().GetString("licdsecure") != "true" {
-		g.V().Set("licsecure", "true")
+		g.V().Set("licdsecure", "true")
 		changed = true
-	} else if !secure && g.V().GetString("licsecure") == "true" {
-		g.V().Set("licsecure", "false")
+	} else if !secure && g.V().GetString("licdsecure") == "true" {
+		g.V().Set("licdsecure", "false")
 		changed = true
 	}
 
@@ -309,7 +299,7 @@ func (g *Gateways) Command() (args, env []string) {
 			args = append(args, "-licd-secure")
 		}
 		args = append(args, "-ssl-certificate", g.V().GetString("certificate"))
-		chainfile := g.Host().GeneosPath("tls", "chain.pem")
+		chainfile := g.Host().GeneosJoinPath("tls", "chain.pem")
 		args = append(args, "-ssl-certificate-chain", chainfile)
 	} else if g.V().GetString("licdsecure") != "" && g.V().GetString("licdsecure") == "true" {
 		args = append(args, "-licd-secure")

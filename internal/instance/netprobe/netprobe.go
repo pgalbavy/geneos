@@ -137,21 +137,13 @@ func (n *Netprobes) SetConf(v *viper.Viper) {
 	n.Conf = v
 }
 
-func (n *Netprobes) Add(username string, params []string, tmpl string) (err error) {
+func (n *Netprobes) Add(username string, tmpl string) (err error) {
 	n.V().Set("port", instance.NextPort(n.Host(), &Netprobe))
 	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {
 		return
 	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(Netprobe, []string{n.Name()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	n.Load()
-	// }
 
 	// check tls config, create certs if found
 	if _, err = instance.ReadSigningCert(); err == nil {

@@ -24,7 +24,6 @@ package cmd
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -34,26 +33,39 @@ import (
 
 // addHostCmd represents the addRemote command
 var addHostCmd = &cobra.Command{
-	Use:                   "host [-I] NAME [SSHURL]",
+	Use:                   "host [-I] [NAME] [SSHURL]",
 	Aliases:               []string{"remote"},
 	Short:                 "Add a remote host",
 	Long:                  `Add a remote host for integration with other commands.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
+	Args:                  cobra.RangeArgs(1, 2),
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		_, args, params := processArgs(cmd)
-		if len(args) == 0 {
-			return geneos.ErrInvalidArgs
+		_, args := cmdArgs(cmd)
+
+		var h *host.Host
+		sshurl, err := url.Parse(args[0])
+		if err == nil && sshurl.Scheme != "" {
+			h = host.Get(host.Name(sshurl.Hostname()))
+		} else {
+			h = host.Get(host.Name(args[0]))
+			if len(args) > 1 {
+				if sshurl, err = url.Parse(args[1]); err != nil {
+					logError.Printf("invalid ssh url %q", args[1])
+					return geneos.ErrInvalidArgs
+				}
+			} else {
+				sshurl = &url.URL{
+					Scheme: "ssh",
+					Host:   args[0],
+				}
+			}
 		}
-		logDebug.Println(args[0])
-		h := host.Get(host.Name(args[0]))
-		if h.Loaded() {
-			return fmt.Errorf("host %q already exists", args[0])
-		}
-		return addHost(h, viper.GetString("defaultuser"), params)
+
+		return addHost(h, sshurl)
 	},
 }
 
@@ -66,59 +78,43 @@ func init() {
 
 var addHostCmdInit bool
 
-func addHost(h *host.Host, username string, params []string) (err error) {
-	if len(params) == 0 {
-		// default - try ssh to a host with the same name as remote
-		params = []string{"ssh://" + string(h.Name)}
+func addHost(h *host.Host, sshurl *url.URL) (err error) {
+
+	if h.Loaded() {
+		return fmt.Errorf("host %q already exists", h)
 	}
 
-	var remurl string
+	if sshurl == nil {
+		return geneos.ErrInvalidArgs
+	}
+
+	if sshurl.Scheme != "ssh" {
+		return fmt.Errorf("unsupported scheme (ssh only at the moment): %q", sshurl.Scheme)
+	}
+
+	h.V().SetDefault("hostname", sshurl.Hostname())
 	h.V().SetDefault("port", 22)
+	h.V().SetDefault("username", viper.GetString("defaultuser"))
+	// XXX default to remote user's home dir, not local
+	h.V().SetDefault("geneos", host.Geneos())
 
-	if strings.HasPrefix(params[0], "ssh://") {
-		remurl = params[0]
-		params = params[1:]
-	} else if strings.HasPrefix(params[0], "/") {
-		remurl = "ssh://" + h.String() + params[0]
-		params = params[1:]
-	} else {
-		remurl = "ssh://" + h.String()
-	}
-
-	// if err = initFlagSet.Parse(params); err != nil {
-	// 	return
-	// }
-
-	u, err := url.Parse(remurl)
-	if err != nil {
-		return
-	}
-
-	if u.Scheme != "ssh" {
-		return fmt.Errorf("unsupported scheme (only ssh at the moment): %q", u.Scheme)
-	}
-
-	// if no hostname in URL fall back to remote name (e.g. ssh:///path)
-	h.V().Set("hostname", u.Host)
-	if u.Host == "" {
+	// now disassemble URL
+	if sshurl.Hostname() == "" {
 		h.V().Set("hostname", h.Name)
 	}
 
-	if u.Port() != "" {
-		h.V().Set("port", u.Port())
+	if sshurl.Port() != "" {
+		h.V().Set("port", sshurl.Port())
 	}
 
-	if u.User.Username() != "" {
-		username = u.User.Username()
+	if sshurl.User.Username() != "" {
+		h.V().Set("username", sshurl.User.Username())
 	}
-	h.V().Set("username", username)
 
-	// XXX default to remote user's home dir, not local
-	h.V().Set("geneos", host.Geneos())
-	if u.Path != "" {
+	if sshurl.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
-		h.V().Set("geneos", u.Path)
+		h.V().Set("geneos", sshurl.Path)
 	}
 
 	if err = host.WriteConfig(h); err != nil {
@@ -133,15 +129,6 @@ func addHost(h *host.Host, username string, params []string) (err error) {
 	if err = host.WriteConfig(h); err != nil {
 		return
 	}
-
-	// apply any extra args to settings
-	// if len(params) > 0 {
-	// 	if err = commandSet(Remote, []string{r.String()}, params); err != nil {
-	// 		return
-	// 	}
-	// 	r.Unload()
-	// 	r.Load()
-	// }
 
 	if addHostCmdInit {
 		// initialise the remote directory structure, but perhaps ignore errors

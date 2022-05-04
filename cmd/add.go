@@ -50,8 +50,8 @@ Gateways and SANs are given a minimal configuration file based on the templates 
 	},
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
-		return commandAdd(ct, addCmdExtras, args, params)
+		ct, args := cmdArgs(cmd)
+		return commandAdd(ct, addCmdExtras, args)
 	},
 }
 
@@ -77,17 +77,17 @@ var addCmdStart, addCmdLogs bool
 var addCmdExtras = instance.ExtraConfigValues{
 	Includes:   instance.IncludeValues{},
 	Gateways:   instance.GatewayValues{},
-	Attributes: instance.NamedValues{},
-	Envs:       instance.NamedValues{},
+	Attributes: instance.StringSliceValues{},
+	Envs:       instance.StringSliceValues{},
 	Variables:  instance.VarValues{},
-	Types:      instance.TypeValues{},
+	Types:      instance.StringSliceValues{},
 }
 
 // Add an instance
 //
 // XXX argument validation is minimal
 //
-func commandAdd(ct *geneos.Component, extras instance.ExtraConfigValues, args []string, params []string) (err error) {
+func commandAdd(ct *geneos.Component, extras instance.ExtraConfigValues, args []string) (err error) {
 	var username string
 
 	// check validity and reserved words here
@@ -116,11 +116,11 @@ func commandAdd(ct *geneos.Component, extras instance.ExtraConfigValues, args []
 		return
 	}
 
-	if err = c.Add(username, params, addCmdTemplate); err != nil {
+	if err = c.Add(username, addCmdTemplate); err != nil {
 		logError.Fatalln(err)
 	}
 
-	instance.SetMaps(c, extras)
+	instance.SetExtendedValues(c, extras)
 	if err = instance.WriteConfig(c); err != nil {
 		return
 	}

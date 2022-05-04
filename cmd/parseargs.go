@@ -44,9 +44,10 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 		return
 	}
 
-	logger.Debug.Println("rawargs, params", rawargs, params)
+	logger.Debug.Println("rawargs:", rawargs)
 
 	// filter in place - pull out all args containing '=' into params
+	// after rebuild this should only apply to 'import'
 	n := 0
 	for _, a := range rawargs {
 		// if !instance.ValidInstanceName(a) {
@@ -200,12 +201,17 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	logger.Debug.Println("ct, args, params", ct, args, params)
 }
 
-func processArgs(cmd *cobra.Command) (ct *geneos.Component, args, params []string) {
+func cmdArgs(cmd *cobra.Command) (ct *geneos.Component, args []string) {
 	logDebug.Println("ct", cmd.Annotations["ct"], ct)
 	ct = geneos.ParseComponentName(cmd.Annotations["ct"])
 	if err := json.Unmarshal([]byte(cmd.Annotations["args"]), &args); err != nil {
 		logDebug.Println(err)
 	}
+	return
+}
+
+func cmdArgsParams(cmd *cobra.Command) (ct *geneos.Component, args, params []string) {
+	ct, args = cmdArgs(cmd)
 	if err := json.Unmarshal([]byte(cmd.Annotations["params"]), &params); err != nil {
 		logDebug.Println(err)
 	}

@@ -576,6 +576,9 @@ func (r *Host) WriteCerts(path string, certs ...*x509.Certificate) (err error) {
 	logDebug.Println("write certs to", path)
 	var certsPEM []byte
 	for _, cert := range certs {
+		if cert == nil {
+			continue
+		}
 		p := pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: cert.Raw,

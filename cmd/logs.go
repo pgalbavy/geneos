@@ -52,7 +52,7 @@ When more than one instance matches each output block is prefixed by instance de
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandLogs(ct, args, params)
 	},
 }

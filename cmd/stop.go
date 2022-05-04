@@ -42,7 +42,7 @@ a SIGKILL.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return instance.ForAll(ct, stopInstance, args, params)
 	},
 }

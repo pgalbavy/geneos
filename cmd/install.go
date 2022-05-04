@@ -65,7 +65,7 @@ applies when using -U.
 		"wildcard": "false",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandInstall(ct, args, params)
 	},
 }
@@ -87,15 +87,15 @@ func init() {
 var installCmdLocal, installCmdNoSave, installCmdUpdate bool
 var installCmdBase, installCmdRemote, installCmdOverride string
 
-func commandInstall(ct *geneos.Component, args []string, params []string) (err error) {
+func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 	// first, see if user wants a particular version
 	version := "latest"
 
-	for n := 0; n < len(params); n++ {
-		if geneos.MatchVersion(params[n]) {
-			version = params[n]
-			params[n] = params[len(params)-1]
-			params = params[:len(params)-1]
+	for n := 0; n < len(args); n++ {
+		if geneos.MatchVersion(args[n]) {
+			version = args[n]
+			args[n] = args[len(args)-1]
+			args = args[:len(args)-1]
 		}
 	}
 
@@ -139,7 +139,7 @@ func commandInstall(ct *geneos.Component, args []string, params []string) (err e
 	}
 
 	// no component type means we might want file or url or auto url
-	if len(params) == 0 {
+	if len(args) == 0 {
 		// normal download here
 		if installCmdLocal {
 			log.Println("install -l (local) flag with no component or file/url")
@@ -165,9 +165,9 @@ func commandInstall(ct *geneos.Component, args []string, params []string) (err e
 		return nil
 	}
 
-	// work through command line params and try to install them using the naming format
+	// work through command line args and try to install them using the naming format
 	// of standard downloads - fix versioning
-	for _, file := range params {
+	for _, file := range args {
 		f, filename, err := geneos.OpenLocalFileOrURL(file)
 		if err != nil {
 			log.Println(err)

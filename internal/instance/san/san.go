@@ -78,7 +78,7 @@ func Init(r *host.Host, ct *geneos.Component) {
 	if err := geneos.MakeComponentDirs(r, ct); err != nil {
 		logger.Error.Fatalln(err)
 	}
-	if err := r.WriteFile(r.GeneosPath(ct.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
+	if err := r.WriteFile(r.GeneosJoinPath(ct.String(), "templates", SanDefaultTemplate), SanTemplate, 0664); err != nil {
 		logger.Error.Fatalln(err)
 	}
 }
@@ -164,7 +164,7 @@ func (s *Sans) SetConf(v *viper.Viper) {
 	s.Conf = v
 }
 
-func (s *Sans) Add(username string, params []string, tmpl string) (err error) {
+func (s *Sans) Add(username string, tmpl string) (err error) {
 	s.V().Set("port", instance.NextPort(s.InstanceHost, &San))
 	s.V().Set("user", username)
 	s.V().Set("configrebuild", "always")

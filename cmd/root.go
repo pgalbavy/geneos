@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -142,6 +143,8 @@ func initConfig() {
 	}
 
 	viper.BindEnv("geneos", "ITRS_HOME")
+	u, _ := user.Current()
+	viper.SetDefault("defaultuser", u.Username)
 
 	if cfgFile != "" {
 		// Use config file from the flag.

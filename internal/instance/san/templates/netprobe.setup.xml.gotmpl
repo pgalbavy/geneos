@@ -14,7 +14,7 @@
 				{{if .attributes -}}
 				<attributes>
 					{{range $key, $value := .attributes -}}
-					<attribute name="{{$key}}">{{$value}}</attribute>
+					<attribute name="{{nameOf $value "="}}">{{valueOf $value "="}}</attribute>
 					{{end}}
 				</attributes>
 				{{- end}}
@@ -22,7 +22,7 @@
 				<variables>
 					{{range $key, $value := .variables -}}
 					<var name="{{$key}}">
-						<{{keyOf $value ":"}}>{{valueOf $value ":"}}</{{keyOf $value ":"}}>
+						<{{nameOf $value ":"}}>{{valueOf $value ":"}}</{{nameOf $value ":"}}>
 					</var>
 					{{end}}
 				</variables>

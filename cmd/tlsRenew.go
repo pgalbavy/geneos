@@ -38,16 +38,18 @@ import (
 
 // tlsRenewCmd represents the tlsRenew command
 var tlsRenewCmd = &cobra.Command{
-	Use:                   "renew",
-	Short:                 "Renew certificates",
-	Long:                  `Renew certificates.`,
+	Use:   "renew",
+	Short: "Renew instance certificates",
+	Long: `Renew instance certificates. All matching instances have a new
+certificate issued using the current signing certificate but the
+private key file is left unchanged if it exists.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return instance.ForAll(ct, renewInstanceCert, args, params)
 	},
 }

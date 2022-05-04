@@ -60,7 +60,7 @@ file can be imported at a time.`,
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := processArgs(cmd)
+		ct, args, params := cmdArgsParams(cmd)
 		return commandImport(ct, args, params)
 	},
 }
@@ -133,7 +133,7 @@ func importCommons(r *host.Host, ct *geneos.Component, params []string) (err err
 		logError.Fatalln("no file/url provided")
 	}
 
-	dir := r.GeneosPath(ct.String(), ct.String()+"_"+common)
+	dir := r.GeneosJoinPath(ct.String(), ct.String()+"_"+common)
 	for _, source := range params {
 		if err = instance.ImportFile(r, dir, viper.GetString("defaultuser"), source); err != nil {
 			return
