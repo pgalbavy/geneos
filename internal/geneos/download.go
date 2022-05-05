@@ -26,46 +26,8 @@ func init() {
 // how to split an archive name into type and version
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|file-agent|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-type dload struct {
-	override  string
-	local     bool
-	nosave    bool
-	overwrite bool
-	version   string
-	basename  string
-}
-
-type DownloadOptions func(*dload)
-
-func NoSave(n bool) DownloadOptions {
-	return func(d *dload) { d.nosave = n }
-}
-
-func LocalOnly(l bool) DownloadOptions {
-	return func(d *dload) { d.local = l }
-}
-
-func Overwrite(o bool) DownloadOptions {
-	return func(d *dload) { d.overwrite = o }
-}
-
-func Override(s string) DownloadOptions {
-	return func(d *dload) { d.override = s }
-}
-
-func Version(v string) DownloadOptions {
-	return func(d *dload) { d.version = v }
-}
-
-func Basename(b string) DownloadOptions {
-	return func(d *dload) { d.basename = b }
-}
-
-func Download(r *host.Host, ct *Component, options ...DownloadOptions) (err error) {
-	d := &dload{}
-	for _, opt := range options {
-		opt(d)
-	}
+func Download(r *host.Host, ct *Component, options ...GeneosOptions) (err error) {
+	// d := doOptions(options...)
 	switch ct {
 	case nil:
 		for _, t := range RealComponents() {

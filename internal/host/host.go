@@ -76,7 +76,7 @@ func New(name Name) *Host {
 	c := &Host{}
 	c.Conf = viper.New()
 	c.Name = name
-	c.V().Set("geneos", Geneos())
+	c.V().SetDefault("geneos", Geneos())
 	c.Home = filepath.Join(c.V().GetString("geneos"), "remotes", string(c.Name))
 
 	// fill this in directly as there is no config file to load

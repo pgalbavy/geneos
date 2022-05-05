@@ -120,7 +120,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 				if err = geneos.MakeComponentDirs(h, ct); err != nil {
 					return err
 				}
-				if err = geneos.Unarchive(h, ct, f, r, geneos.Basename(installCmdBase), geneos.Overwrite(installCmdUpdate), geneos.Override(installCmdOverride)); err != nil {
+				if err = geneos.Unarchive(h, ct, f, r, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
 					logError.Println(err)
 					continue
 				}
@@ -129,7 +129,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
-			if err = geneos.Unarchive(h, ct, f, r, geneos.Basename(installCmdBase), geneos.Overwrite(installCmdUpdate), geneos.Override(installCmdOverride)); err != nil {
+			if err = geneos.Unarchive(h, ct, f, r, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
 				return err
 			}
 			logDebug.Println("installed", ct.String())
@@ -157,7 +157,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 				return err
 			}
 			// if err = geneos.Download(r, ct, version, installCmdBase, installCmdUpdate); err != nil {
-			if err = geneos.Download(r, ct, geneos.Version(version), geneos.Basename(installCmdBase), geneos.Overwrite(installCmdUpdate), geneos.LocalOnly(installCmdLocal)); err != nil {
+			if err = geneos.Download(r, ct, geneos.Version(version), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.LocalOnly(installCmdLocal)); err != nil {
 				logError.Println(err)
 				continue
 			}
@@ -182,7 +182,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 				if err = geneos.MakeComponentDirs(r, ct); err != nil {
 					return err
 				}
-				if err = geneos.Unarchive(r, ct, filename, f, geneos.Basename(installCmdBase), geneos.Overwrite(installCmdUpdate), geneos.Override(installCmdOverride)); err != nil {
+				if err = geneos.Unarchive(r, ct, filename, f, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
 					logError.Println(err)
 					continue
 				}
@@ -190,7 +190,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 		} else {
 			r := host.Get(host.Name(installCmdRemote))
 			geneos.MakeComponentDirs(r, ct)
-			if err = geneos.Unarchive(r, ct, filename, f, geneos.Basename(installCmdBase), geneos.Overwrite(installCmdUpdate), geneos.Override(installCmdOverride)); err != nil {
+			if err = geneos.Unarchive(r, ct, filename, f, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
 				return err
 			}
 			logDebug.Println("installed", ct.String())

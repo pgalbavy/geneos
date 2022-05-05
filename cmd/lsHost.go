@@ -71,12 +71,12 @@ func commandLSHost(ct *geneos.Component, args []string, params []string) (err er
 		err = loopHosts(lsInstanceJSONHosts)
 	case lsHostCmdCSV:
 		csvWriter = csv.NewWriter(log.Writer())
-		csvWriter.Write([]string{"Type", "Name", "Disabled", "Username", "Hostname", "Port", "Geneos"})
+		csvWriter.Write([]string{"Type", "Name", "Disabled", "Username", "Hostname", "Port", "Directory"})
 		err = loopHosts(lsInstanceCSVHosts)
 		csvWriter.Flush()
 	default:
 		lsTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(lsTabWriter, "Name\tUsername\tHostname\tPort\tITRSHome\n")
+		fmt.Fprintf(lsTabWriter, "Name\tUsername\tHostname\tPort\tDirectory\n")
 		err = loopHosts(lsInstancePlainHosts)
 		lsTabWriter.Flush()
 	}
@@ -101,20 +101,20 @@ func lsInstancePlainHosts(h *host.Host) (err error) {
 	return
 }
 
-func lsInstanceCSVHosts(c *host.Host) (err error) {
-	csvWriter.Write([]string{c.String(), c.V().GetString("username"), c.V().GetString("hostname"), fmt.Sprint(c.V().GetInt("port")), c.V().GetString("geneos")})
+func lsInstanceCSVHosts(h *host.Host) (err error) {
+	csvWriter.Write([]string{h.String(), h.V().GetString("username"), h.V().GetString("hostname"), fmt.Sprint(h.V().GetInt("port")), h.V().GetString("geneos")})
 	return
 }
 
 type lsTypeHosts struct {
-	Name     string
-	Username string
-	Hostname string
-	Port     int64
-	Geneos   string
+	Name      string
+	Username  string
+	Hostname  string
+	Port      int64
+	Directory string
 }
 
-func lsInstanceJSONHosts(c *host.Host) (err error) {
-	jsonEncoder.Encode(lsTypeHosts{c.String(), c.V().GetString("username"), c.V().GetString("hostname"), c.V().GetInt64("port"), c.V().GetString("geneos")})
+func lsInstanceJSONHosts(h *host.Host) (err error) {
+	jsonEncoder.Encode(lsTypeHosts{h.String(), h.V().GetString("username"), h.V().GetString("hostname"), h.V().GetInt64("port"), h.V().GetString("geneos")})
 	return
 }

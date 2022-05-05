@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -31,88 +30,33 @@ const GlobalConfig = "/etc/geneos/geneos.json"
 //
 // if the directory is not empty and 'noEmptyOK' is false then
 // nothing is changed
-func Init(r *host.Host, ignoreExisting bool, args []string) (err error) {
-	var root string
+func Init(r *host.Host, options ...GeneosOptions) (err error) {
+	// var homedir string
 	var uid, gid int
-	var username, homedir string
-	var params []string
+
+	// var params []string
 
 	if r != host.LOCAL && utils.IsSuperuser() {
 		err = ErrNotSupported
 		return
 	}
 
-	logDebug.Println("args:", args)
-
-	if utils.IsSuperuser() {
-		if len(args) == 0 {
-			logError.Fatalln("init requires a USERNAME when run as root")
-		}
-		username = args[0]
-		uid, gid, _, err = utils.GetIDs(username)
-
-		if err != nil {
-			logError.Fatalln("invalid user", username)
-		}
-		u, err := user.Lookup(username)
-		homedir = u.HomeDir
-		if err != nil {
-			logError.Fatalln("user lookup failed")
-		}
-		if len(args) == 1 {
-			// If user's home dir doesn't end in "geneos" then create a
-			// directory "geneos" else use the home directory directly
-			root = homedir
-			if filepath.Base(homedir) != "geneos" {
-				root = filepath.Join(homedir, "geneos")
-			}
-		} else {
-			// must be an absolute path or relative to given user's home
-			root = args[1]
-			if !strings.HasPrefix(root, "/") {
-				root = homedir
-				if filepath.Base(homedir) != "geneos" {
-					root = filepath.Join(homedir, root)
-				}
-			}
-		}
-	} else {
-		if r == host.LOCAL {
-			u, _ := user.Current()
-			username = u.Username
-			homedir = u.HomeDir
-		} else {
-			username = r.V().GetString("username")
-			homedir = r.V().GetString("geneos")
-		}
-		logDebug.Println(len(args), args)
-		switch len(args) {
-		case 0: // default home + geneos
-			root = homedir
-			if filepath.Base(homedir) != "geneos" {
-				root = filepath.Join(homedir, "geneos")
-			}
-		case 1: // home = abs path
-			if !filepath.IsAbs(args[0]) {
-				logError.Fatalln("Home directory must be absolute path:", args[0])
-			}
-			root = filepath.Clean(args[0])
-		default:
-			logError.Fatalln("too many args:", args, params)
-		}
+	g := doOptions(options...)
+	if g.homedir == "" {
+		// default or error
 	}
 
 	// dir must first not exist (or be empty) and then be createable
 	//
 	// maybe check that the entire list of registered directories are
 	// either directories or do not exist
-	if _, err := r.Stat(root); err != nil {
-		if err = r.MkdirAll(root, 0775); err != nil {
+	if _, err := r.Stat(g.homedir); err != nil {
+		if err = r.MkdirAll(g.homedir, 0775); err != nil {
 			logError.Fatalln(err)
 		}
-	} else if !ignoreExisting {
+	} else if !g.overwrite {
 		// check empty
-		dirs, err := r.ReadDir(root)
+		dirs, err := r.ReadDir(g.homedir)
 		if err != nil {
 			logError.Fatalln(err)
 		}
@@ -122,14 +66,14 @@ func Init(r *host.Host, ignoreExisting bool, args []string) (err error) {
 					logDebug.Println("remote directories exist, ending initialisation")
 					return nil
 				}
-				logError.Fatalf("target directory %q exists and is not empty", root)
+				logError.Fatalf("target directory %q exists and is not empty", g.homedir)
 			}
 		}
 	}
 
 	if r == host.LOCAL {
-		viper.Set("geneos", root)
-		viper.Set("defaultuser", username)
+		viper.Set("geneos", g.homedir)
+		viper.Set("defaultuser", g.username)
 
 		if utils.IsSuperuser() {
 			if err = host.LOCAL.WriteConfigFile(GlobalConfig, "root", 0664, viper.AllSettings()); err != nil {
@@ -137,7 +81,7 @@ func Init(r *host.Host, ignoreExisting bool, args []string) (err error) {
 			}
 
 			// if everything else worked, remove any existing user config
-			_ = r.Remove(filepath.Join(root, ".config", "geneos.json"))
+			_ = r.Remove(filepath.Join(g.homedir, ".config", "geneos.json"))
 		} else {
 			userConfDir, err := os.UserConfigDir()
 			if err != nil {
@@ -145,7 +89,7 @@ func Init(r *host.Host, ignoreExisting bool, args []string) (err error) {
 			}
 			userConfFile := filepath.Join(userConfDir, "geneos.json")
 
-			if err = host.LOCAL.WriteConfigFile(userConfFile, username, 0664, viper.AllSettings()); err != nil {
+			if err = host.LOCAL.WriteConfigFile(userConfFile, g.username, 0664, viper.AllSettings()); err != nil {
 				return err
 			}
 		}
@@ -156,7 +100,8 @@ func Init(r *host.Host, ignoreExisting bool, args []string) (err error) {
 	host.LOCAL = host.New(host.LOCALHOST)
 
 	if utils.IsSuperuser() {
-		if err = host.LOCAL.Chown(root, uid, gid); err != nil {
+		uid, gid, _, err = utils.GetIDs(g.username)
+		if err = host.LOCAL.Chown(g.homedir, uid, gid); err != nil {
 			logError.Fatalln(err)
 		}
 	}
@@ -169,7 +114,7 @@ func Init(r *host.Host, ignoreExisting bool, args []string) (err error) {
 	// if we've created directory paths as root, go through and change
 	// ownership to the tree
 	if utils.IsSuperuser() {
-		err = filepath.WalkDir(root, func(path string, dir fs.DirEntry, err error) error {
+		err = filepath.WalkDir(g.homedir, func(path string, dir fs.DirEntry, err error) error {
 			if err == nil {
 				err = host.LOCAL.Chown(path, uid, gid)
 			}

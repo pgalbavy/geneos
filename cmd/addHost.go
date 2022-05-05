@@ -79,7 +79,6 @@ func init() {
 var addHostCmdInit bool
 
 func addHost(h *host.Host, sshurl *url.URL) (err error) {
-
 	if h.Loaded() {
 		return fmt.Errorf("host %q already exists", h)
 	}
@@ -117,6 +116,7 @@ func addHost(h *host.Host, sshurl *url.URL) (err error) {
 		h.V().Set("geneos", sshurl.Path)
 	}
 
+	logDebug.Println(h.V().AllSettings())
 	if err = host.WriteConfig(h); err != nil {
 		return
 	}
@@ -133,7 +133,8 @@ func addHost(h *host.Host, sshurl *url.URL) (err error) {
 	if addHostCmdInit {
 		// initialise the remote directory structure, but perhaps ignore errors
 		// as we may simply be adding an existing installation
-		if err = geneos.Init(h, addHostCmdInit, []string{h.V().GetString("geneos")}); err != nil {
+
+		if err = geneos.Init(h, geneos.Force(true), geneos.Username(h.V().GetString("username")), geneos.Homedir(h.V().GetString("geneos"))); err != nil {
 			return
 		}
 	}

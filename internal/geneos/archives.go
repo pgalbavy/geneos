@@ -86,7 +86,7 @@ func CheckArchive(r *host.Host, ct *Component, version string) (filename string,
 }
 
 // locate and return an open archive for the host and component given
-func OpenArchive(r *host.Host, ct *Component, options ...DownloadOptions) (filename string, body io.ReadCloser, err error) {
+func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filename string, body io.ReadCloser, err error) {
 	var finalURL string
 	var resp *http.Response
 
@@ -94,10 +94,7 @@ func OpenArchive(r *host.Host, ct *Component, options ...DownloadOptions) (filen
 		return "", nil, ErrInvalidArgs
 	}
 
-	d := &dload{}
-	for _, opt := range options {
-		opt(d)
-	}
+	d := doOptions(options...)
 
 	if d.local {
 		// archive directory is local only
@@ -188,12 +185,10 @@ func OpenArchive(r *host.Host, ct *Component, options ...DownloadOptions) (filen
 	return
 }
 
-func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, options ...DownloadOptions) (err error) {
+func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, options ...GeneosOptions) (err error) {
 	var version string
-	d := &dload{}
-	for _, opt := range options {
-		opt(d)
-	}
+
+	d := doOptions(options...)
 
 	if d.override == "" {
 		parts := archiveRE.FindStringSubmatch(filename)

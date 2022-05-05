@@ -24,7 +24,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
@@ -34,6 +36,7 @@ import (
 	"wonderland.org/geneos/internal/instance/licd"
 	"wonderland.org/geneos/internal/instance/san"
 	"wonderland.org/geneos/internal/instance/webserver"
+	"wonderland.org/geneos/internal/utils"
 )
 
 // initCmd represents the init command
@@ -191,7 +194,65 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 	}
 
 	logDebug.Println(args)
-	if err = geneos.Init(host.LOCAL, initCmdForce, args); err != nil {
+
+	// process args here
+
+	var username, homedir, root string
+
+	if utils.IsSuperuser() {
+		if len(args) == 0 {
+			logError.Fatalln("init requires a username when run as root")
+		}
+		username = args[0]
+
+		if err != nil {
+			logError.Fatalln("invalid user", username)
+		}
+		u, err := user.Lookup(username)
+		homedir = u.HomeDir
+		if err != nil {
+			logError.Fatalln("user lookup failed")
+		}
+		if len(args) == 1 {
+			// If user's home dir doesn't end in "geneos" then create a
+			// directory "geneos" else use the home directory directly
+			root = homedir
+			if filepath.Base(homedir) != "geneos" {
+				root = filepath.Join(homedir, "geneos")
+			}
+		} else {
+			// must be an absolute path or relative to given user's home
+			root = args[1]
+			if !strings.HasPrefix(root, "/") {
+				root = homedir
+				if filepath.Base(homedir) != "geneos" {
+					root = filepath.Join(homedir, root)
+				}
+			}
+		}
+	} else {
+		u, _ := user.Current()
+		username = u.Username
+		homedir = u.HomeDir
+
+		logDebug.Println(len(args), args)
+		switch len(args) {
+		case 0: // default home + geneos
+			root = homedir
+			if filepath.Base(homedir) != "geneos" {
+				root = filepath.Join(homedir, "geneos")
+			}
+		case 1: // home = abs path
+			if !filepath.IsAbs(args[0]) {
+				logError.Fatalln("Home directory must be absolute path:", args[0])
+			}
+			root = filepath.Clean(args[0])
+		default:
+			logError.Fatalln("too many args:", args, params)
+		}
+	}
+
+	if err = geneos.Init(host.LOCAL, geneos.Force(initCmdForce), geneos.Homedir(root), geneos.Username(username)); err != nil {
 		logError.Fatalln(err)
 	}
 
