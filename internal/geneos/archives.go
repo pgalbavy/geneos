@@ -39,7 +39,7 @@ import (
 //
 
 // locate and open the remote archive using the download conventions
-func CheckArchive(r *host.Host, ct *Component, version string) (filename string, resp *http.Response, err error) {
+func checkArchive(r *host.Host, ct *Component, version string) (filename string, resp *http.Response, err error) {
 	baseurl := viper.GetString("downloadurl")
 	downloadURL, _ := url.Parse(baseurl)
 	realpath, _ := url.Parse(ct.DownloadBase)
@@ -125,7 +125,7 @@ func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filenam
 		return
 	}
 
-	if filename, resp, err = CheckArchive(r, ct, d.version); err != nil {
+	if filename, resp, err = checkArchive(r, ct, d.version); err != nil {
 		return
 	}
 	finalURL = resp.Request.URL.String()
