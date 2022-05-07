@@ -542,9 +542,12 @@ General options are loaded from the global config file first, then the user leve
 * `geneos`
 The home directory for all other commands. See [Directory Layout](#directory-layout) below. If set the environment variable ITRS_HOME overrides any settings in the files. This is to maintain backward compatibility with older tools. The default, if not set anywhere else, is the home directory of the user running the command or, if running as root, the home directory of the `geneos` or `itrs` users (in that order). (To be fully implemented)
 
-* `downloadurl`
+* `download.url`
 The base URL for downloads for automating installations. Not yet used.
 If files are locally downloaded then this can either be a `file://` style URL or a directory path.
+
+* `download.username`
+  `download.password`
 
 * `defaultuser`
 Principally used when running with elevated privilege (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.

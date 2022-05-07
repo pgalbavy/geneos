@@ -1,14 +1,16 @@
 package geneos
 
 type optstruct struct {
-	override  string
-	local     bool
-	nosave    bool
-	overwrite bool
-	version   string
-	basename  string
-	homedir   string
-	username  string
+	override    string
+	local       bool
+	nosave      bool
+	overwrite   bool
+	version     string
+	basename    string
+	homedir     string
+	username    string
+	platform_id string
+	filename    string
 }
 
 type GeneosOptions func(*optstruct)
@@ -51,4 +53,12 @@ func Homedir(h string) GeneosOptions {
 
 func Username(u string) GeneosOptions {
 	return func(d *optstruct) { d.username = u }
+}
+
+func PlatformID(id string) GeneosOptions {
+	return func(d *optstruct) { d.platform_id = id }
+}
+
+func Filename(f string) GeneosOptions {
+	return func(d *optstruct) { d.filename = f }
 }

@@ -80,8 +80,8 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 				logError.Fatalln("cannot write global config", err)
 			}
 
-			// if everything else worked, remove any existing user config
-			_ = r.Remove(filepath.Join(g.homedir, ".config", "geneos.json"))
+			// if everything else worked, remove any existing user config - why?
+			// _ = r.Remove(filepath.Join(g.homedir, ".config", "geneos.json"))
 		} else {
 			userConfDir, err := os.UserConfigDir()
 			if err != nil {

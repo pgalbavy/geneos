@@ -78,6 +78,7 @@ func init() {
 	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "l", false, "Install from local files only")
 	installCmd.Flags().BoolVarP(&installCmdNoSave, "nosave", "n", false, "Do not save a local copy of any downloads")
 	installCmd.Flags().StringVarP(&installCmdRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" means all remotes and locally")
+	installCmd.Flags().StringVarP(&installCmdVersion, "version", "v", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")
 	installCmd.Flags().StringVarP(&installCmdOverride, "override", "T", "", "Override (set) the TYPE:VERSION for archive files with non-standard names")
@@ -85,21 +86,16 @@ func init() {
 }
 
 var installCmdLocal, installCmdNoSave, installCmdUpdate bool
-var installCmdBase, installCmdRemote, installCmdOverride string
+var installCmdBase, installCmdRemote, installCmdOverride, installCmdVersion string
 
+//
+//
 func commandInstall(ct *geneos.Component, args, params []string) (err error) {
-	// first, see if user wants a particular version
-	version := "latest"
 
-	for n := 0; n < len(args); n++ {
-		if geneos.MatchVersion(args[n]) {
-			version = args[n]
-			args[n] = args[len(args)-1]
-			args = args[:len(args)-1]
-		}
+	if ct == nil && len(args) == 0 && installCmdLocal {
+		log.Println("install -l (local) flag with no component or file/url")
+		return nil
 	}
-
-	h := host.Get(host.Name(installCmdRemote))
 
 	// if we have a component on the command line then use an archive in packages/downloads
 	// or download from official web site unless -l is given. version numbers checked.
@@ -107,95 +103,33 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 	//
 	// overrides do not work in this case as the version and type have to be part of the
 	// archive file name
-	if ct != nil {
-		logDebug.Printf("installing %q version of %s to %s remote(s)", version, ct, installCmdRemote)
-		f, r, err := geneos.OpenArchive(host.LOCAL, ct, geneos.Version(version), geneos.LocalOnly(installCmdLocal))
-		if err != nil {
-			return err
-		}
-		defer r.Close()
+	if ct != nil || len(args) == 0 {
+		logDebug.Printf("installing %q version of %s to %s remote(s)", installCmdVersion, ct, installCmdRemote)
 
-		if h == host.ALL {
-			for _, h := range host.AllHosts() {
-				if err = geneos.MakeComponentDirs(h, ct); err != nil {
-					return err
-				}
-				if err = geneos.Unarchive(h, ct, f, r, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
-					logError.Println(err)
-					continue
-				}
-			}
-		} else {
+		for _, h := range host.Match(host.Name(installCmdRemote)) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
-			if err = geneos.Unarchive(h, ct, f, r, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
-				return err
-			}
-			logDebug.Println("installed", ct.String())
-		}
-
-		return nil
-	}
-
-	// no component type means we might want file or url or auto url
-	if len(args) == 0 {
-		// normal download here
-		if installCmdLocal {
-			log.Println("install -l (local) flag with no component or file/url")
-			return nil
-		}
-		var rs []*host.Host
-		if installCmdRemote == string(host.ALLHOSTS) {
-			rs = host.AllHosts()
-		} else {
-			rs = []*host.Host{host.Get(host.Name(installCmdRemote))}
-		}
-
-		for _, r := range rs {
-			if err = geneos.MakeComponentDirs(r, ct); err != nil {
-				return err
-			}
-			// if err = geneos.Download(r, ct, version, installCmdBase, installCmdUpdate); err != nil {
-			if err = geneos.Download(r, ct, geneos.Version(version), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.LocalOnly(installCmdLocal)); err != nil {
+			if err = geneos.Install(h, ct, geneos.Version(installCmdVersion), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate)); err != nil {
 				logError.Println(err)
 				continue
 			}
 		}
-		// Download() in the loop above calls updateToVersion()
 		return nil
 	}
 
 	// work through command line args and try to install them using the naming format
 	// of standard downloads - fix versioning
 	for _, file := range args {
-		f, filename, err := geneos.OpenLocalFileOrURL(file)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		defer f.Close()
-
-		if installCmdRemote == string(host.ALLHOSTS) {
-			for _, r := range host.AllHosts() {
-				// what is finalVersion ?
-				if err = geneos.MakeComponentDirs(r, ct); err != nil {
-					return err
-				}
-				if err = geneos.Unarchive(r, ct, filename, f, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
-					logError.Println(err)
-					continue
-				}
-			}
-		} else {
-			r := host.Get(host.Name(installCmdRemote))
-			geneos.MakeComponentDirs(r, ct)
-			if err = geneos.Unarchive(r, ct, filename, f, geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate), geneos.OverrideVersion(installCmdOverride)); err != nil {
+		for _, h := range host.Match(host.Name(installCmdRemote)) {
+			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
-			logDebug.Println("installed", ct.String())
+			if err = geneos.Install(h, ct, geneos.Filename(file)); err != nil {
+				logError.Println(err)
+				continue
+			}
 		}
 	}
-
 	return nil
 }

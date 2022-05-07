@@ -11,21 +11,22 @@ import (
 )
 
 // check selected version exists first
-func Update(h *host.Host, ct *Component, version, basename string, overwrite bool) (err error) {
+func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
+	opts := doOptions(options...)
 	if ct == nil {
 		for _, t := range RealComponents() {
-			if err = Update(h, t, version, basename, overwrite); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if err = Update(h, t, options...); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logError.Println(err)
 			}
 		}
 		return nil
 	}
 
-	if version == "" {
-		version = "latest"
+	if opts.version == "" {
+		opts.version = "latest"
 	}
 
-	originalVersion := version
+	originalVersion := opts.version
 
 	// before updating a specific type on a specific remote, loop
 	// through related types, remotes and components. continue to
@@ -35,7 +36,7 @@ func Update(h *host.Host, ct *Component, version, basename string, overwrite boo
 
 	if ct.RelatedTypes != nil {
 		for _, rct := range ct.RelatedTypes {
-			if err = Update(h, rct, version, basename, overwrite); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if err = Update(h, rct, options...); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logError.Println(err)
 			}
 		}
@@ -44,7 +45,7 @@ func Update(h *host.Host, ct *Component, version, basename string, overwrite boo
 
 	if h == host.ALL {
 		for _, r := range host.AllHosts() {
-			if err = Update(r, ct, version, basename, overwrite); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if err = Update(r, ct, options...); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logError.Println(err)
 			}
 		}
@@ -53,19 +54,19 @@ func Update(h *host.Host, ct *Component, version, basename string, overwrite boo
 
 	// from here remotes and component types are specific
 
-	logDebug.Printf("checking and updating %s on %s %q to %q", ct, h, basename, version)
+	logDebug.Printf("checking and updating %s on %s %q to %q", ct, h, opts.basename, opts.version)
 
 	basedir := h.GeneosJoinPath("packages", ct.String())
-	basepath := filepath.Join(basedir, basename)
+	basepath := filepath.Join(basedir, opts.basename)
 
-	if version == "latest" {
-		version = ""
+	if opts.version == "latest" {
+		opts.version = ""
 	}
-	version = latest(h, basedir, "^"+version, func(d os.DirEntry) bool {
+	opts.version = latest(h, basedir, "^"+opts.version, func(d os.DirEntry) bool {
 		return !d.IsDir()
 	})
-	if version == "" {
-		return fmt.Errorf("%q verion of %s on %s: %w", originalVersion, ct, h, os.ErrNotExist)
+	if opts.version == "" {
+		return fmt.Errorf("%q version of %s on %s: %w", originalVersion, ct, h, os.ErrNotExist)
 	}
 
 	// does the version directory exist?
@@ -75,20 +76,20 @@ func Update(h *host.Host, ct *Component, version, basename string, overwrite boo
 	}
 
 	// before removing existing link, check there is something to link to
-	if _, err = h.Stat(filepath.Join(basedir, version)); err != nil {
-		return fmt.Errorf("%q version of %s on %s: %w", version, ct, h, os.ErrNotExist)
+	if _, err = h.Stat(filepath.Join(basedir, opts.version)); err != nil {
+		return fmt.Errorf("%q version of %s on %s: %w", opts.version, ct, h, os.ErrNotExist)
 	}
 
-	if (existing != "" && !overwrite) || existing == version {
+	if (existing != "" && !opts.overwrite) || existing == opts.version {
 		return nil
 	}
 
 	if err = h.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
-	if err = h.Symlink(version, basepath); err != nil {
+	if err = h.Symlink(opts.version, basepath); err != nil {
 		return err
 	}
-	log.Println(ct, "on", h, basename, "updated to", version)
+	log.Println(ct, "on", h, opts.basename, "updated to", opts.version)
 	return nil
 }

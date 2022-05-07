@@ -2,7 +2,9 @@ package geneos
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,7 +28,7 @@ import (
 // https://resources.itrsgroup.com/download/latest/[COMPONENT]?os=linux
 // is RHEL8 is required, add ?title=el8
 //
-// there is a mapping of our compoent types to the URLs too.
+// there is a mapping of our component types to the URLs too.
 //
 // Gateways -> Gateway+2
 // Netprobes -> Netprobe
@@ -38,68 +40,22 @@ import (
 // until anon access is allowed
 //
 
-// locate and open the remote archive using the download conventions
-func checkArchive(r *host.Host, ct *Component, version string) (filename string, resp *http.Response, err error) {
-	baseurl := viper.GetString("downloadurl")
-	downloadURL, _ := url.Parse(baseurl)
-	realpath, _ := url.Parse(ct.DownloadBase)
-	v := url.Values{}
-
-	// XXX OS filter for EL8 here - to test
-	// cannot fetch partial versions for el8
-	platform := ""
-	p := r.V().GetString("osinfo.platform_id")
-	if p != "" {
-		s := strings.Split(p, ":")
-		if len(s) > 1 {
-			platform = "-" + s[1]
-		}
-	}
-	v.Set("os", "linux")
-	if version != "latest" {
-		v.Set("title", version+platform)
-	} else if platform != "" {
-		v.Set("title", platform)
-	}
-	realpath.RawQuery = v.Encode()
-	source := downloadURL.ResolveReference(realpath).String()
-	logDebug.Println("source url:", source)
-
-	// HEAD request to get meta details, will not work for auth protected downloads
-	if resp, err = http.Head(source); err != nil {
-		logError.Fatalln(err)
-	}
-
-	if resp.StatusCode > 299 {
-		err = fmt.Errorf("cannot access %s package version %s: %s", ct, version, resp.Status)
-		resp.Body.Close()
-		return
-	}
-
-	filename, err = FilenameFromHTTPResp(resp, resp.Request.URL)
-	if err != nil {
-		return
-	}
-
-	logDebug.Printf("download check for %s versions %q returned %s (%d bytes)", ct, version, filename, resp.ContentLength)
-	return
-}
-
 // locate and return an open archive for the host and component given
-func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filename string, body io.ReadCloser, err error) {
+// archives must be local
+func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.ReadCloser, filename string, err error) {
 	var finalURL string
 	var resp *http.Response
 
-	if r == nil || r == host.ALL || ct == nil {
-		return "", nil, ErrInvalidArgs
+	opts := doOptions(options...)
+
+	if opts.filename != "" {
+		return OpenLocalFileOrURL(opts.filename)
 	}
 
-	d := doOptions(options...)
-
-	if d.local {
+	if opts.local {
 		// archive directory is local only
 		archiveDir := host.LOCAL.GeneosJoinPath("packages", "downloads")
-		filename = latest(host.LOCAL, archiveDir, d.version, func(v os.DirEntry) bool {
+		filename = latest(host.LOCAL, archiveDir, opts.version, func(v os.DirEntry) bool {
 			logDebug.Println(v.Name(), ct.String())
 			switch ct.String() {
 			case "webserver":
@@ -113,25 +69,25 @@ func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filenam
 			}
 		})
 		if filename == "" {
-			err = fmt.Errorf("local installation selected but no suitable file found for %s on %s (%w)", ct, r.String(), ErrInvalidArgs)
+			err = fmt.Errorf("local installation selected but no suitable file found for %s (%w)", ct, ErrInvalidArgs)
 			return
 		}
 		var f io.ReadSeekCloser
 		if f, err = host.LOCAL.Open(filepath.Join(archiveDir, filename)); err != nil {
-			err = fmt.Errorf("local installation selected but no suitable file found for %s on %s (%w)", ct, r.String(), err)
+			err = fmt.Errorf("local installation selected but no suitable file found for %s (%w)", ct, err)
 			return
 		}
 		body = f
 		return
 	}
 
-	if filename, resp, err = checkArchive(r, ct, d.version); err != nil {
+	if filename, resp, err = checkArchive(host.LOCAL, ct, options...); err != nil {
 		return
 	}
 	finalURL = resp.Request.URL.String()
 	logDebug.Println("final URL", finalURL)
 
-	archiveDir := filepath.Join(r.V().GetString("geneos"), "packages", "downloads")
+	archiveDir := filepath.Join(host.Geneos(), "packages", "downloads")
 	host.LOCAL.MkdirAll(archiveDir, 0775)
 	archivePath := filepath.Join(archiveDir, filename)
 	s, err := host.LOCAL.Stat(archivePath)
@@ -139,7 +95,7 @@ func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filenam
 		if f, err := host.LOCAL.Open(archivePath); err == nil {
 			logDebug.Println("not downloading, file already exists:", archivePath)
 			resp.Body.Close()
-			return filename, f, nil
+			return f, filename, nil
 		}
 	}
 
@@ -148,13 +104,13 @@ func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filenam
 		logError.Fatalln(err)
 	}
 	if resp.StatusCode > 299 {
-		err = fmt.Errorf("cannot download %s package version %q: %s", ct, d.version, resp.Status)
+		err = fmt.Errorf("cannot download %s package version %q: %s", ct, opts.version, resp.Status)
 		resp.Body.Close()
 		return
 	}
 
 	// transient download
-	if d.nosave {
+	if opts.nosave {
 		body = resp.Body
 		return
 	}
@@ -165,7 +121,7 @@ func OpenArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filenam
 	if err != nil {
 		return
 	}
-	log.Printf("downloading %s package version %q to %s", ct, d.version, archivePath)
+	log.Printf("downloading %s package version %q to %s", ct, opts.version, archivePath)
 	t1 := time.Now()
 	if _, err = io.Copy(w, resp.Body); err != nil {
 		return
@@ -206,7 +162,8 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 			break
 		default:
 			// mismatch
-			logError.Fatalf("component type and archive mismatch: %q is not a %q", filename, ct)
+			logDebug.Printf("component type and archive mismatch: %q is not a %q", filename, ct)
+			return
 		}
 	} else {
 		s := strings.SplitN(d.override, ":", 2)
@@ -325,7 +282,75 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 		}
 	}
 	log.Printf("installed %q to %q\n", filename, basedir)
-	return Update(r, ct, version, d.basename, d.overwrite)
+	options = append(options, Version(version))
+	return Update(r, ct, options...)
+}
+
+// locate and open the remote archive using the download conventions
+func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filename string, resp *http.Response, err error) {
+	baseurl := viper.GetString("download.url")
+	downloadURL, _ := url.Parse(baseurl)
+	realpath, _ := url.Parse(ct.DownloadBase)
+	v := url.Values{}
+
+	opts := doOptions(options...)
+
+	// XXX OS filter for EL8 here - to test
+	// cannot fetch partial versions for el8
+	platform := ""
+	if opts.platform_id != "" {
+		s := strings.Split(opts.platform_id, ":")
+		if len(s) > 1 {
+			platform = s[1]
+		}
+	}
+	v.Set("os", "linux")
+	if opts.version != "latest" {
+		v.Set("title", opts.version)
+	} else if platform != "" {
+		v.Set("title", "-"+platform)
+	}
+	realpath.RawQuery = v.Encode()
+	source := downloadURL.ResolveReference(realpath).String()
+	logDebug.Println("source url:", source)
+
+	// HEAD request to get meta details, will not work for auth protected downloads
+	if resp, err = http.Head(source); err != nil {
+		logError.Fatalln(err)
+	}
+
+	if resp.StatusCode == 401 || resp.StatusCode == 403 {
+		if viper.GetString("download.username") != "" {
+			da := downloadauth{viper.GetString("download.username"), viper.GetString("download.password")}
+			ja, err := json.Marshal(da)
+			if err != nil {
+				logError.Fatalln(err)
+			}
+			ba := bytes.NewBuffer(ja)
+			if resp, err = http.Post(source, "application/json", ba); err != nil {
+				logError.Fatalln(err)
+			}
+		}
+	}
+
+	if resp.StatusCode > 299 {
+		err = fmt.Errorf("cannot access %s package version %s: %s", ct, opts.version, resp.Status)
+		resp.Body.Close()
+		return
+	}
+
+	filename, err = FilenameFromHTTPResp(resp, resp.Request.URL)
+	if err != nil {
+		return
+	}
+
+	logDebug.Printf("download check for %s versions %q returned %s (%d bytes)", ct, opts.version, filename, resp.ContentLength)
+	return
+}
+
+type downloadauth struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 var versRE = regexp.MustCompile(`(\d+(\.\d+){0,2})`)

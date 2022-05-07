@@ -41,6 +41,7 @@ func Init() {
 	ALL = New(ALLHOSTS)
 }
 
+// return the absolute path to the local Geneos installation
 func Geneos() string {
 	home := viper.GetString("geneos")
 	if home == "" {
@@ -158,6 +159,19 @@ func Get(remote Name) (r *Host) {
 		i := New(remote)
 		i.Load()
 		return i
+	}
+}
+
+func Match(remote Name) (r []*Host) {
+	switch remote {
+	case LOCALHOST:
+		return []*Host{LOCAL}
+	case ALLHOSTS:
+		return AllHosts()
+	default:
+		i := New(remote)
+		i.Load()
+		return []*Host{i}
 	}
 }
 

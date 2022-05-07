@@ -69,7 +69,7 @@ var Root Component = Component{
 		"geneos": "",
 
 		// Root URL for all downloads of software archives
-		"downloadurl": "https://resources.itrsgroup.com/download/latest/",
+		"download.url": "https://resources.itrsgroup.com/download/latest/",
 
 		// Username to start components if not explicitly defined
 		// and we are running with elevated privileges

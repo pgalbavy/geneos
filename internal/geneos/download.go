@@ -20,18 +20,20 @@ import (
 const defaultURL = "https://resources.itrsgroup.com/download/latest/"
 
 func init() {
-	viper.SetDefault("downloadurl", defaultURL)
+	viper.SetDefault("download.url", defaultURL)
 }
 
 // how to split an archive name into type and version
 var archiveRE = regexp.MustCompile(`^geneos-(web-server|fixanalyser2-netprobe|file-agent|\w+)-([\w\.-]+?)[\.-]?linux`)
 
-func Download(r *host.Host, ct *Component, options ...GeneosOptions) (err error) {
-	// d := doOptions(options...)
-	switch ct {
-	case nil:
+func Install(r *host.Host, ct *Component, options ...GeneosOptions) (err error) {
+	if r == host.ALL {
+		return ErrInvalidArgs
+	}
+
+	if ct == nil {
 		for _, t := range RealComponents() {
-			if err = Download(r, t, options...); err != nil {
+			if err = Install(r, t, options...); err != nil {
 				if errors.Is(err, fs.ErrExist) {
 					continue
 				}
@@ -39,25 +41,23 @@ func Download(r *host.Host, ct *Component, options ...GeneosOptions) (err error)
 			}
 		}
 		return nil
-	default:
-		if r == host.ALL {
-			return ErrInvalidArgs
-		}
-		filename, f, err := OpenArchive(r, ct, options...)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		// call install here instead
-		if err = Unarchive(r, ct, filename, f, options...); err != nil {
-			if errors.Is(err, fs.ErrExist) {
-				return nil
-			}
-			return err
-		}
-		return nil
 	}
+
+	p := r.V().GetString("osinfo.platform_id")
+	options = append(options, PlatformID(p))
+	reader, filename, err := OpenComponentArchive(ct, options...)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	if err = Unarchive(r, ct, filename, reader, options...); err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			return nil
+		}
+		return err
+	}
+	return
 }
 
 func FilenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err error) {
@@ -98,20 +98,18 @@ func OpenLocalFileOrURL(source string) (from io.ReadCloser, filename string, err
 			return nil, "", err
 		}
 
-		from = resp.Body
 		if resp.StatusCode > 299 {
 			return nil, "", fmt.Errorf("server returned %s for %q", resp.Status, source)
 		}
+
+		from = resp.Body
 		filename, err = FilenameFromHTTPResp(resp, resp.Request.URL)
 	case source == "-":
 		from = os.Stdin
 		filename = "STDIN"
 	default:
-		filename = filepath.Base(source)
 		from, err = os.Open(source)
-		if err != nil {
-			return
-		}
+		filename = filepath.Base(source)
 	}
 	return
 }
