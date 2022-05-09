@@ -26,12 +26,13 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 )
 
 // unsetUserCmd represents the unsetUser command
 var unsetUserCmd = &cobra.Command{
-	Use:                   "unsetUser",
+	Use:                   "user",
 	Short:                 "",
 	Long:                  ``,
 	SilenceUsage:          true,
@@ -51,6 +52,26 @@ func init() {
 }
 
 func commandUnsetUser(ct *geneos.Component, args, params []string) error {
+	var changed bool
 	userConfDir, _ := os.UserConfigDir()
-	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
+	orig := readConfigFile(filepath.Join(userConfDir, "geneos.json"))
+	new := viper.New()
+
+OUTER:
+	for _, k := range orig.AllKeys() {
+		for _, a := range args {
+			if k == a {
+				changed = true
+				continue OUTER
+			}
+		}
+		new.Set(k, orig.Get(k))
+	}
+
+	if changed {
+		logDebug.Println(orig.AllSettings())
+		new.SetConfigFile(filepath.Join(userConfDir, "geneos.json"))
+		return new.WriteConfig()
+	}
+	return nil
 }

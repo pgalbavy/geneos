@@ -1,14 +1,18 @@
 package utils
 
 import (
+	"fmt"
+	"log"
 	"math"
 	"os"
 	"os/exec"
 	"os/user"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 )
 
 func GetIDs(username string) (uid, gid int, gids []int, err error) {
@@ -123,4 +127,22 @@ func CanControl(username string) bool {
 
 	uc, _ := user.Current()
 	return username == uc.Username
+}
+
+func ReadPasswordPrompt() string {
+	fmt.Printf("Password: ")
+	pw, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		log.Fatalln("Error getting password:", err)
+	}
+	fmt.Println()
+	return string(pw)
+}
+
+func ReadPasswordFile(path string) string {
+	pw, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatalln("Error reading password from file:", err)
+	}
+	return string(strings.TrimSpace(string(pw)))
 }

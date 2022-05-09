@@ -91,7 +91,6 @@ var installCmdBase, installCmdRemote, installCmdOverride, installCmdVersion stri
 //
 //
 func commandInstall(ct *geneos.Component, args, params []string) (err error) {
-
 	if ct == nil && len(args) == 0 && installCmdLocal {
 		log.Println("install -l (local) flag with no component or file/url")
 		return nil
@@ -106,11 +105,12 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 	if ct != nil || len(args) == 0 {
 		logDebug.Printf("installing %q version of %s to %s remote(s)", installCmdVersion, ct, installCmdRemote)
 
+		options := []geneos.GeneosOptions{geneos.Version(installCmdVersion), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate)}
 		for _, h := range host.Match(host.Name(installCmdRemote)) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
-			if err = geneos.Install(h, ct, geneos.Version(installCmdVersion), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate)); err != nil {
+			if err = geneos.Install(h, ct, options...); err != nil {
 				logError.Println(err)
 				continue
 			}
@@ -125,7 +125,8 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
-			if err = geneos.Install(h, ct, geneos.Filename(file)); err != nil {
+			options := []geneos.GeneosOptions{geneos.Filename(file)}
+			if err = geneos.Install(h, ct, options...); err != nil {
 				logError.Println(err)
 				continue
 			}

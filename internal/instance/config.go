@@ -26,6 +26,7 @@ type ExtraConfigValues struct {
 	Envs       StringSliceValues
 	Variables  VarValues
 	Types      StringSliceValues
+	Keys       StringSliceValues
 }
 
 // return the KEY from "[TYPE:]KEY=VALUE"
@@ -199,9 +200,9 @@ func ConfigPathWithExt(c geneos.Instance, extension string) (path string) {
 	return filepath.Join(c.Home(), c.Type().String()+"."+extension)
 }
 
-// write out an instance configuration file. XXX check if existing
-// config is an .rc file and if so rename it after successful write to
-// match migrate
+// write out an instance configuration file.
+// XXX check if existing config is an .rc file and if so rename it after
+// successful write to match migrate
 //
 // remote configuration files are supported using afero.Fs through
 // viper but rely on host.DialSFTP to dial and cache the client
@@ -226,6 +227,15 @@ func WriteConfig(c geneos.Instance) (err error) {
 		nv.SetFs(sftpfs.New(client))
 	}
 	logDebug.Printf("writing config for %s as %q", c, file)
+	return nv.WriteConfigAs(file)
+}
+
+func WriteConfigValues(c geneos.Instance, values map[string]interface{}) error {
+	file := ConfigPathWithExt(c, "json")
+	nv := viper.New()
+	for k, v := range values {
+		nv.Set(k, v)
+	}
 	return nv.WriteConfigAs(file)
 }
 

@@ -43,7 +43,6 @@ import (
 // locate and return an open archive for the host and component given
 // archives must be local
 func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.ReadCloser, filename string, err error) {
-	var finalURL string
 	var resp *http.Response
 
 	opts := doOptions(options...)
@@ -84,8 +83,6 @@ func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.Read
 	if filename, resp, err = checkArchive(host.LOCAL, ct, options...); err != nil {
 		return
 	}
-	finalURL = resp.Request.URL.String()
-	logDebug.Println("final URL", finalURL)
 
 	archiveDir := filepath.Join(host.Geneos(), "packages", "downloads")
 	host.LOCAL.MkdirAll(archiveDir, 0775)
@@ -99,10 +96,6 @@ func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.Read
 		}
 	}
 
-	resp, err = http.Get(finalURL)
-	if err != nil {
-		logError.Fatalln(err)
-	}
 	if resp.StatusCode > 299 {
 		err = fmt.Errorf("cannot download %s package version %q: %s", ct, opts.version, resp.Status)
 		resp.Body.Close()
@@ -144,9 +137,9 @@ func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.Read
 func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, options ...GeneosOptions) (err error) {
 	var version string
 
-	d := doOptions(options...)
+	opts := doOptions(options...)
 
-	if d.override == "" {
+	if opts.override == "" {
 		parts := archiveRE.FindStringSubmatch(filename)
 		if len(parts) == 0 {
 			return fmt.Errorf("%q: %w", filename, ErrInvalidArgs)
@@ -166,7 +159,7 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 			return
 		}
 	} else {
-		s := strings.SplitN(d.override, ":", 2)
+		s := strings.SplitN(opts.override, ":", 2)
 		if len(s) != 2 {
 			err = fmt.Errorf("type/version override must be in the form TYPE:VERSION (%w)", ErrInvalidArgs)
 			return
@@ -314,11 +307,11 @@ func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filena
 	source := downloadURL.ResolveReference(realpath).String()
 	logDebug.Println("source url:", source)
 
-	// HEAD request to get meta details, will not work for auth protected downloads
-	if resp, err = http.Head(source); err != nil {
+	if resp, err = http.Get(source); err != nil {
 		logError.Fatalln(err)
 	}
 
+	// only use auth if required
 	if resp.StatusCode == 401 || resp.StatusCode == 403 {
 		if viper.GetString("download.username") != "" {
 			da := downloadauth{viper.GetString("download.username"), viper.GetString("download.password")}

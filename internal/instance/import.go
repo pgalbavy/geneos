@@ -2,12 +2,8 @@ package instance
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
-	"net/http"
-	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,7 +13,7 @@ import (
 	"wonderland.org/geneos/internal/utils"
 )
 
-func ImportFile(h *host.Host, home string, user string, source string) (err error) {
+func ImportFile(h *host.Host, home string, user string, source string, options ...geneos.GeneosOptions) (err error) {
 	var backuppath string
 	var from io.ReadCloser
 
@@ -62,51 +58,15 @@ func ImportFile(h *host.Host, home string, user string, source string) (err erro
 		}
 	}
 
-	// see if it's a URL
-	u, err := url.Parse(source)
+	from, filename, err := geneos.OpenLocalFileOrURL(source)
 	if err != nil {
-		return err
-	}
-
-	switch {
-	case u.Scheme == "https" || u.Scheme == "http":
-		resp, err := http.Get(u.String())
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode > 299 {
-			err = fmt.Errorf("cannot download %q: %s", source, resp.Status)
-			resp.Body.Close()
-			return err
-		}
-
-		if destfile == "" {
-			// XXX check content-disposition or use basename or response
-			// URL if no destfile defined
-			destfile, err = geneos.FilenameFromHTTPResp(resp, u)
-			if err != nil {
-				logError.Fatalln(err)
-			}
-		}
-		from = resp.Body
-	case source == "-":
-		if destfile == "" {
-			logError.Fatalln("for stdin a destination file must be provided, e.g. file.txt=-")
-		}
-		from = os.Stdin
-		source = "STDIN"
-	default:
-		// support globbing later
-		from, err = host.LOCAL.Open(source)
-		if err != nil {
-			return err
-		}
-		if destfile == "" {
-			destfile = filepath.Base(source)
-		}
+		logError.Fatalln(err)
 	}
 	defer from.Close()
 
+	if destfile == "" {
+		destfile = filename
+	}
 	destfile = filepath.Join(destdir, destfile)
 
 	// check to containing directory, as destfile above may be a

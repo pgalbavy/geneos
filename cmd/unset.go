@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -49,15 +47,17 @@ This command has been added to remove the confusing negation syntax in set`,
 
 func init() {
 	rootCmd.AddCommand(unsetCmd)
-	unsetCmd.Flags().VarP(&unsetCmdEnvs, "env", "e", "Add an environment variable in the format NAME=VALUE")
-	unsetCmd.Flags().VarP(&unsetCmdIncludes, "include", "i", "Add an include file in the format PRIORITY:PATH")
-	unsetCmd.Flags().VarP(&unsetCmdGateways, "gateway", "g", "Add a gateway in the format NAME:PORT")
-	unsetCmd.Flags().VarP(&unsetCmdAttributes, "attribute", "a", "Add an attribute in the format NAME=VALUE")
-	unsetCmd.Flags().VarP(&unsetCmdTypes, "type", "t", "Add a gateway in the format NAME:PORT")
-	unsetCmd.Flags().VarP(&unsetCmdVariables, "variable", "v", "Add a variable in the format [TYPE:]NAME=VALUE")
+	unsetCmd.Flags().VarP(&unsetCmdKeys, "key", "k", "Unset a configuration key item")
+	unsetCmd.Flags().VarP(&unsetCmdEnvs, "env", "e", "Remove an environment variable of NAME")
+	unsetCmd.Flags().VarP(&unsetCmdIncludes, "include", "i", "Remove an include file in the format PRIORITY:PATH")
+	unsetCmd.Flags().VarP(&unsetCmdGateways, "gateway", "g", "Remove a gateway in the format NAME:PORT")
+	unsetCmd.Flags().VarP(&unsetCmdAttributes, "attribute", "a", "Remove an attribute of NAME")
+	unsetCmd.Flags().VarP(&unsetCmdTypes, "type", "t", "Remove the type NAME")
+	unsetCmd.Flags().VarP(&unsetCmdVariables, "variable", "v", "Remove a variable of NAME")
 	unsetCmd.Flags().SortFlags = false
 }
 
+var unsetCmdKeys = unsetCmdValues{}
 var unsetCmdIncludes = unsetCmdValues{}
 var unsetCmdGateways = unsetCmdValues{}
 var unsetCmdAttributes = unsetCmdValues{}
@@ -70,47 +70,40 @@ func commandUnset(ct *geneos.Component, args, params []string) error {
 }
 
 func unsetInstance(c geneos.Instance, params []string) (err error) {
+	var changed bool
 	logDebug.Println("c", c, "params", params)
 
-	// walk through any flags passed
-	unsetMaps(c)
+	// walk through any flags passed for structs and lists
+	changed, err = unsetMaps(c)
 
-	for _, arg := range params {
-		s := strings.SplitN(arg, "=", 2)
-		if len(s) != 2 {
-			logError.Printf("ignoring %q %s", arg, ErrInvalidArgs)
-			continue
-		}
-		k, v := s[0], s[1]
+	s := c.V().AllSettings()
 
-		// loop through all provided instances, set the parameter(s)
-		for _, vs := range strings.Split(v, ",") {
-			if !strings.HasPrefix(v, "-") {
-				continue
-			}
-			if err = setValue(c, k, vs); err != nil {
-				log.Printf("%s: cannot set %q", c, k)
-			}
+	if len(unsetCmdKeys) > 0 {
+		for _, k := range unsetCmdKeys {
+			delete(s, k)
+			changed = true
 		}
 	}
+	if changed {
+		if err = instance.Migrate(c); err != nil {
+			logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
+		}
 
-	// now loop through the collected results and write out
-	if err = instance.Migrate(c); err != nil {
-		logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
-	}
-	if err = instance.WriteConfig(c); err != nil {
-		logError.Fatalln(err)
+		if err = instance.WriteConfigValues(c, s); err != nil {
+			logError.Fatalln(err)
+		}
 	}
 
 	return
 }
 
 // XXX abstract this for a general case
-func unsetMaps(c geneos.Instance) (err error) {
+func unsetMaps(c geneos.Instance) (changed bool, err error) {
 	if len(unsetCmdAttributes) > 0 {
 		attr := c.V().GetStringMapString("attributes")
 		for _, k := range unsetCmdAttributes {
 			delete(attr, k)
+			changed = true
 		}
 		c.V().Set("attributes", attr)
 	}
@@ -122,6 +115,7 @@ func unsetMaps(c geneos.Instance) (err error) {
 		for _, t := range types {
 			for _, v := range unsetCmdTypes {
 				if t == v {
+					changed = true
 					continue OUTER
 				}
 			}
@@ -134,6 +128,7 @@ func unsetMaps(c geneos.Instance) (err error) {
 		envs := c.V().GetStringMapString("env")
 		for _, k := range unsetCmdEnvs {
 			delete(envs, k)
+			changed = true
 		}
 		c.V().Set("env", envs)
 	}
@@ -142,6 +137,7 @@ func unsetMaps(c geneos.Instance) (err error) {
 		gateways := c.V().GetStringMapString("gateways")
 		for _, k := range unsetCmdGateways {
 			delete(gateways, k)
+			changed = true
 		}
 		c.V().Set("gateways", gateways)
 	}
@@ -150,11 +146,12 @@ func unsetMaps(c geneos.Instance) (err error) {
 		vars := c.V().GetStringMapString("variables")
 		for _, k := range unsetCmdVariables {
 			delete(vars, k)
+			changed = true
 		}
 		c.V().Set("variables", vars)
 	}
 
-	return nil
+	return
 }
 
 // unset Var flags take just the key, either a name or a priority for include files

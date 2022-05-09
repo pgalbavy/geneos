@@ -23,12 +23,13 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 )
 
 // unsetGlobalCmd represents the unsetGlobal command
 var unsetGlobalCmd = &cobra.Command{
-	Use:                   "unsetGlobal",
+	Use:                   "global",
 	Short:                 "",
 	Long:                  ``,
 	SilenceUsage:          true,
@@ -48,5 +49,25 @@ func init() {
 }
 
 func commandUnsetGlobal(ct *geneos.Component, args, params []string) error {
-	return writeConfigParams(geneos.GlobalConfig, params)
+	var changed bool
+	orig := readConfigFile(geneos.GlobalConfig)
+	new := viper.New()
+
+OUTER:
+	for _, k := range orig.AllKeys() {
+		for _, a := range args {
+			if k == a {
+				changed = true
+				continue OUTER
+			}
+		}
+		new.Set(k, orig.Get(k))
+	}
+
+	if changed {
+		logDebug.Println(orig.AllSettings())
+		new.SetConfigFile(geneos.GlobalConfig)
+		return new.WriteConfig()
+	}
+	return nil
 }

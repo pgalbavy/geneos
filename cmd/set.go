@@ -32,37 +32,16 @@ import (
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
-	Use:   "set [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]",
+	Use:   "set [FLAGS] [TYPE] [NAME...] KEY=VALUE [KEY=VALUE...]",
 	Short: "Set instance configuration parameters",
 	Long: `Set configuration item values in global, user, or for a specific
 instance.
 
-Special Names:
+To set "special" items, such as Environment variables or Attributes you should
+now use the specific flags and not the old special syntax.
 
-To set environment variables for an instance use the key Env and the
-value var=value. Each new var=value is additive or overwrites an existing
-entry for 'var', e.g.
-
-	geneos set netprobe localhost Env=JAVA_HOME=/usr/lib/jre
-	geneos set netprobe localhost Env=ORACLE_HOME=/opt/oracle
-
-To remove an environment variable prefix the name with a hyphen '-', e.g.
-
-	geneos set netprobe localhost Env=-JAVA_HOME
-
-To add an include file to an auto-generated gateway use a similar
-syntax to the above, but in the form:
-
-	geneos set gateway gateway1 Includes=100:path/to/include.xml
-	geneos set gateway gateway1 Includes=-100
-
-Then rebuild the configuration as required.
-
-Other special names include Gateways for a comma separated list of
-host:port values for Sans, Attributes as name=value pairs again for
-Sans and Types a comma separated list of Types for Sans. Variables
-(for San config templates) cannot be set from the command line at
-this time.`,
+The "set" command does not rebuild any configuration files for instances.
+Use "rebuild" to do this.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
@@ -81,7 +60,7 @@ func init() {
 	setCmd.Flags().VarP(&setCmdExtras.Includes, "include", "i", "(gateways) Add an include file in the format PRIORITY:PATH")
 	setCmd.Flags().VarP(&setCmdExtras.Gateways, "gateway", "g", "(sans) Add a gateway in the format NAME:PORT")
 	setCmd.Flags().VarP(&setCmdExtras.Attributes, "attribute", "a", "(sans) Add an attribute in the format NAME=VALUE")
-	setCmd.Flags().VarP(&setCmdExtras.Types, "type", "t", "(sans) Add a gateway in the format NAME:PORT")
+	setCmd.Flags().VarP(&setCmdExtras.Types, "type", "t", "(sans) Add a type NAME")
 	setCmd.Flags().VarP(&setCmdExtras.Variables, "variable", "v", "(sans) Add a variable in the format [TYPE:]NAME=VALUE")
 	setCmd.Flags().SortFlags = false
 }
@@ -111,20 +90,14 @@ func setInstance(c geneos.Instance, params []string) (err error) {
 			logError.Printf("ignoring %q %s", arg, ErrInvalidArgs)
 			continue
 		}
-		k, v := s[0], s[1]
-
-		// loop through all provided instances, set the parameter(s)
-		for _, vs := range strings.Split(v, ",") {
-			if err = setValue(c, k, vs); err != nil {
-				log.Printf("%s: cannot set %q", c, k)
-			}
-		}
+		c.V().Set(s[0], s[1])
 	}
 
 	// now loop through the collected results and write out
 	if err = instance.Migrate(c); err != nil {
 		logError.Fatalln("cannot migrate existing .rc config to set values in new .json configration file:", err)
 	}
+
 	if err = instance.WriteConfig(c); err != nil {
 		logError.Fatalln(err)
 	}
@@ -317,6 +290,12 @@ func writeConfigParams(filename string, params []string) (err error) {
 		vp.Set("itrshome", nil)
 	}
 
-	vp.WriteConfig()
-	return nil
+	return vp.WriteConfig()
+}
+
+func readConfigFile(path string) (v *viper.Viper) {
+	v = viper.New()
+	v.SetConfigFile(path)
+	v.ReadInConfig()
+	return
 }

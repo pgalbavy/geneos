@@ -84,6 +84,7 @@ func FilenameFromHTTPResp(resp *http.Response, u *url.URL) (filename string, err
 	return
 }
 
+//
 func OpenLocalFileOrURL(source string) (from io.ReadCloser, filename string, err error) {
 	u, err := url.Parse(source)
 	if err != nil {
@@ -95,7 +96,21 @@ func OpenLocalFileOrURL(source string) (from io.ReadCloser, filename string, err
 		var resp *http.Response
 		resp, err = http.Get(u.String())
 		if err != nil {
-			return nil, "", err
+			logError.Fatalln(err)
+		}
+		// only use auth if required
+		if resp.StatusCode == 401 || resp.StatusCode == 403 {
+			if viper.GetString("download.username") != "" {
+				var req *http.Request
+				client := &http.Client{}
+				if req, err = http.NewRequest("GET", u.String(), nil); err != nil {
+					logError.Fatalln(err)
+				}
+				req.SetBasicAuth(viper.GetString("download.username"), viper.GetString("download.password"))
+				if resp, err = client.Do(req); err != nil {
+					logError.Fatalln(err)
+				}
+			}
 		}
 
 		if resp.StatusCode > 299 {

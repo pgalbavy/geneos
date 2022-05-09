@@ -16,6 +16,8 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 RUN apt update && apt install -y fontconfig
 COPY --from=build /app/geneos /bin
 RUN useradd -ms /bin/bash geneos
-USER geneos
 WORKDIR /home/geneos
+# COPY archives packages/downloads
+# RUN chown -R geneos:geneos packages
+USER geneos
 CMD [ "bash" ]

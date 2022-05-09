@@ -9,6 +9,7 @@ type optstruct struct {
 	basename    string
 	homedir     string
 	username    string
+	password    string
 	platform_id string
 	filename    string
 }
@@ -53,6 +54,10 @@ func Homedir(h string) GeneosOptions {
 
 func Username(u string) GeneosOptions {
 	return func(d *optstruct) { d.username = u }
+}
+
+func Password(p string) GeneosOptions {
+	return func(d *optstruct) { d.password = p }
 }
 
 func PlatformID(id string) GeneosOptions {

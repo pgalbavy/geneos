@@ -34,6 +34,7 @@ import (
 	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/utils"
 	"wonderland.org/geneos/pkg/logger"
 )
 
@@ -130,9 +131,17 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable extra debug output")
 	rootCmd.PersistentFlags().MarkHidden("debug")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
-	rootCmd.PersistentFlags().SortFlags = false
 
+	rootCmd.PersistentFlags().StringVarP(&username, "username", "u", "", "username for downloads")
+	rootCmd.PersistentFlags().BoolVarP(&passwordPrompt, "password", "p", false, "prompt for a password, only valid for downloads and in conjunction with -u")
+	rootCmd.PersistentFlags().StringVarP(&passwordFile, "pwfile", "P", "", "path to password file, only valid for downloads and in conjunction with -u")
+
+	rootCmd.PersistentFlags().SortFlags = false
+	rootCmd.Flags().SortFlags = false
 }
+
+var username, passwordFile string
+var passwordPrompt bool
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
@@ -170,6 +179,18 @@ func initConfig() {
 			viper.Set("geneos", viper.GetString("itrshome"))
 		}
 		viper.Set("itrshome", nil)
+	}
+
+	if username != "" {
+		viper.Set("download.username", username)
+	}
+
+	if passwordFile != "" {
+		viper.Set("download.password", utils.ReadPasswordFile(passwordFile))
+	} else if passwordPrompt {
+		viper.Set("download.password", utils.ReadPasswordPrompt())
+		// only ask once
+		passwordPrompt = false
 	}
 
 	// initialise after config loaded
