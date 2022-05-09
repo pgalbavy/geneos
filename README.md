@@ -2,15 +2,9 @@
 
 | :warning: Breaking Changes v1.1+ |
 |:--|
-| v1.1 is a complete rewrite of the `geneos` program and there **will** be breaking changes. Most of these will be command line flags, options, configuration file contents and support for old, obscure options. The trigger for many of these changes is the move to use well-known and mature packages for configuration handling (viper) and command line options (cobra) as well as the untangling of internal spaghetti code which made calls in and out of multiple layers of functionality. I have attempted to update this documentation to match the new functionality and to also highlight known changes for you, but it is highly probable that some things have been missed. |
+| v1.1 is an almost complete rewrite of the `geneos` program and there **will** be breaking changes. Most of these will be command line flags, options, configuration file contents and support for old, obscure options. The trigger for many of these changes is the move to use well-known and mature packages for configuration handling (viper) and command line options (cobra) as well as the untangling of internal spaghetti code which made calls in and out of multiple layers of functionality. I have attempted to update this documentation to match the new functionality and to also highlight known changes for you, but it is highly probable that some things have been missed. |
 
-| :memo: PLEASE NOTE |
-|:--|
-| As with many "spare time" projects, the desire to get v1.0.0 out of the door has left less time to update the documentation. Some of the details below may be out-of-date and apologies for that. |
-| This README has grown it seems more appropriate to split it up into multiple separate documents and to ensure those are in sync with the codebase. I place on making that happen as soon as I can. |
-| For command usage please see the help output for each command for a more up-to-date set of options and flags. The help test tends to be much more closely aligned to the code base. This can be found either with `geneos help COMMAND` or `geneos COMMAND -h` |
-
-The `geneos` program will help you manage your Geneos environment.
+The `geneos` program will help you manage your Geneos environment on Linux.
 
 You can:
 
@@ -65,33 +59,33 @@ sudo mv geneos /usr/local/bin
 
 ### Adopting An Existing Installation
 
-If you have an existing Geneos installation that you manage with the command like `gatewayctl`/`netprobectl`/etc. then you can use `geneos` to manage those once you have configured the path to the Geneos installation.
+If you have an existing Geneos installation that you manage with the command like `gatewayctl`/`netprobectl`/etc. then you can use `geneos` to manage those once you have set the path to the Geneos installation.
 
 | :warning: WARNING |
 |:----------------------------|
-| `geneos` ignores any changes to the global *ctl.rc files in your existing installation. You **must** check and adjust individual instance settings to duplicate settings. This can sometimes be very simple, for example if your `netprobectl.rc` files contains a line that sets `JAVA_HOME` then you can set this across all the Netprobes using `geneos set netprobe Env=JAVA_HOME=/path/to/java`. More complex changes, such as library paths, will need more careful consideration |
+| `geneos` ignores any changes to the global .rc files in your existing installation. You **must** check and adjust individual instance settings to duplicate settings. This can sometimes be very simple, for example if your `netprobectl.rc` files contains a line that sets `JAVA_HOME` then you can set this across all the Netprobes using `geneos set netprobe -e JAVA_HOME=/path/to/java`. More complex changes, such as library paths, will need careful consideration |
 
-You can use an environment variable `ITRS_HOME` pointing to the top-level directory of your installation or set the location in the (user or global) configuration file:
+You can use the environment variable `ITRS_HOME` pointing to the top-level directory of your installation or set the location in the (user or global) configuration file:
 
 ```bash
-geneos set geneos=/path/to/install
+geneos set user geneos=/path/to/install
 ```
 
 This is the directory is where the `packages` and `gateway` (etc.) directories live. If you do not have an existing installation that follows this pattern then you can create a fresh layout further below.
 
-You can now check your installation with some simple commands:
+Once you have set your directory you check your installation with some basic commands:
 
 ```bash
-geneos ls     - list instances
-geneos ps     - show their running status
-geneos show   - show the default configuration values
+geneos ls     # list instances
+geneos ps     # show their running status
+geneos show   # show the default configuration values
 ```
 
-None of these commands should have any side-effects but others will not only start or stop processes but may also convert configuration files to JSON format without further prompting. Old `.rc` files are backed-up with a `.rc.orig` extension.
+None of these commands should have any side-effects but others will. These may not only start or stop processes but may also convert configuration files to JSON format without prompting. Old `.rc` files are backed-up with a `.rc.orig` extension and can be restored using the `revert` command.
 
 ### New Installation
 
-New installations are set-up through the `init` sub-command. In it's most basic form it will create the minimal directory hierarchy and you user-specific geneos.json file containing the path to the top-level directory that it just initialised. The top-level directory, if not given on the command line, defaults to a directory `geneos` in your home directory *unless* the last part of your home directory is itself `geneos`, e.g. if your home directory is `/home/example` then the Geneos directory becomes `/home/example/geneos` but if it is `/opt/geneos` then that is used directly.
+New installations are set-up through the `init` sub-command. In it's most basic form it will create the minimal directory hierarchy and your user-specific geneos.json file containing the path to the top-level directory that it initialised. The top-level directory, if not given on the command line, defaults to a directory `geneos` in your home directory *unless* the last part of your home directory is itself `geneos`, e.g. if your home directory is `/home/example` then the Geneos directory becomes `/home/example/geneos` but if it is `/opt/geneos` then that is used directly.
 
 If the directory you are using is not empty then you must supply a `-F` flag for force using this directory.
 
@@ -103,9 +97,17 @@ You can set-up a Demo environment like this:
 geneos init -D
 ```
 
-This one line command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Self-Announcing Netprobe and Webserver for dashboards. However, no configuration is done to connect these up, that's up to you!
+If authentication is required to download the software archives then use these extra options:
 
-Behind the scenes the command does this for you:
+```bash
+geneos init -D -u user@example.com -p
+```
+
+Here you should replace the email address with your own and the `-p` will tell the command to prompt you for your password. These are the login details you should have for the ITRS Resources website.
+
+The above command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Self-Announcing Netprobe and Webserver for dashboards. However, no configuration is done to connect these up, that's up to you!
+
+Behind the scenes the command does roughly this for you:
 
 ```bash
 geneos init
@@ -130,6 +132,8 @@ geneos init -S -n SAN123 -c /path/to/signingcertkey \
 ```
 
 This example will create a SAN with the name SAN123 connecting, using TLS, to gateway1 and gateway2, using types and attributes as listed.
+
+Again, you can add authentication options for the downloads using `-u` and `-p`.
 
 #### Another Initial Environment
 
@@ -169,14 +173,14 @@ This program has been written in such a way that is *should* be safe to install 
 
 ### Special parameters
 
-All instances support custom environment variables being set or unset. This is done through the `set` and `unset` commands below, alongside the standard configuration parameters for each instance type.
+All instance types support custom environment variables being set or unset. This is done through the `set` and `unset` commands below, alongside the standard configuration parameters for each instance type.
 
-Some component types, namely Gateways and SANs, support other special parameters through other command line flags. See the help text or the full documentation for the `set` and `unset` commands for more details.
+Some component types, namely Gateways and SANs, support other special parameters via other command line flags. See the help text or the full documentation for the `set` and `unset` commands for more details.
 
 To set an environment variable use this syntax:
 
 ```bash
-geneos set netprobe example1 -e PATH_TO_SOMETHING=/this/way
+geneos set netprobe example1 -e PATH_TO_SOMETHING=/file/path
 ```
 
 If an entry already exists it is overwritten.
@@ -206,7 +210,7 @@ You can review the environment for any instance using the `show` command:
 geneos show netprobe example1
 ```
 
-A more human readable output is available from the `command` command:
+Also. output is available from the `command` command to show what would be run when calling the `start` command:
 
 ```bash
 geneos command netprobe example1
@@ -217,15 +221,15 @@ geneos command netprobe example1
 The following component types (and their aliases) are supported:
 
 * `any` (which is the default)
-* `gateway`, `gateways`
-* `netprobe`, `netprobes`, `probe` or `probes`
-* `licd` or `licds`
-* `webserver`, `webservers`, `webdashboard`. `dashboards`
-* `san`, `sans`
-* `fa2`, `fixanalyser`, `fix-analyser`
-* `fileagent`, `fileagents`
+* **`gateway`** - or `gateways`
+* **`netprobe`** - or `netprobes`, `probe` or `probes`
+* **`licd`** - or `licds`
+* **`webserver`** - or `webservers`, `webdashboard`. `dashboards`
+* **`san`** - or `sans`
+* **`fa2`** - or `fixanalyser`, `fix-analyser`
+* **`fileagent`** - or `fileagents`
 
-These names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `netprobe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
+The first name, in bold, is also the directory name used for each. All these names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `probe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
 
 Each component type is described below along with specific component options.
 
@@ -343,10 +347,39 @@ There are a number of special cases, these are detailed below.
 
 ### Commands
 
-The following commands are available (taken from `geneos help`):
+The following commands are available:
 
 ```txt
-...
+Available Commands:
+  add         Add a new instance
+  clean       Clean-up instance directories
+  command     Show command line and environment for launching instances
+  completion  Generate the autocompletion script for the specified shell
+  copy        Copy instances
+  delete      Delete an instance. Instance must be stopped
+  disable     Stop and disable instances
+  enable      Enable instances. Only previously disabled instances are started
+  help        Help about any command
+  home        Print the home directory of the first instance or the Geneos home dir
+  import      Import file(s) to an instance or a common directory
+  init        Initialise a Geneos installation
+  install     Install files from downloaded Geneos packages. Intended for sites without Internet access
+  logs        Show log(s) for instances
+  ls          List instances, optionally in CSV or JSON format
+  migrate     Migrate legacy .rc configuration to new .json format
+  move        Move (or rename) instances
+  ps          List process information for instances, optionally in CSV or JSON format
+  rebuild     Rebuild instance configuration files
+  reload      Reload instance configuration, where supported
+  restart     Restart instances
+  revert      Revert migration of .rc files from backups
+  set         Set instance configuration parameters
+  show        Show runtime, global, user or instance configuration is JSON format
+  start       Start instances
+  stop        Stop instances
+  tls         Manage certificates for secure connections
+  unset       Unset a configuration value
+  update      Update the active version of Geneos software
 ```
 
 #### General Command Flags & Arguments
@@ -368,13 +401,13 @@ In general, with the exception of `TYPE`, all parameters can be in any order as 
 
 Reserved instance names are case-insensitive. So, for example, "gateway", "Gateway" and "GATEWAY" are all reserved.
 
-The `NAME` is of the format `INSTANCE@REMOTE` where either is optional. In general commands will wildcard the part not provided. There are special `REMOTE` names `@local` and `@all` - the former is, as the name suggests, the local server and `@all` is the same as not providing a remote name.
+The `NAME` is of the format `INSTANCE@REMOTE` where either is optional. In general commands will wildcard the part not provided. There are special `REMOTE` names `@localhost` and `@all` - the former is, as the name suggests, the local server and `@all` is the same as not providing a remote name.
 
-There is a special format for adding Sans in the form `TYPE:NAME@REMOTE` where `TYPE` can be used to select the underlying Netprobe type. This format is still accepted for all other commands but the `TYPE` is completely ignored.
+There is a special format for adding SANs in the form `TYPE:NAME@REMOTE` where `TYPE` can be used to select the underlying Netprobe type. This format is still accepted for all other commands but the `TYPE` is silently ignored.
 
 #### File and URLs
 
-In general all source file references support URLs, e.g. imported certificate and keys, license files, importing general files.
+In general all source file references support URLs, e.g. importing certificate and keys, license files, etc.
 
 The primary exception is for Gateway include files used in templated configurations. If these are given as URLs then they are used in the configuration as URLs.
 
@@ -385,6 +418,8 @@ Show the current version of the `geneos` program, which should match the tag of 
 
 * `geneos help`
 General help, initially a list of all the supported commands.
+
+* `geneos completion`
 
 * `geneos ls [TYPE] [NAME...]`
 Output a list of all configured instances. If a TYPE and/or NAME(s) are supplied then list those that match.
