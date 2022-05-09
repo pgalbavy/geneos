@@ -50,7 +50,10 @@ func init() {
 	setUserCmd.Flags().SortFlags = false
 }
 
-func commandSetUser(ct *geneos.Component, args, params []string) error {
+func commandSetUser(ct *geneos.Component, args, params []string) (err error) {
 	userConfDir, _ := os.UserConfigDir()
+	if err = os.MkdirAll(userConfDir, 0775); err != nil {
+		logError.Fatalln(err)
+	}
 	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
 }

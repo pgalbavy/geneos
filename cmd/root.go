@@ -72,7 +72,7 @@ template based configuration files for SANs and new gateways.`,
 		geneosdir := host.Geneos()
 		if geneosdir == "" {
 			// only allow init through
-			if cmd != initCmd {
+			if cmd != initCmd && cmd != setUserCmd && cmd != setGlobalCmd {
 				cmd.SetUsageTemplate(" ")
 				return fmt.Errorf("%s", `Installation directory is not set.
 
@@ -92,7 +92,7 @@ You can fix this by doing one of the following:
 
 3. Set the Geneos path in your user's configuration file:
 
-	$ geneos set user Geneos=/path/to/geneos
+	$ geneos set user geneos=/path/to/geneos
 
 3. Set the Geneos path in the global configuration file (usually as root):
 
