@@ -8,7 +8,6 @@ import (
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
-	"wonderland.org/geneos/pkg/logger"
 )
 
 // given a list of args (after command has been seen), check if first
@@ -24,7 +23,7 @@ import (
 // flags will have been handled by another function before this one
 // any args with '=' are treated as parameters
 //
-// a bare argument with a '@' prefix means all instance of type on a remote
+// a bare argument with a '@' prefix means all instance of type on a host
 //
 func parseArgs(cmd *cobra.Command, rawargs []string) {
 	var wild bool
@@ -44,7 +43,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 		return
 	}
 
-	logger.Debug.Println("rawargs:", rawargs)
+	logDebug.Println("rawargs:", rawargs)
 
 	// filter in place - pull out all args containing '=' into params
 	// after rebuild this should only apply to 'import'
@@ -60,7 +59,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 	}
 	rawargs = rawargs[:n]
 
-	logger.Debug.Println("rawargs, params", rawargs, params)
+	logDebug.Println("rawargs, params", rawargs, params)
 
 	a["ct"] = "none"
 	jsonargs, _ := json.Marshal(params)
@@ -95,40 +94,40 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 			args = instance.AllNames(host.ALL, ct)
 		} else {
 			// expand each arg and save results to a new slice
-			// if local == "", then all instances on remote (e.g. @remote)
-			// if remote == "all" (or none given), then check instance on all hosts
+			// if local == "", then all instances on host (e.g. @host)
+			// if host == "all" (or none given), then check instance on all hosts
 			// @all is not valid - should be no arg
 			var nargs []string
 			for _, arg := range args {
 				// check if not valid first and leave unchanged, skip
 				if !(strings.HasPrefix(arg, "@") || instance.ValidInstanceName(arg)) {
-					logger.Debug.Println("leaving unchanged:", arg)
+					logDebug.Println("leaving unchanged:", arg)
 					nargs = append(nargs, arg)
 					continue
 				}
 				_, local, r := instance.SplitName(arg, host.ALL)
 				if !r.Loaded() {
-					logger.Debug.Println(arg, "- remote not found")
+					logDebug.Println(arg, "- host not found")
 					// we have tried to match something and it may result in an empty list
 					// so don't re-process
 					wild = true
 					continue
 				}
 
-				logger.Debug.Println("split", arg, "into:", local, r.String())
+				logDebug.Println("split", arg, "into:", local, r.String())
 				if local == "" {
-					// only a '@remote' in arg
+					// only a '@host' in arg
 					if r.Loaded() {
 						rargs := instance.AllNames(r, ct)
 						nargs = append(nargs, rargs...)
 						wild = true
 					}
 				} else if r == host.ALL {
-					// no '@remote' in arg
+					// no '@host' in arg
 					var matched bool
 					for _, rem := range host.AllHosts() {
 						wild = true
-						logger.Debug.Printf("checking remote %s for %s", rem.String(), local)
+						logDebug.Printf("checking host %s for %s", rem.String(), local)
 						name := local + "@" + rem.String()
 						if ct == nil {
 							for _, cr := range geneos.RealComponents() {
@@ -145,7 +144,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 					if !matched && instance.ValidInstanceName(arg) {
 						// move the unknown unchanged - file or url - arg so it can later be pushed to params
 						// do not set 'wild' though?
-						logger.Debug.Println(arg, "not found, saving to params")
+						logDebug.Println(arg, "not found, saving to params")
 						nargs = append(nargs, arg)
 					}
 				} else {
@@ -158,7 +157,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 		}
 	}
 
-	logger.Debug.Println("ct, args, params", ct, args, params)
+	logDebug.Println("ct, args, params", ct, args, params)
 
 	m := make(map[string]bool, len(args))
 	// traditional loop because we can't modify args in a loop to skip
@@ -198,7 +197,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 		a["args"] = string(jsonargs)
 	}
 
-	logger.Debug.Println("ct, args, params", ct, args, params)
+	logDebug.Println("ct, args, params", ct, args, params)
 }
 
 func cmdArgs(cmd *cobra.Command) (ct *geneos.Component, args []string) {

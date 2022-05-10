@@ -279,7 +279,7 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 	return Update(r, ct, options...)
 }
 
-// locate and open the remote archive using the download conventions
+// locate and open the archive using the download conventions
 func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filename string, resp *http.Response, err error) {
 	baseurl := viper.GetString("download.url")
 	downloadURL, _ := url.Parse(baseurl)

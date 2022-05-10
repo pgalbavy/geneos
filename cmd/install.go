@@ -29,7 +29,7 @@ import (
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
-	Use:   "install [-b BASENAME] [-l] [-n] [-r REMOTE] [-U] [-T TYPE:VERSION] [TYPE] | FILE|URL [FILE|URL...] | [VERSION | FILTER]",
+	Use:   "install [-b BASENAME] [-l] [-n] [-h HOST] [-U] [-T TYPE:VERSION] [TYPE] | FILE|URL [FILE|URL...] | [VERSION | FILTER]",
 	Short: "Install files from downloaded Geneos packages. Intended for sites without Internet access",
 	Long: `Installs files from FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
@@ -77,7 +77,7 @@ func init() {
 
 	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "l", false, "Install from local files only")
 	installCmd.Flags().BoolVarP(&installCmdNoSave, "nosave", "n", false, "Do not save a local copy of any downloads")
-	installCmd.Flags().StringVarP(&installCmdRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" means all hosts and locally")
+	installCmd.Flags().StringVarP(&installCmdHost, "host", "h", string(host.ALLHOSTS), "Perform on a remote host. \"all\" means all hosts and locally")
 	installCmd.Flags().StringVarP(&installCmdVersion, "version", "v", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")
@@ -86,7 +86,7 @@ func init() {
 }
 
 var installCmdLocal, installCmdNoSave, installCmdUpdate bool
-var installCmdBase, installCmdRemote, installCmdOverride, installCmdVersion string
+var installCmdBase, installCmdHost, installCmdOverride, installCmdVersion string
 
 //
 //
@@ -103,10 +103,10 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 	// overrides do not work in this case as the version and type have to be part of the
 	// archive file name
 	if ct != nil || len(args) == 0 {
-		logDebug.Printf("installing %q version of %s to %s remote(s)", installCmdVersion, ct, installCmdRemote)
+		logDebug.Printf("installing %q version of %s to %s host(s)", installCmdVersion, ct, installCmdHost)
 
 		options := []geneos.GeneosOptions{geneos.Version(installCmdVersion), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate)}
-		for _, h := range host.Match(host.Name(installCmdRemote)) {
+		for _, h := range host.Match(host.Name(installCmdHost)) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
@@ -121,7 +121,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 	// work through command line args and try to install them using the naming format
 	// of standard downloads - fix versioning
 	for _, file := range args {
-		for _, h := range host.Match(host.Name(installCmdRemote)) {
+		for _, h := range host.Match(host.Name(installCmdHost)) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}

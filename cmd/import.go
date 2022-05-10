@@ -69,7 +69,7 @@ func init() {
 	rootCmd.AddCommand(importCmd)
 
 	importCmd.Flags().StringVarP(&common, "common", "c", "", "Import into a common directory instead of matching instances.	For example, if TYPE is 'gateway' and NAME is 'shared' then this common directory is 'gateway/gateway_shared'")
-	importCmd.Flags().StringVarP(&hostname, "remote", "r", "all", "Import only to named remote, default is all")
+	importCmd.Flags().StringVarP(&hostname, "host", "h", "all", "Import only to named host, default is all")
 	importCmd.Flags().SortFlags = false
 }
 

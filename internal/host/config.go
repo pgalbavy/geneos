@@ -43,7 +43,7 @@ func WriteConfig(c *Host) (err error) {
 // return the full path to the host configuration file with the
 // extension given
 func configFile(c *Host, extension string) (path string) {
-	return filepath.Join(c.Home, "remote."+extension)
+	return filepath.Join(c.Home, "host."+extension)
 }
 
 func FindHostDirs() (hosts []string) {

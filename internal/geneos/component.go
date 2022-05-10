@@ -111,7 +111,6 @@ func AllComponents() (cts []*Component) {
 
 // currently supported real component types, for looping
 // (go doesn't allow const slices, a function is the workaround)
-// not including Remote - this is special
 func RealComponents() (cts []*Component) {
 	for _, c := range components {
 		if c.RealComponent {

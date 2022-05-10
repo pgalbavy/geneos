@@ -12,13 +12,6 @@ import (
 	"wonderland.org/geneos/internal/utils"
 )
 
-// remote support
-
-// const Remote Component = "remote"
-
-// global to indicate current remote target. default to "local" which is a special case
-// var remoteTarget = "local"
-
 type Name string
 
 const LOCALHOST Name = "localhost"
@@ -28,7 +21,7 @@ var LOCAL, ALL *Host
 
 type Host struct {
 	Name         Name   `json:"Name,omitempty"`    // name, as opposed to hostname
-	Home         string `json:"HomeDir,omitempty"` // Remote configuration directory
+	Home         string `json:"HomeDir,omitempty"` // Remote host configuration directory
 	ConfigLoaded bool   `json:"-"`
 	// Geneos string `json:"Geneos,omitempty"` // Geneos root directory
 
@@ -148,33 +141,33 @@ func (h *Host) GetOSReleaseEnv() (err error) {
 	return
 }
 
-func Get(remote Name) (r *Host) {
-	switch remote {
+func Get(host Name) (r *Host) {
+	switch host {
 	case LOCALHOST:
 		return LOCAL
 	case ALLHOSTS:
 		return ALL
 	default:
-		i := New(remote)
+		i := New(host)
 		i.Load()
 		return i
 	}
 }
 
-func Match(remote Name) (r []*Host) {
-	switch remote {
+func Match(host Name) (r []*Host) {
+	switch host {
 	case LOCALHOST:
 		return []*Host{LOCAL}
 	case ALLHOSTS:
 		return AllHosts()
 	default:
-		i := New(remote)
+		i := New(host)
 		i.Load()
 		return []*Host{i}
 	}
 }
 
-// return an absolute path anchored in the root directory of the remote
+// return an absolute path anchored in the root directory of the remote host
 // this can also be LOCAL
 func (r *Host) GeneosJoinPath(paths ...string) string {
 	return filepath.Join(append([]string{r.V().GetString("geneos")}, paths...)...)

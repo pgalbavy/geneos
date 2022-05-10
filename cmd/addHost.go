@@ -31,7 +31,7 @@ import (
 	"wonderland.org/geneos/internal/host"
 )
 
-// addHostCmd represents the addRemote command
+// addHostCmd represents the addHost command
 var addHostCmd = &cobra.Command{
 	Use:                   "host [-I] [NAME] [SSHURL]",
 	Aliases:               []string{"remote"},

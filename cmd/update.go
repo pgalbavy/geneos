@@ -32,7 +32,7 @@ import (
 
 // updateCmd represents the update command
 var updateCmd = &cobra.Command{
-	Use:   "update [-b BASE] [-r REMOTE] [TYPE] VERSION",
+	Use:   "update [-b BASE] [-h HOST] [TYPE] VERSION",
 	Short: "Update the active version of Geneos software",
 	Long: `Update the symlink for the default base name of the package used to
 	VERSION. The base directory, for historical reasons, is 'active_prod'
@@ -68,18 +68,18 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 
 	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Override the base active_prod link name")
-	updateCmd.Flags().StringVarP(&cmdUpdateRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote host. \"all\" (the default) means all remote hosts and locally")
+	updateCmd.Flags().StringVarP(&cmdUpdateHost, "host", "h", string(host.ALLHOSTS), "Perform on a remote host. \"all\" (the default) means all remote hosts and locally")
 	updateCmd.Flags().SortFlags = false
 }
 
-var cmdUpdateBase, cmdUpdateRemote string
+var cmdUpdateBase, cmdUpdateHost string
 
 func commandUpdate(ct *geneos.Component, args []string, params []string) (err error) {
 	version := "latest"
 	if len(args) > 0 {
 		version = args[0]
 	}
-	r := host.Get(host.Name(cmdUpdateRemote))
+	r := host.Get(host.Name(cmdUpdateHost))
 	if err = geneos.Update(r, ct, geneos.Version(version), geneos.Basename(cmdUpdateBase), geneos.Force(true)); err != nil && errors.Is(err, os.ErrNotExist) {
 		return nil
 	}

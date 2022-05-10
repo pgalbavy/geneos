@@ -94,12 +94,12 @@ func (h *Host) WriteConfigFile(file string, username string, perms fs.FileMode, 
 
 // move a directory, between any combination of local or remote locations
 //
-func CopyAll(srcRemote *Host, srcDir string, dstRemote *Host, dstDir string) (err error) {
-	if srcRemote == ALL || dstRemote == ALL {
+func CopyAll(srcHost *Host, srcDir string, dstHost *Host, dstDir string) (err error) {
+	if srcHost == ALL || dstHost == ALL {
 		return ErrInvalidArgs
 	}
 
-	if srcRemote == LOCAL {
+	if srcHost == LOCAL {
 		filesystem := os.DirFS(srcDir)
 		fs.WalkDir(filesystem, ".", func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
@@ -113,12 +113,12 @@ func CopyAll(srcRemote *Host, srcDir string, dstRemote *Host, dstDir string) (er
 			}
 			dstPath := filepath.Join(dstDir, path)
 			srcPath := filepath.Join(srcDir, path)
-			return copyDirEntry(fi, srcRemote, srcPath, dstRemote, dstPath)
+			return copyDirEntry(fi, srcHost, srcPath, dstHost, dstPath)
 		})
 		return
 	}
 
-	s, err := srcRemote.DialSFTP()
+	s, err := srcHost.DialSFTP()
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func CopyAll(srcRemote *Host, srcDir string, dstRemote *Host, dstDir string) (er
 		fi := w.Stat()
 		srcPath := w.Path()
 		dstPath := filepath.Join(dstDir, strings.TrimPrefix(w.Path(), srcDir))
-		if err = copyDirEntry(fi, srcRemote, srcPath, dstRemote, dstPath); err != nil {
+		if err = copyDirEntry(fi, srcHost, srcPath, dstHost, dstPath); err != nil {
 			logError.Println(err)
 			continue
 		}
@@ -140,36 +140,36 @@ func CopyAll(srcRemote *Host, srcDir string, dstRemote *Host, dstDir string) (er
 	return
 }
 
-func copyDirEntry(fi fs.FileInfo, srcRemote *Host, srcPath string, dstRemote *Host, dstPath string) (err error) {
+func copyDirEntry(fi fs.FileInfo, srcHost *Host, srcPath string, dstHost *Host, dstPath string) (err error) {
 	switch {
 	case fi.IsDir():
-		ds, err := srcRemote.Stat(srcPath)
+		ds, err := srcHost.Stat(srcPath)
 		if err != nil {
 			logError.Println(err)
 			return err
 		}
-		if err = dstRemote.MkdirAll(dstPath, ds.St.Mode()); err != nil {
+		if err = dstHost.MkdirAll(dstPath, ds.St.Mode()); err != nil {
 			return err
 		}
 	case fi.Mode()&fs.ModeSymlink != 0:
-		link, err := srcRemote.ReadLink(srcPath)
+		link, err := srcHost.ReadLink(srcPath)
 		if err != nil {
 			return err
 		}
-		if err = dstRemote.Symlink(link, dstPath); err != nil {
+		if err = dstHost.Symlink(link, dstPath); err != nil {
 			return err
 		}
 	default:
-		ss, err := srcRemote.Stat(srcPath)
+		ss, err := srcHost.Stat(srcPath)
 		if err != nil {
 			return err
 		}
-		sf, err := srcRemote.Open(srcPath)
+		sf, err := srcHost.Open(srcPath)
 		if err != nil {
 			return err
 		}
 		defer sf.Close()
-		df, err := dstRemote.Create(dstPath, ss.St.Mode())
+		df, err := dstHost.Create(dstPath, ss.St.Mode())
 		if err != nil {
 			return err
 		}
@@ -181,10 +181,9 @@ func copyDirEntry(fi fs.FileInfo, srcRemote *Host, srcPath string, dstRemote *Ho
 	return nil
 }
 
-// shim methods that test remote and direct to ssh / sftp / os
+// shim methods that test Host and direct to ssh / sftp / os
 // at some point this should become interface based to allow other
 // remote protocols cleanly
-
 func (h *Host) Symlink(target, path string) (err error) {
 	switch h.Name {
 	case LOCALHOST:
@@ -330,7 +329,7 @@ type FileStat struct {
 	Mtime int64
 }
 
-// stat() a local or remote file and normalise common values
+// stat() a file and normalise common values
 func (h *Host) Stat(name string) (s FileStat, err error) {
 	switch h.Name {
 	case LOCALHOST:
@@ -355,7 +354,7 @@ func (h *Host) Stat(name string) (s FileStat, err error) {
 	return
 }
 
-// lstat() a local or remote file and normalise common values
+// lstat() a file and normalise common values
 func (h *Host) Lstat(name string) (s FileStat, err error) {
 	switch h.Name {
 	case LOCALHOST:

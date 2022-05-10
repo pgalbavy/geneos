@@ -28,7 +28,7 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 
 	originalVersion := opts.version
 
-	// before updating a specific type on a specific remote, loop
+	// before updating a specific type on a specific host, loop
 	// through related types, hosts and components. continue to
 	// other items if a single update fails?
 	//

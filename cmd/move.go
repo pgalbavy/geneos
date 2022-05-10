@@ -58,7 +58,7 @@ func init() {
 	moveCmd.Flags().SortFlags = false
 }
 
-// XXX add more wildcard support - src = @remote for all instances, auto
+// XXX add more wildcard support - src = @host for all instances, auto
 // component type loops etc.
 func commandMove(ct *geneos.Component, args []string, params []string) (err error) {
 	if len(args) != 2 {
