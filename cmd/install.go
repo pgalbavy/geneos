@@ -77,7 +77,7 @@ func init() {
 
 	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "l", false, "Install from local files only")
 	installCmd.Flags().BoolVarP(&installCmdNoSave, "nosave", "n", false, "Do not save a local copy of any downloads")
-	installCmd.Flags().StringVarP(&installCmdRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" means all remotes and locally")
+	installCmd.Flags().StringVarP(&installCmdRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" means all hosts and locally")
 	installCmd.Flags().StringVarP(&installCmdVersion, "version", "v", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")

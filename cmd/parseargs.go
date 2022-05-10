@@ -96,7 +96,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 		} else {
 			// expand each arg and save results to a new slice
 			// if local == "", then all instances on remote (e.g. @remote)
-			// if remote == "all" (or none given), then check instance on all remotes
+			// if remote == "all" (or none given), then check instance on all hosts
 			// @all is not valid - should be no arg
 			var nargs []string
 			for _, arg := range args {

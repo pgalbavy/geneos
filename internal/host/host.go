@@ -53,19 +53,18 @@ func Geneos() string {
 
 // interface method set
 
-// cache instances of remotes as they get used frequently
-// var remotes map[RemoteName]*Remotes = make(map[RemoteName]*Remotes)
-var remotes sync.Map
+// cache instances of hosts as they get used frequently
+var hosts sync.Map
 
 func New(name Name) *Host {
 	parts := strings.SplitN(string(name), "@", 2)
 	name = Name(parts[0])
 	if len(parts) > 1 && parts[1] != string(LOCALHOST) {
-		logError.Println("remote remotes not supported")
+		logError.Println("hosts on remote hosts not supported")
 		return nil
 	}
 
-	r, ok := remotes.Load(name)
+	r, ok := hosts.Load(name)
 	if ok {
 		rem, ok := r.(*Host)
 		if ok {
@@ -78,14 +77,14 @@ func New(name Name) *Host {
 	c.Conf = viper.New()
 	c.Name = name
 	c.V().SetDefault("geneos", Geneos())
-	c.Home = filepath.Join(c.V().GetString("geneos"), "remotes", string(c.Name))
+	c.Home = filepath.Join(c.V().GetString("geneos"), "hosts", string(c.Name))
 
 	// fill this in directly as there is no config file to load
 	if c.Name == LOCALHOST {
 		c.GetOSReleaseEnv()
 	}
 
-	remotes.Store(name, c)
+	hosts.Store(name, c)
 	return c
 }
 
@@ -109,7 +108,7 @@ func (h *Host) Loaded() bool {
 }
 
 func (h *Host) Unload() {
-	remotes.Delete(h.Name)
+	hosts.Delete(h.Name)
 	h.ConfigLoaded = false
 }
 
@@ -188,14 +187,14 @@ func (r *Host) FullName(name string) string {
 	return name + "@" + r.String()
 }
 
-func AllHosts() (remotes []*Host) {
-	remotes = []*Host{LOCAL}
+func AllHosts() (hosts []*Host) {
+	hosts = []*Host{LOCAL}
 	if utils.IsSuperuser() {
 		return
 	}
 
 	for _, d := range FindHostDirs() {
-		remotes = append(remotes, Get(Name(d)))
+		hosts = append(hosts, Get(Name(d)))
 	}
 	return
 }

@@ -28,7 +28,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 		srcremote := strings.TrimPrefix(srcname, "@")
 		dstremote := strings.TrimPrefix(dstname, "@")
 		if srcremote == dstremote {
-			return fmt.Errorf("%w: src and destination remotes must be different", geneos.ErrInvalidArgs)
+			return fmt.Errorf("%w: src and destination host must be different", geneos.ErrInvalidArgs)
 		}
 		sr := host.Get(host.Name(srcremote))
 		if !sr.Loaded() {
@@ -145,7 +145,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 	realdst.V().Set("home", filepath.Join(dst.Type().ComponentDir(dr), ds))
 	// dst.Unload()
 
-	// fetch a new port if remotes are different and port is already used
+	// fetch a new port if hosts are different and port is already used
 	if src.Host() != dr {
 		srcport := src.V().GetInt64("port")
 		dstports := GetPorts(dr)

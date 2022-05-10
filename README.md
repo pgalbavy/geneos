@@ -6,7 +6,7 @@
 
 The `geneos` program will help you manage your Geneos environment on Linux.
 
-You can:
+## Basic Features
 
 * Initialise a new installation in one command
 * Adopt an existing installation that uses older tools
@@ -16,11 +16,33 @@ You can:
 * Download and install Geneos software, update components
 * Simple bootstrapping of Self-Announcing Netprobes
 
-The aim is to:
+## Aims
 
-* Keep it simple - "The law of least astonishment"
-* Make your life easier - at least the part managing Geneos
+* Keep it simple through the [Principle of least astonishment](https://en.wikipedia.org/wiki/Principle_of_least_astonishment)
+* Make your life easier;  at least the part managing Geneos
 * Help you use other automation tools with Geneos
+
+## Concepts & Terminology
+
+Many of the terms used in this documentation and in the program itself assumes some familiarity with the Geneos suite of products and this is not always the case, so here are some starting points. Many of the key terms have been inherited from earlier systems.
+
+The specific types supported by this program are details in [Component Types](#component-types) below.
+
+### Geneos
+
+[Geneos](https://www.itrsgroup.com/products/geneos) is a suite of software products from [ITRS](https://www.itrsgroup.com/) that provide real-time visibility of I.T. infrastructure and trading environments. It uses a three-tier architecture to collect, process and present enriched data to administrators.
+
+### Components
+
+A *component* is a type of software package and associated data. Each component will typically be a software package from one of the three-tiers mentioned above but can also be a derivative, e.g. a Self-Announcing Netprobe is a component type that abstracts the special configuration of either a vanilla Netprobe or, for example, the Fix Analyser Netprobe.
+
+### Instances
+
+An *instance* is an independent copy of a component with a working directory, configuration and other persistent files. Instances share read-only package directories for the binaries and other files from the distribution for the specific version being used.
+
+### Hosts
+
+*Hosts* are the locations that components are installed and instantiated. There is always a *localhost*.
 
 ## Getting Started
 
@@ -171,6 +193,26 @@ This program has been written in such a way that is *should* be safe to install 
 
 ## Instance Settings
 
+Each instance has a configuration file. This is the most basic expression of an instance. New instances that you create will have a configuration file named after the component type plus the extension `.json`. Older instances which you have adopted from older control scripts will have a configuration file with the extension `.rc`
+
+### Historical Configuration Files
+
+Historical (legacy) `.rc` files have lines, ignoring comments, of form
+
+```bash
+GatePort=1234
+```
+
+Where the prefix (`Gate`) also encodes the component type and the suffix (`Port`) is the setting. Any lines that do not contain the prefix are treated as environment variables and are evaluated and passed to the program on start.
+
+While the `geneos` program can parse and understand the legacy `.rc` files above it will never update them, instead migrating them to their modern `.json` versions either when required or when explicitly told to using the `migrate` command.
+
+### JSON Configuration Files
+
+The `.json` configuration files share common parameters as well as component type specific settings. For brevity some of these parameters are overloaded and have different meanings depending on the component type they apply to.
+
+While editing the configuration files directly is possible, it is best to use the `set` and `unset` commands to ensure the syntax is correct.
+
 ### Special parameters
 
 All instance types support custom environment variables being set or unset. This is done through the `set` and `unset` commands below, alongside the standard configuration parameters for each instance type.
@@ -220,7 +262,6 @@ geneos command netprobe example1
 
 The following component types (and their aliases) are supported:
 
-* `any` (which is the default)
 * **`gateway`** - or `gateways`
 * **`netprobe`** - or `netprobes`, `probe` or `probes`
 * **`licd`** - or `licds`
@@ -228,8 +269,9 @@ The following component types (and their aliases) are supported:
 * **`san`** - or `sans`
 * **`fa2`** - or `fixanalyser`, `fix-analyser`
 * **`fileagent`** - or `fileagents`
+* `any` (which is the default)
 
-The first name, in bold, is also the directory name used for each. All these names are also reserved words and you cannot configure or manage components with those names. This means that you cannot have a gateway called `gateway` or a probe called `probe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
+The first name, in bold, is also the directory name used for each type. These names are also reserved words and you cannot configure (or consistently manage) components with those names. This means that you cannot have a gateway called `gateway` or a probe called `probe`. If you do already have instances with these names then you will have to be careful migrating. See more below.
 
 Each component type is described below along with specific component options.
 
@@ -252,6 +294,8 @@ Each component type is described below along with specific component options.
 * Netprobe general
 
 ### Type `licd`
+
+* Licd general
 
 ### Type `webserver`
 
@@ -421,6 +465,8 @@ General help, initially a list of all the supported commands.
 
 * `geneos completion`
 
+#### Instance Details
+
 * `geneos ls [TYPE] [NAME...]`
 Output a list of all configured instances. If a TYPE and/or NAME(s) are supplied then list those that match.
 
@@ -474,9 +520,9 @@ Update the component base binary symlink
 * `geneos start [-l] [TYPE] [NAME...]`
 Start a Geneos component. If no name is supplied or the special name `all` is given then all the matching Geneos components are started.
 
-* `geneos stop [-f] [TYPE] [NAME...]`
+* `geneos stop [-K] [TYPE] [NAME...]`
 Like above, but stops the component(s)
--f terminates forcefully - i.e. a SIGKILL is immediately sent
+-K terminates forcefully - i.e. a SIGKILL is immediately sent
 
 * `geneos restart [-l] [TYPE] [NAME...]`
 Restarts matching geneos components. Each component is stopped and started in sequence. If all components should be down before starting up again then use a combination of `start` and `stop` from above.
@@ -490,7 +536,7 @@ Stop and disable the selected components by placing a file in the working direct
 * `geneos enable [TYPE] [NAME...]`
 Remove the `.disable` lock file and start the selected components
 
-* `geneos clean [-f] [TYPE] [names]`
+* `geneos clean [-F] [TYPE] [names]`
 Clean up component directory. Optionally 'full' clean, with an instance restart.
 
 #### Configuration Commands
@@ -517,9 +563,9 @@ Shows details of the full command used for the component and any extra environme
 These commands either move or copy instance(s). If the source and destination are on the same location/remote then `move` acts as a rename. If a destination is given as a bare remote, e.g. `@remotename` then the source instance name is kept. If both source and destination are remotes then all matching instances are moved or copied. If no TYPE is given then all matching instances will be acted on. If the destination is a different location/remote then the port number of the instance(s) may be updated to avoid clashing with existing instances. Because all changes require the writing of a new instance configuration file, all instances are migrated to new JSON configuration files if required.
 
 * `geneos delete [-F] component name`
-Deletes the disabled component given. Only works on components that have been disabled beforehand.
+Deletes the disabled component given. Only works on components that have been disabled beforehand, unless the `-F` (force) flag is supplied.
 
-* `geneos import [TYPE] name [file|url|-]`
+* `geneos import [-c common] [-r host] [TYPE] [NAME] [file|url|-]...`
 Import a file into an instance working directory, from local file, url or stdin and backup previous file. The file can also specify the destination name and sub-directory, which will be created if it does not exist. Examples of valid files are:
 
   ```bash
@@ -572,7 +618,7 @@ The root and signing certificates are only kept on the local server and the `tls
 * `/etc/geneos/geneos.json` - Global options
 * `${HOME}/.config/geneos.json` - User options
 
-General options are loaded from the global config file first, then the user level one. The current options are:
+General options are loaded from the global config file first, then the user one. The current options are:
 
 * `geneos`
 The home directory for all other commands. See [Directory Layout](#directory-layout) below. If set the environment variable ITRS_HOME overrides any settings in the files. This is to maintain backward compatibility with older tools. The default, if not set anywhere else, is the home directory of the user running the command or, if running as root, the home directory of the `geneos` or `itrs` users (in that order). (To be fully implemented)
@@ -588,6 +634,7 @@ If files are locally downloaded then this can either be a `file://` style URL or
 Principally used when running with elevated privilege (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.
 
 * `GatewayPortRange` & `NetprobePortRange` & `LicdPortRange`
+...
 
 ### Component Configuration
 
@@ -599,7 +646,7 @@ Note that execution mode (e.g. `GateMode`) is not supported and all components r
 
 ## Directory Layout
 
-The Geneos setting or the environment variable `ITRS_HOME` points to the base directory for all subsequent operations. The basic layout follows that of the original `gatewayctl` etc. including:
+The `geneos` configuration setting or the environment variable `ITRS_HOME` points to the base directory for all subsequent operations. The layout follows that of the original `gatewayctl` etc. including:
 
 ```
 packages/
@@ -615,7 +662,7 @@ licd/
 
 The `bin/` directory and the default `.rc` files are **ignored** so be aware if you have customised anything in `bin/`.
 
-As a very quick recap, each component directory will have a subdirectory with the plural of the name (`gateway` -> `gateways`) which will contain multiple subdirectories, one per instance, and these act as the configuration and working directories for the individual processes. Taking an example gateway called `Gateway1` the path will be:
+As a very quick recap, each component directory will have a subdirectory with the plural of the name (e.g. `gateway/gateways`) which will contain subdirectories, one per instance, and these act as the configuration and working directories for the individual processes. Taking an example gateway called `Gateway1` the path will be:
 
 `${ITRS_HOME}/gateway/gateways/Gateway1`
 

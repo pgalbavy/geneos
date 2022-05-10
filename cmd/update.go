@@ -68,7 +68,7 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 
 	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Override the base active_prod link name")
-	updateCmd.Flags().StringVarP(&cmdUpdateRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote. \"all\" - the default - means all remotes and locally")
+	updateCmd.Flags().StringVarP(&cmdUpdateRemote, "remote", "r", string(host.ALLHOSTS), "Perform on a remote host. \"all\" (the default) means all remote hosts and locally")
 	updateCmd.Flags().SortFlags = false
 }
 

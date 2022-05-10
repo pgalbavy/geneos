@@ -88,7 +88,7 @@ var Root Component = Component{
 	},
 	Directories: []string{
 		"packages/downloads",
-		"remotes",
+		"hosts",
 	},
 }
 

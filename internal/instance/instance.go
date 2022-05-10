@@ -268,7 +268,7 @@ func GetAll(r *host.Host, ct *geneos.Component) (confs []geneos.Instance) {
 	return
 }
 
-// Looks for exactly one matching instance across types and remotes
+// Looks for exactly one matching instance across types and hosts
 // returns Invalid Args if zero of more than 1 match
 func Match(ct *geneos.Component, name string) (c geneos.Instance, err error) {
 	list := MatchAll(ct, name)
@@ -323,7 +323,7 @@ func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 // returns a map
 func GetPorts(r *host.Host) (ports map[int]*geneos.Component) {
 	if r == host.ALL {
-		logError.Fatalln("getports() call with all remotes")
+		logError.Fatalln("getports() call with all hosts")
 	}
 	ports = make(map[int]*geneos.Component)
 	for _, c := range GetAll(r, nil) {

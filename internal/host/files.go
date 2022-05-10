@@ -479,7 +479,7 @@ func nextRandom() string {
 	return fmt.Sprint(rand.Uint32())
 }
 
-// based on os.CreatTemp, but allows for remotes and much simplified
+// based on os.CreatTemp, but allows for hosts and much simplified
 // given a remote and a full path, create a file with a suffix
 // and return an io.File
 func (h *Host) CreateTempFile(path string, perms fs.FileMode) (f io.WriteCloser, name string, err error) {

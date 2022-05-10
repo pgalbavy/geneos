@@ -47,7 +47,7 @@ func configFile(c *Host, extension string) (path string) {
 }
 
 func FindHostDirs() (hosts []string) {
-	dir := filepath.Join(Geneos(), "remotes")
+	dir := filepath.Join(Geneos(), "hosts")
 	dirs, err := LOCAL.ReadDir(dir)
 	if err != nil {
 		return

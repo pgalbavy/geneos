@@ -55,7 +55,7 @@ func init() {
 	tlsSyncCmd.Flags().SortFlags = false
 }
 
-// if there is a local tls/chain.pem file then copy it to all remotes
+// if there is a local tls/chain.pem file then copy it to all hosts
 // overwriting any existing versions
 //
 // XXX Should we do more with certpools ?

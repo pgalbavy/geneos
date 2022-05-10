@@ -29,7 +29,7 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 	originalVersion := opts.version
 
 	// before updating a specific type on a specific remote, loop
-	// through related types, remotes and components. continue to
+	// through related types, hosts and components. continue to
 	// other items if a single update fails?
 	//
 	// XXX this is a common pattern, should abstract it a bit like loopCommand
@@ -52,7 +52,7 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 		return
 	}
 
-	// from here remotes and component types are specific
+	// from here hosts and component types are specific
 
 	logDebug.Printf("checking and updating %s on %s %q to %q", ct, h, opts.basename, opts.version)
 

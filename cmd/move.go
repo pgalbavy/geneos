@@ -41,7 +41,7 @@ exists with the same name.
 If the component support Rebuild then this is run after the move but
 before the restart. This allows SANs to be updated as expected.
 
-Moving across remotes is supported.`,
+Moving across hosts is supported.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

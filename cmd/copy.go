@@ -41,7 +41,7 @@ name.
 If the component support Rebuild then this is run after the move but
 before the restart. This allows SANs to be updated as expected.
 
-Moving across remotes is supported.`,
+Moving across hosts is supported.`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
@@ -61,8 +61,8 @@ func init() {
 
 // use case:
 // gateway standby instance copy
-// distribute common config netprobe across multiple remotes
-// also create remotes as required?
+// distribute common config netprobe across multiple hosts
+// also create hosts as required?
 func commandCopy(ct *geneos.Component, args []string, params []string) (err error) {
 	if len(args) != 2 {
 		return ErrInvalidArgs
