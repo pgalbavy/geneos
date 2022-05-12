@@ -298,9 +298,9 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 	// rem := []string{"@" + r.String()}
 
 	options := []geneos.GeneosOptions{geneos.Version(initCmdVersion), geneos.Basename("active_prod")}
-	if installCmdNexus {
+	if initCmdNexus {
 		options = append(options, geneos.UseNexus())
-		if installCmdSnapshot {
+		if initCmdSnapshot {
 			options = append(options, geneos.UseSnapshots())
 		}
 	}
