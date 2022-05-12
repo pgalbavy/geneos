@@ -29,7 +29,7 @@ import (
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
-	Use:   "install [-b BASENAME] [-l] [-n] [-h HOST] [-U] [-T TYPE:VERSION] [TYPE] | FILE|URL [FILE|URL...] | [VERSION | FILTER]",
+	Use:   "install [-b BASENAME] [-l] [-n] [-H HOST] [-U] [-T TYPE:VERSION] [TYPE] | FILE|URL [FILE|URL...] | [VERSION | FILTER]",
 	Short: "Install files from downloaded Geneos packages. Intended for sites without Internet access",
 	Long: `Installs files from FILE(s) in to the packages/ directory. The filename(s) must of of the form:
 
@@ -77,7 +77,7 @@ func init() {
 
 	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "l", false, "Install from local files only")
 	installCmd.Flags().BoolVarP(&installCmdNoSave, "nosave", "n", false, "Do not save a local copy of any downloads")
-	installCmd.Flags().StringVarP(&installCmdHost, "host", "h", string(host.ALLHOSTS), "Perform on a remote host. \"all\" means all hosts and locally")
+	installCmd.Flags().StringVarP(&installCmdHost, "host", "H", string(host.ALLHOSTS), "Perform on a remote host. \"all\" means all hosts and locally")
 	installCmd.Flags().StringVarP(&installCmdVersion, "version", "v", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")
