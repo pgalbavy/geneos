@@ -15,7 +15,7 @@ var Netprobe = geneos.Component{
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"netprobe", "probe", "netprobes", "probes"},
 	RealComponent:    true,
-	DownloadBase:     "Netprobe",
+	DownloadBase:     geneos.DownloadBases{Resources: "Netprobe", Nexus: "geneos-netprobe"},
 	PortRange:        "NetprobePortRange",
 	CleanList:        "NetprobeCleanList",
 	PurgeList:        "NetprobePurgeList",

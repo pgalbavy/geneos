@@ -20,7 +20,7 @@ var San = geneos.Component{
 	RelatedTypes:     []*geneos.Component{&netprobe.Netprobe, &fa2.FA2},
 	ComponentMatches: []string{"san", "sans"},
 	RealComponent:    true,
-	DownloadBase:     "Netprobe",
+	DownloadBase:     geneos.DownloadBases{Resources: "Netprobe", Nexus: "geneos-netprobe"},
 	PortRange:        "SanPortRange",
 	CleanList:        "SanCleanList",
 	PurgeList:        "SanPurgeList",

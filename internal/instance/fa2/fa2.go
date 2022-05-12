@@ -15,7 +15,7 @@ var FA2 = geneos.Component{
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"fa2", "fixanalyser", "fixanalyzer", "fixanalyser2-netprobe"},
 	RealComponent:    true,
-	DownloadBase:     "Fix+Analyser+2+Netprobe",
+	DownloadBase:     geneos.DownloadBases{Resources: "Fix+Analyser+2+Netprobe", Nexus: "geneos-fixanalyser2-netprobe"},
 	PortRange:        "FA2PortRange",
 	CleanList:        "FA2CleanList",
 	PurgeList:        "FA2PurgeList",

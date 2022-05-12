@@ -1,23 +1,29 @@
 package geneos
 
 type optstruct struct {
-	override    string
-	local       bool
-	nosave      bool
-	overwrite   bool
-	version     string
-	basename    string
-	homedir     string
-	username    string
-	password    string
-	platform_id string
-	filename    string
+	override     string
+	local        bool
+	nosave       bool
+	overwrite    bool
+	basename     string
+	homedir      string
+	version      string
+	username     string
+	password     string
+	platform_id  string
+	downloadbase string
+	downloadtype string
+	filename     string
 }
 
 type GeneosOptions func(*optstruct)
 
 func doOptions(options ...GeneosOptions) (d *optstruct) {
-	d = &optstruct{}
+	// defaults
+	d = &optstruct{
+		downloadbase: "releases",
+		downloadtype: "resources",
+	}
 	for _, opt := range options {
 		opt(d)
 	}
@@ -62,6 +68,14 @@ func Password(p string) GeneosOptions {
 
 func PlatformID(id string) GeneosOptions {
 	return func(d *optstruct) { d.platform_id = id }
+}
+
+func UseNexus() GeneosOptions {
+	return func(d *optstruct) { d.downloadtype = "nexus" }
+}
+
+func UseSnapshots() GeneosOptions {
+	return func(d *optstruct) { d.downloadbase = "snapshots" }
 }
 
 func Filename(f string) GeneosOptions {

@@ -78,6 +78,9 @@ func init() {
 	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "l", false, "Install from local files only")
 	installCmd.Flags().BoolVarP(&installCmdNoSave, "nosave", "n", false, "Do not save a local copy of any downloads")
 	installCmd.Flags().StringVarP(&installCmdHost, "host", "H", string(host.ALLHOSTS), "Perform on a remote host. \"all\" means all hosts and locally")
+
+	installCmd.Flags().BoolVarP(&installCmdNexus, "nexus", "N", false, "Download from nexus.itrsgroup.com. Requires auth.")
+	installCmd.Flags().BoolVarP(&installCmdSnapshot, "snapshots", "S", false, "Downlaod from nexus snapshots, not releases. Requires -N")
 	installCmd.Flags().StringVarP(&installCmdVersion, "version", "v", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")
@@ -85,7 +88,7 @@ func init() {
 	installCmd.Flags().SortFlags = false
 }
 
-var installCmdLocal, installCmdNoSave, installCmdUpdate bool
+var installCmdLocal, installCmdNoSave, installCmdUpdate, installCmdNexus, installCmdSnapshot bool
 var installCmdBase, installCmdHost, installCmdOverride, installCmdVersion string
 
 //
@@ -106,6 +109,12 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 		logDebug.Printf("installing %q version of %s to %s host(s)", installCmdVersion, ct, installCmdHost)
 
 		options := []geneos.GeneosOptions{geneos.Version(installCmdVersion), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate)}
+		if installCmdNexus {
+			options = append(options, geneos.UseNexus())
+			if installCmdSnapshot {
+				options = append(options, geneos.UseSnapshots())
+			}
+		}
 		for _, h := range host.Match(installCmdHost) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err

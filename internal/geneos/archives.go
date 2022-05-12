@@ -20,26 +20,6 @@ import (
 	"wonderland.org/geneos/internal/host"
 )
 
-// fetch a (the latest) component from a URL, but the URLs
-// are special and the resultant redirection contains the filename
-// etc.
-//
-// URL is
-// https://resources.itrsgroup.com/download/latest/[COMPONENT]?os=linux
-// is RHEL8 is required, add ?title=el8
-//
-// there is a mapping of our component types to the URLs too.
-//
-// Gateways -> Gateway+2
-// Netprobes -> Netprobe
-// Licds -> Licence+Daemon
-// Webservers -> Web+Dashboard
-//
-// auth requires a POST with a JSON body of
-// { "username": "EMAIL", "password": "PASSWORD" }
-// until anon access is allowed
-//
-
 // locate and return an open archive for the host and component given
 // archives must be local
 func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.ReadCloser, filename string, err error) {
@@ -280,11 +260,9 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 }
 
 // locate and open the archive using the download conventions
+// XXX this is where we do nexus or resources or something else?
 func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filename string, resp *http.Response, err error) {
-	baseurl := viper.GetString("download.url")
-	downloadURL, _ := url.Parse(baseurl)
-	realpath, _ := url.Parse(ct.DownloadBase)
-	v := url.Values{}
+	var source string
 
 	opts := doOptions(options...)
 
@@ -297,33 +275,86 @@ func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filena
 			platform = s[1]
 		}
 	}
-	v.Set("os", "linux")
-	if opts.version != "latest" {
-		v.Set("title", opts.version)
-	} else if platform != "" {
-		v.Set("title", "-"+platform)
-	}
-	realpath.RawQuery = v.Encode()
-	source := downloadURL.ResolveReference(realpath).String()
-	logDebug.Println("source url:", source)
 
-	if resp, err = http.Get(source); err != nil {
-		logError.Fatalln(err)
-	}
+	switch opts.downloadtype {
+	case "nexus":
+		baseurl := "https://nexus.itrsgroup.com/service/rest/v1/search/assets/download"
+		downloadURL, _ := url.Parse(baseurl)
+		v := url.Values{}
 
-	// only use auth if required
-	if resp.StatusCode == 401 || resp.StatusCode == 403 {
+		v.Set("maven.groupId", "com.itrsgroup.geneos")
+		v.Set("maven.extension", "tar.gz")
+		v.Set("sort", "version")
+
+		v.Set("repository", opts.downloadbase)
+		v.Set("maven.artifactId", ct.DownloadBase.Nexus)
+		v.Set("maven.classifier", "linux-x64")
+		if platform != "" {
+			v.Set("maven.classifier", platform+"-linux-x64")
+		}
+
+		if opts.version != "latest" {
+			v.Set("maven.baseVersion", opts.version)
+		}
+
+		downloadURL.RawQuery = v.Encode()
+		source = downloadURL.String()
+
+		logDebug.Println("nexus url:", source)
+
 		if viper.GetString("download.username") != "" {
-			da := downloadauth{viper.GetString("download.username"), viper.GetString("download.password")}
-			ja, err := json.Marshal(da)
-			if err != nil {
+			var req *http.Request
+			client := &http.Client{}
+			if req, err = http.NewRequest("GET", source, nil); err != nil {
 				logError.Fatalln(err)
 			}
-			ba := bytes.NewBuffer(ja)
-			if resp, err = http.Post(source, "application/json", ba); err != nil {
+			req.SetBasicAuth(viper.GetString("download.username"), viper.GetString("download.password"))
+			if resp, err = client.Do(req); err != nil {
+				logError.Fatalln(err)
+			}
+		} else {
+			if resp, err = http.Get(source); err != nil {
 				logError.Fatalln(err)
 			}
 		}
+
+	default:
+		baseurl := viper.GetString("download.url")
+		downloadURL, _ := url.Parse(baseurl)
+		realpath, _ := url.Parse(ct.DownloadBase.Resources)
+		v := url.Values{}
+
+		v.Set("os", "linux")
+		if opts.version != "latest" {
+			v.Set("title", opts.version)
+		} else if platform != "" {
+			v.Set("title", "-"+platform)
+		}
+
+		realpath.RawQuery = v.Encode()
+		source = downloadURL.ResolveReference(realpath).String()
+
+		logDebug.Println("source url:", source)
+
+		if resp, err = http.Get(source); err != nil {
+			logError.Fatalln(err)
+		}
+
+		// only use auth if required
+		if resp.StatusCode == 401 || resp.StatusCode == 403 {
+			if viper.GetString("download.username") != "" {
+				da := downloadauth{viper.GetString("download.username"), viper.GetString("download.password")}
+				ja, err := json.Marshal(da)
+				if err != nil {
+					logError.Fatalln(err)
+				}
+				ba := bytes.NewBuffer(ja)
+				if resp, err = http.Post(source, "application/json", ba); err != nil {
+					logError.Fatalln(err)
+				}
+			}
+		}
+
 	}
 
 	if resp.StatusCode > 299 {

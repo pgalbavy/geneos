@@ -15,7 +15,7 @@ var Licd = geneos.Component{
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"licd", "licds"},
 	RealComponent:    true,
-	DownloadBase:     "Licence+Daemon",
+	DownloadBase:     geneos.DownloadBases{Resources: "Licence+Daemon", Nexus: "geneos-licd"},
 	PortRange:        "LicdPortRange",
 	CleanList:        "LicdCleanList",
 	PurgeList:        "LicdPurgeList",

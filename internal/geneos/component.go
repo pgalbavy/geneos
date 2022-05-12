@@ -12,6 +12,11 @@ import (
 
 // type ComponentType string
 
+type DownloadBases struct {
+	Resources string
+	Nexus     string
+}
+
 type Component struct {
 	Initialise       func(*host.Host, *Component)
 	New              func(string) Instance
@@ -19,7 +24,7 @@ type Component struct {
 	RelatedTypes     []*Component
 	ComponentMatches []string
 	RealComponent    bool
-	DownloadBase     string
+	DownloadBase     DownloadBases
 	PortRange        string
 	CleanList        string
 	PurgeList        string
@@ -63,7 +68,7 @@ var Root Component = Component{
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"all", "any"},
 	RealComponent:    false,
-	DownloadBase:     "",
+	DownloadBase:     DownloadBases{Resources: "", Nexus: ""},
 	GlobalSettings: map[string]string{
 		// Root directory for all operations
 		"geneos": "",

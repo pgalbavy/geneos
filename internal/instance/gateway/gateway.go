@@ -24,7 +24,7 @@ var Gateway = geneos.Component{
 	RelatedTypes:     nil,
 	ComponentMatches: []string{"gateway", "gateways"},
 	RealComponent:    true,
-	DownloadBase:     "Gateway+2",
+	DownloadBase:     geneos.DownloadBases{Resources: "Gateway+2", Nexus: "geneos-gateway"},
 	PortRange:        "GatewayPortRange",
 	CleanList:        "GatewayCleanList",
 	PurgeList:        "GatewayPurgeList",
