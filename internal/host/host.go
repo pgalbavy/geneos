@@ -142,12 +142,12 @@ func (h *Host) GetOSReleaseEnv() (err error) {
 
 // returns a slice of all matching Hosts. used mainly for range loops
 // where the host could be specific or 'all'
-func Match(host string) (r []*Host) {
-	switch host {
+func Match(h string) (r []*Host) {
+	switch h {
 	case ALLHOSTS:
 		return AllHosts()
 	default:
-		return []*Host{New(host)}
+		return []*Host{New(h)}
 	}
 }
 

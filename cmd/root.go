@@ -132,7 +132,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
 
 	rootCmd.PersistentFlags().StringVarP(&username, "username", "u", "", "username for downloads")
-	rootCmd.PersistentFlags().BoolVarP(&passwordPrompt, "password", "p", false, "prompt for a password, only valid for downloads and in conjunction with -u")
+	// rootCmd.PersistentFlags().BoolVarP(&passwordPrompt, "password", "p", false, "prompt for a password, only valid for downloads and in conjunction with -u")
 	rootCmd.PersistentFlags().StringVarP(&passwordFile, "pwfile", "P", "", "path to password file, only valid for downloads and in conjunction with -u")
 
 	rootCmd.PersistentFlags().SortFlags = false
@@ -140,7 +140,8 @@ func init() {
 }
 
 var username, passwordFile string
-var passwordPrompt bool
+
+// var passwordPrompt bool
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
@@ -182,10 +183,10 @@ func initConfig() {
 
 	if passwordFile != "" {
 		viper.Set("download.password", utils.ReadPasswordFile(passwordFile))
-	} else if passwordPrompt {
+	} else if username != "" {
 		viper.Set("download.password", utils.ReadPasswordPrompt())
 		// only ask once
-		passwordPrompt = false
+		// passwordPrompt = false
 	}
 
 	// initialise after config loaded

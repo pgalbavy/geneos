@@ -80,8 +80,8 @@ func init() {
 	installCmd.Flags().StringVarP(&installCmdHost, "host", "H", string(host.ALLHOSTS), "Perform on a remote host. \"all\" means all hosts and locally")
 
 	installCmd.Flags().BoolVarP(&installCmdNexus, "nexus", "N", false, "Download from nexus.itrsgroup.com. Requires auth.")
-	installCmd.Flags().BoolVarP(&installCmdSnapshot, "snapshots", "S", false, "Downlaod from nexus snapshots, not releases. Requires -N")
-	installCmd.Flags().StringVarP(&installCmdVersion, "version", "v", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
+	installCmd.Flags().BoolVarP(&installCmdSnapshot, "snapshots", "p", false, "Download from nexus snapshots (pre-releases), not releases. Requires -N")
+	installCmd.Flags().StringVarP(&installCmdVersion, "version", "V", "latest", "Download this version, defaults to latest. Doesn't work for EL8 archives.")
 
 	installCmd.Flags().BoolVarP(&installCmdUpdate, "update", "U", false, "Update the base directory symlink")
 	installCmd.Flags().StringVarP(&installCmdOverride, "override", "T", "", "Override (set) the TYPE:VERSION for archive files with non-standard names")
@@ -115,31 +115,28 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 				options = append(options, geneos.UseSnapshots())
 			}
 		}
-		for _, h := range host.Match(installCmdHost) {
-			if err = geneos.MakeComponentDirs(h, ct); err != nil {
-				return err
-			}
-			if err = geneos.Install(h, ct, options...); err != nil {
-				logError.Println(err)
-				continue
-			}
-		}
+		install(ct, installCmdHost, options...)
 		return nil
 	}
 
 	// work through command line args and try to install them using the naming format
 	// of standard downloads - fix versioning
 	for _, file := range args {
-		for _, h := range host.Match(installCmdHost) {
-			if err = geneos.MakeComponentDirs(h, ct); err != nil {
-				return err
-			}
-			options := []geneos.GeneosOptions{geneos.Filename(file)}
-			if err = geneos.Install(h, ct, options...); err != nil {
-				logError.Println(err)
-				continue
-			}
-		}
+		options := []geneos.GeneosOptions{geneos.Filename(file)}
+		install(ct, installCmdHost, options...)
 	}
 	return nil
+}
+
+func install(ct *geneos.Component, target string, options ...geneos.GeneosOptions) (err error) {
+	for _, h := range host.Match(target) {
+		if err = geneos.MakeComponentDirs(h, ct); err != nil {
+			return err
+		}
+		if err = geneos.Install(h, ct, options...); err != nil {
+			logError.Println(err)
+			continue
+		}
+	}
+	return
 }

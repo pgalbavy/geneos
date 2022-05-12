@@ -510,12 +510,12 @@ func AllNames(h *host.Host, ct *geneos.Component) (names []string) {
 // host, return a *geneos.Component for the TYPE if given, a string
 // for the NAME and a *host.Host - the latter being either from the name
 // or the default provided
-func SplitName(in string, defaultHost *host.Host) (ct *geneos.Component, name string, r *host.Host) {
-	r = defaultHost
+func SplitName(in string, defaultHost *host.Host) (ct *geneos.Component, name string, h *host.Host) {
+	h = defaultHost
 	parts := strings.SplitN(in, "@", 2)
 	name = parts[0]
 	if len(parts) > 1 {
-		r = host.New(parts[1])
+		h = host.New(parts[1])
 	}
 	parts = strings.SplitN(name, ":", 2)
 	if len(parts) > 1 {

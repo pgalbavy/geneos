@@ -60,6 +60,7 @@ to prevent visibility in casual viewing.`,
 			// running config
 			rc := viper.AllSettings()
 			j, _ := json.MarshalIndent(rc, "", "    ")
+			j = opaqueJSONSecrets(j)
 			log.Println(string(j))
 			return nil
 		}

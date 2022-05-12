@@ -93,12 +93,16 @@ func init() {
 
 	initCmd.Flags().BoolVarP(&initCmdMakeCerts, "makecerts", "C", false, "Create default certificates for TLS support")
 	initCmd.Flags().BoolVarP(&initCmdLogs, "log", "l", false, "Run 'logs -f' after starting instance(s)")
-	initCmd.Flags().BoolVarP(&initCmdForce, "force", "F", false, "Force init, ignore existing directories.")
+	initCmd.Flags().BoolVarP(&initCmdForce, "force", "F", false, "Be forceful, ignore existing directories.")
 	initCmd.Flags().StringVarP(&initCmdName, "name", "n", "", "Use the given name for instances and configurations instead of the hostname")
 
 	initCmd.Flags().StringVarP(&initCmdImportCert, "importcert", "c", "", "signing certificate file with optional embedded private key")
 	initCmd.Flags().StringVarP(&initCmdImportKey, "importkey", "k", "", "signing private key file")
 	initCmd.Flags().BoolVarP(&initCmdTemplates, "writetemplates", "T", false, "Overwrite/create templates from embedded (for version upgrades)")
+
+	initCmd.Flags().BoolVarP(&initCmdNexus, "nexus", "N", false, "Download from nexus.itrsgroup.com. Requires auth.")
+	initCmd.Flags().BoolVarP(&initCmdSnapshot, "snapshots", "p", false, "Download from nexus snapshots (pre-releases), not releases. Requires -N")
+	initCmd.Flags().StringVarP(&initCmdVersion, "version", "V", "latest", "Download matching version, defaults to latest. Doesn't work for EL8 archives.")
 
 	initCmd.Flags().StringVarP(&initCmdGatewayTemplate, "gatewaytemplate", "w", "", "A gateway template file")
 	initCmd.Flags().StringVarP(&initCmdSANTemplate, "santemplate", "s", "", "A san template file")
@@ -114,8 +118,8 @@ func init() {
 }
 
 var initCmdAll string
-var initCmdLogs, initCmdMakeCerts, initCmdDemo, initCmdForce, initCmdSAN, initCmdTemplates bool
-var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, initCmdSANTemplate string
+var initCmdLogs, initCmdMakeCerts, initCmdDemo, initCmdForce, initCmdSAN, initCmdTemplates, initCmdNexus, initCmdSnapshot bool
+var initCmdName, initCmdImportCert, initCmdImportKey, initCmdGatewayTemplate, initCmdSANTemplate, initCmdVersion string
 var initCmdExtras = instance.ExtraConfigValues{
 	Includes:   instance.IncludeValues{},
 	Gateways:   instance.GatewayValues{},
@@ -293,21 +297,32 @@ func commandInit(ct *geneos.Component, args []string, params []string) (err erro
 	e := []string{}
 	// rem := []string{"@" + r.String()}
 
+	options := []geneos.GeneosOptions{geneos.Version(initCmdVersion), geneos.Basename("active_prod")}
+	if installCmdNexus {
+		options = append(options, geneos.UseNexus())
+		if installCmdSnapshot {
+			options = append(options, geneos.UseSnapshots())
+		}
+	}
+
 	// create a demo environment
 	if initCmdDemo {
 		g := []string{"Demo Gateway@" + r.String()}
 		localhost := []string{"localhost@" + r.String()}
 		w := []string{"demo@" + r.String()}
-		commandInstall(&gateway.Gateway, e, e)
+
+		install(&gateway.Gateway, host.LOCALHOST, options...)
+		install(&san.San, host.LOCALHOST, options...)
+		install(&webserver.Webserver, host.LOCALHOST, options...)
+
 		commandAdd(&gateway.Gateway, initCmdExtras, g)
 		commandSet(&gateway.Gateway, g, []string{"GateOpts=-demo"})
-		commandInstall(&san.San, e, e)
 		if len(initCmdExtras.Gateways) == 0 {
 			initCmdExtras.Gateways.Set("localhost")
 		}
 		commandAdd(&san.San, initCmdExtras, localhost)
-		commandInstall(&webserver.Webserver, e, e)
 		commandAdd(&webserver.Webserver, initCmdExtras, w)
+
 		commandStart(nil, initCmdLogs, e, e)
 		commandPS(nil, e, e)
 		return

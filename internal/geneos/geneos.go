@@ -33,10 +33,7 @@ const UserConfigFile = "geneos.json"
 // if the directory is not empty and 'noEmptyOK' is false then
 // nothing is changed
 func Init(r *host.Host, options ...GeneosOptions) (err error) {
-	// var homedir string
 	var uid, gid int
-
-	// var params []string
 
 	if r != host.LOCAL && utils.IsSuperuser() {
 		err = ErrNotSupported
@@ -45,6 +42,7 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 
 	opts := doOptions(options...)
 	if opts.homedir == "" {
+		logError.Fatalln("homedir not set")
 		// default or error
 	}
 
@@ -90,9 +88,9 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 		}
 	}
 
-	// recreate host.LOCAL to load Geneos and others
-	// host.LOCAL.Unload()
-	// host.LOCAL = host.New(viper.GetViper(), host.LOCALHOST)
+	// recreate host.LOCAL to load "geneos" and others
+	host.LOCAL = nil
+	host.LOCAL = host.New(host.LOCALHOST)
 
 	if utils.IsSuperuser() {
 		uid, gid, _, err = utils.GetIDs(opts.username)
