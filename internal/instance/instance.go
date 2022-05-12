@@ -288,7 +288,7 @@ func Match(ct *geneos.Component, name string) (c geneos.Instance, err error) {
 // a matching name
 func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 	_, local, r := SplitName(name, host.ALL)
-	if !r.Loaded() {
+	if !r.Exists() {
 		logDebug.Printf("host %s not loaded", r)
 		return
 	}
@@ -469,10 +469,10 @@ func ForAll(ct *geneos.Component, fn func(geneos.Instance, []string) error, args
 // Return a slice of all instance names for a given component. No
 // checking is done to validate that the directory is a populated
 // instance.
-func AllNames(r *host.Host, ct *geneos.Component) (names []string) {
+func AllNames(h *host.Host, ct *geneos.Component) (names []string) {
 	var files []fs.DirEntry
 
-	if r == host.ALL {
+	if h == host.ALL {
 		for _, r := range host.AllHosts() {
 			names = append(names, AllNames(r, ct)...)
 		}
@@ -483,12 +483,12 @@ func AllNames(r *host.Host, ct *geneos.Component) (names []string) {
 	if ct == nil {
 		for _, t := range geneos.RealComponents() {
 			// ignore errors, we only care about any files found
-			d, _ := r.ReadDir(t.ComponentDir(r))
+			d, _ := h.ReadDir(t.ComponentDir(h))
 			files = append(files, d...)
 		}
 	} else {
 		// ignore errors, we only care about any files found
-		files, _ = r.ReadDir(ct.ComponentDir(r))
+		files, _ = h.ReadDir(ct.ComponentDir(h))
 	}
 
 	sort.Slice(files, func(i, j int) bool {
@@ -500,7 +500,7 @@ func AllNames(r *host.Host, ct *geneos.Component) (names []string) {
 			continue
 		}
 		if file.IsDir() {
-			names = append(names, file.Name()+"@"+r.String())
+			names = append(names, file.Name()+"@"+h.String())
 		}
 	}
 	return
@@ -515,7 +515,7 @@ func SplitName(in string, defaultHost *host.Host) (ct *geneos.Component, name st
 	parts := strings.SplitN(in, "@", 2)
 	name = parts[0]
 	if len(parts) > 1 {
-		r = host.Get(host.Name(parts[1]))
+		r = host.New(parts[1])
 	}
 	parts = strings.SplitN(name, ":", 2)
 	if len(parts) > 1 {

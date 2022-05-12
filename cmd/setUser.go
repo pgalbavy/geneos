@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
@@ -55,5 +54,5 @@ func commandSetUser(ct *geneos.Component, args, params []string) (err error) {
 	if err = os.MkdirAll(userConfDir, 0775); err != nil {
 		logError.Fatalln(err)
 	}
-	return writeConfigParams(filepath.Join(userConfDir, "geneos.json"), params)
+	return writeConfigParams(geneos.UserConfigFilePath(), params)
 }

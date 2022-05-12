@@ -106,7 +106,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 					continue
 				}
 				_, local, r := instance.SplitName(arg, host.ALL)
-				if !r.Loaded() {
+				if !r.Exists() {
 					logDebug.Println(arg, "- host not found")
 					// we have tried to match something and it may result in an empty list
 					// so don't re-process
@@ -117,7 +117,7 @@ func parseArgs(cmd *cobra.Command, rawargs []string) {
 				logDebug.Println("split", arg, "into:", local, r.String())
 				if local == "" {
 					// only a '@host' in arg
-					if r.Loaded() {
+					if r.Exists() {
 						rargs := instance.AllNames(r, ct)
 						nargs = append(nargs, rargs...)
 						wild = true

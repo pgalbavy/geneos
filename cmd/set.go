@@ -105,166 +105,6 @@ func setInstance(c geneos.Instance, params []string) (err error) {
 	return
 }
 
-var pluralise = map[string]string{
-	"Gateway":   "s",
-	"Attribute": "s",
-	"Type":      "s",
-	"Include":   "s",
-}
-
-var defaults = map[string]string{
-	"Includes": "100",
-	"Gateways": "7039",
-}
-
-func setValue(c geneos.Instance, tag, v string) (err error) {
-	if pluralise[tag] != "" {
-		tag = tag + pluralise[tag]
-	}
-
-	switch tag {
-	// make this list dynamic
-	case "Includes", "Gateways":
-		var remove bool
-		e := strings.SplitN(v, ":", 2)
-		if strings.HasPrefix(e[0], "-") {
-			e[0] = strings.TrimPrefix(e[0], "-")
-			remove = true
-		}
-		if remove {
-			setStructMap(c, tag, e[0], "")
-		} else {
-			val := defaults[tag]
-			if len(e) > 1 {
-				val = e[1]
-			} else {
-				// XXX check two values and first is a number
-				logDebug.Println("second value missing after ':', using default", val)
-			}
-			setStructMap(c, tag, e[0], val)
-		}
-	case "Attributes":
-		var remove bool
-		e := strings.SplitN(v, "=", 2)
-		if strings.HasPrefix(e[0], "-") {
-			e[0] = strings.TrimPrefix(e[0], "-")
-			remove = true
-		}
-		// '-name' or 'name=' remove the attribute
-		if remove || len(e) == 1 {
-			setStructMap(c, tag, e[0], "")
-		} else {
-			setStructMap(c, tag, e[0], e[1])
-		}
-	case "Env", "Types":
-		var remove bool
-		slice := c.V().GetStringSlice(tag)
-		e := strings.SplitN(v, "=", 2)
-		if strings.HasPrefix(e[0], "-") {
-			e[0] = strings.TrimPrefix(e[0], "-")
-			remove = true
-		}
-		anchor := "="
-		if remove && strings.HasSuffix(e[0], "*") {
-			// wildcard removal (only)
-			e[0] = strings.TrimSuffix(e[0], "*")
-			anchor = ""
-		}
-		var exists bool
-		// transfer items to new slice as removing items in a loop
-		// does random things
-		var newslice []string
-		for _, n := range slice {
-			if strings.HasPrefix(n, e[0]+anchor) {
-				if !remove {
-					// replace with new value
-					newslice = append(newslice, v)
-					exists = true
-				}
-			} else {
-				// copy existing
-				newslice = append(newslice, n)
-			}
-		}
-		// add a new item rather than update or remove
-		if !exists && !remove {
-			newslice = append(newslice, v)
-		}
-		c.V().Set(tag, newslice)
-	case "Variables", "Variable", "Var":
-		// syntax: "[TYPE:]NAME=VALUE" - TYPE defaults to string
-		// TYPE must match what's in XML, or just pass straight through anyway
-		// lowercase?
-		// NAME use unchanged, case sensitive
-		//
-		// Support only the following types:
-		//   activeTime, boolean, double, integer, string, externalConfigFile
-		//
-
-		// tag = "Var", v = [TYPE]:KEY=VALUE, TYPE default = string
-
-		var remove bool
-		if strings.HasPrefix(v, "-") {
-			v = strings.TrimPrefix(v, "-")
-			setStructMap(c, tag, v, "")
-			return
-		}
-
-		var t, key, value string
-
-		e := strings.SplitN(v, ":", 2)
-		if len(e) == 1 {
-			t = "string"
-			s := strings.SplitN(e[0], "=", 2)
-			if len(s) == 1 && !remove {
-				logError.Printf("invalid format for variable: %q", v)
-				return ErrInvalidArgs
-			}
-			key = s[0]
-			value = s[1]
-		} else {
-			t = e[0]
-			s := strings.SplitN(e[1], "=", 2)
-			if len(s) == 1 && !remove {
-				logError.Printf("invalid format for variable: %q", v)
-				return ErrInvalidArgs
-			}
-			key = s[0]
-			value = s[1]
-		}
-
-		// XXX check types here - e[0] options type, default string
-		var validtypes map[string]string = map[string]string{
-			"string":             "",
-			"integer":            "",
-			"double":             "",
-			"boolean":            "",
-			"activeTime":         "",
-			"externalConfigFile": "",
-		}
-		if _, ok := validtypes[t]; !ok {
-			logError.Printf("invalid type %q for variable", t)
-			return ErrInvalidArgs
-		}
-		val := t + ":" + value
-		setStructMap(c, tag, key, val)
-	default:
-		c.V().Set(tag, v)
-	}
-	return
-}
-
-func setStructMap(c geneos.Instance, field, key, value string) {
-	m := c.V().GetStringMapString(field)
-	if value == "" {
-		delete(m, key)
-	} else {
-		m[key] = value
-	}
-	c.V().Set(field, m)
-
-}
-
 // XXX muddled - fix
 func writeConfigParams(filename string, params []string) (err error) {
 	vp := viper.New()
@@ -273,13 +113,13 @@ func writeConfigParams(filename string, params []string) (err error) {
 
 	// change here
 	for _, set := range params {
-		// skip all non '=' args
 		if !strings.Contains(set, "=") {
 			continue
 		}
 		s := strings.SplitN(set, "=", 2)
 		k, v := s[0], s[1]
 		vp.Set(k, v)
+
 	}
 
 	// fix breaking change

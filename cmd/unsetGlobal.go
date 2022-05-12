@@ -50,7 +50,7 @@ func init() {
 
 func commandUnsetGlobal(ct *geneos.Component, args, params []string) error {
 	var changed bool
-	orig := readConfigFile(geneos.GlobalConfig)
+	orig := readConfigFile(geneos.GlobalConfigPath)
 	new := viper.New()
 
 OUTER:
@@ -66,7 +66,7 @@ OUTER:
 
 	if changed {
 		logDebug.Println(orig.AllSettings())
-		new.SetConfigFile(geneos.GlobalConfig)
+		new.SetConfigFile(geneos.GlobalConfigPath)
 		return new.WriteConfig()
 	}
 	return nil

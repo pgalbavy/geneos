@@ -197,24 +197,25 @@ func (w *Webservers) Rebuild(initial bool) error {
 
 func (w *Webservers) Command() (args, env []string) {
 	WebsBase := filepath.Join(w.V().GetString("install"), w.V().GetString("version"))
+	home := w.Home()
 	args = []string{
 		// "-Duser.home=" + c.WebsHome,
 		"-XX:+UseConcMarkSweepGC",
 		"-Xmx" + w.V().GetString("websxmx"),
 		"-server",
-		"-Djava.io.tmpdir=" + w.V().GetString("home") + "/webapps",
+		"-Djava.io.tmpdir=" + home + "/webapps",
 		"-Djava.awt.headless=true",
-		"-DsecurityConfig=" + w.V().GetString("home") + "/config/security.xml",
-		"-Dcom.itrsgroup.configuration.file=" + w.V().GetString("home") + "/config/config.xml",
+		"-DsecurityConfig=" + home + "/config/security.xml",
+		"-Dcom.itrsgroup.configuration.file=" + home + "/config/config.xml",
 		// "-Dcom.itrsgroup.dashboard.dir=<Path to dashboards directory>",
 		"-Dcom.itrsgroup.dashboard.resources.dir=" + WebsBase + "/resources",
 		"-Djava.library.path=" + w.V().GetString("libpath"),
-		"-Dlog4j2.configurationFile=file:" + w.V().GetString("home") + "/config/log4j2.properties",
-		"-Dworking.directory=" + w.V().GetString("home"),
+		"-Dlog4j2.configurationFile=file:" + home + "/config/log4j2.properties",
+		"-Dworking.directory=" + home,
 		"-Dcom.itrsgroup.legacy.database.maxconnections=100",
 		// SSO
-		"-Dcom.itrsgroup.sso.config.file=" + w.V().GetString("home") + "/config/sso.properties",
-		"-Djava.security.auth.login.config=" + w.V().GetString("home") + "/config/login.conf",
+		"-Dcom.itrsgroup.sso.config.file=" + home + "/config/sso.properties",
+		"-Djava.security.auth.login.config=" + home + "/config/login.conf",
 		"-Djava.security.krb5.conf=/etc/krb5.conf",
 		"-Dcom.itrsgroup.bdosync=DataView,BDOSyncType_Level,DV1_SyncLevel_RedAmberCells",
 		// "-Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false",

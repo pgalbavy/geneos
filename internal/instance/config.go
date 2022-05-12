@@ -88,7 +88,7 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 
 	// m := make(map[string]string)
 	m := c.V().AllSettings()
-	m["root"] = c.Host().V().GetString("geneos")
+	m["root"] = c.Host().GetString("geneos")
 	m["name"] = c.Name()
 	logDebug.Printf("template data: %#v", m)
 	// m["env"] =
@@ -246,7 +246,7 @@ func ReadConfig(c geneos.Instance) (err error) {
 	if c.Host() != host.LOCAL {
 		client, err := c.Host().DialSFTP()
 		if err != nil {
-			logError.Printf("connection to %s failed", c.Host().Name)
+			logError.Printf("connection to %s failed", c.Host())
 			return err
 		}
 		c.V().SetFs(sftpfs.New(client))
@@ -297,7 +297,7 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 	c.V().SetDefault("name", name)
 	if c.Type().Defaults != nil {
 		// set bootstrap values used by templates
-		c.V().Set("root", c.Host().V().GetString("geneos"))
+		c.V().Set("root", c.Host().GetString("geneos"))
 		for _, s := range c.Type().Defaults {
 			p := strings.SplitN(s, "=", 2)
 			k, v := p[0], p[1]

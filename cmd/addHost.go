@@ -49,9 +49,9 @@ var addHostCmd = &cobra.Command{
 		var h *host.Host
 		sshurl, err := url.Parse(args[0])
 		if err == nil && sshurl.Scheme != "" {
-			h = host.Get(host.Name(sshurl.Hostname()))
+			h = host.New(sshurl.Hostname())
 		} else {
-			h = host.Get(host.Name(args[0]))
+			h = host.New(args[0])
 			if len(args) > 1 {
 				if sshurl, err = url.Parse(args[1]); err != nil {
 					logError.Printf("invalid ssh url %q", args[1])
@@ -79,7 +79,7 @@ func init() {
 var addHostCmdInit bool
 
 func addHost(h *host.Host, sshurl *url.URL) (err error) {
-	if h.Loaded() {
+	if h.Exists() {
 		return fmt.Errorf("host %q already exists", h)
 	}
 
@@ -91,34 +91,29 @@ func addHost(h *host.Host, sshurl *url.URL) (err error) {
 		return fmt.Errorf("unsupported scheme (ssh only at the moment): %q", sshurl.Scheme)
 	}
 
-	h.V().SetDefault("hostname", sshurl.Hostname())
-	h.V().SetDefault("port", 22)
-	h.V().SetDefault("username", viper.GetString("defaultuser"))
+	h.SetDefault("hostname", sshurl.Hostname())
+	h.SetDefault("port", 22)
+	h.SetDefault("username", viper.GetString("defaultuser"))
 	// XXX default to remote user's home dir, not local
-	h.V().SetDefault("geneos", host.Geneos())
+	h.SetDefault("geneos", host.Geneos())
 
 	// now disassemble URL
 	if sshurl.Hostname() == "" {
-		h.V().Set("hostname", h.Name)
+		h.Set("hostname", h.GetString("name"))
 	}
 
 	if sshurl.Port() != "" {
-		h.V().Set("port", sshurl.Port())
+		h.Set("port", sshurl.Port())
 	}
 
 	if sshurl.User.Username() != "" {
-		h.V().Set("username", sshurl.User.Username())
+		h.Set("username", sshurl.User.Username())
 	}
 
 	if sshurl.Path != "" {
 		// XXX check and adopt local setting for remote user and/or remote global settings
 		// - only if ssh URL does not contain explicit path
-		h.V().Set("geneos", sshurl.Path)
-	}
-
-	logDebug.Println(h.V().AllSettings())
-	if err = host.WriteConfig(h); err != nil {
-		return
+		h.Set("geneos", sshurl.Path)
 	}
 
 	// once we are bootstrapped, read os-release info and re-write config
@@ -126,15 +121,16 @@ func addHost(h *host.Host, sshurl *url.URL) (err error) {
 		return
 	}
 
-	if err = host.WriteConfig(h); err != nil {
-		return
+	host.Add(h)
+	if err = host.WriteConfigFile(); err != nil {
+		logError.Fatalln(err)
 	}
 
 	if addHostCmdInit {
 		// initialise the remote directory structure, but perhaps ignore errors
 		// as we may simply be adding an existing installation
 
-		if err = geneos.Init(h, geneos.Force(true), geneos.Username(h.V().GetString("username")), geneos.Homedir(h.V().GetString("geneos"))); err != nil {
+		if err = geneos.Init(h, geneos.Force(true), geneos.Username(h.GetString("username")), geneos.Homedir(h.GetString("geneos"))); err != nil {
 			return
 		}
 	}

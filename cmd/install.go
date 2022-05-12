@@ -106,7 +106,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 		logDebug.Printf("installing %q version of %s to %s host(s)", installCmdVersion, ct, installCmdHost)
 
 		options := []geneos.GeneosOptions{geneos.Version(installCmdVersion), geneos.Basename(installCmdBase), geneos.Force(installCmdUpdate)}
-		for _, h := range host.Match(host.Name(installCmdHost)) {
+		for _, h := range host.Match(installCmdHost) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}
@@ -121,7 +121,7 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 	// work through command line args and try to install them using the naming format
 	// of standard downloads - fix versioning
 	for _, file := range args {
-		for _, h := range host.Match(host.Name(installCmdHost)) {
+		for _, h := range host.Match(installCmdHost) {
 			if err = geneos.MakeComponentDirs(h, ct); err != nil {
 				return err
 			}

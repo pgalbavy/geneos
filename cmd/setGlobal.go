@@ -48,5 +48,5 @@ func init() {
 }
 
 func commandSetGlobal(ct *geneos.Component, args, params []string) error {
-	return writeConfigParams(geneos.GlobalConfig, params)
+	return writeConfigParams(geneos.GlobalConfigPath, params)
 }

@@ -170,7 +170,7 @@ func MakeComponentDirs(h *host.Host, ct *Component) (err error) {
 		name = ct.Name
 	}
 	for _, d := range initDirs[name] {
-		dir := filepath.Join(h.V().GetString("geneos"), d)
+		dir := filepath.Join(h.GetString("geneos"), d)
 		logDebug.Println("mkdirall", dir)
 		if err = h.MkdirAll(dir, 0775); err != nil {
 			return
@@ -181,6 +181,8 @@ func MakeComponentDirs(h *host.Host, ct *Component) (err error) {
 
 // Return the base directory for a Component
 // ct cannot be None
-func (ct *Component) ComponentDir(r *host.Host) string {
-	return r.GeneosJoinPath(ct.String(), ct.String()+"s")
+func (ct *Component) ComponentDir(h *host.Host) string {
+	p := h.GeneosJoinPath(ct.String(), ct.String()+"s")
+	logDebug.Println(p)
+	return p
 }

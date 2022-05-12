@@ -83,7 +83,7 @@ var common, hostname string
 func commandImport(ct *geneos.Component, args []string, params []string) (err error) {
 	if common != "" {
 		// ignore args, use ct & params
-		for _, r := range host.Match(host.Name(hostname)) {
+		for _, r := range host.Match(hostname) {
 			if err = importCommons(r, ct, params); err != nil {
 				return
 			}

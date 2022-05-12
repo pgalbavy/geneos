@@ -28,7 +28,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -96,7 +95,7 @@ You can fix this by doing one of the following:
 
 3. Set the Geneos path in the global configuration file (usually as root):
 
-	# echo '{ "Geneos": "/path/to/geneos" }' > `+geneos.GlobalConfig)
+	# echo '{ "Geneos": "/path/to/geneos" }' > `+geneos.GlobalConfigPath)
 			}
 		}
 
@@ -127,7 +126,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "G", "", "config file (defaults are $HOME/.config/geneos.json, "+geneos.GlobalConfig+")")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "G", "", "config file (defaults are $HOME/.config/geneos.json, "+geneos.GlobalConfigPath+")")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable extra debug output")
 	rootCmd.PersistentFlags().MarkHidden("debug")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
@@ -160,16 +159,12 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 		viper.ReadInConfig()
 	} else {
-		// Find userConfDir directory.
-		userConfDir, err := os.UserConfigDir()
-		cobra.CheckErr(err)
-
 		// Search config in home directory with name "geneos" (without extension).
-		viper.SetConfigFile(geneos.GlobalConfig)
+		viper.SetConfigFile(geneos.GlobalConfigPath)
 		viper.ReadInConfig()
 
 		// merge in home config
-		viper.SetConfigFile(filepath.Join(userConfDir, "geneos.json"))
+		viper.SetConfigFile(geneos.UserConfigFilePath())
 		viper.MergeInConfig()
 	}
 

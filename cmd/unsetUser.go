@@ -22,9 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
@@ -53,8 +50,7 @@ func init() {
 
 func commandUnsetUser(ct *geneos.Component, args, params []string) error {
 	var changed bool
-	userConfDir, _ := os.UserConfigDir()
-	orig := readConfigFile(filepath.Join(userConfDir, "geneos.json"))
+	orig := readConfigFile(geneos.UserConfigFilePath())
 	new := viper.New()
 
 OUTER:
@@ -70,7 +66,7 @@ OUTER:
 
 	if changed {
 		logDebug.Println(orig.AllSettings())
-		new.SetConfigFile(filepath.Join(userConfDir, "geneos.json"))
+		new.SetConfigFile(geneos.UserConfigFilePath())
 		return new.WriteConfig()
 	}
 	return nil

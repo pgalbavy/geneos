@@ -93,8 +93,8 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 }
 
 func (h *Host) Dial() (s *ssh.Client, err error) {
-	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
-	user := h.V().GetString("username")
+	dest := h.GetString("hostname") + ":" + h.GetString("port")
+	user := h.GetString("username")
 	val, ok := sshSessions.Load(user + "@" + dest)
 	if ok {
 		s = val.(*ssh.Client)
@@ -103,7 +103,7 @@ func (h *Host) Dial() (s *ssh.Client, err error) {
 		if err != nil {
 			return
 		}
-		logDebug.Println("host opened", h.String(), dest, user)
+		logDebug.Println("host opened", h.GetString("name"), dest, user)
 		sshSessions.Store(user+"@"+dest, s)
 	}
 	return
@@ -112,8 +112,8 @@ func (h *Host) Dial() (s *ssh.Client, err error) {
 func (h *Host) Close() {
 	h.CloseSFTP()
 
-	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
-	user := h.V().GetString("username")
+	dest := h.GetString("hostname") + ":" + h.GetString("port")
+	user := h.GetString("username")
 	val, ok := sshSessions.Load(user + "@" + dest)
 	if ok {
 		s := val.(*ssh.Client)
@@ -124,8 +124,8 @@ func (h *Host) Close() {
 
 // succeed or fatal
 func (h *Host) DialSFTP() (f *sftp.Client, err error) {
-	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
-	user := h.V().GetString("username")
+	dest := h.GetString("hostname") + ":" + h.GetString("port")
+	user := h.GetString("username")
 	val, ok := sftpSessions.Load(user + "@" + dest)
 	if ok {
 		f = val.(*sftp.Client)
@@ -137,15 +137,15 @@ func (h *Host) DialSFTP() (f *sftp.Client, err error) {
 		if f, err = sftp.NewClient(s); err != nil {
 			return
 		}
-		logDebug.Println("remote opened", h.Name)
+		logDebug.Println("remote opened", h.GetString("name"))
 		sftpSessions.Store(user+"@"+dest, f)
 	}
 	return
 }
 
 func (h *Host) CloseSFTP() {
-	dest := h.V().GetString("hostname") + ":" + h.V().GetString("port")
-	user := h.V().GetString("username")
+	dest := h.GetString("hostname") + ":" + h.GetString("port")
+	user := h.GetString("username")
 	val, ok := sftpSessions.Load(user + "@" + dest)
 	if ok {
 		f := val.(*sftp.Client)

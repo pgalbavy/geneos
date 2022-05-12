@@ -1,6 +1,7 @@
 package geneos
 
 import (
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"os"
@@ -21,7 +22,8 @@ var (
 const RootCAFile = "rootCA"
 const SigningCertFile = "geneos"
 const DisableExtension = "disabled"
-const GlobalConfig = "/etc/geneos/geneos.json"
+const GlobalConfigPath = "/etc/geneos/geneos.json"
+const UserConfigFile = "geneos.json"
 
 // initialise a Geneos environment.
 //
@@ -76,18 +78,11 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 		viper.Set("defaultuser", opts.username)
 
 		if utils.IsSuperuser() {
-			if err = host.LOCAL.WriteConfigFile(GlobalConfig, "root", 0664, viper.AllSettings()); err != nil {
+			if err = host.LOCAL.WriteConfigFile(GlobalConfigPath, "root", 0664, viper.AllSettings()); err != nil {
 				logError.Fatalln("cannot write global config", err)
 			}
-
-			// if everything else worked, remove any existing user config - why?
-			// _ = r.Remove(filepath.Join(g.homedir, ".config", "geneos.json"))
 		} else {
-			userConfDir, err := os.UserConfigDir()
-			if err != nil {
-				logError.Fatalln(err)
-			}
-			userConfFile := filepath.Join(userConfDir, "geneos.json")
+			userConfFile := UserConfigFilePath()
 
 			if err = host.LOCAL.WriteConfigFile(userConfFile, opts.username, 0664, viper.AllSettings()); err != nil {
 				return err
@@ -96,8 +91,8 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 	}
 
 	// recreate host.LOCAL to load Geneos and others
-	host.LOCAL.Unload()
-	host.LOCAL = host.New(host.LOCALHOST)
+	// host.LOCAL.Unload()
+	// host.LOCAL = host.New(viper.GetViper(), host.LOCALHOST)
 
 	if utils.IsSuperuser() {
 		uid, gid, _, err = utils.GetIDs(opts.username)
@@ -132,4 +127,23 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 	}
 
 	return
+}
+
+// read a local configuration file without the need for a host
+// connection, primarily for boostrapping
+func ReadLocalConfigFile(file string, config interface{}) (err error) {
+	jsonFile, err := os.ReadFile(file)
+	if err != nil {
+		return
+	}
+	// dec := json.NewDecoder(jsonFile)
+	return json.Unmarshal(jsonFile, &config)
+}
+
+func UserConfigFilePath() string {
+	userConfDir, err := os.UserConfigDir()
+	if err != nil {
+		logError.Fatalln(err)
+	}
+	return filepath.Join(userConfDir, UserConfigFile)
 }

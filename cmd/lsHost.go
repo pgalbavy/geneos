@@ -97,12 +97,12 @@ func loopHosts(fn func(*host.Host) error) error {
 }
 
 func lsInstancePlainHosts(h *host.Host) (err error) {
-	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s\n", h.Name, h.V().GetString("username"), h.V().GetString("hostname"), h.V().GetInt("port"), h.V().GetString("geneos"))
+	fmt.Fprintf(lsTabWriter, "%s\t%s\t%s\t%d\t%s\n", h.GetString("name"), h.GetString("username"), h.GetString("hostname"), h.GetInt("port"), h.GetString("geneos"))
 	return
 }
 
 func lsInstanceCSVHosts(h *host.Host) (err error) {
-	csvWriter.Write([]string{h.String(), h.V().GetString("username"), h.V().GetString("hostname"), fmt.Sprint(h.V().GetInt("port")), h.V().GetString("geneos")})
+	csvWriter.Write([]string{h.String(), h.GetString("username"), h.GetString("hostname"), fmt.Sprint(h.GetInt("port")), h.GetString("geneos")})
 	return
 }
 
@@ -115,6 +115,6 @@ type lsTypeHosts struct {
 }
 
 func lsInstanceJSONHosts(h *host.Host) (err error) {
-	jsonEncoder.Encode(lsTypeHosts{h.String(), h.V().GetString("username"), h.V().GetString("hostname"), h.V().GetInt64("port"), h.V().GetString("geneos")})
+	jsonEncoder.Encode(lsTypeHosts{h.String(), h.GetString("username"), h.GetString("hostname"), h.GetInt64("port"), h.GetString("geneos")})
 	return
 }

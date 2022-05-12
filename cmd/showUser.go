@@ -23,12 +23,9 @@ package cmd
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
-	"wonderland.org/geneos/internal/host"
 )
 
 // showUserCmd represents the showUser command
@@ -61,8 +58,7 @@ func commandShowUser(ct *geneos.Component, args, params []string) (err error) {
 	var c interface{}
 	var buffer []byte
 
-	userConfDir, _ := os.UserConfigDir()
-	host.ReadLocalConfigFile(filepath.Join(userConfDir, "geneos.json"), &c)
+	geneos.ReadLocalConfigFile(geneos.UserConfigFilePath(), &c)
 
 	if buffer, err = json.MarshalIndent(c, "", "    "); err != nil {
 		return

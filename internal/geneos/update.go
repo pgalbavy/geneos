@@ -44,8 +44,8 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 	}
 
 	if h == host.ALL {
-		for _, r := range host.AllHosts() {
-			if err = Update(r, ct, options...); err != nil && !errors.Is(err, os.ErrNotExist) {
+		for _, h := range host.AllHosts() {
+			if err = Update(h, ct, options...); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logError.Println(err)
 			}
 		}

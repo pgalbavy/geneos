@@ -42,7 +42,7 @@ func Start(c geneos.Instance) (err error) {
 
 	if c.Host() != host.LOCAL {
 		r := c.Host()
-		rUsername := r.V().GetString("username")
+		rUsername := r.GetString("username")
 		if rUsername != username && username != "" {
 			return fmt.Errorf("cannot run remote process as a different user (%q != %q)", rUsername, username)
 		}

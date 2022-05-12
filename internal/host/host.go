@@ -4,34 +4,31 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/spf13/viper"
-	"wonderland.org/geneos/internal/utils"
 )
 
-type Name string
-
-const LOCALHOST Name = "localhost"
-const ALLHOSTS Name = "all"
+const UserHostFile = "geneos-hosts.json"
+const LOCALHOST = "localhost"
+const ALLHOSTS = "all"
 
 var LOCAL, ALL *Host
 
 type Host struct {
-	Name         Name   `json:"Name,omitempty"`    // name, as opposed to hostname
-	Home         string `json:"HomeDir,omitempty"` // Remote host configuration directory
-	ConfigLoaded bool   `json:"-"`
-	// Geneos string `json:"Geneos,omitempty"` // Geneos root directory
-
-	Conf *viper.Viper `json:"-"`
+	*viper.Viper
 }
+
+// private parent of all hosts
+var hosts *viper.Viper
 
 // this is called from cmd root
 func Init() {
 	LOCAL = New(LOCALHOST)
 	ALL = New(ALLHOSTS)
+	ReadConfigFile()
 }
 
 // return the absolute path to the local Geneos installation
@@ -46,71 +43,73 @@ func Geneos() string {
 
 // interface method set
 
-// cache instances of hosts as they get used frequently
-var hosts sync.Map
-
-func New(name Name) *Host {
-	parts := strings.SplitN(string(name), "@", 2)
-	name = Name(parts[0])
-	if len(parts) > 1 && parts[1] != string(LOCALHOST) {
-		logError.Println("hosts on remote hosts not supported")
-		return nil
-	}
-
-	r, ok := hosts.Load(name)
-	if ok {
-		rem, ok := r.(*Host)
-		if ok {
-			return rem
+// XXX new needs the top level viper and passes back a Sub()
+func New(name string) (c *Host) {
+	switch name {
+	case LOCALHOST:
+		if LOCAL != nil {
+			return LOCAL
 		}
-	}
-
-	// Bootstrap
-	c := &Host{}
-	c.Conf = viper.New()
-	c.Name = name
-	c.V().SetDefault("geneos", Geneos())
-	c.Home = filepath.Join(c.V().GetString("geneos"), "hosts", string(c.Name))
-
-	// fill this in directly as there is no config file to load
-	if c.Name == LOCALHOST {
+		c = &Host{viper.New()}
+		c.Set("name", LOCALHOST)
 		c.GetOSReleaseEnv()
+	case ALLHOSTS:
+		if ALL != nil {
+			return ALL
+		}
+		c = &Host{viper.New()}
+		c.Set("name", ALLHOSTS)
+	default:
+		// grab the existing one
+		h := hosts.Sub(name)
+		if h != nil {
+			return &Host{h}
+		}
+		// or bootstrap, but NOT save a new one
+		c = &Host{viper.New()}
+		c.Set("name", name)
 	}
 
-	hosts.Store(name, c)
-	return c
+	c.Set("geneos", Geneos())
+
+	return
 }
 
-func (h *Host) V() *viper.Viper {
-	return h.Conf
+func Add(host *Host) {
+	hosts.Set(host.String(), host.AllSettings())
 }
 
-func (h *Host) Load() {
-	if err := ReadConfig(h); err != nil {
-		// logError.Println(err)
-		return
-	}
-	h.ConfigLoaded = true
+// delete a host from the host list
+// this is done by setting the host setting to an empty string as viper
+// does not support setting a nil or unsetting a setting. this is then picked
+// up in the write config file function and skipped
+func Delete(host *Host) {
+	hosts.Set(host.String(), "")
 }
 
-func (h *Host) Loaded() bool {
+func (h *Host) Exists() bool {
 	if h == LOCAL || h == ALL {
 		return true
 	}
-	return h.ConfigLoaded
-}
 
-func (h *Host) Unload() {
-	hosts.Delete(h.Name)
-	h.ConfigLoaded = false
-}
+	if !hosts.IsSet(h.String()) {
+		return false
+	}
 
-func (host Name) String() string {
-	return string(host)
+	// work with Delete() above
+	switch hosts.Get(h.String()).(type) {
+	case string:
+		return false
+	default:
+		return true
+	}
 }
 
 func (h *Host) String() string {
-	return string(h.Name)
+	if h.IsSet("name") {
+		return h.GetString("name")
+	}
+	return "unknown"
 }
 
 func (h *Host) GetOSReleaseEnv() (err error) {
@@ -137,57 +136,76 @@ func (h *Host) GetOSReleaseEnv() (err error) {
 		value = strings.Trim(value, "\"")
 		osinfo[key] = value
 	}
-	h.V().Set("osinfo", osinfo)
+	h.Set("osinfo", osinfo)
 	return
 }
 
-func Get(host Name) (r *Host) {
+// returns a slice of all matching Hosts. used mainly for range loops
+// where the host could be specific or 'all'
+func Match(host string) (r []*Host) {
 	switch host {
-	case LOCALHOST:
-		return LOCAL
-	case ALLHOSTS:
-		return ALL
-	default:
-		i := New(host)
-		i.Load()
-		return i
-	}
-}
-
-func Match(host Name) (r []*Host) {
-	switch host {
-	case LOCALHOST:
-		return []*Host{LOCAL}
 	case ALLHOSTS:
 		return AllHosts()
 	default:
-		i := New(host)
-		i.Load()
-		return []*Host{i}
+		return []*Host{New(host)}
 	}
 }
 
 // return an absolute path anchored in the root directory of the remote host
 // this can also be LOCAL
-func (r *Host) GeneosJoinPath(paths ...string) string {
-	return filepath.Join(append([]string{r.V().GetString("geneos")}, paths...)...)
+func (h *Host) GeneosJoinPath(paths ...string) string {
+	if h == nil {
+		logError.Fatalln("host is nil")
+	}
+
+	return filepath.Join(append([]string{h.GetString("geneos")}, paths...)...)
 }
 
-func (r *Host) FullName(name string) string {
+func (h *Host) FullName(name string) string {
 	if strings.Contains(name, "@") {
 		return name
 	}
-	return name + "@" + r.String()
+	return name + "@" + h.String()
 }
 
-func AllHosts() (hosts []*Host) {
-	hosts = []*Host{LOCAL}
-	if utils.IsSuperuser() {
-		return
-	}
+func AllHosts() (hs []*Host) {
+	hs = []*Host{LOCAL}
 
-	for _, d := range FindHostDirs() {
-		hosts = append(hosts, Get(Name(d)))
+	for k := range hosts.AllSettings() {
+		hs = append(hs, New(k))
 	}
 	return
+}
+
+func ReadConfigFile() {
+	hosts = viper.New()
+
+	h := viper.New()
+	h.SetConfigFile(UserHostsFilePath())
+	h.ReadInConfig()
+	if h.InConfig("hosts") {
+		hosts = h.Sub("hosts")
+	}
+}
+
+func WriteConfigFile() error {
+	n := viper.New()
+	for h, v := range hosts.AllSettings() {
+		switch v.(type) {
+		case string:
+			// do nothing
+			break
+		default:
+			n.Set("hosts."+h, v)
+		}
+	}
+	return n.WriteConfigAs(UserHostsFilePath())
+}
+
+func UserHostsFilePath() string {
+	userConfDir, err := os.UserConfigDir()
+	if err != nil {
+		logError.Fatalln(err)
+	}
+	return filepath.Join(userConfDir, UserHostFile)
 }
