@@ -122,22 +122,22 @@ geneos init -D
 If authentication is required to download the software archives then use these extra options:
 
 ```bash
-geneos init -D -u user@example.com -p
+geneos init -D -u user@example.com
 ```
 
-Here you should replace the email address with your own and the `-p` will tell the command to prompt you for your password. These are the login details you should have for the ITRS Resources website.
+Here you should replace the email address with your own and the command will prompt you for your password. These are the login details you should have for the ITRS Resources website.
 
-The above command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Self-Announcing Netprobe and Webserver for dashboards. However, no configuration is done to connect these up, that's up to you!
+The above command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Self-Announcing Netprobe and Webserver for dashboards. However, no further configuration is done, that's up to you!
 
 Behind the scenes the command does roughly this for you:
 
 ```bash
 geneos init
-geneos install gateway
+geneos install gateway -u ...
 geneos add gateway 'Demo Gateway'
-geneos install san
+geneos install san -u ...
 geneos add san localhost -g localhost
-geneos install webserver
+geneos install webserver -u ...
 geneos add webserver demo
 geneos start
 geneos ps
@@ -150,7 +150,7 @@ You can install a Self-Announcing Netprobe (SAN) in one line, like this:
 ```bash
 geneos init -S -n SAN123 -c /path/to/signingcertkey \
     -g gateway1 -g gateway2 -t Infrastructure -t App1 -t App2 \
-    -a ENVIRONMENT=Prod -a LOCATION=London
+    -a ENVIRONMENT=Prod -a LOCATION=London -u user@example.com
 ```
 
 This example will create a SAN with the name SAN123 connecting, using TLS, to gateway1 and gateway2, using types and attributes as listed.
@@ -160,20 +160,20 @@ Again, you can add authentication options for the downloads using `-u` and `-p`.
 #### Another Initial Environment
 
 ```bash
-geneos init -A geneos.lic
+geneos init -A geneos.lic -u user@example.com
 ```
 
 does this (where HOSTNAME is, of course, replaced with the hostname of the server)
 
 ```bash
 geneos init
-geneos install gateway
+geneos install gateway -u ...
 geneos new gateway HOSTNAME
-geneos install san
+geneos install san -u ...
 geneos new san HOSTNAME -g localhost
-geneos install licd
+geneos install licd -u ...
 geneos new licd HOSTNAME
-geneos install webserver
+geneos install webserver -u ...
 geneos new webserver HOSTNAME
 geneos import licd HOSTNAME geneos.lic
 geneos start
@@ -478,17 +478,25 @@ Show log(s) for matching instances. Flags allow for follow etc.
 
 #### Environment Commands
 
-* `geneos init [-T|-S|-D|-A LICENSE] [-c CERT] [-k KEY] [-n NAME] [USERNAME] [PATH] [PARAMS]`
+* `geneos init [FLAGS] [USERNAME] [PATH] [PARAMS]`
+  The FLAGS are:
+  * `-A LICENSE` Initialise and start an `all` environment
 Initialise the environment. This command creates a directory hierarchy and optionally installs Geneos software packages and also optionally creates instances and starts them.
-  * `-T` Rebuild the default templates using the embedded files. This is primarily to update templates when new versions of this program are release or if they have become corrupted
-  * `-S` Build and start a San. See the `-n` option below. Takes all the same PARAMS as for adding a San to specify template settings.
-  * `-D` Build and start a demo environment
-  * `-A LICENSE` Build and start an `all` environment
-  * `-c CERT` and `-k KEY` Import certificates and keys during initialisation. See `geneos tls import` for more details. When a valid signing certificate and key are imported then all subsequent new instances will have individual certificates and keys created.
+  * `-D` Initialise and start a demo environment
+  * `-S` Initialise and start a San. See the `-n` option below. Takes all the same PARAMS as for adding a San to specify template settings.
+  * `-C` Create a root and signing certificate and use these for all new instances
+  * `-l` Follow logs after starting any created instances (for `-A`, `-D` and `-S` above)
+  * `-F` Force initialisation, ignore existing files and directories in destination
   * `-n NAME` Use the `NAME` for instances instead of the default hostname. This is especially useful for Sans and Gateways as the templates use this name to fill in various configuration item defaults
+  * `-c CERT` and/or `-k KEY` Import certificates and keys during initialisation. See `geneos tls import` for more details. When a valid signing certificate and key are imported then all subsequent new instances will have individual certificates and keys created.
+  * `-T` Rebuild the default templates using the embedded files. This is primarily to update templates when new versions of this program are release or if they have become corrupted
+  * `-N` Download from `nexus.itrsgroup.com` for testing. Only available to ITRS staff.
+  * `-p` Use the Nexus `snapshots` repository instead of the default `releases` when using `-N` above
+  * `-V` Version filter for downloads. Defaults to the latest version found. 
+  * `-w FILE` A Gateway template file to use instead of the embedded one
   * `-s FILE` A San template file to use instead of the embedded one
-  * `-g FILE` A Gateway template file to use instead of the embedded one
-Only one of the `-t`, `-S`, `-d` or `-a` options are valid and only the `-t` option can be used for multiple calls to this command.
+  * `-e`, `-i`, `-g`, `-a`, `-t`, `-v` These options set environment, include, gateway. attribute, type and variable values and can be specified multiple times. The values are used as inputs to templates for Gateway and SAN instances.
+  * Only one of the `-T`, `-S`, `-D` or `-A` options are valid and only the `-T` option can be used for multiple calls to this command unless `-F` is also used.
 
 * `geneos tls ...`
 TLS operations. See below.
@@ -511,6 +519,16 @@ Please note that if `geneos home` returns an empty string because of an error th
 
 * `geneos install [FLAGS] [TYPE] [latest|VERSION|FILE|URL...]`
 Download and install a release archive in the `packages` directory. If a symbolic link for the desired base version already exists it is not updated unless the `-U` flag is given.
+  The FLAGS are:
+  * `-b BASENAME` The base name of the installation symbolic link. Defaults to `active_prod`
+  * `-l` Local archives only
+  * `-n` No save of downloaded archives
+  * `-H HOST` Install only on remote HOST. HOST must be configured
+  * `-N` Use `nexus.itrsgroup.com` for downloads. Only available to ITRS staff
+  * `-p` Use the `snapshots` repository and not the default `releases` with `-N` above
+  * `-V` Version filter, installs latest matching version. Defaults to latest available version.
+  * `-U` Update base name link to installed version
+  * `-T TYPE:VERSION` Override the component type and version numbers to allow installation from files with generic names, for example `gateway.tgz`
 
 * `geneos update [TYPE] [VERSION]`
 Update the component base binary symlink
