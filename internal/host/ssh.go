@@ -93,6 +93,10 @@ func sshConnect(dest, user string) (client *ssh.Client, err error) {
 }
 
 func (h *Host) Dial() (s *ssh.Client, err error) {
+	if h.failed != nil {
+		err = h.failed
+		return
+	}
 	dest := h.GetString("hostname") + ":" + h.GetString("port")
 	user := h.GetString("username")
 	val, ok := sshSessions.Load(user + "@" + dest)
@@ -101,6 +105,7 @@ func (h *Host) Dial() (s *ssh.Client, err error) {
 	} else {
 		s, err = sshConnect(dest, user)
 		if err != nil {
+			h.failed = err
 			return
 		}
 		logDebug.Println("host opened", h.GetString("name"), dest, user)
@@ -124,6 +129,10 @@ func (h *Host) Close() {
 
 // succeed or fatal
 func (h *Host) DialSFTP() (f *sftp.Client, err error) {
+	if h.failed != nil {
+		err = h.failed
+		return
+	}
 	dest := h.GetString("hostname") + ":" + h.GetString("port")
 	user := h.GetString("username")
 	val, ok := sftpSessions.Load(user + "@" + dest)
@@ -132,9 +141,11 @@ func (h *Host) DialSFTP() (f *sftp.Client, err error) {
 	} else {
 		var s *ssh.Client
 		if s, err = h.Dial(); err != nil {
+			h.failed = err
 			return
 		}
 		if f, err = sftp.NewClient(s); err != nil {
+			h.failed = err
 			return
 		}
 		logDebug.Println("remote opened", h.GetString("name"))

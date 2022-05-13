@@ -7,12 +7,12 @@
 
 # cobra-cli init
 # cobra-cli add add
-# cobra-cli add addRemote -p addCmd
+# cobra-cli add addHost -p addCmd
 # cobra-cli add clean
 # cobra-cli add command
 # cobra-cli add copy
 # cobra-cli add delete
-# cobra-cli add deleteRemote -p deleteCmd
+# cobra-cli add deleteHost -p deleteCmd
 # cobra-cli add disable
 # cobra-cli add enable
 # cobra-cli add home
@@ -21,7 +21,7 @@
 # cobra-cli add install
 # cobra-cli add logs
 # cobra-cli add ls
-# cobra-cli add lsRemote -p lsCmd
+# cobra-cli add lsHost -p lsCmd
 # cobra-cli add migrate
 # cobra-cli add move
 # cobra-cli add ps

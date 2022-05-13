@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/spf13/viper"
 )
@@ -18,11 +19,23 @@ const ALLHOSTS = "all"
 var LOCAL, ALL *Host
 
 type Host struct {
+	// use a viper to store config
 	*viper.Viper
+
+	// loaded from config or just an instance?
+	// always true for LOCALHOST and ALLHOSTS
+	loaded bool
+
+	// initially, if we fail to connect to host then mark as failed
+	// as we run in single shot mode, also record error
+	//
+	// later, once we are long-running as a daemon then we can use
+	// some sort of retry mechanism, but not for now
+	// lastFailure time.Time
+	failed error
 }
 
-// private parent of all hosts
-var hosts *viper.Viper
+var hosts sync.Map
 
 // this is called from cmd root
 func Init() {
@@ -50,59 +63,47 @@ func New(name string) (c *Host) {
 		if LOCAL != nil {
 			return LOCAL
 		}
-		c = &Host{viper.New()}
+		c = &Host{viper.New(), true, nil}
 		c.Set("name", LOCALHOST)
 		c.GetOSReleaseEnv()
 	case ALLHOSTS:
 		if ALL != nil {
 			return ALL
 		}
-		c = &Host{viper.New()}
+		c = &Host{viper.New(), true, nil}
 		c.Set("name", ALLHOSTS)
 	default:
-		// grab the existing one
-		h := hosts.Sub(name)
-		if h != nil {
-			return &Host{h}
+		r, ok := hosts.Load(name)
+		if ok {
+			c, ok = r.(*Host)
+			if ok {
+				return
+			}
 		}
 		// or bootstrap, but NOT save a new one
-		c = &Host{viper.New()}
+		c = &Host{viper.New(), false, nil}
 		c.Set("name", name)
+		hosts.Store(name, c)
 	}
 
 	c.Set("geneos", Geneos())
-
 	return
 }
 
-func Add(host *Host) {
-	hosts.Set(host.String(), host.AllSettings())
+func Add(h *Host) {
+	h.loaded = true
 }
 
-// delete a host from the host list
-// this is done by setting the host setting to an empty string as viper
-// does not support setting a nil or unsetting a setting. this is then picked
-// up in the write config file function and skipped
-func Delete(host *Host) {
-	hosts.Set(host.String(), "")
+func Delete(h *Host) {
+	hosts.Delete(h.String())
 }
 
 func (h *Host) Exists() bool {
-	if h == LOCAL || h == ALL {
-		return true
-	}
+	return h.loaded
+}
 
-	if !hosts.IsSet(h.String()) {
-		return false
-	}
-
-	// work with Delete() above
-	switch hosts.Get(h.String()).(type) {
-	case string:
-		return false
-	default:
-		return true
-	}
+func (h *Host) Failed() bool {
+	return h.failed != nil
 }
 
 func (h *Host) String() string {
@@ -171,34 +172,52 @@ func (h *Host) FullName(name string) string {
 func AllHosts() (hs []*Host) {
 	hs = []*Host{LOCAL}
 
-	for k := range hosts.AllSettings() {
-		hs = append(hs, New(k))
-	}
+	hosts.Range(func(k, v interface{}) bool {
+		h := New(k.(string))
+		if !h.Failed() {
+			hs = append(hs, h)
+		}
+		return true
+	})
 	return
 }
 
 func ReadConfigFile() {
-	hosts = viper.New()
+	var hs *viper.Viper
 
 	h := viper.New()
 	h.SetConfigFile(UserHostsFilePath())
 	h.ReadInConfig()
 	if h.InConfig("hosts") {
-		hosts = h.Sub("hosts")
+		hs = h.Sub("hosts")
+	}
+
+	// recreate empty
+	hosts = sync.Map{}
+	// LOCAL = New(LOCALHOST)
+	// ALL = New(ALLHOSTS)
+
+	if hs != nil {
+		for n, h := range hs.AllSettings() {
+			v := viper.New()
+			v.MergeConfigMap(h.(map[string]interface{}))
+			hosts.Store(n, &Host{v, true, nil})
+		}
 	}
 }
 
 func WriteConfigFile() error {
 	n := viper.New()
-	for h, v := range hosts.AllSettings() {
-		switch v.(type) {
-		case string:
-			// do nothing
-			break
-		default:
-			n.Set("hosts."+h, v)
+
+	hosts.Range(func(k, v interface{}) bool {
+		name := k.(string)
+		switch v := v.(type) {
+		case *Host:
+			n.Set("hosts."+name, v.AllSettings())
 		}
-	}
+		return true
+	})
+
 	return n.WriteConfigAs(UserHostsFilePath())
 }
 

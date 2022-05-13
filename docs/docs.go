@@ -7,5 +7,6 @@ import (
 )
 
 func main() {
+	// doc.GenManTree(cmd.RootCmd(), nil, "./")
 	doc.GenMarkdownTree(cmd.RootCmd(), "./")
 }

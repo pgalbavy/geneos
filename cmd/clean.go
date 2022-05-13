@@ -37,6 +37,11 @@ up are set in the global configuration as "TYPECleanList" and
 "TYPEPurgeList" and can be seen vis the show command, and changes
 using set. The format is a PathListSeperator (typicallally a colon)
 separated list of globs.`,
+	Example: `# delete old logs and config file backups without affecting running instance
+geneos clean gateway Gateway1
+# stop all netprobes and remove all non-essential files from working directories,
+# then restart
+geneos clean --purge netprobe`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{

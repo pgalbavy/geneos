@@ -41,7 +41,7 @@ import (
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
-	Use:   "init [-A FILE|URL|-D|-S|-T] [-n NAME] [-g FILE|URL] [-s FILE|URL] [-c CERTFILE] [-k KEYFILE] [USERNAME] [DIRECTORY] [PARAMS]",
+	Use:   "init [FLAGS] [USERNAME] [DIRECTORY] [PARAMS]",
 	Short: "Initialise a Geneos installation",
 	Long: `Initialise a Geneos installation by creating the directory
 hierarchy and user configuration file, with the USERNAME and
@@ -73,6 +73,10 @@ with superuser privileges or be run by the same user.
 
 Any PARAMS provided are passed to the 'add' command called for
 components created.`,
+	Example: `geneos init # basic set-up and user config file
+geneos init -D -u email@example.com # create a demo environment, requires password
+geneos init -S -n mysan -g Gateway1 -t App1Mon -a REGION=EMEA # install and run a SAN
+`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
@@ -87,8 +91,8 @@ components created.`,
 func init() {
 	rootCmd.AddCommand(initCmd)
 
-	initCmd.Flags().StringVarP(&initCmdAll, "all", "A", "", "Perform initialisation steps using provided license file and starts environment")
-	initCmd.Flags().BoolVarP(&initCmdDemo, "demo", "D", false, "Perform initialisation steps for a demo setup and start environment")
+	initCmd.Flags().StringVarP(&initCmdAll, "all", "A", "", "Perform initialisation steps using given license file and start instances")
+	initCmd.Flags().BoolVarP(&initCmdDemo, "demo", "D", false, "Perform initialisation steps for a demo setup and start instances")
 	initCmd.Flags().BoolVarP(&initCmdSAN, "san", "S", false, "Create a SAN and start SAN")
 
 	initCmd.Flags().BoolVarP(&initCmdMakeCerts, "makecerts", "C", false, "Create default certificates for TLS support")

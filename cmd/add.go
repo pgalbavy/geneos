@@ -37,12 +37,15 @@ import (
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add [-t FILE] [-S] TYPE NAME",
+	Use:   "add [FLAGS] TYPE NAME",
 	Short: "Add a new instance",
 	Long: `Add a new component of TYPE with the name NAME. The details will depends on the
 TYPE. Currently the listening port is selected automatically and other options are defaulted.
 	
 Gateways and SANs are given a minimal configuration file based on the templates configured.`,
+	Example: `geneos add gateway EXAMPLE1
+geneos add san server1 -S -g GW1 -g GW2 -t "Infrastructure Defaults" -t "App1" -a COMPONENT=APP1
+geneos add netprobe infraprobe12 port=17036 -S -l`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
