@@ -306,7 +306,7 @@ func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 		if filepath.Base(ldir) == local {
 			i, err := Get(ct, name)
 			if err != nil {
-				logDebug.Println(err)
+				log.Println(err)
 				continue
 			}
 			c = append(c, i)
@@ -450,7 +450,7 @@ func ForAll(ct *geneos.Component, fn func(geneos.Instance, []string) error, args
 	for _, name := range args {
 		cs := MatchAll(ct, name)
 		if len(cs) == 0 {
-			log.Println("no matches for", ct, name)
+			log.Println("no match for", name)
 			continue
 		}
 		n++

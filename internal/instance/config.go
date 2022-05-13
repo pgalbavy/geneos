@@ -108,13 +108,17 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 //
 // error check core values - e.g. Name
 func LoadConfig(c geneos.Instance) (err error) {
+	if c.Host().Failed() {
+		return
+	}
 	if err = ReadConfig(c); err == nil {
 		return
 	}
 
 	err = readRCConfig(c)
 	if err != nil {
-		return os.ErrNotExist
+		// generic error as no .json or .rc found
+		return fmt.Errorf("no configuration files for %s in %s: %w", c, c.Home(), os.ErrNotExist)
 	}
 	return
 }

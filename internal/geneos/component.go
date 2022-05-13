@@ -188,6 +188,5 @@ func MakeComponentDirs(h *host.Host, ct *Component) (err error) {
 // ct cannot be None
 func (ct *Component) ComponentDir(h *host.Host) string {
 	p := h.GeneosJoinPath(ct.String(), ct.String()+"s")
-	logDebug.Println(p)
 	return p
 }

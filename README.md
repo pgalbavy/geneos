@@ -125,6 +125,14 @@ If authentication is required to download the software archives then use these e
 geneos init -D -u user@example.com
 ```
 
+or
+
+```bash
+export ITRS_DOWNLOAD_USERNAME=user@example.com
+export ITRS_DOWNLOAD_PASSWORD=mysecret
+geneos init -D
+```
+
 Here you should replace the email address with your own and the command will prompt you for your password. These are the login details you should have for the ITRS Resources website.
 
 The above command will create a directory structure, download software and configure a Gateway in 'Demo' mode plus a single Self-Announcing Netprobe and Webserver for dashboards. However, no further configuration is done, that's up to you!
@@ -190,6 +198,10 @@ geneos ps
 ## Security and Running as Root
 
 This program has been written in such a way that is *should* be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
+
+## Environment Settings
+
+The `geneos` program uses the packages [Cobra](cobra.dev) and [Viper](https://github.com/spf13/viper) to provide the command syntax and configuration management. There is full support for Viper's layered configuration for non-instance settings, which means you can override global and user settings with environment variables prefixed `ITRS_`, e.g. `ITRS_DOWNLOAD_USERNAME` overrides `download.username`
 
 ## Instance Settings
 
@@ -635,11 +647,13 @@ The root and signing certificates are only kept on the local server and the `tls
 
 * `/etc/geneos/geneos.json` - Global options
 * `${HOME}/.config/geneos.json` - User options
+* Environment variables ITRS_option
 
-General options are loaded from the global config file first, then the user one. The current options are:
+General options are loaded from the global config file first, then the user one and any environment variables override both files. The current options are:
 
 * `geneos`
 The home directory for all other commands. See [Directory Layout](#directory-layout) below. If set the environment variable ITRS_HOME overrides any settings in the files. This is to maintain backward compatibility with older tools. The default, if not set anywhere else, is the home directory of the user running the command or, if running as root, the home directory of the `geneos` or `itrs` users (in that order). (To be fully implemented)
+This value is also set by the environment variables `ITRS_HOME` or `ITRS_GENEOS`
 
 * `download.url`
 The base URL for downloads for automating installations. Not yet used.
@@ -647,6 +661,9 @@ If files are locally downloaded then this can either be a `file://` style URL or
 
 * `download.username`
   `download.password`
+These specify the username and password to use when downloading packages. They can also be set as the environment variables:
+  * `ITRS_DOWNLOAD_USERNAME`
+  * `ITRS_DOWNLOAD_PASSWORD`
 
 * `defaultuser`
 Principally used when running with elevated privilege (setuid or `sudo`) and a suitable username is not defined in instance configurations or for file ownership of shared directories.

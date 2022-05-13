@@ -28,6 +28,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -151,7 +152,13 @@ func initConfig() {
 		logger.EnableDebugLog()
 	}
 
+	viper.SetEnvPrefix("ITRS")
 	viper.BindEnv("geneos", "ITRS_HOME")
+
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.AutomaticEnv()
+
 	u, _ := user.Current()
 	viper.SetDefault("defaultuser", u.Username)
 
