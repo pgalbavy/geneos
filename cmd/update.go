@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
+	"wonderland.org/geneos/internal/instance"
 )
 
 // updateCmd represents the update command
@@ -69,10 +70,12 @@ func init() {
 
 	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Override the base active_prod link name")
 	updateCmd.Flags().StringVarP(&cmdUpdateHost, "host", "H", string(host.ALLHOSTS), "Perform on a remote host. \"all\" (the default) means all remote hosts and locally")
+	updateCmd.Flags().BoolVarP(&cmdUpdateRestart, "restart", "R", false, "Restart all instances that may have an update applied")
 	updateCmd.Flags().SortFlags = false
 }
 
 var cmdUpdateBase, cmdUpdateHost string
+var cmdUpdateRestart bool
 
 func commandUpdate(ct *geneos.Component, args []string, params []string) (err error) {
 	version := "latest"
@@ -80,7 +83,15 @@ func commandUpdate(ct *geneos.Component, args []string, params []string) (err er
 		version = args[0]
 	}
 	r := host.New(cmdUpdateHost)
-	if err = geneos.Update(r, ct, geneos.Version(version), geneos.Basename(cmdUpdateBase), geneos.Force(true)); err != nil && errors.Is(err, os.ErrNotExist) {
+	options := []geneos.GeneosOptions{geneos.Version(version), geneos.Basename(cmdUpdateBase), geneos.Force(true), geneos.Restart(cmdUpdateRestart)}
+	if cmdUpdateRestart {
+		cs := instance.MatchKeyValue(host.ALL, ct, "version", cmdUpdateBase)
+		for _, c := range cs {
+			instance.Stop(c, false)
+			defer instance.Start(c)
+		}
+	}
+	if err = geneos.Update(r, ct, options...); err != nil && errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	return

@@ -75,7 +75,7 @@ func init() {
 
 	installCmd.Flags().StringVarP(&installCmdBase, "base", "b", "active_prod", "Override the base active_prod link name")
 
-	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "l", false, "Install from local files only")
+	installCmd.Flags().BoolVarP(&installCmdLocal, "local", "L", false, "Install from local files only")
 	installCmd.Flags().BoolVarP(&installCmdNoSave, "nosave", "n", false, "Do not save a local copy of any downloads")
 	installCmd.Flags().StringVarP(&installCmdHost, "host", "H", string(host.ALLHOSTS), "Perform on a remote host. \"all\" means all hosts and locally")
 

@@ -63,5 +63,5 @@ func init() {
 var cleanCmdPurge bool
 
 func cleanInstance(c geneos.Instance, params []string) (err error) {
-	return instance.Clean(c, cleanCmdPurge, params)
+	return instance.Clean(c, geneos.Restart(cleanCmdPurge))
 }

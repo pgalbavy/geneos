@@ -64,6 +64,7 @@ func init() {
 	addCmd.Flags().StringVarP(&addCmdTemplate, "template", "T", "", "template file to use instead of default")
 	addCmd.Flags().BoolVarP(&addCmdStart, "start", "S", false, "Start new instance(s) after creation")
 	addCmd.Flags().BoolVarP(&addCmdLogs, "log", "l", false, "Run 'logs -f' after starting instance. Implies -S to start the instance")
+	addCmd.Flags().StringVarP(&addCmdBase, "base", "b", "active_prod", "select the base version for the instance, default active_prod")
 
 	addCmd.Flags().VarP(&addCmdExtras.Envs, "env", "e", "(all components) Add an environment variable in the format NAME=VALUE")
 	addCmd.Flags().VarP(&addCmdExtras.Includes, "include", "i", "(gateways) Add an include file in the format PRIORITY:PATH")
@@ -75,7 +76,7 @@ func init() {
 	addCmd.Flags().SortFlags = false
 }
 
-var addCmdTemplate string
+var addCmdTemplate, addCmdBase string
 var addCmdStart, addCmdLogs bool
 var addCmdExtras = instance.ExtraConfigValues{
 	Includes:   instance.IncludeValues{},
@@ -123,6 +124,9 @@ func commandAdd(ct *geneos.Component, extras instance.ExtraConfigValues, args []
 		logError.Fatalln(err)
 	}
 
+	if addCmdBase != "active_prod" {
+		c.V().Set("version", addCmdBase)
+	}
 	instance.SetExtendedValues(c, extras)
 	if err = instance.WriteConfig(c); err != nil {
 		return

@@ -1,10 +1,11 @@
 package geneos
 
-type optstruct struct {
+type Options struct {
 	override     string
 	local        bool
 	nosave       bool
 	overwrite    bool
+	restart      bool
 	basename     string
 	homedir      string
 	version      string
@@ -16,11 +17,11 @@ type optstruct struct {
 	filename     string
 }
 
-type GeneosOptions func(*optstruct)
+type GeneosOptions func(*Options)
 
-func doOptions(options ...GeneosOptions) (d *optstruct) {
+func EvalOptions(options ...GeneosOptions) (d *Options) {
 	// defaults
-	d = &optstruct{
+	d = &Options{
 		downloadbase: "releases",
 		downloadtype: "resources",
 	}
@@ -31,53 +32,61 @@ func doOptions(options ...GeneosOptions) (d *optstruct) {
 }
 
 func NoSave(n bool) GeneosOptions {
-	return func(d *optstruct) { d.nosave = n }
+	return func(d *Options) { d.nosave = n }
 }
 
 func LocalOnly(l bool) GeneosOptions {
-	return func(d *optstruct) { d.local = l }
+	return func(d *Options) { d.local = l }
 }
 
 func Force(o bool) GeneosOptions {
-	return func(d *optstruct) { d.overwrite = o }
+	return func(d *Options) { d.overwrite = o }
 }
 
 func OverrideVersion(s string) GeneosOptions {
-	return func(d *optstruct) { d.override = s }
+	return func(d *Options) { d.override = s }
+}
+
+func Restart(r bool) GeneosOptions {
+	return func(d *Options) { d.restart = r }
+}
+
+func (d *Options) Restart() bool {
+	return d.restart
 }
 
 func Version(v string) GeneosOptions {
-	return func(d *optstruct) { d.version = v }
+	return func(d *Options) { d.version = v }
 }
 
 func Basename(b string) GeneosOptions {
-	return func(d *optstruct) { d.basename = b }
+	return func(d *Options) { d.basename = b }
 }
 
 func Homedir(h string) GeneosOptions {
-	return func(d *optstruct) { d.homedir = h }
+	return func(d *Options) { d.homedir = h }
 }
 
 func Username(u string) GeneosOptions {
-	return func(d *optstruct) { d.username = u }
+	return func(d *Options) { d.username = u }
 }
 
 func Password(p string) GeneosOptions {
-	return func(d *optstruct) { d.password = p }
+	return func(d *Options) { d.password = p }
 }
 
 func PlatformID(id string) GeneosOptions {
-	return func(d *optstruct) { d.platform_id = id }
+	return func(d *Options) { d.platform_id = id }
 }
 
 func UseNexus() GeneosOptions {
-	return func(d *optstruct) { d.downloadtype = "nexus" }
+	return func(d *Options) { d.downloadtype = "nexus" }
 }
 
 func UseSnapshots() GeneosOptions {
-	return func(d *optstruct) { d.downloadbase = "snapshots" }
+	return func(d *Options) { d.downloadbase = "snapshots" }
 }
 
 func Filename(f string) GeneosOptions {
-	return func(d *optstruct) { d.filename = f }
+	return func(d *Options) { d.filename = f }
 }

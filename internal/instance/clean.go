@@ -7,13 +7,15 @@ import (
 	"wonderland.org/geneos/internal/geneos"
 )
 
-func Clean(c geneos.Instance, purge bool, params []string) (err error) {
+func Clean(c geneos.Instance, options ...geneos.GeneosOptions) (err error) {
 	var stopped bool
+
+	opts := geneos.EvalOptions(options...)
 
 	cleanlist := viper.GetString(c.Type().CleanList)
 	purgelist := viper.GetString(c.Type().PurgeList)
 
-	if !purge {
+	if !opts.Restart() {
 		if cleanlist != "" {
 			if err = RemovePaths(c, cleanlist); err == nil {
 				logDebug.Println(c, "cleaned")

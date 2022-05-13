@@ -12,7 +12,7 @@ import (
 
 // check selected version exists first
 func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
-	opts := doOptions(options...)
+	opts := EvalOptions(options...)
 	if ct == nil {
 		for _, t := range RealComponents() {
 			if err = Update(h, t, options...); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -82,6 +82,11 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 
 	if (existing != "" && !opts.overwrite) || existing == opts.version {
 		return nil
+	}
+
+	if opts.restart {
+		// this cannot call 'instance' methods as that would be a dependency look...
+
 	}
 
 	if err = h.Remove(basepath); err != nil && !errors.Is(err, fs.ErrNotExist) {

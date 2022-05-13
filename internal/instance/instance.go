@@ -316,6 +316,34 @@ func MatchAll(ct *geneos.Component, name string) (c []geneos.Instance) {
 	return
 }
 
+func MatchKeyValue(h *host.Host, ct *geneos.Component, key, value string) (confs []geneos.Instance) {
+	if ct == nil {
+		for _, c := range geneos.RealComponents() {
+			confs = append(confs, MatchKeyValue(h, c, key, value)...)
+		}
+		return
+	}
+	for _, name := range AllNames(h, ct) {
+		i, err := Get(ct, name)
+		if err != nil {
+			continue
+		}
+		confs = append(confs, i)
+	}
+
+	// filter in place
+	n := 0
+	for _, c := range confs {
+		if c.V().GetString(key) == value {
+			confs[n] = c
+			n++
+		}
+	}
+	confs = confs[:n]
+
+	return
+}
+
 // get all used ports in config files on a specific remote
 // this will not work for ports assigned in component config
 // files, such as gateway setup or netprobe collection agent

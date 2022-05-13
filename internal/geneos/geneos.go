@@ -40,7 +40,7 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 		return
 	}
 
-	opts := doOptions(options...)
+	opts := EvalOptions(options...)
 	if opts.homedir == "" {
 		logError.Fatalln("homedir not set")
 		// default or error

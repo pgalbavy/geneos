@@ -92,7 +92,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 	}
 
 	// now a full clean
-	if err = Clean(src, true, []string{}); err != nil {
+	if err = Clean(src, geneos.Restart(true)); err != nil {
 		return
 	}
 

@@ -25,7 +25,7 @@ import (
 func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.ReadCloser, filename string, err error) {
 	var resp *http.Response
 
-	opts := doOptions(options...)
+	opts := EvalOptions(options...)
 
 	if opts.filename != "" {
 		return OpenLocalFileOrURL(opts.filename)
@@ -117,7 +117,7 @@ func OpenComponentArchive(ct *Component, options ...GeneosOptions) (body io.Read
 func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, options ...GeneosOptions) (err error) {
 	var version string
 
-	opts := doOptions(options...)
+	opts := EvalOptions(options...)
 
 	if opts.override == "" {
 		parts := archiveRE.FindStringSubmatch(filename)
@@ -264,7 +264,7 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filename string, resp *http.Response, err error) {
 	var source string
 
-	opts := doOptions(options...)
+	opts := EvalOptions(options...)
 
 	// XXX OS filter for EL8 here - to test
 	// cannot fetch partial versions for el8
