@@ -115,15 +115,16 @@ func commandInstall(ct *geneos.Component, args, params []string) (err error) {
 				options = append(options, geneos.UseSnapshots())
 			}
 		}
-		install(ct, installCmdHost, options...)
-		return nil
+		return install(ct, installCmdHost, options...)
 	}
 
 	// work through command line args and try to install them using the naming format
 	// of standard downloads - fix versioning
 	for _, file := range args {
 		options := []geneos.GeneosOptions{geneos.Filename(file)}
-		install(ct, installCmdHost, options...)
+		if err = install(ct, installCmdHost, options...); err != nil {
+			return err
+		}
 	}
 	return nil
 }
