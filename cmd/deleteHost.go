@@ -70,7 +70,7 @@ func commandDeleteHost(_ *geneos.Component, args []string, params []string) (err
 	// check args are hosts ('all' means all non-local ?)
 	var hosts []*host.Host
 	for _, hostname := range args {
-		h := host.New(hostname)
+		h := host.Get(hostname)
 		if !h.Exists() {
 			logError.Printf("%q is not a known host", hostname)
 			return

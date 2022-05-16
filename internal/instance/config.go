@@ -240,6 +240,13 @@ func WriteConfigValues(c geneos.Instance, values map[string]interface{}) error {
 	for k, v := range values {
 		nv.Set(k, v)
 	}
+	if c.Host() != host.LOCAL {
+		client, err := c.Host().DialSFTP()
+		if err != nil {
+			logError.Println(err)
+		}
+		nv.SetFs(sftpfs.New(client))
+	}
 	return nv.WriteConfigAs(file)
 }
 
@@ -346,14 +353,6 @@ func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
 		c.V().Set("attributes", attr)
 	}
 
-	if len(x.Types) > 0 {
-		types := c.V().GetStringSlice("types")
-		for _, v := range x.Types {
-			types = append(types, v)
-		}
-		c.V().Set("types", types)
-	}
-
 	if len(x.Envs) > 0 {
 		envs := c.V().GetStringSlice("env")
 		// copy(x.Envs, envs)
@@ -369,6 +368,22 @@ func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
 			gateways[k] = v
 		}
 		c.V().Set("gateways", gateways)
+	}
+
+	if len(x.Includes) > 0 {
+		incs := c.V().GetStringMapString("includes")
+		for k, v := range x.Includes {
+			incs[k] = v
+		}
+		c.V().Set("includes", incs)
+	}
+
+	if len(x.Types) > 0 {
+		types := c.V().GetStringSlice("types")
+		for _, v := range x.Types {
+			types = append(types, v)
+		}
+		c.V().Set("types", types)
 	}
 
 	if len(x.Variables) > 0 {

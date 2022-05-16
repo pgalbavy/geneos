@@ -49,9 +49,9 @@ var addHostCmd = &cobra.Command{
 		var h *host.Host
 		sshurl, err := url.Parse(args[0])
 		if err == nil && sshurl.Scheme != "" {
-			h = host.New(sshurl.Hostname())
+			h = host.Get(sshurl.Hostname())
 		} else {
-			h = host.New(args[0])
+			h = host.Get(args[0])
 			if len(args) > 1 {
 				if sshurl, err = url.Parse(args[1]); err != nil {
 					logError.Printf("invalid ssh url %q", args[1])

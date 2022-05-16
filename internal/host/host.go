@@ -39,8 +39,8 @@ var hosts sync.Map
 
 // this is called from cmd root
 func Init() {
-	LOCAL = New(LOCALHOST)
-	ALL = New(ALLHOSTS)
+	LOCAL = Get(LOCALHOST)
+	ALL = Get(ALLHOSTS)
 	ReadConfigFile()
 }
 
@@ -57,7 +57,7 @@ func Geneos() string {
 // interface method set
 
 // XXX new needs the top level viper and passes back a Sub()
-func New(name string) (c *Host) {
+func Get(name string) (c *Host) {
 	switch name {
 	case LOCALHOST:
 		if LOCAL != nil {
@@ -148,7 +148,7 @@ func Match(h string) (r []*Host) {
 	case ALLHOSTS:
 		return AllHosts()
 	default:
-		return []*Host{New(h)}
+		return []*Host{Get(h)}
 	}
 }
 
@@ -173,7 +173,7 @@ func AllHosts() (hs []*Host) {
 	hs = []*Host{LOCAL}
 
 	hosts.Range(func(k, v interface{}) bool {
-		h := New(k.(string))
+		h := Get(k.(string))
 		if !h.Failed() {
 			hs = append(hs, h)
 		}

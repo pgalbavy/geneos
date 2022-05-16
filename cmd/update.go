@@ -33,32 +33,46 @@ import (
 
 // updateCmd represents the update command
 var updateCmd = &cobra.Command{
-	Use:   "update [-b BASE] [-h HOST] [TYPE] VERSION",
+	Use:   "update [FLAGS] [TYPE] [VERSION]",
 	Short: "Update the active version of Geneos software",
-	Long: `Update the symlink for the default base name of the package used to
-	VERSION. The base directory, for historical reasons, is 'active_prod'
-	and is usually linked to the latest version of a component type in the
-	packages directory. VERSION can either be a directory name or the
-	literal 'latest'. If TYPE is not supplied, all supported component
-	types are updated to VERSION.
+	Long: `Update the symlink from the default base name of the package to
+the best match for VERSION. The default base directory is 'active_prod'
+and is normally linked to the latest version of a component type in the
+packages directory. VERSION can either be a semantic version style name or
+(the default if not given) 'latest'.
 
-	Update will stop all matching instances of the each type before
-	updating the link and starting them up again, but only if the
-	instance uses the 'active_prod' basename.
+If TYPE is not supplied, all supported component types are updated to VERSION.
 
-	The 'latest' version is based on directory names of the form:
+Update will stop all matching instances of the each type before
+updating the link and starting them up again, but only if the
+instance uses the same basename.
 
-	[GA]X.Y.Z
+The matching of VERSION is based on directory names of the form:
 
-	Where X, Y, Z are each ordered in ascending numerical order. If a
-	directory starts 'GA' it will be selected over a directory with the
-	same numerical versions. All other directories name formats will
-	result in unexpected behaviour.`,
+[GA]X.Y.Z
+
+Where X, Y, Z are each ordered in ascending numerical order. If a
+directory starts 'GA' it will be selected over a directory with the
+same numerical versions. All other directories name formats will
+result in unexpected behaviour. If multiple installed versions
+match then the lexically latest match will be used. The chosen
+match may be much higher than that given on the command line as
+only installed packages are used in the search.
+
+If a basename for the synlink does not already exist it will be created,
+so it important to check the spelling carefully.
+`,
+	Example: `
+geneos update gateway -b active_dev 5.11
+geneos update
+geneos update netprobe 5.13.2
+`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "false",
 	},
+	Args: cobra.RangeArgs(0, 2),
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		ct, args, params := cmdArgsParams(cmd)
 		return commandUpdate(ct, args, params)
@@ -68,8 +82,8 @@ var updateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(updateCmd)
 
-	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Override the base active_prod link name")
-	updateCmd.Flags().StringVarP(&cmdUpdateHost, "host", "H", string(host.ALLHOSTS), "Perform on a remote host. \"all\" (the default) means all remote hosts and locally")
+	updateCmd.Flags().StringVarP(&cmdUpdateBase, "base", "b", "active_prod", "Base name for the symlink, defaults to active_prod")
+	updateCmd.Flags().StringVarP(&cmdUpdateHost, "host", "H", string(host.ALLHOSTS), "Apply only on remote host. \"all\" (the default) means all remote hosts and locally")
 	updateCmd.Flags().BoolVarP(&cmdUpdateRestart, "restart", "R", false, "Restart all instances that may have an update applied")
 	updateCmd.Flags().SortFlags = false
 }
@@ -82,7 +96,7 @@ func commandUpdate(ct *geneos.Component, args []string, params []string) (err er
 	if len(args) > 0 {
 		version = args[0]
 	}
-	r := host.New(cmdUpdateHost)
+	r := host.Get(cmdUpdateHost)
 	options := []geneos.GeneosOptions{geneos.Version(version), geneos.Basename(cmdUpdateBase), geneos.Force(true), geneos.Restart(cmdUpdateRestart)}
 	if cmdUpdateRestart {
 		cs := instance.MatchKeyValue(host.ALL, ct, "version", cmdUpdateBase)

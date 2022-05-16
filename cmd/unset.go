@@ -29,19 +29,23 @@ import (
 
 // unsetCmd represents the unset command
 var unsetCmd = &cobra.Command{
-	Use:   "unset",
+	Use:   "unset [FLAGS] [TYPE] [NAME...]",
 	Short: "Unset a configuration value",
 	Long: `Unset a configuration value.
 	
 This command has been added to remove the confusing negation syntax in set`,
+	Example: `
+geneos unset gateway GW1 -k aesfile
+geneos unset san -g Gateway1
+`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
 		"wildcard": "true",
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		ct, args, params := cmdArgsParams(cmd)
-		return commandUnset(ct, args, params)
+		ct, args := cmdArgs(cmd)
+		return commandUnset(ct, args)
 	},
 }
 
@@ -49,8 +53,8 @@ func init() {
 	rootCmd.AddCommand(unsetCmd)
 	unsetCmd.Flags().VarP(&unsetCmdKeys, "key", "k", "Unset a configuration key item")
 	unsetCmd.Flags().VarP(&unsetCmdEnvs, "env", "e", "Remove an environment variable of NAME")
-	unsetCmd.Flags().VarP(&unsetCmdIncludes, "include", "i", "Remove an include file in the format PRIORITY:PATH")
-	unsetCmd.Flags().VarP(&unsetCmdGateways, "gateway", "g", "Remove a gateway in the format NAME:PORT")
+	unsetCmd.Flags().VarP(&unsetCmdIncludes, "include", "i", "Remove an include file in the format PRIORITY")
+	unsetCmd.Flags().VarP(&unsetCmdGateways, "gateway", "g", "Remove gateway NAME")
 	unsetCmd.Flags().VarP(&unsetCmdAttributes, "attribute", "a", "Remove an attribute of NAME")
 	unsetCmd.Flags().VarP(&unsetCmdTypes, "type", "t", "Remove the type NAME")
 	unsetCmd.Flags().VarP(&unsetCmdVariables, "variable", "v", "Remove a variable of NAME")
@@ -65,15 +69,14 @@ var unsetCmdEnvs = unsetCmdValues{}
 var unsetCmdVariables = unsetCmdValues{}
 var unsetCmdTypes = unsetCmdValues{}
 
-func commandUnset(ct *geneos.Component, args, params []string) error {
-	return instance.ForAll(ct, unsetInstance, args, params)
+func commandUnset(ct *geneos.Component, args []string) error {
+	return instance.ForAll(ct, unsetInstance, args, []string{})
 }
 
 func unsetInstance(c geneos.Instance, params []string) (err error) {
 	var changed bool
 	logDebug.Println("c", c, "params", params)
 
-	// walk through any flags passed for structs and lists
 	changed, err = unsetMaps(c)
 
 	s := c.V().AllSettings()
@@ -99,13 +102,24 @@ func unsetInstance(c geneos.Instance, params []string) (err error) {
 
 // XXX abstract this for a general case
 func unsetMaps(c geneos.Instance) (changed bool, err error) {
-	if len(unsetCmdAttributes) > 0 {
-		attr := c.V().GetStringMapString("attributes")
-		for _, k := range unsetCmdAttributes {
-			delete(attr, k)
-			changed = true
-		}
-		c.V().Set("attributes", attr)
+	if unset(c, unsetCmdAttributes, "attributes") {
+		changed = true
+	}
+
+	if unset(c, unsetCmdEnvs, "env") {
+		changed = true
+	}
+
+	if unset(c, unsetCmdGateways, "gateways") {
+		changed = true
+	}
+
+	if unset(c, unsetCmdIncludes, "includes") {
+		changed = true
+	}
+
+	if unset(c, unsetCmdVariables, "variables") {
+		changed = true
 	}
 
 	if len(unsetCmdTypes) > 0 {
@@ -124,33 +138,16 @@ func unsetMaps(c geneos.Instance) (changed bool, err error) {
 		c.V().Set("types", newtypes)
 	}
 
-	if len(unsetCmdEnvs) > 0 {
-		envs := c.V().GetStringMapString("env")
-		for _, k := range unsetCmdEnvs {
-			delete(envs, k)
-			changed = true
-		}
-		c.V().Set("env", envs)
-	}
+	return
+}
 
-	if len(unsetCmdGateways) > 0 {
-		gateways := c.V().GetStringMapString("gateways")
-		for _, k := range unsetCmdGateways {
-			delete(gateways, k)
-			changed = true
-		}
-		c.V().Set("gateways", gateways)
+func unset(c geneos.Instance, items unsetCmdValues, key string) (changed bool) {
+	x := c.V().GetStringMapString(key)
+	for _, k := range items {
+		delete(x, k)
+		changed = true
 	}
-
-	if len(unsetCmdVariables) > 0 {
-		vars := c.V().GetStringMapString("variables")
-		for _, k := range unsetCmdVariables {
-			delete(vars, k)
-			changed = true
-		}
-		c.V().Set("variables", vars)
-	}
-
+	c.V().Set(key, x)
 	return
 }
 

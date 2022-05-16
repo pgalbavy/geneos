@@ -90,7 +90,7 @@ func Init(r *host.Host, options ...GeneosOptions) (err error) {
 
 	// recreate host.LOCAL to load "geneos" and others
 	host.LOCAL = nil
-	host.LOCAL = host.New(host.LOCALHOST)
+	host.LOCAL = host.Get(host.LOCALHOST)
 
 	if utils.IsSuperuser() {
 		uid, gid, _, err = utils.GetIDs(opts.username)
