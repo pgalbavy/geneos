@@ -199,6 +199,21 @@ geneos ps
 
 This program has been written in such a way that is *should* be safe to install SETUID root or run using `sudo` for almost all cases. The program will refuse to accidentally run an instance as root unless the `User` config parameter is explicitly set - for example when a Netprobe needs to run as root. As with many complex programs, care should be taken and privileged execution should be used when required.
 
+It is worth reminding users that environment variables do not get passed to programs run with `sudo` unless you use the `-E` option (and you are permitted to use it). This is especially important where you have set the download credentials in environment variables. For example, this is likely to fail:
+
+```bash
+export ITRS_DOWNLOAD_USERNAME=email@example.com
+export ITRS_DOWNLOAD_PASSWORD=supersecret
+
+sudo -u geneos geneos install gateway
+```
+
+While adding the -E flags like this will work:
+
+```bash
+sudo -E -u geneos geneos install gateway
+```
+
 ## Environment Settings
 
 The `geneos` program uses the packages [Cobra](cobra.dev) and [Viper](https://github.com/spf13/viper) to provide the command syntax and configuration management. There is full support for Viper's layered configuration for non-instance settings, which means you can override global and user settings with environment variables prefixed `ITRS_`, e.g. `ITRS_DOWNLOAD_USERNAME` overrides `download.username`
