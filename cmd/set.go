@@ -81,7 +81,6 @@ func commandSet(ct *geneos.Component, args, params []string) error {
 func setInstance(c geneos.Instance, params []string) (err error) {
 	logDebug.Println("c", c, "params", params)
 
-	// walk through any flags passed
 	instance.SetExtendedValues(c, setCmdExtras)
 
 	for _, arg := range params {

@@ -343,23 +343,23 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 // Value types for multiple flags
 
 // XXX abstract this for a general case
-func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
-	// XXX attribute names MUST be case sensitive
-	if len(x.Attributes) > 0 {
-		attr := c.V().GetStringSlice("attributes")
-		for _, v := range x.Attributes {
-			attr = append(attr, v)
-		}
-		c.V().Set("attributes", attr)
+func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (changed bool) {
+	if setSlice(c, x.Attributes, "attributes", func(a string) string {
+		return strings.SplitN(a, "=", 2)[0]
+	}) {
+		changed = true
 	}
 
-	if len(x.Envs) > 0 {
-		envs := c.V().GetStringSlice("env")
-		// copy(x.Envs, envs)
-		for _, v := range x.Envs {
-			envs = append(envs, v)
-		}
-		c.V().Set("env", envs)
+	if setSlice(c, x.Envs, "env", func(a string) string {
+		return strings.SplitN(a, "=", 2)[0]
+	}) {
+		changed = true
+	}
+
+	if setSlice(c, x.Types, "types", func(a string) string {
+		return a
+	}) {
+		changed = true
 	}
 
 	if len(x.Gateways) > 0 {
@@ -378,14 +378,6 @@ func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
 		c.V().Set("includes", incs)
 	}
 
-	if len(x.Types) > 0 {
-		types := c.V().GetStringSlice("types")
-		for _, v := range x.Types {
-			types = append(types, v)
-		}
-		c.V().Set("types", types)
-	}
-
 	if len(x.Variables) > 0 {
 		vars := c.V().GetStringMapString("variables")
 		for k, v := range x.Variables {
@@ -394,7 +386,50 @@ func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
 		c.V().Set("variables", vars)
 	}
 
-	return nil
+	return
+}
+
+// sets 'items' in the settings identified by 'key'. the key() function returns an identifier to use
+// in merge comparisons
+func setSlice(c geneos.Instance, items []string, setting string, key func(string) string) (changed bool) {
+	if len(items) == 0 {
+		return
+	}
+
+	newvals := []string{}
+	vals := c.V().GetStringSlice(setting)
+
+	if len(vals) == 0 {
+		c.V().Set(setting, items)
+		changed = true
+		return
+	}
+
+	// map to store the identifier and the full value for later checks
+	keys := map[string]string{}
+	for _, v := range items {
+		keys[key(v)] = v
+		newvals = append(newvals, v)
+	}
+
+	for _, v := range vals {
+		if w, ok := keys[key(v)]; ok {
+			// exists
+			if v != w {
+				// only changed if different value
+				changed = true
+				continue
+			}
+		} else {
+			// copying the old value is not a change
+			newvals = append(newvals, v)
+		}
+	}
+
+	// check old values against map, copy those that do not exist
+
+	c.V().Set(setting, newvals)
+	return
 }
 
 // include file - priority:url|path

@@ -22,6 +22,8 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/instance"
@@ -102,52 +104,63 @@ func unsetInstance(c geneos.Instance, params []string) (err error) {
 
 // XXX abstract this for a general case
 func unsetMaps(c geneos.Instance) (changed bool, err error) {
-	if unset(c, unsetCmdAttributes, "attributes") {
+	if unsetMap(c, unsetCmdGateways, "gateways") {
 		changed = true
 	}
 
-	if unset(c, unsetCmdEnvs, "env") {
+	if unsetMap(c, unsetCmdIncludes, "includes") {
 		changed = true
 	}
 
-	if unset(c, unsetCmdGateways, "gateways") {
+	if unsetMap(c, unsetCmdVariables, "variables") {
 		changed = true
 	}
 
-	if unset(c, unsetCmdIncludes, "includes") {
+	if unsetSlice(c, unsetCmdAttributes, "attributes", func(a, b string) bool {
+		return strings.HasPrefix(a, b+"=")
+	}) {
 		changed = true
 	}
 
-	if unset(c, unsetCmdVariables, "variables") {
+	if unsetSlice(c, unsetCmdEnvs, "env", func(a, b string) bool {
+		return strings.HasPrefix(a, b+"=")
+	}) {
 		changed = true
 	}
 
-	if len(unsetCmdTypes) > 0 {
-		newtypes := []string{}
-		types := c.V().GetStringSlice("types")
-	OUTER:
-		for _, t := range types {
-			for _, v := range unsetCmdTypes {
-				if t == v {
-					changed = true
-					continue OUTER
-				}
-			}
-			newtypes = append(newtypes, t)
-		}
-		c.V().Set("types", newtypes)
+	if unsetSlice(c, unsetCmdTypes, "types", func(a, b string) bool {
+		return a == b
+	}) {
+		changed = true
 	}
 
 	return
 }
 
-func unset(c geneos.Instance, items unsetCmdValues, key string) (changed bool) {
+func unsetMap(c geneos.Instance, items unsetCmdValues, key string) (changed bool) {
 	x := c.V().GetStringMapString(key)
 	for _, k := range items {
 		delete(x, k)
 		changed = true
 	}
 	c.V().Set(key, x)
+	return
+}
+
+func unsetSlice(c geneos.Instance, items []string, key string, cmp func(string, string) bool) (changed bool) {
+	newvals := []string{}
+	vals := c.V().GetStringSlice(key)
+OUTER:
+	for _, t := range vals {
+		for _, v := range items {
+			if cmp(t, v) {
+				changed = true
+				continue OUTER
+			}
+		}
+		newvals = append(newvals, t)
+	}
+	c.V().Set(key, newvals)
 	return
 }
 
