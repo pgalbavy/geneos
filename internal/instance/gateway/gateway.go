@@ -178,8 +178,11 @@ func (g *Gateways) SetConf(v *viper.Viper) {
 	g.Conf = v
 }
 
-func (g *Gateways) Add(username string, tmpl string) (err error) {
-	g.V().Set("port", instance.NextPort(g.InstanceHost, &Gateway))
+func (g *Gateways) Add(username string, tmpl string, port uint16) (err error) {
+	if port == 0 {
+		port = instance.NextPort(g.InstanceHost, &Gateway)
+	}
+	g.V().Set("port", port)
 	g.V().Set("user", username)
 	g.V().Set("configrebuild", "initial")
 	g.V().Set("includes", make(map[int]string))

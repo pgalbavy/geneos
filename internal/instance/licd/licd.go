@@ -138,8 +138,11 @@ func (l *Licds) SetConf(v *viper.Viper) {
 	l.Conf = v
 }
 
-func (l *Licds) Add(username string, tmpl string) (err error) {
-	l.V().Set("port", instance.NextPort(l.InstanceHost, &Licd))
+func (l *Licds) Add(username string, tmpl string, port uint16) (err error) {
+	if port == 0 {
+		port = instance.NextPort(l.InstanceHost, &Licd)
+	}
+	l.V().Set("port", port)
 	l.V().Set("user", username)
 
 	if err = instance.WriteConfig(l); err != nil {

@@ -164,8 +164,11 @@ func (s *Sans) SetConf(v *viper.Viper) {
 	s.Conf = v
 }
 
-func (s *Sans) Add(username string, tmpl string) (err error) {
-	s.V().Set("port", instance.NextPort(s.InstanceHost, &San))
+func (s *Sans) Add(username string, tmpl string, port uint16) (err error) {
+	if port == 0 {
+		port = instance.NextPort(s.InstanceHost, &San)
+	}
+	s.V().Set("port", port)
 	s.V().Set("user", username)
 	s.V().Set("configrebuild", "always")
 

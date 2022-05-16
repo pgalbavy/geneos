@@ -356,8 +356,9 @@ func SetExtendedValues(c geneos.Instance, x ExtraConfigValues) (err error) {
 
 	if len(x.Envs) > 0 {
 		envs := c.V().GetStringSlice("env")
-		for k, v := range x.Envs {
-			envs[k] = v
+		// copy(x.Envs, envs)
+		for _, v := range x.Envs {
+			envs = append(envs, v)
 		}
 		c.V().Set("env", envs)
 	}

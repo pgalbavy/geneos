@@ -155,7 +155,7 @@ func (w *Webservers) SetConf(v *viper.Viper) {
 	w.Conf = v
 }
 
-func (w *Webservers) Add(username string, tmpl string) (err error) {
+func (w *Webservers) Add(username string, tmpl string, port uint16) (err error) {
 	w.V().Set("port", instance.NextPort(w.InstanceHost, &Webserver))
 	w.V().Set("user", username)
 

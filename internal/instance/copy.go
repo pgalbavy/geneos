@@ -81,6 +81,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 	if _, err = GetPID(src); err != os.ErrProcessDone {
 		if err = Stop(src, false); err == nil {
 			stopped = true
+			// defer a call to restart the original if not "done"
 			defer func(c geneos.Instance) {
 				if !done {
 					Start(c)
@@ -136,7 +137,7 @@ func CopyInstance(ct *geneos.Component, srcname, dstname string, remove bool) (e
 	if src.Host() != dr {
 		srcport := src.V().GetInt64("port")
 		dstports := GetPorts(dr)
-		if _, ok := dstports[int(srcport)]; ok {
+		if _, ok := dstports[uint16(srcport)]; ok {
 			dstport := NextPort(dr, dst.Type())
 			realdst.V().Set("port", fmt.Sprint(dstport))
 		}

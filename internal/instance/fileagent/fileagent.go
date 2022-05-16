@@ -148,8 +148,11 @@ func (n *FileAgents) SetConf(v *viper.Viper) {
 	n.Conf = v
 }
 
-func (n *FileAgents) Add(username string, tmpl string) (err error) {
-	n.V().Set("port", instance.NextPort(n.Host(), &FileAgent))
+func (n *FileAgents) Add(username string, tmpl string, port uint16) (err error) {
+	if port == 0 {
+		port = instance.NextPort(n.Host(), &FileAgent)
+	}
+	n.V().Set("port", port)
 	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {

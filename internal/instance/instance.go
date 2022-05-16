@@ -349,18 +349,18 @@ func MatchKeyValue(h *host.Host, ct *geneos.Component, key, value string) (confs
 // files, such as gateway setup or netprobe collection agent
 //
 // returns a map
-func GetPorts(r *host.Host) (ports map[int]*geneos.Component) {
+func GetPorts(r *host.Host) (ports map[uint16]*geneos.Component) {
 	if r == host.ALL {
 		logError.Fatalln("getports() call with all hosts")
 	}
-	ports = make(map[int]*geneos.Component)
+	ports = make(map[uint16]*geneos.Component)
 	for _, c := range GetAll(r, nil) {
 		if !c.Loaded() {
 			log.Println("cannot load configuration for", c)
 			continue
 		}
 		if port := c.V().GetInt("port"); port != 0 {
-			ports[int(port)] = c.Type()
+			ports[uint16(port)] = c.Type()
 		}
 	}
 	return
@@ -389,7 +389,7 @@ func GetPorts(r *host.Host) (ports map[int]*geneos.Component) {
 //
 // not concurrency safe at this time
 //
-func NextPort(r *host.Host, ct *geneos.Component) int {
+func NextPort(r *host.Host, ct *geneos.Component) uint16 {
 	from := viper.GetString(ct.PortRange)
 	used := GetPorts(r)
 	ps := strings.Split(from, ",")
@@ -401,9 +401,15 @@ func NextPort(r *host.Host, ct *geneos.Component) int {
 		}
 
 		if len(m) > 1 {
-			min, err := strconv.Atoi(m[0])
+			var min uint16
+			mn, err := strconv.Atoi(m[0])
 			if err != nil {
 				continue
+			}
+			if mn < 0 || mn > 65534 {
+				min = 65535
+			} else {
+				min = uint16(mn)
 			}
 			if m[1] == "" {
 				m[1] = "49151"
@@ -412,19 +418,25 @@ func NextPort(r *host.Host, ct *geneos.Component) int {
 			if err != nil {
 				continue
 			}
-			if min >= max {
+			if int(min) >= max {
 				continue
 			}
-			for i := min; i <= max; i++ {
+			for i := min; int(i) <= max; i++ {
 				if _, ok := used[i]; !ok {
 					// found an unused port
 					return i
 				}
 			}
 		} else {
-			p1, err := strconv.Atoi(m[0])
-			if err != nil || p1 < 1 || p1 > 49151 {
+			var p1 uint16
+			p, err := strconv.Atoi(m[0])
+			if err != nil {
 				continue
+			}
+			if p < 0 || p > 65534 {
+				p1 = 65535
+			} else {
+				p1 = uint16(p)
 			}
 			if _, ok := used[p1]; !ok {
 				return p1

@@ -138,8 +138,11 @@ func (n *FA2s) SetConf(v *viper.Viper) {
 	n.Conf = v
 }
 
-func (n *FA2s) Add(username string, tmpl string) (err error) {
-	n.V().Set("port", instance.NextPort(n.InstanceHost, &FA2))
+func (n *FA2s) Add(username string, tmpl string, port uint16) (err error) {
+	if port == 0 {
+		port = instance.NextPort(n.InstanceHost, &FA2)
+	}
+	n.V().Set("port", port)
 	n.V().Set("user", username)
 
 	if err = instance.WriteConfig(n); err != nil {

@@ -39,13 +39,14 @@ import (
 var addCmd = &cobra.Command{
 	Use:   "add [FLAGS] TYPE NAME",
 	Short: "Add a new instance",
-	Long: `Add a new component of TYPE with the name NAME. The details will depends on the
-TYPE. Currently the listening port is selected automatically and other options are defaulted.
+	Long: `Add a new instance of a component TYPE with the name NAME. The
+details will depends on the TYPE.
 	
-Gateways and SANs are given a minimal configuration file based on the templates configured.`,
+Gateways and SANs are given a configuration file based on the templates
+configured.`,
 	Example: `geneos add gateway EXAMPLE1
 geneos add san server1 -S -g GW1 -g GW2 -t "Infrastructure Defaults" -t "App1" -a COMPONENT=APP1
-geneos add netprobe infraprobe12 port=17036 -S -l`,
+geneos add netprobe infraprobe12 -S -l`,
 	SilenceUsage:          true,
 	DisableFlagsInUseLine: true,
 	Annotations: map[string]string{
@@ -65,6 +66,7 @@ func init() {
 	addCmd.Flags().BoolVarP(&addCmdStart, "start", "S", false, "Start new instance(s) after creation")
 	addCmd.Flags().BoolVarP(&addCmdLogs, "log", "l", false, "Run 'logs -f' after starting instance. Implies -S to start the instance")
 	addCmd.Flags().StringVarP(&addCmdBase, "base", "b", "active_prod", "select the base version for the instance, default active_prod")
+	addCmd.Flags().Uint16VarP(&addCmdPort, "port", "p", 0, "override the default port selection")
 
 	addCmd.Flags().VarP(&addCmdExtras.Envs, "env", "e", "(all components) Add an environment variable in the format NAME=VALUE")
 	addCmd.Flags().VarP(&addCmdExtras.Includes, "include", "i", "(gateways) Add an include file in the format PRIORITY:PATH")
@@ -78,6 +80,8 @@ func init() {
 
 var addCmdTemplate, addCmdBase string
 var addCmdStart, addCmdLogs bool
+var addCmdPort uint16
+
 var addCmdExtras = instance.ExtraConfigValues{
 	Includes:   instance.IncludeValues{},
 	Gateways:   instance.GatewayValues{},
@@ -120,7 +124,7 @@ func commandAdd(ct *geneos.Component, extras instance.ExtraConfigValues, args []
 		return
 	}
 
-	if err = c.Add(username, addCmdTemplate); err != nil {
+	if err = c.Add(username, addCmdTemplate, addCmdPort); err != nil {
 		logError.Fatalln(err)
 	}
 

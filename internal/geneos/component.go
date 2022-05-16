@@ -51,7 +51,7 @@ type Instance interface {
 	SetConf(*viper.Viper)
 
 	// actions
-	Add(string, string) error
+	Add(string, string, uint16) error
 	Command() ([]string, []string)
 	Reload(params []string) (err error)
 	Rebuild(bool) error
