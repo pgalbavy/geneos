@@ -115,6 +115,9 @@ func (h *Host) String() string {
 
 // return a string of the form "host:/path" for consistent use in output
 func (h *Host) Path(path string) string {
+	if h == LOCAL {
+		return path
+	}
 	return fmt.Sprintf("%s:%s", h, path)
 }
 

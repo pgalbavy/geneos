@@ -179,6 +179,7 @@ func RemovePaths(c geneos.Instance, paths string) (err error) {
 				logError.Println(err)
 				continue
 			}
+			log.Printf("removed %s", c.Host().Path(f))
 		}
 	}
 	return

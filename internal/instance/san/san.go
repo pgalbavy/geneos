@@ -164,13 +164,20 @@ func (s *Sans) SetConf(v *viper.Viper) {
 	s.Conf = v
 }
 
-func (s *Sans) Add(username string, tmpl string, port uint16) (err error) {
+func (s *Sans) Add(username string, template string, port uint16) (err error) {
 	if port == 0 {
 		port = instance.NextPort(s.InstanceHost, &San)
 	}
 	s.V().Set("port", port)
 	s.V().Set("user", username)
-	s.V().Set("configrebuild", "always")
+	s.V().Set("config.rebuild", "always")
+	s.V().Set("config.template", SanDefaultTemplate)
+	s.V().SetDefault("config.template", SanDefaultTemplate)
+
+	if template != "" {
+		filename, _ := instance.ImportCommons(s.Host(), s.Type(), "templates", []string{template})
+		s.V().Set("config.template", filename)
+	}
 
 	s.V().Set("types", []string{})
 	s.V().Set("attributes", make(map[string]string))
@@ -197,7 +204,7 @@ func (s *Sans) Add(username string, tmpl string, port uint16) (err error) {
 //
 // we do a dance if there is a change in TLS setup and we use default ports
 func (s *Sans) Rebuild(initial bool) (err error) {
-	configrebuild := s.V().GetString("configrebuild")
+	configrebuild := s.V().GetString("config.rebuild")
 	if configrebuild == "never" {
 		return
 	}
@@ -227,7 +234,7 @@ func (s *Sans) Rebuild(initial bool) (err error) {
 			return err
 		}
 	}
-	return instance.CreateConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), SanDefaultTemplate, SanTemplate)
+	return instance.CreateConfigFromTemplate(s, filepath.Join(s.Home(), "netprobe.setup.xml"), s.V().GetString("config.template"), SanTemplate)
 }
 
 func (s *Sans) Command() (args, env []string) {

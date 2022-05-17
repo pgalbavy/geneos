@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/instance"
@@ -68,12 +67,12 @@ file can be imported at a time.`,
 func init() {
 	rootCmd.AddCommand(importCmd)
 
-	importCmd.Flags().StringVarP(&common, "common", "c", "", "Import into a common directory instead of matching instances.	For example, if TYPE is 'gateway' and NAME is 'shared' then this common directory is 'gateway/gateway_shared'")
-	importCmd.Flags().StringVarP(&hostname, "host", "H", "all", "Import only to named host, default is all")
+	importCmd.Flags().StringVarP(&importCmdCommon, "common", "c", "", "Import into a common directory instead of matching instances.	For example, if TYPE is 'gateway' and NAME is 'shared' then this common directory is 'gateway/gateway_shared'")
+	importCmd.Flags().StringVarP(&importCmdHostname, "host", "H", "all", "Import only to named host, default is all")
 	importCmd.Flags().SortFlags = false
 }
 
-var common, hostname string
+var importCmdCommon, importCmdHostname string
 
 // add a file to an instance, from local or URL
 // overwrites without asking - use case is license files, setup files etc.
@@ -81,10 +80,10 @@ var common, hostname string
 // no restart or reload of components?
 
 func commandImport(ct *geneos.Component, args []string, params []string) (err error) {
-	if common != "" {
+	if importCmdCommon != "" {
 		// ignore args, use ct & params
-		for _, r := range host.Match(hostname) {
-			if err = importCommons(r, ct, params); err != nil {
+		for _, r := range host.Match(importCmdHostname) {
+			if _, err = instance.ImportCommons(r, ct, ct.String()+"_"+importCmdCommon, params); err != nil {
 				return
 			}
 		}
@@ -115,25 +114,7 @@ func importInstance(c geneos.Instance, params []string) (err error) {
 	}
 
 	for _, source := range params {
-		if err = instance.ImportFile(c.Host(), c.Home(), c.V().GetString("user"), source); err != nil {
-			return
-		}
-	}
-	return
-}
-
-func importCommons(r *host.Host, ct *geneos.Component, params []string) (err error) {
-	if !ct.RealComponent {
-		return ErrNotSupported
-	}
-
-	if len(params) == 0 {
-		logError.Fatalln("no file/url provided")
-	}
-
-	dir := r.GeneosJoinPath(ct.String(), ct.String()+"_"+common)
-	for _, source := range params {
-		if err = instance.ImportFile(r, dir, viper.GetString("defaultuser"), source); err != nil {
+		if _, err = instance.ImportFile(c.Host(), c.Home(), c.V().GetString("user"), source); err != nil {
 			return
 		}
 	}

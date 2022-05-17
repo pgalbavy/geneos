@@ -178,13 +178,20 @@ func (g *Gateways) SetConf(v *viper.Viper) {
 	g.Conf = v
 }
 
-func (g *Gateways) Add(username string, tmpl string, port uint16) (err error) {
+func (g *Gateways) Add(username string, template string, port uint16) (err error) {
 	if port == 0 {
 		port = instance.NextPort(g.InstanceHost, &Gateway)
 	}
 	g.V().Set("port", port)
 	g.V().Set("user", username)
-	g.V().Set("configrebuild", "initial")
+	g.V().Set("config.rebuild", "initial")
+
+	g.V().SetDefault("config.template", GatewayDefaultTemplate)
+	if template != "" {
+		filename, _ := instance.ImportCommons(g.Host(), g.Type(), "templates", []string{template})
+		g.V().Set("config.template", filename)
+	}
+
 	g.V().Set("includes", make(map[int]string))
 
 	// try to save config early
@@ -208,12 +215,13 @@ func (g *Gateways) Add(username string, tmpl string, port uint16) (err error) {
 }
 
 func (g *Gateways) Rebuild(initial bool) (err error) {
+	// always rebuild an instance template
 	err = instance.CreateConfigFromTemplate(g, filepath.Join(g.Home(), "instance.setup.xml"), GatewayInstanceTemplate, InstanceTemplate)
 	if err != nil {
 		return
 	}
 
-	configrebuild := g.V().GetString("configrebuild")
+	configrebuild := g.V().GetString("config.rebuild")
 
 	if configrebuild == "never" {
 		return
@@ -261,7 +269,7 @@ func (g *Gateways) Rebuild(initial bool) (err error) {
 		}
 	}
 
-	return instance.CreateConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), GatewayDefaultTemplate, GatewayTemplate)
+	return instance.CreateConfigFromTemplate(g, filepath.Join(g.Home(), "gateway.setup.xml"), g.V().GetString("config.template"), GatewayTemplate)
 }
 
 func (g *Gateways) Command() (args, env []string) {
@@ -281,6 +289,8 @@ func (g *Gateways) Command() (args, env []string) {
 	}
 
 	// check version
+	// base, underlying, _ := instance.Version(g)
+	// if underlying ... { }
 	// "-gateway-name",
 
 	if g.V().GetString("gatewayname") != g.Name() {

@@ -183,7 +183,7 @@ func (w *Webservers) Add(username string, tmpl string, port uint16) (err error) 
 	}
 
 	for _, source := range webserverFiles {
-		if err = instance.ImportFile(w.Host(), w.Home(), w.V().GetString("user"), source); err != nil {
+		if _, err = instance.ImportFile(w.Host(), w.Home(), w.V().GetString("user"), source); err != nil {
 			return
 		}
 	}

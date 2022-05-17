@@ -88,10 +88,18 @@ func CreateConfigFromTemplate(c geneos.Instance, path string, name string, defau
 
 	// m := make(map[string]string)
 	m := c.V().AllSettings()
+	// viper insists this is a float64, manually override
+	m["port"] = uint16(c.V().GetUint("port"))
+	// set high level defaults
 	m["root"] = c.Host().GetString("geneos")
 	m["name"] = c.Name()
+	// XXX remove aliases ??
+	for _, k := range c.V().AllKeys() {
+		if _, ok := c.Type().Aliases[k]; ok {
+			delete(m, k)
+		}
+	}
 	logDebug.Printf("template data: %#v", m)
-	// m["env"] =
 
 	if err = t.ExecuteTemplate(out, name, m); err != nil {
 		log.Println("Cannot create configuration from template(s):", err)

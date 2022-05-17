@@ -8,22 +8,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
 	"wonderland.org/geneos/internal/geneos"
 	"wonderland.org/geneos/internal/host"
 	"wonderland.org/geneos/internal/utils"
 )
 
-func ImportFile(h *host.Host, home string, user string, source string, options ...geneos.GeneosOptions) (err error) {
+func ImportFile(h *host.Host, home string, user string, source string, options ...geneos.GeneosOptions) (filename string, err error) {
 	var backuppath string
 	var from io.ReadCloser
 
 	if h == host.ALL {
-		return geneos.ErrInvalidArgs
+		err = geneos.ErrInvalidArgs
+		return
 	}
 
 	uid, gid, _, err := utils.GetIDs(user)
 	if err != nil {
-		return err
+		return
 	}
 
 	// destdir becomes the absolute path for the imported file
@@ -58,7 +60,7 @@ func ImportFile(h *host.Host, home string, user string, source string, options .
 		}
 	}
 
-	from, filename, err := geneos.OpenLocalFileOrURL(source)
+	from, filename, err = geneos.OpenLocalFileOrURL(source)
 	if err != nil {
 		logError.Fatalln(err)
 	}
@@ -67,6 +69,8 @@ func ImportFile(h *host.Host, home string, user string, source string, options .
 	if destfile == "" {
 		destfile = filename
 	}
+	// return final basename
+	filename = filepath.Base(destfile)
 	destfile = filepath.Join(destdir, destfile)
 
 	// check to containing directory, as destfile above may be a
@@ -79,7 +83,7 @@ func ImportFile(h *host.Host, home string, user string, source string, options .
 		// if created by root, chown the last directory element
 		if err == nil && utils.IsSuperuser() {
 			if err = h.Chown(filepath.Dir(destfile), uid, gid); err != nil {
-				return err
+				return filename, err
 			}
 		}
 	}
@@ -92,13 +96,13 @@ func ImportFile(h *host.Host, home string, user string, source string, options .
 		datetime := time.Now().UTC().Format("20060102150405")
 		backuppath = destfile + "." + datetime + ".old"
 		if err = h.Rename(destfile, backuppath); err != nil {
-			return err
+			return filename, err
 		}
 	}
 
 	cf, err := h.Create(destfile, 0664)
 	if err != nil {
-		return err
+		return
 	}
 	defer cf.Close()
 
@@ -107,16 +111,35 @@ func ImportFile(h *host.Host, home string, user string, source string, options .
 			h.Remove(destfile)
 			if backuppath != "" {
 				if err = h.Rename(backuppath, destfile); err != nil {
-					return err
+					return
 				}
-				return err
+				return
 			}
 		}
 	}
 
 	if _, err = io.Copy(cf, from); err != nil {
-		return err
+		return
 	}
 	log.Printf("imported %q to %s:%s", source, h.String(), destfile)
-	return nil
+	return
+}
+
+func ImportCommons(r *host.Host, ct *geneos.Component, common string, params []string) (filename string, err error) {
+	if !ct.RealComponent {
+		err = geneos.ErrNotSupported
+		return
+	}
+
+	if len(params) == 0 {
+		logError.Fatalln("no file/url provided")
+	}
+
+	dir := r.GeneosJoinPath(ct.String(), common)
+	for _, source := range params {
+		if filename, err = ImportFile(r, dir, viper.GetString("defaultuser"), source); err != nil {
+			return
+		}
+	}
+	return
 }
