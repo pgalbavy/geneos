@@ -37,7 +37,7 @@ var (
 )
 
 // try to be atomic, lots of edge cases, UNIX/Linux only
-// we know the size of config structs is typicall small, so just marshal
+// we know the size of config structs is typically small, so just marshal
 // in memory
 func (h *Host) WriteConfigFile(file string, username string, perms fs.FileMode, config interface{}) (err error) {
 	j, err := json.MarshalIndent(config, "", "    ")

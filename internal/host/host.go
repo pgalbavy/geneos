@@ -113,6 +113,11 @@ func (h *Host) String() string {
 	return "unknown"
 }
 
+// return a string of the form "host:/path" for consistent use in output
+func (h *Host) Path(path string) string {
+	return fmt.Sprintf("%s:%s", h, path)
+}
+
 func (h *Host) GetOSReleaseEnv() (err error) {
 	osinfo := make(map[string]string)
 	f, err := h.ReadFile("/etc/os-release")

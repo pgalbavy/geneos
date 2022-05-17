@@ -85,7 +85,7 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 	}
 
 	if opts.restart {
-		// this cannot call 'instance' methods as that would be a dependency look...
+		// this cannot call 'instance' methods as that would be a dependency loop...
 
 	}
 
@@ -95,6 +95,6 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 	if err = h.Symlink(opts.version, basepath); err != nil {
 		return err
 	}
-	log.Println(ct, "on", h, opts.basename, "updated to", opts.version)
+	log.Println(ct, h.Path(basepath), "updated to", opts.version)
 	return nil
 }

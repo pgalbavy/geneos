@@ -254,7 +254,7 @@ func Unarchive(r *host.Host, ct *Component, filename string, gz io.Reader, optio
 			log.Printf("unsupported file type %c\n", hdr.Typeflag)
 		}
 	}
-	log.Printf("installed %q to %q\n", filename, basedir)
+	log.Printf("installed %q to %q\n", filename, r.Path(basedir))
 	options = append(options, Version(version))
 	return Update(r, ct, options...)
 }
