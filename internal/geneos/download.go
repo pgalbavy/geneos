@@ -43,8 +43,10 @@ func Install(r *host.Host, ct *Component, options ...GeneosOptions) (err error) 
 		return nil
 	}
 
-	p := r.GetString("osinfo.platform_id")
-	options = append(options, PlatformID(p))
+	osinfo := r.GetStringMapString("osinfo")
+	if p, ok := osinfo["PLATFORM_ID"]; ok {
+		options = append(options, PlatformID(p))
+	}
 	reader, filename, err := OpenComponentArchive(ct, options...)
 	if err != nil {
 		return err

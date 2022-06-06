@@ -326,6 +326,9 @@ func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filena
 
 		v.Set("os", "linux")
 		if opts.version != "latest" {
+			if platform != "" {
+				log.Fatalf("cannot download specific version for this platform (%q) - please download manually", platform)
+			}
 			v.Set("title", opts.version)
 		} else if platform != "" {
 			v.Set("title", "-"+platform)
@@ -340,21 +343,48 @@ func checkArchive(r *host.Host, ct *Component, options ...GeneosOptions) (filena
 			logError.Fatalln(err)
 		}
 
-		// only use auth if required
+		if resp.StatusCode == 404 && platform != "" {
+			resp.Body.Close()
+			v.Del("title")
+			realpath.RawQuery = v.Encode()
+			source = downloadURL.ResolveReference(realpath).String()
+
+			logDebug.Printf("platform download failed, retry source url: %q", source)
+			if resp, err = http.Get(source); err != nil {
+				logError.Fatalln(err)
+			}
+		}
+
+		// only use auth if required - but save auth for potential reuse below
+		var auth_body []byte
 		if resp.StatusCode == 401 || resp.StatusCode == 403 {
 			if viper.GetString("download.username") != "" {
 				da := downloadauth{viper.GetString("download.username"), viper.GetString("download.password")}
-				ja, err := json.Marshal(da)
+				auth_body, err = json.Marshal(da)
 				if err != nil {
 					logError.Fatalln(err)
 				}
-				ba := bytes.NewBuffer(ja)
-				if resp, err = http.Post(source, "application/json", ba); err != nil {
+				ba := auth_body
+				auth_reader := bytes.NewBuffer(ba)
+				if resp, err = http.Post(source, "application/json", auth_reader); err != nil {
 					logError.Fatalln(err)
 				}
 			}
 		}
 
+		if resp.StatusCode == 404 && platform != "" {
+			resp.Body.Close()
+			// try without platform type (e.g. no '-el8')
+			v.Del("title")
+			realpath.RawQuery = v.Encode()
+			source = downloadURL.ResolveReference(realpath).String()
+
+			logDebug.Printf("platform download failed, retry source url: %q", source)
+			auth_reader := bytes.NewBuffer(auth_body)
+			if resp, err = http.Post(source, "application/json", auth_reader); err != nil {
+				logError.Fatalln(err)
+			}
+		}
 	}
 
 	if resp.StatusCode > 299 {
