@@ -113,9 +113,6 @@ func New(name string) geneos.Instance {
 	g := &Gateways{}
 	g.Conf = viper.New()
 	g.Component = &Gateway
-	for k, v := range Gateway.Aliases {
-		g.V().RegisterAlias(k, v)
-	}
 	g.InstanceHost = h
 	if err := instance.SetDefaults(g, local); err != nil {
 		logger.Error.Fatalln(g, "setDefaults():", err)

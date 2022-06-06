@@ -271,6 +271,12 @@ func ReadConfig(c geneos.Instance) (err error) {
 		c.V().SetFs(sftpfs.New(client))
 	}
 	err = c.V().MergeInConfig()
+
+	// aliases have to be set AFTER loading from file (https://github.com/spf13/viper/issues/560)
+	for a, k := range c.Type().Aliases {
+		// logger.Debug.Printf("register %q as alias for %q", k, v)
+		c.V().RegisterAlias(a, k)
+	}
 	if err == nil {
 		logDebug.Printf("config loaded for %s from %q", c, c.V().ConfigFileUsed())
 	}
@@ -316,8 +322,9 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 	c.V().SetDefault("name", name)
 	if c.Type().Defaults != nil {
 		// set bootstrap values used by templates
-		c.V().Set("root", c.Host().GetString("geneos"))
+		root := c.Host().GetString("geneos")
 		for _, s := range c.Type().Defaults {
+			var b bytes.Buffer
 			p := strings.SplitN(s, "=", 2)
 			k, v := p[0], p[1]
 			val, err := template.New(k).Funcs(textJoinFuncs).Parse(v)
@@ -325,14 +332,17 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 				logError.Println(c, "parse error:", v)
 				return err
 			}
-			var b bytes.Buffer
 			if c.V() == nil {
 				logError.Println("no viper found")
 			}
-			if err = val.Execute(&b, c.V().AllSettings()); err != nil {
+			// add a bootstrap for 'root'
+			settings := c.V().AllSettings()
+			settings["root"] = root
+			if err = val.Execute(&b, settings); err != nil {
 				log.Println(c, "cannot set defaults:", v)
 				return err
 			}
+			// if default is an alias, resolve it here
 			if aliases != nil {
 				nk, ok := aliases[k]
 				if ok {
@@ -341,8 +351,6 @@ func SetDefaults(c geneos.Instance, name string) (err error) {
 			}
 			c.V().SetDefault(k, b.String())
 		}
-		// remove these so they don't pollute written out files
-		c.V().Set("root", nil)
 	}
 
 	return

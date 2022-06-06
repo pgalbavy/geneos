@@ -70,7 +70,7 @@ func Update(h *host.Host, ct *Component, options ...GeneosOptions) (err error) {
 	}
 
 	// does the version directory exist?
-	existing, err := h.ReadLink(basepath)
+	existing, err := h.Readlink(basepath)
 	if err != nil {
 		logDebug.Println("cannot read link for existing version", basepath)
 	}

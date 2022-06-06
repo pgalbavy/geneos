@@ -464,7 +464,7 @@ func Version(c geneos.Instance) (base string, underlying string, err error) {
 			return
 		}
 		if st.St.Mode()&fs.ModeSymlink != 0 {
-			underlying, err = c.Host().ReadLink(basepath)
+			underlying, err = c.Host().Readlink(basepath)
 			if err != nil {
 				underlying = "unknown"
 				return

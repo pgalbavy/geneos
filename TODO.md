@@ -39,7 +39,8 @@
   * use a REST interface
 * move/copy - need to update ports when moving to another remote or copying to same remote
 * explore gRPC and other options over ssh for remotes (required daemon mode)
-* passing templates to 'add' (or init) doesn't work - the code is missing! d'oh!
+* add socket and open file details to ls (ala lsof) - perhaps a "details" command or an option to "show" ?
+  * /proc/N/fd/* links and also /proc/net/tcp and udp etc.
 
 ## Other
 

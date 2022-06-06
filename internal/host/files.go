@@ -152,7 +152,7 @@ func copyDirEntry(fi fs.FileInfo, srcHost *Host, srcPath string, dstHost *Host, 
 			return err
 		}
 	case fi.Mode()&fs.ModeSymlink != 0:
-		link, err := srcHost.ReadLink(srcPath)
+		link, err := srcHost.Readlink(srcPath)
 		if err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func (h *Host) Symlink(target, path string) (err error) {
 	}
 }
 
-func (h *Host) ReadLink(file string) (link string, err error) {
+func (h *Host) Readlink(file string) (link string, err error) {
 	switch h.GetString("name") {
 	case LOCALHOST:
 		return os.Readlink(file)

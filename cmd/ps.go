@@ -89,7 +89,7 @@ func commandPS(ct *geneos.Component, args []string, params []string) (err error)
 		csvWriter.Flush()
 	default:
 		psTabWriter = tabwriter.NewWriter(log.Writer(), 3, 8, 2, ' ', 0)
-		fmt.Fprintf(psTabWriter, "Type\tName\tHost\tPID\tUser\tGroup\tStarttime\tVersion\tHome\n")
+		fmt.Fprintf(psTabWriter, "Type\tName\tHost\tPID\tPorts\tUser\tGroup\tStarttime\tVersion\tHome\n")
 		err = instance.ForAll(ct, psInstancePlain, args, params)
 		psTabWriter.Flush()
 	}
@@ -121,7 +121,9 @@ func psInstancePlain(c geneos.Instance, params []string) (err error) {
 		groupname = g.Name
 	}
 	base, underlying, _ := instance.Version(c)
-	fmt.Fprintf(psTabWriter, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s:%s\t%s\n", c.Type(), c.Name(), c.Host(), pid, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), base, underlying, c.Home())
+	ports := instance.Ports(c)
+
+	fmt.Fprintf(psTabWriter, "%s\t%s\t%s\t%d\t%v\t%s\t%s\t%s\t%s:%s\t%s\n", c.Type(), c.Name(), c.Host(), pid, ports, username, groupname, time.Unix(mtime, 0).Local().Format(time.RFC3339), base, underlying, c.Home())
 
 	return
 }
