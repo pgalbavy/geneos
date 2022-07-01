@@ -1,5 +1,9 @@
 # `geneos` management program
 
+| :warning: Please now use [cordial](https://github.com/ITRS-Group/cordial) instead of this repo |
+|:--|
+| I have now been able to move this project into the official ITRS-Group repo and given is a new name as it contains mix of Geneos related tools, libraries and packages. Please head over to https://github.com/ITRS-Group/cordial for the updated repo. |
+
 | :warning: Breaking Changes v1.1+ |
 |:--|
 | v1.1 is an almost complete rewrite of the `geneos` program and there **will** be breaking changes. Most of these will be command line flags, options, configuration file contents and support for old, obscure options. The trigger for many of these changes is the move to use well-known and mature packages for configuration handling (viper) and command line options (cobra) as well as the untangling of internal spaghetti code which made calls in and out of multiple layers of functionality. I have attempted to update this documentation to match the new functionality and to also highlight known changes for you, but it is highly probable that some things have been missed. |
